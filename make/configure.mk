@@ -42,7 +42,20 @@ define pkgconfig =
   $(if $($(name)_OBJ),,     $(eval $(name)_OBJ     :=))
 endef
 
-define bldconfig =
+define libconfig =
+  $(eval name = $(1))
+  $(if $($(name)_NAME), \
+    $(if $($(name)_LDLAGS),,  $(eval $(name)_LDFLAGS := -l$($(name)_NAME))) \
+  )
+  $(if $($(name)_OBJ),,     $(eval $(name)_OBJ     :=))
+endef
+
+define optconfig =
+  $(eval name = $(1))
+  $(if $($(name)_OBJ),,     $(eval $(name)_OBJ     :=))
+endef
+
+define srcconfig =
   $(eval name = $(1))
   $(if $($(name)_PATH),,    $(eval $(name)_PATH    := $(MODULES)/$($(name)_NAME)))
   $(if $($(name)_INC),,     $(eval $(name)_INC     := $($(name)_PATH)/include))
@@ -59,13 +72,26 @@ define bldconfig =
   )
 endef
 
+define hdrconfig =
+  $(eval name = $(1))
+  $(if $($(name)_PATH),,    $(eval $(name)_PATH    := $(MODULES)/$($(name)_NAME)))
+  $(if $($(name)_INC),,     $(eval $(name)_INC     := $($(name)_PATH)/include))
+  $(if $($(name)_TESTING),, $(eval $(name)_TESTING := 0))
+  $(if $($(name)_CFLAGS),,  $(eval $(name)_CFLAGS  := "-I\"$($(name)_INC)\""$(xflags)))
+  $(if $($(name)_MFLAGS),, \
+    $(eval $(name)_MFLAGS := \
+      $(if $(patsubst $(ARTIFACT_NAME),,$($(name)_NAME)),"-DLSP_BUILTIN_MODULE -fvisibility=hidden",)) \
+  )
+endef
+
 define vardef =
   $(eval name = $(1))
   # Override variables if they are not defined
-  $(if $(findstring system,$($(name)_VERSION)), \
-    $(eval $(call pkgconfig, $(name))), \
-    $(eval $(call bldconfig, $(name))) \
-  )
+  $(if $(findstring pkg,$($(name)_TYPE)), $(eval $(call pkgconfig, $(name))))
+  $(if $(findstring src,$($(name)_TYPE)), $(eval $(call srcconfig, $(name))))
+  $(if $(findstring hdr,$($(name)_TYPE)), $(eval $(call hdrconfig, $(name))))
+  $(if $(findstring lib,$($(name)_TYPE)), $(eval $(call libconfig, $(name))))
+  $(if $(findstring opt,$($(name)_TYPE)), $(eval $(call optconfig, $(name))))
 endef
 
 # Define predefined variables
@@ -80,6 +106,7 @@ ifndef $(ARTIFACT_VARS)_PATH
 endif
 
 $(ARTIFACT_VARS)_TESTING    = $(TEST)
+$(ARTIFACT_VARS)_TYPE      := src
 
 OVERALL_DEPS := $(DEPENDENCIES) $(ARTIFACT_VARS)
 __tmp := $(foreach dep,$(OVERALL_DEPS),$(call vardef, $(dep)))
@@ -90,6 +117,7 @@ CONFIG_VARS = \
   $(foreach name, $(OVERALL_DEPS), \
     $(name)_NAME \
     $(name)_VERSION \
+    $(name)_TYPE \
     $(name)_BRANCH \
     $(name)_PATH \
     $(name)_INC \
@@ -132,11 +160,14 @@ help: | toolvars sysvars
 	@echo "  <ARTIFACT>_PATH           location of the source code of the artifact"
 	@echo "  <ARTIFACT>_SRC            path to source code files of the artifact"
 	@echo "  <ARTIFACT>_TEST           location of test files of the artifact"
+	@echo "  <ARTIFACT>_TYPE           artifact usage type"
+	@echo "                            - src - use sources and headers from git"
+	@echo "                            - hdr - use headers only from git"
+	@echo "                            - pkg - use pkgconfig for configuration"
+	@echo "                            - lib - use system headers and -l<libname> flags"
+	@echo "                            - opt - use optional configuration"
 	@echo "  <ARTIFACT>_URL            location of the artifact git repoisitory"
-	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building:"
-	@echo "                              - version contained in git tag"
-	@echo "                              - git branch name"
-	@echo "                              - 'system' for system library use"
+	@echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	@echo ""
 	@echo "Artifacts used for build:"
 	@echo "  $(DEPENDENCIES)"
