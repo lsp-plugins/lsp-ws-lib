@@ -9,15 +9,20 @@ LSP_LLTL_LIB_NAME          := lsp-lltl-lib
 LSP_LLTL_LIB_TYPE          := src
 LSP_LLTL_LIB_URL           := https://github.com/sadko4u/$(LSP_LLTL_LIB_NAME).git
 
-LSP_TEST_FW_VERSION        := 1.0.3
-LSP_TEST_FW_NAME           := lsp-test-fw
-LSP_TEST_FW_TYPE           := src
-LSP_TEST_FW_URL            := https://github.com/sadko4u/$(LSP_TEST_FW_NAME).git
+LSP_RUNTIME_LIB_VERSION    := 0.5.0
+LSP_RUNTIME_LIB_NAME       := lsp-runtime-lib
+LSP_RUNTIME_LIB_TYPE       := src
+LSP_RUNTIME_LIB_URL        := https://github.com/sadko4u/$(LSP_RUNTIME_LIB_NAME).git
 
 LSP_R3D_BASE_LIB_VERSION   := 0.5.1
 LSP_R3D_BASE_LIB_NAME      := lsp-r3d-base-lib
 LSP_R3D_BASE_LIB_URL       := https://github.com/sadko4u/$(LSP_R3D_BASE_LIB_NAME).git
 LSP_R3D_BASE_LIB_TYPE      := hdr
+
+LSP_TEST_FW_VERSION        := 1.0.3
+LSP_TEST_FW_NAME           := lsp-test-fw
+LSP_TEST_FW_TYPE           := src
+LSP_TEST_FW_URL            := https://github.com/sadko4u/$(LSP_TEST_FW_NAME).git
 
 LIBSNDFILE_VERSION         := system
 LIBSNDFILE_NAME            := sndfile
