@@ -5,14 +5,24 @@
  *      Author: sadko
  */
 
-#include <ui/ws/x11/ws.h>
+#include <lsp-plug.in/common/types.h>
 
-#ifdef USE_X11_DISPLAY
+#ifdef USE_XLIB
+
+#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/common/endian.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/ws/INativeWindow.h>
+
+#include <private/x11/X11Atoms.h>
+#include <private/x11/X11Window.h>
+#include <private/x11/X11Display.h>
 
 #include <limits.h>
 #include <errno.h>
-#include <string.h>
-#include <dsp/endian.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
 
 namespace lsp
 {
@@ -283,7 +293,7 @@ namespace lsp
                 }
             }
 
-            void X11Window::calc_constraints(realize_t *dst, const realize_t *req)
+            void X11Window::calc_constraints(rectangle_t *dst, const rectangle_t *req)
             {
                 *dst    = *req;
 
@@ -706,7 +716,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::set_geometry(const realize_t *realize)
+            status_t X11Window::set_geometry(const rectangle_t *realize)
             {
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
@@ -731,14 +741,14 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::get_geometry(realize_t *realize)
+            status_t X11Window::get_geometry(rectangle_t *realize)
             {
                 if (realize != NULL)
                     *realize    = sSize;
                 return STATUS_OK;
             }
 
-            status_t X11Window::get_absolute_geometry(realize_t *realize)
+            status_t X11Window::get_absolute_geometry(rectangle_t *realize)
             {
                 if (realize == NULL)
                     return STATUS_BAD_ARGUMENTS;
@@ -884,7 +894,7 @@ namespace lsp
                 return resize(sSize.nWidth, height);
             }
 
-            status_t X11Window::set_size_constraints(const size_request_t *c)
+            status_t X11Window::set_size_constraints(const size_limit_t *c)
             {
                 sConstraints    = *c;
 
@@ -904,7 +914,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::get_size_constraints(size_request_t *c)
+            status_t X11Window::get_size_constraints(size_limit_t *c)
             {
                 *c = sConstraints;
                 return STATUS_OK;
@@ -912,7 +922,7 @@ namespace lsp
 
             status_t X11Window::check_constraints()
             {
-                realize_t rs;
+                rectangle_t rs;
 
                 calc_constraints(&rs, &sSize);
                 if ((rs.nWidth == sSize.nWidth) && (rs.nHeight == sSize.nHeight))
@@ -1285,4 +1295,4 @@ namespace lsp
     }
  */
 
-#endif /* USE_X11_DISPLAY */
+#endif /* USE_XLIB */

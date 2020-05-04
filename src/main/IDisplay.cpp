@@ -5,21 +5,8 @@
  *      Author: sadko
  */
 
-#include <core/status.h>
-#include <ui/ws/ws.h>
-#include <core/io/Dir.h>
-#include <metadata/metadata.h>
-
-#ifdef LSP_IDE_DEBUG
-    #ifdef PLATFORM_UNIX_COMPATIBLE
-        #include <rendering/glx/factory.h>
-
-        namespace lsp
-        {
-            extern glx_factory_t   glx_factory;
-        }
-    #endif
-#endif /* LSP_IDE_DEBUG */
+#include <lsp-plug.in/ws/IDisplay.h>
+#include <lsp-plug.in/io/Dir.h>
 
 namespace lsp
 {
@@ -28,7 +15,7 @@ namespace lsp
         IDisplay::IDisplay()
         {
             nTaskID             = 0;
-            s3DFactory          = NULL;
+            p3DFactory          = NULL;
             nCurrent3D          = 0;
             nPending3D          = 0;
             sMainTask.nID       = 0;
@@ -61,7 +48,7 @@ namespace lsp
             if (backend == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            const r3d_library_t *lib = static_cast<const r3d_library_t *>(backend);
+            const r3d_lib_t *lib = static_cast<const r3d_lib_t *>(backend);
             ssize_t index   = s3DLibs.index_of(lib);
             if (index < 0)
                 return STATUS_NOT_FOUND;
@@ -73,7 +60,7 @@ namespace lsp
 
         status_t IDisplay::selectBackendId(size_t id)
         {
-            const r3d_library_t *lib = s3DLibs.get(id);
+            const r3d_lib_t *lib = s3DLibs.get(id);
             if (lib == NULL)
                 return STATUS_NOT_FOUND;
 
@@ -151,19 +138,19 @@ namespace lsp
             return register3DBackend(&tmp);
         }
 
-        status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d_factory_t *factory)
+        status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory)
         {
             for (size_t id=0; ; ++id)
             {
                 // Get metadata record
-                const r3d_backend_metadata_t *meta = factory->metadata(factory, id);
+                const r3d::backend_metadata_t *meta = factory->metadata(factory, id);
                 if (meta == NULL)
                     break;
                 else if (meta->id == NULL)
                     continue;
 
                 // Create library descriptor
-                r3d_library_t *r3dlib   = new r3d_library_t();
+                r3d_lib_t *r3dlib   = new r3d_lib_t();
                 if (r3dlib == NULL)
                     return STATUS_NO_MEM;
 
@@ -179,7 +166,9 @@ namespace lsp
                 }
 
                 if ((!r3dlib->uid.set_utf8(meta->id)) ||
-                    (!r3dlib->display.set_utf8((meta->display != NULL) ? meta->display : meta->id)))
+                    (!r3dlib->display.set_utf8((meta->display != NULL) ? meta->display : meta->id)) ||
+                    (!r3dlib->lc_key.set_utf8((meta->lc_key != NULL) ? meta->lc_key : meta->id))
+                    )
                 {
                     delete r3dlib;
                     return STATUS_NO_MEM;
@@ -205,8 +194,10 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
+            // TODO: add version control
+
             // Lookup function
-            lsp_r3d_factory_function_t func = reinterpret_cast<lsp_r3d_factory_function_t>(lib.import(R3D_FACTORY_FUNCTION_NAME));
+            r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(lib.import(R3D_FACTORY_FUNCTION_NAME));
             if (func == NULL)
             {
                 lib.close();
@@ -214,7 +205,7 @@ namespace lsp
             }
 
             // Try to instantiate factory
-            r3d_factory_t *factory  = func(LSP_MAIN_VERSION);
+            r3d::factory_t *factory  = func();
             if (factory == NULL)
             {
                 lib.close();
@@ -270,14 +261,14 @@ namespace lsp
             // Destroy all libs
             for (size_t j=0, m=s3DLibs.size(); j<m; ++j)
             {
-                r3d_library_t *r3dlib = s3DLibs.at(j);
+                r3d_lib_t *r3dlib = s3DLibs.uget(j);
                 delete r3dlib;
             }
 
             // Flush list of backends and close library
             s3DLibs.flush();
             s3DBackends.flush();
-            s3DFactory = NULL;
+            p3DFactory = NULL;
             s3DLibrary.close();
         }
 
@@ -317,7 +308,7 @@ namespace lsp
             // Need to unload library?
             if (s3DBackends.size() <= 0)
             {
-                s3DFactory  = NULL;
+                p3DFactory  = NULL;
                 s3DLibrary.close();
             }
         }
@@ -328,12 +319,12 @@ namespace lsp
                 return NULL;
 
             // Obtain current backend
-            r3d_library_t *lib = s3DLibs.get(nCurrent3D);
+            r3d_lib_t *lib = s3DLibs.get(nCurrent3D);
             if (lib == NULL)
                 return NULL;
 
             // Check that factory is present
-            if (s3DFactory == NULL)
+            if (p3DFactory == NULL)
             {
                 if (s3DBackends.size() > 0)
                     return NULL;
@@ -344,7 +335,7 @@ namespace lsp
             }
 
             // Call factory to create backend
-            r3d_backend_t *backend = s3DFactory->create(s3DFactory, lib->local_id);
+            r3d::backend_t *backend = p3DFactory->create(p3DFactory, lib->local_id);
             if (backend == NULL)
                 return NULL;
 
@@ -381,10 +372,10 @@ namespace lsp
             return r3d;
         }
 
-        status_t IDisplay::switch_r3d_backend(r3d_library_t *lib)
+        status_t IDisplay::switch_r3d_backend(r3d_lib_t *lib)
         {
             status_t res;
-            r3d_factory_t *factory;
+            r3d::factory_t *factory;
             ipc::Library dlib;
 
             if (!lib->builtin)
@@ -395,7 +386,7 @@ namespace lsp
                     return res;
 
                 // Obtain factory function
-                lsp_r3d_factory_function_t func = reinterpret_cast<lsp_r3d_factory_function_t>(dlib.import(R3D_FACTORY_FUNCTION_NAME));
+                r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(dlib.import(R3D_FACTORY_FUNCTION_NAME));
                 if (func == NULL)
                 {
                     dlib.close();
@@ -449,7 +440,7 @@ namespace lsp
             dlib.close();
 
             // Register new pointer to the backend factory
-            s3DFactory  = factory;
+            p3DFactory  = factory;
 
             return STATUS_OK;
         }
@@ -459,7 +450,7 @@ namespace lsp
             // Sync backends
             if (nCurrent3D != nPending3D)
             {
-                r3d_library_t *lib = s3DLibs.get(nPending3D);
+                r3d_lib_t *lib = s3DLibs.get(nPending3D);
                 if (lib != NULL)
                 {
                     if (switch_r3d_backend(lib) == STATUS_OK)
@@ -520,7 +511,7 @@ namespace lsp
         {
             for (size_t i=0, n=sTasks.size(); i<n; ++i)
             {
-                dtask_t *task = sTasks.at(i);
+                dtask_t *task = sTasks.uget(i);
                 if (task == NULL)
                     continue;
                 if (task->nID == id)
@@ -540,7 +531,7 @@ namespace lsp
             while (first <= last)
             {
                 ssize_t center  = (first + last) >> 1;
-                dtask_t *t      = sTasks.at(center);
+                dtask_t *t      = sTasks.uget(center);
                 if (t->nTime <= time)
                     first           = center + 1;
                 else
@@ -573,7 +564,7 @@ namespace lsp
 
             // Remove task from the queue
             for (size_t i=0; i<sTasks.size(); ++i)
-                if (sTasks.at(i)->nID == id)
+                if (sTasks.uget(i)->nID == id)
                 {
                     sTasks.remove(i);
                     return STATUS_OK;
@@ -605,7 +596,7 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::acceptDrag(IDataSink *sink, drag_t action, bool internal, const realize_t *r)
+        status_t IDisplay::acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
         {
             return STATUS_NOT_IMPLEMENTED;
         }

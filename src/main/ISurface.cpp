@@ -5,123 +5,13 @@
  *      Author: sadko
  */
 
-#include <ui/ws/ws.h>
+#include <lsp-plug.in/ws/ISurface.h>
 #include <stdlib.h>
 
 namespace lsp
 {
     namespace ws
     {
-        IGradient::IGradient()
-        {
-        }
-
-        IGradient::~IGradient()
-        {
-        }
-
-        void IGradient::add_color(float offset, float r, float g, float b, float a)
-        {
-        }
-
-        void IGradient::add_color(const Color &c)
-        {
-            add_color(offset, c.red(), c.green(), c.blue(), c.alpha());
-        }
-
-        void IGradient::add_color(const Color &c, float a)
-        {
-            add_color(offset, c.red(), c.green(), c.blue(), a);
-        }
-
-        void IGradient::add_color_rgb(float offset, uint32_t color)
-        {
-            add_color(offset,
-                (color & 0xff) / 255.0f,
-                ((color >> 8) & 0xff) / 255.0f,
-                ((color >> 16) & 0xff) / 255.0f,
-                0.0f
-            );
-        }
-
-        void IGradient::add_color_rgba(float offset, uint32_t color)
-        {
-            add_color(offset,
-                (color & 0xff) / 255.0f,
-                ((color >> 8) & 0xff) / 255.0f,
-                ((color >> 16) & 0xff) / 255.0f,
-                ((color >> 24) & 0xff) / 255.0f
-            );
-        }
-
-        Font::Font()
-        {
-            sName       = strdup("Sans");
-            fSize       = 10.0f;
-            nFlags      = 0;
-        }
-
-        Font::Font(const char *name)
-        {
-            sName       = strdup(name);
-            fSize       = 10.0f;
-            nFlags      = 0;
-        }
-
-        Font::Font(const char *name, float size)
-        {
-            sName       = strdup(name);
-            fSize       = size;
-            nFlags      = 0;
-        }
-
-        Font::Font(float size)
-        {
-            sName       = strdup("Sans");
-            fSize       = size;
-            nFlags      = 0;
-        }
-
-        Font::Font(const Font *s)
-        {
-            set(s);
-        }
-
-        Font::~Font()
-        {
-            if (sName != NULL)
-            {
-                free(sName);
-                sName = NULL;
-            }
-        }
-
-        void Font::set(const Font *s)
-        {
-            if (sName != NULL)
-                free(sName);
-            sName       = (s->sName != NULL) ? strdup(s->sName) : NULL;
-            fSize       = s->fSize;
-            nFlags      = s->nFlags;
-        }
-
-        void Font::set_name(const char *name)
-        {
-            if (sName != NULL)
-                free(sName);
-            sName   = (name != NULL) ? strdup(name) : NULL;
-        }
-
-        bool Font::get_parameters(ISurface *s, font_parameters_t *fp)
-        {
-            return s->get_font_parameters(*this, fp);
-        }
-
-        bool Font::get_text_parameters(ISurface *s, text_parameters_t *tp, const char *text)
-        {
-            return s->get_text_parameters(*this, tp, text);
-        }
-
         ISurface::ISurface(size_t width, size_t height, surface_type_t type)
         {
             nWidth      = width;

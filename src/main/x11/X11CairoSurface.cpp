@@ -5,10 +5,16 @@
  *      Author: sadko
  */
 
-#include <ui/ws/x11/ws.h>
-#include <cairo/cairo.h>
+#include <lsp-plug.in/common/types.h>
 
-#ifdef USE_X11_DISPLAY
+#if defined(USE_XLIB) && defined (USE_CAIRO)
+
+#include <lsp-plug.in/stdlib/math.h>
+#include <private/x11/X11CairoGradient.h>
+#include <private/x11/X11CairoSurface.h>
+#include <cairo/cairo.h>
+#include <cairo/cairo-xlib.h>
+
 namespace lsp
 {
     namespace ws
@@ -18,31 +24,31 @@ namespace lsp
             X11CairoSurface::X11CairoSurface(Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height):
                 ISurface(width, height, ST_XLIB)
             {
-                pSurface        = cairo_xlib_surface_create(dpy, drawable, visual, width, height);
+                pSurface        = ::cairo_xlib_surface_create(dpy, drawable, visual, width, height);
                 if (pSurface == NULL)
                     return;
-                pCR             = cairo_create(pSurface);
+                pCR             = ::cairo_create(pSurface);
                 if (pCR == NULL)
                     return;
                 bBegin          = false;
 
-                cairo_set_antialias(pCR, CAIRO_ANTIALIAS_NONE);
-                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
+                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_NONE);
+                ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
             }
 
             X11CairoSurface::X11CairoSurface(size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
-                pSurface        = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 if (pSurface == NULL)
                     return;
-                pCR             = cairo_create(pSurface);
+                pCR             = ::cairo_create(pSurface);
                 if (pCR == NULL)
                     return;
                 bBegin          = false;
 
-                cairo_set_antialias(pCR, CAIRO_ANTIALIAS_NONE);
-                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
+                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_NONE);
+                ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
                 nStride         = cairo_image_surface_get_stride(pSurface);
             }
 
@@ -72,8 +78,8 @@ namespace lsp
                 }
 
                 // Draw one surface on another
-                cairo_set_source_surface(s->pCR, pSurface, 0.0f, 0.0f);
-                cairo_paint(s->pCR);
+                ::cairo_set_source_surface(s->pCR, pSurface, 0.0f, 0.0f);
+                ::cairo_paint(s->pCR);
 
                 return s;
             }
@@ -116,16 +122,16 @@ namespace lsp
             {
                 if (nType == ST_XLIB)
                 {
-                    cairo_xlib_surface_set_size(pSurface, width, height);
+                    ::cairo_xlib_surface_set_size(pSurface, width, height);
                     return true;
                 }
                 else if (nType == ST_IMAGE)
                 {
                     // Create new surface and cairo
-                    cairo_surface_t *s  = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    cairo_surface_t *s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                     if (s == NULL)
                         return false;
-                    cairo_t *cr         = cairo_create(s);
+                    cairo_t *cr         = ::cairo_create(s);
                     if (cr == NULL)
                     {
                         cairo_surface_destroy(s);
@@ -133,8 +139,8 @@ namespace lsp
                     }
 
                     // Draw previous content
-                    cairo_set_source_surface(cr, pSurface, 0, 0);
-                    cairo_fill(cr);
+                    ::cairo_set_source_surface(cr, pSurface, 0, 0);
+                    ::cairo_fill(cr);
 
                     // Destroy previously used context
                     destroy_context();
@@ -159,8 +165,8 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                cairo_set_source_surface(pCR, cs->pSurface, x, y);
-                cairo_paint(pCR);
+                ::cairo_set_source_surface(pCR, cs->pSurface, x, y);
+                ::cairo_paint(pCR);
             }
 
             void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy)
@@ -175,16 +181,16 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                cairo_save(pCR);
+                ::cairo_save(pCR);
                 if (sx < 0.0f)
                     x       -= sx * s->width();
                 if (sy < 0.0f)
                     y       -= sy * s->height();
-                cairo_translate(pCR, x, y);
-                cairo_scale(pCR, sx, sy);
-                cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                cairo_paint(pCR);
-                cairo_restore(pCR);
+                ::cairo_translate(pCR, x, y);
+                ::cairo_scale(pCR, sx, sy);
+                ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                ::cairo_paint(pCR);
+                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
@@ -199,16 +205,16 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                cairo_save(pCR);
+                ::cairo_save(pCR);
                 if (sx < 0.0f)
                     x       -= sx * s->width();
                 if (sy < 0.0f)
                     y       -= sy * s->height();
-                cairo_translate(pCR, x, y);
-                cairo_scale(pCR, sx, sy);
-                cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                cairo_paint_with_alpha(pCR, 1.0f - a);
-                cairo_restore(pCR);
+                ::cairo_translate(pCR, x, y);
+                ::cairo_scale(pCR, sx, sy);
+                ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
@@ -223,13 +229,13 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                cairo_save(pCR);
-                cairo_translate(pCR, x, y);
-                cairo_scale(pCR, sx, sy);
-                cairo_rotate(pCR, ra);
-                cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                cairo_paint_with_alpha(pCR, 1.0f - a);
-                cairo_restore(pCR);
+                ::cairo_save(pCR);
+                ::cairo_translate(pCR, x, y);
+                ::cairo_scale(pCR, sx, sy);
+                ::cairo_rotate(pCR, ra);
+                ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
@@ -244,11 +250,11 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                cairo_save(pCR);
-                cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
-                cairo_rectangle(pCR, x, y, sw, sh);
-                cairo_fill(pCR);
-                cairo_restore(pCR);
+                ::cairo_save(pCR);
+                ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
+                ::cairo_rectangle(pCR, x, y, sw, sh);
+                ::cairo_fill(pCR);
+                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::begin()
@@ -270,7 +276,7 @@ namespace lsp
                 // TODO
 
                 bBegin = false;
-                cairo_surface_flush(pSurface);
+                ::cairo_surface_flush(pSurface);
             }
 
             void X11CairoSurface::clear_rgb(uint32_t rgb)
@@ -284,24 +290,24 @@ namespace lsp
                     return;
 
                 cairo_operator_t op = cairo_get_operator(pCR);
-                cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
-                cairo_set_source_rgb(pCR,
+                ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
+                ::cairo_set_source_rgb(pCR,
                     float((rgba >> 16) & 0xff)/255.0f,
                     float((rgba >> 8) & 0xff)/255.0f,
                     float(rgba & 0xff)/255.0f
                 );
-                cairo_paint(pCR);
-                cairo_set_operator (pCR, op);
+                ::cairo_paint(pCR);
+                ::cairo_set_operator (pCR, op);
             }
 
             inline void X11CairoSurface::setSourceRGB(const Color &col)
             {
-                cairo_set_source_rgb(pCR, col.red(), col.green(), col.blue());
+                ::cairo_set_source_rgb(pCR, col.red(), col.green(), col.blue());
             }
 
             inline void X11CairoSurface::setSourceRGBA(const Color &col)
             {
-                cairo_set_source_rgba(pCR, col.red(), col.green(), col.blue(), 1.0f - col.alpha());
+                ::cairo_set_source_rgba(pCR, col.red(), col.green(), col.blue(), 1.0f - col.alpha());
             }
 
             void X11CairoSurface::clear(const Color &color)
@@ -309,10 +315,10 @@ namespace lsp
                 if (pCR == NULL)
                     return;
                 setSourceRGBA(color);
-                cairo_operator_t op = cairo_get_operator(pCR);
-                cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
-                cairo_paint(pCR);
-                cairo_set_operator (pCR, op);
+                cairo_operator_t op = ::cairo_get_operator(pCR);
+                ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
+                ::cairo_paint(pCR);
+                ::cairo_set_operator (pCR, op);
             }
 
             void X11CairoSurface::fill_rect(float left, float top, float width, float height, const Color &color)
@@ -320,8 +326,8 @@ namespace lsp
                 if (pCR == NULL)
                     return;
                 setSourceRGBA(color);
-                cairo_rectangle(pCR, left, top, width, height);
-                cairo_fill(pCR);
+                ::cairo_rectangle(pCR, left, top, width, height);
+                ::cairo_fill(pCR);
             }
 
             void X11CairoSurface::fill_rect(float left, float top, float width, float height, IGradient *g)
@@ -1117,4 +1123,4 @@ namespace lsp
 
 } /* namespace lsp */
 
-#endif /* USE_X11_DISPLAY */
+#endif /* USE_XLIB && USE_CAIRO */

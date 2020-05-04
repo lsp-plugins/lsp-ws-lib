@@ -5,13 +5,21 @@
  *      Author: sadko
  */
 
-#include <ui/ws/x11/ws.h>
+#include <lsp-plug.in/common/types.h>
 
-#ifdef USE_X11_DISPLAY
+#ifdef USE_XLIB
+
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/stdlib/stdio.h>
+#include <lsp-plug.in/ws/types.h>
+#include <lsp-plug.in/ws/keycodes.h>
+#include <private/x11/decode.h>
+#include <private/x11/X11Display.h>
 
 #include <sys/poll.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <X11/cursorfont.h>
 
 #define X11IOBUF_SIZE               0x100000
 
@@ -46,52 +54,52 @@ namespace lsp
                 XC_question_arrow // MP_HELP +++
             };
 
-// Cursors matched to KDE:
-//XC_X_cursor,
-//XC_left_ptr,
-//XC_hand1,
-//XC_hand2,
-//XC_cross,
-//XC_xterm,
-//XC_pencil,
-//XC_plus,
-//XC_sb_v_double_arrow,
-//XC_sb_h_double_arrow,
-//XC_watch,
-//XC_fleur,
-//XC_circle,
-//XC_pirate,
-//XC_question_arrow,
+            // Cursors matched to KDE:
+            //XC_X_cursor,
+            //XC_left_ptr,
+            //XC_hand1,
+            //XC_hand2,
+            //XC_cross,
+            //XC_xterm,
+            //XC_pencil,
+            //XC_plus,
+            //XC_sb_v_double_arrow,
+            //XC_sb_h_double_arrow,
+            //XC_watch,
+            //XC_fleur,
+            //XC_circle,
+            //XC_pirate,
+            //XC_question_arrow,
 
-// Possible useful cursors:
-//XC_based_arrow_down,
-//XC_based_arrow_up,
-//XC_bottom_left_corner,
-//XC_bottom_right_corner,
-//XC_bottom_side,
-//XC_bottom_tee,
-//XC_center_ptr,
-//XC_cross_reverse,
-//XC_crosshair,
-//XC_double_arrow,
-//XC_exchange,
-//XC_left_side,
-//XC_left_tee,
-//XC_ll_angle,
-//XC_lr_angle,
-//XC_right_side,
-//XC_right_tee,
-//XC_sb_down_arrow,
-//XC_sb_left_arrow,
-//XC_sb_right_arrow,
-//XC_sb_up_arrow,
-//XC_tcross,
-//XC_top_left_corner,
-//XC_top_right_corner,
-//XC_top_side,
-//XC_top_tee,
-//XC_ul_angle,
-//XC_ur_angle,
+            // Possible useful cursors:
+            //XC_based_arrow_down,
+            //XC_based_arrow_up,
+            //XC_bottom_left_corner,
+            //XC_bottom_right_corner,
+            //XC_bottom_side,
+            //XC_bottom_tee,
+            //XC_center_ptr,
+            //XC_cross_reverse,
+            //XC_crosshair,
+            //XC_double_arrow,
+            //XC_exchange,
+            //XC_left_side,
+            //XC_left_tee,
+            //XC_ll_angle,
+            //XC_lr_angle,
+            //XC_right_side,
+            //XC_right_tee,
+            //XC_sb_down_arrow,
+            //XC_sb_left_arrow,
+            //XC_sb_right_arrow,
+            //XC_sb_up_arrow,
+            //XC_tcross,
+            //XC_top_left_corner,
+            //XC_top_right_corner,
+            //XC_top_side,
+            //XC_top_tee,
+            //XC_ul_angle,
+            //XC_ur_angle,
 
             volatile atomic_t X11Display::hLock     = 0;
             X11Display  *X11Display::pHandlers      = NULL;
@@ -280,7 +288,7 @@ namespace lsp
                 // Perform resource release
                 for (size_t i=0; i< vWindows.size(); )
                 {
-                    X11Window *wnd  = vWindows.at(i);
+                    X11Window *wnd  = vWindows.uget(i);
                     if (wnd != NULL)
                     {
                         wnd->destroy();
@@ -448,7 +456,7 @@ namespace lsp
                     // Execute all tasks in pending queue
                     for (size_t i=0; i<sPending.size(); ++i)
                     {
-                        dtask_t *t  = sPending.at(i);
+                        dtask_t *t  = sPending.uget(i);
 
                         // Process task
                         result  = t->pHandler(ts, t->pArg);
@@ -514,7 +522,7 @@ namespace lsp
 
                 for (size_t i=0; i<n; ++i)
                 {
-                    X11Window *w = vWindows.at(i);
+                    X11Window *w = vWindows.uget(i);
                     if (w == NULL)
                         continue;
                     if (w->x11handle() == wnd)
@@ -689,7 +697,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::decode_mime_types(cvector<char> *ctype, const uint8_t *data, size_t size)
+            status_t X11Display::decode_mime_types(lltl::parray<char> *ctype, const uint8_t *data, size_t size)
             {
                 // Fetch long list of supported MIME types
                 const uint32_t *list = reinterpret_cast<const uint32_t *>(data);
@@ -723,7 +731,7 @@ namespace lsp
             {
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (task->cb_common.bComplete)
                         continue;
 
@@ -759,7 +767,7 @@ namespace lsp
                 // Cleanup tasks
 //                for (size_t i=0, n=sAsync.size(); i<n; ++i)
 //                {
-//                    x11_async_t *task = sAsync.at(i);
+//                    x11_async_t *task = sAsync.uget(i);
 //
 //                    // Notify all possible tasks about the event
 //                    switch (task->type)
@@ -790,7 +798,7 @@ namespace lsp
             {
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (task->cb_common.bComplete)
                         continue;
 
@@ -876,7 +884,7 @@ namespace lsp
                     }
 
                     // Remove the async task from the queue
-                    sAsync.remove(task);
+                    sAsync.premove(task);
                 }
             }
 
@@ -1047,11 +1055,11 @@ namespace lsp
                         if ((res == STATUS_OK) && (type == sAtoms.X11_XA_ATOM) && (data != NULL))
                         {
                             // Decode list of mime types and pass to sink
-                            cvector<char> mimes;
+                            lltl::parray<char> mimes;
                             res = decode_mime_types(&mimes, data, bytes);
                             if (res == STATUS_OK)
                             {
-                                ssize_t idx = task->pSink->open(mimes.get_array());
+                                ssize_t idx = task->pSink->open(mimes.array());
                                 if ((idx >= 0) && (idx < ssize_t(mimes.size())))
                                 {
                                     lsp_trace("Requesting data of mime type %s", mimes.get(idx));
@@ -1255,7 +1263,7 @@ namespace lsp
 
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (task->cb_common.bComplete)
                         continue;
 
@@ -1695,17 +1703,17 @@ namespace lsp
                             bool has_grab = false;
                             for (ssize_t i=__GRAB_TOTAL-1; i>=0; --i)
                             {
-                                cvector<X11Window> &g = vGrab[i];
+                                lltl::parray<X11Window> &g = vGrab[i];
                                 if (g.size() <= 0)
                                     continue;
 
                                 // Add listeners from grabbing windows
                                 for (size_t i=0; i<g.size();)
                                 {
-                                    X11Window *wnd = g.at(i);
+                                    X11Window *wnd = g.uget(i);
                                     if ((wnd == NULL) || (vWindows.index_of(wnd) < 0))
                                     {
-                                        g.remove(i, false);
+                                        g.remove(i);
                                         continue;
                                     }
                                     sTargets.add(wnd);
@@ -1735,7 +1743,7 @@ namespace lsp
                             for (size_t i=0, nwnd=sTargets.size(); i<nwnd; ++i)
                             {
                                 // Get target window
-                                X11Window *wnd = sTargets.at(i);
+                                X11Window *wnd = sTargets.uget(i);
                                 if (wnd == NULL)
                                     continue;
 
@@ -1759,7 +1767,7 @@ namespace lsp
                     // Deliver the message to target windows
                     for (size_t i=0, nwnd = sTargets.size(); i<nwnd; ++i)
                     {
-                        X11Window *wnd = sTargets.at(i);
+                        X11Window *wnd = sTargets.uget(i);
 
                         // Translate coordinates if originating and target window differs
                         int x, y;
@@ -1780,7 +1788,7 @@ namespace lsp
             {
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (task->cb_common.bComplete)
                         continue;
                     if ((task->type == X11ASYNC_DND_PROXY) &&
@@ -1807,7 +1815,7 @@ namespace lsp
                     // Cancel all previous tasks
                     for (size_t i=0, n=sAsync.size(); i<n; ++i)
                     {
-                        x11_async_t *task = sAsync.at(i);
+                        x11_async_t *task = sAsync.uget(i);
                         if ((task->type == X11ASYNC_DND_RECV) && (!task->cb_common.bComplete))
                         {
                             task->result        = STATUS_CANCELLED;
@@ -1830,7 +1838,7 @@ namespace lsp
                     {
                         for (size_t i=0, n=sAsync.size(); i<n; ++i)
                         {
-                            x11_async_t *task = sAsync.at(i);
+                            x11_async_t *task = sAsync.uget(i);
                             if ((task->type == X11ASYNC_DND_RECV) &&
                                 (!task->cb_common.bComplete))
                             {
@@ -1856,7 +1864,7 @@ namespace lsp
                     {
                         for (size_t i=0, n=sAsync.size(); i<n; ++i)
                         {
-                            x11_async_t *task = sAsync.at(i);
+                            x11_async_t *task = sAsync.uget(i);
                             if ((task->type == X11ASYNC_DND_RECV) && (!task->cb_common.bComplete))
                             {
                                 task->result        = handle_drag_position(&task->dnd_recv, ce);
@@ -1882,7 +1890,7 @@ namespace lsp
                     {
                         for (size_t i=0, n=sAsync.size(); i<n; ++i)
                         {
-                            x11_async_t *task = sAsync.at(i);
+                            x11_async_t *task = sAsync.uget(i);
                             if ((task->type == X11ASYNC_DND_RECV) && (!task->cb_common.bComplete))
                             {
                                 task->result        = handle_drag_drop(&task->dnd_recv, ce);
@@ -1907,7 +1915,7 @@ namespace lsp
                 // Lookup for DnD task
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if ((task->type == X11ASYNC_DND_PROXY) && (!task->cb_common.bComplete))
                         return task;
                 }
@@ -2341,7 +2349,7 @@ namespace lsp
                 }
 
                 // Add NULL-terminator
-                if (!vDndMimeTypes.add(NULL))
+                if (!vDndMimeTypes.add(static_cast<char *>(NULL)))
                 {
                     drop_mime_types(&vDndMimeTypes);
                     return STATUS_NO_MEM;
@@ -2374,7 +2382,7 @@ namespace lsp
                 #ifdef LSP_TRACE
                 for (size_t i=0, n=vDndMimeTypes.size()-1; i<n; ++i)
                 {
-                    char *mime = vDndMimeTypes.at(i);
+                    char *mime = vDndMimeTypes.uget(i);
                     lsp_trace("Supported MIME type: %s", mime);
                 }
                 #endif
@@ -2674,7 +2682,7 @@ namespace lsp
                 }
 
                 status_t res        = STATUS_OK;
-                ssize_t index       = task->pSink->open(vDndMimeTypes.get_array());
+                ssize_t index       = task->pSink->open(vDndMimeTypes.array());
                 if (index >= 0)
                 {
                     const char *mime = vDndMimeTypes.get(index);
@@ -2764,11 +2772,11 @@ namespace lsp
                 ::XFlush(pDisplay);
             }
 
-            void X11Display::drop_mime_types(cvector<char> *ctype)
+            void X11Display::drop_mime_types(lltl::parray<char> *ctype)
             {
                 for (size_t i=0, n=ctype->size(); i<n; ++i)
                 {
-                    char *mime = ctype->at(i);
+                    char *mime = ctype->uget(i);
                     if (mime != NULL)
                         ::free(mime);
                 }
@@ -2815,7 +2823,7 @@ namespace lsp
 
             bool X11Display::remove_window(X11Window *wnd)
             {
-                if (!vWindows.remove(wnd))
+                if (!vWindows.premove(wnd))
                     return false;
 
                 // Check if need to leave main cycle
@@ -2878,7 +2886,7 @@ namespace lsp
                 // Check that window does not belong to any active grab group
                 for (size_t i=0; i<__GRAB_TOTAL; ++i)
                 {
-                    cvector<X11Window> &g = vGrab[i];
+                    lltl::parray<X11Window> &g = vGrab[i];
                     if (g.index_of(wnd) >= 0)
                     {
                         lsp_warn("Grab duplicated for window %p (id=%lx)", wnd, (long)wnd->hWindow);
@@ -2923,7 +2931,7 @@ namespace lsp
                 size_t n = sLocks.size();
                 for (size_t i=0; i<n; ++i)
                 {
-                    wnd_lock_t *lk = sLocks.at(i);
+                    wnd_lock_t *lk = sLocks.uget(i);
                     if ((lk != NULL) && (lk->pOwner == wnd) && (lk->pWaiter == lock))
                     {
                         lk->nCounter++;
@@ -2964,7 +2972,7 @@ namespace lsp
                 size_t n = sLocks.size();
                 for (size_t i=0; i<n; ++i)
                 {
-                    wnd_lock_t *lk = sLocks.at(i);
+                    wnd_lock_t *lk = sLocks.uget(i);
                     if ((lk != NULL) && (lk->pWaiter == wnd) && (lk->nCounter > 0))
                         return lk->pOwner;
                 }
@@ -3001,8 +3009,8 @@ namespace lsp
                 // Check that window does belong to any active grab group
                 for (size_t i=0; i<__GRAB_TOTAL; ++i)
                 {
-                    cvector<X11Window> &g = vGrab[i];
-                    if (g.remove(wnd, false))
+                    lltl::parray<X11Window> &g = vGrab[i];
+                    if (g.premove(wnd))
                     {
                         found = true;
                         break;
@@ -3065,7 +3073,7 @@ namespace lsp
                     // Check pending async tasks
                     for (size_t i=0, n=sAsync.size(); i<n; ++i)
                     {
-                        x11_async_t *task   = sAsync.at(i);
+                        x11_async_t *task   = sAsync.uget(i);
                         if ((task->type == X11ASYNC_CB_RECV) && (task->cb_recv.hProperty == atom))
                             atom = None;
                         else if ((task->type == X11ASYNC_CB_SEND) && (task->cb_send.hProperty == atom))
@@ -3288,7 +3296,7 @@ namespace lsp
                     for (size_t i=0, n=sAsync.size(); i<n; ++i)
                     {
                         // Skip completed tasks
-                        x11_async_t *task   = sAsync.at(i);
+                        x11_async_t *task   = sAsync.uget(i);
                         if (task->cb_common.bComplete)
                             continue;
 
@@ -3313,7 +3321,7 @@ namespace lsp
             {
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task = sAsync.at(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if ((task->type != X11ASYNC_DND_RECV) || (task->cb_common.bComplete))
                         continue;
                     return &task->dnd_recv;
@@ -3324,7 +3332,7 @@ namespace lsp
             const char * const *X11Display::getDragContentTypes()
             {
                 dnd_recv_t *task = current_drag_task();
-                return (task != NULL) ? vDndMimeTypes.get_array() : NULL;
+                return (task != NULL) ? vDndMimeTypes.array() : NULL;
             }
 
             void X11Display::reject_dnd_transfer(dnd_recv_t *task)
@@ -3407,7 +3415,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::acceptDrag(IDataSink *sink, drag_t action, bool internal, const realize_t *r)
+            status_t X11Display::acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
             {
                 /**
                 XdndStatus
@@ -3525,5 +3533,5 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* USE_X11_DISPLAY */
+#endif /* USE_XLIB */
 

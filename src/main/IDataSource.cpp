@@ -5,7 +5,8 @@
  *      Author: sadko
  */
 
-#include <ui/ws/ws.h>
+#include <lsp-plug.in/ws/IDataSource.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 namespace lsp
 {

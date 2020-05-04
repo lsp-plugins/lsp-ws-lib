@@ -245,7 +245,7 @@ namespace lsp
                     virtual const char * const *getDragContentTypes();
 
                     virtual status_t    rejectDrag();
-                    virtual status_t    acceptDrag(IDataSink *sink, drag_t action, bool internal, const realize_t *r);
+                    virtual status_t    acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
 
                     void                handle_error(XErrorEvent *ev);
 

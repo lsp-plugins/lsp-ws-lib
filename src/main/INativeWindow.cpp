@@ -5,7 +5,7 @@
  *      Author: sadko
  */
 
-#include <ui/ws/ws.h>
+#include <lsp-plug.in/ws/INativeWindow.h>
 
 namespace lsp
 {
@@ -40,28 +40,28 @@ namespace lsp
 
         ssize_t INativeWindow::left()
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             return (result == STATUS_OK) ? r.nLeft : -1;
         }
 
         ssize_t INativeWindow::top()
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             return (result == STATUS_OK) ? r.nTop : -1;
         }
 
         ssize_t INativeWindow::width()
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             return (result == STATUS_OK) ? r.nWidth : -1;
         }
 
         ssize_t INativeWindow::height()
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             return (result == STATUS_OK) ? r.nHeight : -1;
         }
@@ -83,7 +83,7 @@ namespace lsp
 
         status_t INativeWindow::move(ssize_t left, ssize_t top)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -95,7 +95,7 @@ namespace lsp
 
         status_t INativeWindow::resize(ssize_t width, ssize_t height)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -107,7 +107,7 @@ namespace lsp
 
         status_t INativeWindow::set_geometry(ssize_t left, ssize_t top, ssize_t width, ssize_t height)
         {
-            realize_t r;
+            rectangle_t r;
 
             r.nLeft     = left;
             r.nTop      = top;
@@ -117,7 +117,7 @@ namespace lsp
             return set_geometry(&r);
         }
 
-        status_t INativeWindow::set_geometry(const realize_t *realize)
+        status_t INativeWindow::set_geometry(const rectangle_t *realize)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
@@ -132,12 +132,12 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t INativeWindow::get_geometry(realize_t *realize)
+        status_t INativeWindow::get_geometry(rectangle_t *realize)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t INativeWindow::get_absolute_geometry(realize_t *realize)
+        status_t INativeWindow::get_absolute_geometry(rectangle_t *realize)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
@@ -159,7 +159,7 @@ namespace lsp
 
         status_t INativeWindow::set_left(ssize_t left)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -170,7 +170,7 @@ namespace lsp
 
         status_t INativeWindow::set_top(ssize_t top)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -181,7 +181,7 @@ namespace lsp
 
         ssize_t INativeWindow::set_width(ssize_t width)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -192,7 +192,7 @@ namespace lsp
 
         ssize_t INativeWindow::set_height(ssize_t height)
         {
-            realize_t r;
+            rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
                 return result;
@@ -206,14 +206,14 @@ namespace lsp
             return (visible) ? show() : hide();
         }
 
-        status_t INativeWindow::set_size_constraints(const size_request_t *c)
+        status_t INativeWindow::set_size_constraints(const size_limit_t *c)
         {
             return STATUS_OK;
         }
 
         status_t INativeWindow::set_size_constraints(ssize_t min_width, ssize_t min_height, ssize_t max_width, ssize_t max_height)
         {
-            size_request_t sr;
+            size_limit_t sr;
             sr.nMinWidth        = min_width;
             sr.nMinHeight       = min_height;
             sr.nMaxWidth        = max_width;
@@ -227,14 +227,14 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t INativeWindow::get_size_constraints(size_request_t *c)
+        status_t INativeWindow::get_size_constraints(size_limit_t *c)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t INativeWindow::set_min_width(ssize_t value)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;
@@ -244,7 +244,7 @@ namespace lsp
 
         status_t INativeWindow::set_min_height(ssize_t value)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;
@@ -254,7 +254,7 @@ namespace lsp
 
         status_t INativeWindow::set_max_width(ssize_t value)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;
@@ -264,7 +264,7 @@ namespace lsp
 
         status_t INativeWindow::set_max_height(ssize_t value)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;
@@ -274,7 +274,7 @@ namespace lsp
 
         status_t INativeWindow::set_min_size(ssize_t width, ssize_t height)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;
@@ -285,7 +285,7 @@ namespace lsp
 
         status_t INativeWindow::set_max_size(ssize_t width, ssize_t height)
         {
-            size_request_t sr;
+            size_limit_t sr;
             status_t result = get_size_constraints(&sr);
             if (result != STATUS_OK)
                 return result;

@@ -5,7 +5,13 @@
  *      Author: sadko
  */
 
-#include <ui/ws/x11/ws.h>
+#include <lsp-plug.in/common/types.h>
+
+#ifdef USE_XLIB
+
+#include <private/x11/decode.h>
+#include <lsp-plug.in/ws/keycodes.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -13,13 +19,13 @@ namespace lsp
     {
         namespace x11
         {
-#pragma pack(push, 1)
-typedef struct keymapping_t
-{
-    uint16_t    keysym;
-    uint16_t    unicode;
-} keymappint_t;
-#pragma pack(pop)
+        #pragma pack(push, 1)
+            typedef struct keymapping_t
+            {
+                uint16_t    keysym;
+                uint16_t    unicode;
+            } keymappint_t;
+        #pragma pack(pop)
 
             keymapping_t keytable[] =
             {
@@ -1034,3 +1040,5 @@ typedef struct keymapping_t
         }
     }
 }
+
+#endif /* USE_XLIB */

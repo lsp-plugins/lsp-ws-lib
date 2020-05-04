@@ -264,7 +264,7 @@ namespace lsp
                  * @param r parameters of the drag rectangle, can be NULL
                  * @return status of operation
                  */
-                virtual status_t acceptDrag(IDataSink *sink, drag_t action, bool internal, const realize_t *r);
+                virtual status_t acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
 
                 /**
                  * Get currently pending content type of a drag

@@ -5,9 +5,12 @@
  *      Author: sadko
  */
 
-#include <ui/ws/x11/ws.h>
+#include <lsp-plug.in/common/types.h>
 
-#ifdef USE_X11_DISPLAY
+#if defined(USE_XLIB) && defined(USE_CAIRO)
+
+#include <private/x11/X11CairoGradient.h>
+
 namespace lsp
 {
     namespace ws
@@ -54,4 +57,4 @@ namespace lsp
     }
 } /* namespace lsp */
 
-#endif /* USE_X11_DISPLAY */
+#endif /* USE_XLIB && USE_CAIRO */

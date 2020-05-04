@@ -12,6 +12,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
+#include <lsp-plug.in/ws/INativeWindow.h>
 
 #include <private/x11/X11CairoSurface.h>
 

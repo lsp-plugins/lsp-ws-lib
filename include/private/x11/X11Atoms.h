@@ -71,7 +71,7 @@ namespace lsp
             } motif_hints_t;
             #pragma pack(pop)
 
-            int init_atoms(Display *dpy, x11_atoms_t *atoms);
+            status_t init_atoms(Display *dpy, x11_atoms_t *atoms);
 
             template <class T>
                 int get_array_property(Display *dpy, ::Window wnd, Atom atom, Atom type, int *nreturn, T **result)

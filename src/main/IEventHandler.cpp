@@ -5,7 +5,7 @@
  *      Author: sadko
  */
 
-#include <ui/ws/ws.h>
+#include <lsp-plug.in/ws/IEventHandler.h>
 
 namespace lsp
 {
