@@ -5,13 +5,19 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_INATIVEWINDOW_H_
-#define UI_WS_INATIVEWINDOW_H_
+#ifndef LSP_PLUG_IN_WS_INATIVEWINDOW_H_
+#define LSP_PLUG_IN_WS_INATIVEWINDOW_H_
+
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/ws/IDisplay.h>
+#include <lsp-plug.in/ws/IEventHandler.h>
 
 namespace lsp
 {
     namespace ws
     {
+        class IDisplay;
+
         /** Native window class
          *
          */
@@ -390,4 +396,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* UI_WS_INATIVEWINDOW_H_ */
+#endif /* LSP_PLUG_IN_WS_INATIVEWINDOW_H_ */

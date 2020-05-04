@@ -5,10 +5,12 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_IDATASOURCE_H_
-#define UI_WS_IDATASOURCE_H_
+#ifndef LSP_PLUG_IN_WS_IDATASOURCE_H_
+#define LSP_PLUG_IN_WS_IDATASOURCE_H_
 
-#include <core/io/IInStream.h>
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/io/IInStream.h>
 
 namespace lsp
 {
@@ -73,4 +75,4 @@ namespace lsp
     } /* namespace ctl */
 } /* namespace lsp */
 
-#endif /* UI_WS_IDATASOURCE_H_ */
+#endif /* LSP_PLUG_IN_WS_IDATASOURCE_H_ */

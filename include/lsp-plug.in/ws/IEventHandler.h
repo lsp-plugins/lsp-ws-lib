@@ -5,8 +5,12 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_IEVENTHANDLER_H_
-#define UI_WS_IEVENTHANDLER_H_
+#ifndef LSP_PLUG_IN_WS_IEVENTHANDLER_H_
+#define LSP_PLUG_IN_WS_IEVENTHANDLER_H_
+
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ws/types.h>
 
 namespace lsp
 {
@@ -17,14 +21,22 @@ namespace lsp
          */
         class IEventHandler
         {
+            private:
+                IEventHandler & operator = (const IEventHandler &);
+
             public:
-                IEventHandler();
+                explicit IEventHandler();
                 virtual ~IEventHandler();
 
             public:
+                /**
+                 * Handle event
+                 * @param ev event
+                 * @return status of operation
+                 */
                 virtual status_t handle_event(const ws_event_t *ev);
         };
     } /* namespace tk */
 } /* namespace lsp */
 
-#endif /* UI_WS_IEVENTHANDLER_H_ */
+#endif /* LSP_PLUG_IN_WS_IEVENTHANDLER_H_ */

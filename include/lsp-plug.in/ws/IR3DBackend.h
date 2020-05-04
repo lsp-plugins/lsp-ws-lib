@@ -5,10 +5,12 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_IR3DBACKEND_H_
-#define UI_WS_IR3DBACKEND_H_
+#ifndef LSP_PLUG_IN_WS_IR3DBACKEND_H_
+#define LSP_PLUG_IN_WS_IR3DBACKEND_H_
 
-#include <rendering/backend.h>
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/r3d/backend.h>
+#include <lsp-plug.in/ws/IDisplay.h>
 
 namespace lsp
 {
@@ -22,7 +24,7 @@ namespace lsp
             protected:
                 friend class        IDisplay;
 
-                r3d_backend_t      *pBackend;   // Currently used backend
+                r3d::backend_t     *pBackend;   // Currently used backend
                 void               *hParent;    // Parent window
                 void               *hWindow;    // Currently used window
                 IDisplay           *pDisplay;
@@ -31,8 +33,8 @@ namespace lsp
                 IR3DBackend & operator = (const IR3DBackend &);
 
             protected:
-                explicit IR3DBackend(IDisplay *dpy, r3d_backend_t *backend, void *parent, void *window);
-                void    replace_backend(r3d_backend_t *factory, void *window);
+                explicit    IR3DBackend(IDisplay *dpy, r3d::backend_t *backend, void *parent, void *window);
+                void        replace_backend(r3d::backend_t *factory, void *window);
 
             public:
                 ~IR3DBackend();
@@ -45,24 +47,24 @@ namespace lsp
                  */
                 inline void *handle()       { return hWindow; };
 
-                inline bool valid() const { return pBackend != NULL; }
+                inline bool valid() const   { return pBackend != NULL; }
 
                 status_t locate(ssize_t left, ssize_t top, ssize_t width, ssize_t height);
                 status_t get_location(ssize_t *left, ssize_t *top, ssize_t *width, ssize_t *height);
 
                 status_t begin_draw();
                 status_t sync();
-                status_t read_pixels(void *buf, size_t stride, r3d_pixel_format_t format);
+                status_t read_pixels(void *buf, size_t stride, r3d::pixel_format_t format);
                 status_t end_draw();
 
-                status_t set_matrix(r3d_matrix_type_t type, const matrix3d_t *m);
-                status_t get_matrix(r3d_matrix_type_t type, matrix3d_t *m);
-                status_t set_lights(const r3d_light_t *lights, size_t count);
-                status_t draw_primitives(const r3d_buffer_t *buffer);
-                status_t set_bg_color(const color3d_t *color);
+                status_t set_matrix(r3d::matrix_type_t type, const r3d::mat4_t *m);
+                status_t get_matrix(r3d::matrix_type_t type, r3d::mat4_t *m);
+                status_t set_lights(const r3d::light_t *lights, size_t count);
+                status_t draw_primitives(const r3d::buffer_t *buffer);
+                status_t set_bg_color(const r3d::color_t *color);
         };
     
     } /* namespace io */
 } /* namespace lsp */
 
-#endif /* UI_WS_IR3DBACKEND_H_ */
+#endif /* LSP_PLUG_IN_WS_IR3DBACKEND_H_ */

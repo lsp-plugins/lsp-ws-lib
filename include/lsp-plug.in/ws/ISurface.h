@@ -5,11 +5,13 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_ISURFACE_H_
-#define UI_WS_ISURFACE_H_
+#ifndef LSP_PLUG_IN_WS_ISURFACE_H_
+#define LSP_PLUG_IN_WS_ISURFACE_H_
 
-#include <core/types.h>
-#include <core/util/Color.h>
+#include <lsp-plug.in/ws/version.h>
+
+#include <lsp-plug.in/ws/Font.h>
+#include <lsp-plug.in/ws/IGradient.h>
 
 #define SURFMASK_LT_CORNER      0x01
 #define SURFMASK_RT_CORNER      0x02
@@ -21,84 +23,15 @@
 #define SURFMASK_L_CORNER       0x09
 #define SURFMASK_R_CORNER       0x06
 
-enum surf_line_cap_t
-{
-    SURFLCAP_BUTT,
-    SURFLCAP_ROUND,
-    SURFLCAP_SQUARE
-};
-
 namespace lsp
 {
     namespace ws
     {
-        class ISurface;
-
-        class IGradient
+        enum surf_line_cap_t
         {
-            private:
-                IGradient & operator = (const IGradient &);
-
-            public:
-                explicit IGradient();
-                virtual ~IGradient();
-
-            public:
-                virtual void add_color(float offset, float r, float g, float b, float a=0.0f);
-
-                inline void add_color(float offset, const Color &c)
-                    { add_color(offset, c.red(), c.green(), c.blue(), c.alpha()); }
-
-                inline void add_color(float offset, const Color &c, float a)
-                    { add_color(offset, c.red(), c.green(), c.blue(), a); }
-
-                void add_color_rgb(float offset, uint32_t color);
-
-                void add_color_rgba(float offset, uint32_t color);
-        };
-
-        class Font
-        {
-            private:
-                Font & operator = (const Font &);
-
-            private:
-                enum flags_t
-                {
-                    F_BOLD = 1 << 0,
-                    F_ITALIC = 1 << 1,
-                    F_UNDERLINE = 1 << 2
-                };
-
-                char       *sName;
-                float       fSize;
-                int         nFlags;
-
-            public:
-                explicit Font();
-                explicit Font(const char *name);
-                explicit Font(const char *name, float size);
-                explicit Font(float size);
-                explicit Font(const Font *s);
-
-                ~Font();
-
-            public:
-                inline bool is_bold() const         { return nFlags & F_BOLD;   }
-                inline bool is_italic() const       { return nFlags & F_ITALIC; }
-                inline bool is_underline() const    { return nFlags & F_UNDERLINE; }
-                inline float get_size() const       { return fSize; }
-                inline const char *get_name() const { return sName; }
-
-                inline void set_bold(bool b)        { if (b) nFlags |= F_BOLD; else nFlags &= ~F_BOLD; }
-                inline void set_italic(bool i)      { if (i) nFlags |= F_ITALIC; else nFlags &= ~F_ITALIC; }
-                inline void set_underline(bool u)   { if (u) nFlags |= F_UNDERLINE; else nFlags &= ~F_UNDERLINE; }
-                inline void set_size(float s)       { fSize = s; }
-                void set_name(const char *name);
-                void set(const Font *s);
-
-                bool get_parameters(ISurface *s, font_parameters_t *fp);
-                bool get_text_parameters(ISurface *s, text_parameters_t *tp, const char *text);
+            SURFLCAP_BUTT,
+            SURFLCAP_ROUND,
+            SURFLCAP_SQUARE
         };
 
         /** Common drawing surface interface
@@ -711,4 +644,4 @@ namespace lsp
 
 } /* namespace lsp */
 
-#endif /* UI_WS_ISURFACE_H_ */
+#endif /* LSP_PLUG_IN_WS_ISURFACE_H_ */

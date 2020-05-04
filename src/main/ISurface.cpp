@@ -24,6 +24,16 @@ namespace lsp
         {
         }
 
+        void IGradient::add_color(const Color &c)
+        {
+            add_color(offset, c.red(), c.green(), c.blue(), c.alpha());
+        }
+
+        void IGradient::add_color(const Color &c, float a)
+        {
+            add_color(offset, c.red(), c.green(), c.blue(), a);
+        }
+
         void IGradient::add_color_rgb(float offset, uint32_t color)
         {
             add_color(offset,

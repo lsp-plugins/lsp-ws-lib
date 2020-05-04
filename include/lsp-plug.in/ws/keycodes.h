@@ -5,8 +5,11 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_KEYCODES_H_
-#define UI_WS_KEYCODES_H_
+#ifndef LSP_PLUG_IN_WS_KEYCODES_H_
+#define LSP_PLUG_IN_WS_KEYCODES_H_
+
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/ws/types.h>
 
 namespace lsp
 {
@@ -237,6 +240,4 @@ namespace lsp
     }
 }
 
-
-
-#endif /* UI_WS_KEYCODES_H_ */
+#endif /* LSP_PLUG_IN_WS_KEYCODES_H_ */

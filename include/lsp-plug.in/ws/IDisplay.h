@@ -5,14 +5,22 @@
  *      Author: sadko
  */
 
-#ifndef UI_WS_IDISPLAY_H_
-#define UI_WS_IDISPLAY_H_
+#ifndef LSP_PLUG_IN_WS_IDISPLAY_H_
+#define LSP_PLUG_IN_WS_IDISPLAY_H_
 
-#include <data/cstorage.h>
-#include <data/cvector.h>
-#include <rendering/backend.h>
-#include <rendering/factory.h>
-#include <core/ipc/Library.h>
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/runtime/LSPString.h>
+#include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ws/types.h>
+#include <lsp-plug.in/r3d/backend.h>
+#include <lsp-plug.in/r3d/factory.h>
+#include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
+
+#include <lsp-plug.in/ws/ISurface.h>
+#include <lsp-plug.in/ws/IDataSink.h>
+#include <lsp-plug.in/ws/IDataSource.h>
 
 namespace lsp
 {
@@ -26,6 +34,7 @@ namespace lsp
             LSPString   library;
             LSPString   uid;
             LSPString   display;
+            LSPString   lc_key;
         } R3DBackendInfo;
 
         /** Display
@@ -42,30 +51,30 @@ namespace lsp
                     void           *pArg;
                 } dtask_t;
 
-                typedef struct r3d_library_t: public R3DBackendInfo
+                typedef struct r3d_lib_t: public R3DBackendInfo
                 {
-                    r3d_factory_t  *builtin;        // Built-in factory
+                    r3d::factory_t *builtin;        // Built-in factory
                     size_t          local_id;       // Local identifier
-                } r3d_library_t;
+                } r3d_lib_t;
 
             protected:
-                taskid_t                nTaskID;
-                cstorage<dtask_t>       sTasks;
-                dtask_t                 sMainTask;
-                cvector<r3d_library_t>  s3DLibs;            // List of libraries that provide 3D backends
-                cvector<IR3DBackend>    s3DBackends;        // List of all 3D backend instances
-                ipc::Library            s3DLibrary;         // Current backend library used
-                r3d_factory_t          *s3DFactory;         // Pointer to the factory object
-                ssize_t                 nCurrent3D;         // Current 3D backend
-                ssize_t                 nPending3D;         // Pending 3D backend
+                taskid_t                    nTaskID;
+                lltl::darray<dtask_t>       sTasks;
+                dtask_t                     sMainTask;
+                lltl::parray<r3d_lib_t>     s3DLibs;            // List of libraries that provide 3D backends
+                lltl::parray<IR3DBackend>   s3DBackends;        // List of all 3D backend instances
+                ipc::Library                s3DLibrary;         // Current backend library used
+                r3d::factory_t             *p3DFactory;         // Pointer to the factory object
+                ssize_t                     nCurrent3D;         // Current 3D backend
+                ssize_t                     nPending3D;         // Pending 3D backend
 
             protected:
                 friend class IR3DBackend;
 
                 bool                taskid_exists(taskid_t id);
                 void                deregister_backend(IR3DBackend *lib);
-                status_t            switch_r3d_backend(r3d_library_t *backend);
-                status_t            commit_r3d_factory(const LSPString *path, r3d_factory_t *factory);
+                status_t            switch_r3d_backend(r3d_lib_t *backend);
+                status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
 
@@ -275,4 +284,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* UI_IDISPLAY_H_ */
+#endif /* LSP_PLUG_IN_WS_IDISPLAY_H_ */
