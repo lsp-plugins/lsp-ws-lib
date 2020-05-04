@@ -5,7 +5,10 @@
  *      Author: sadko
  */
 
+#include <lsp-plug.in/r3d/factory.h>
 #include <lsp-plug.in/ws/IDisplay.h>
+#include <lsp-plug.in/ws/IR3DBackend.h>
+#include <lsp-plug.in/ws/INativeWindow.h>
 #include <lsp-plug.in/io/Dir.h>
 
 namespace lsp
@@ -197,7 +200,7 @@ namespace lsp
             // TODO: add version control
 
             // Lookup function
-            r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(lib.import(R3D_FACTORY_FUNCTION_NAME));
+            r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(lib.import(LSP_R3D_FACTORY_FUNCTION_NAME));
             if (func == NULL)
             {
                 lib.close();
@@ -302,7 +305,7 @@ namespace lsp
         void IDisplay::deregister_backend(IR3DBackend *backend)
         {
             // Try to remove backend
-            if (!s3DBackends.remove(backend, true))
+            if (!s3DBackends.premove(backend))
                 return;
 
             // Need to unload library?
@@ -386,7 +389,7 @@ namespace lsp
                     return res;
 
                 // Obtain factory function
-                r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(dlib.import(R3D_FACTORY_FUNCTION_NAME));
+                r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(dlib.import(LSP_R3D_FACTORY_FUNCTION_NAME));
                 if (func == NULL)
                 {
                     dlib.close();
@@ -394,7 +397,7 @@ namespace lsp
                 }
 
                 // Create the factory
-                factory     = func(LSP_MAIN_VERSION);
+                factory     = func();
                 if (factory == NULL)
                 {
                     dlib.close();
@@ -414,7 +417,7 @@ namespace lsp
 
                 // Call factory to create backend
                 void *handle = NULL;
-                r3d_backend_t *backend = factory->create(factory, lib->local_id);
+                r3d::backend_t *backend = factory->create(factory, lib->local_id);
                 if (backend != NULL)
                 {
                     // Initialize backend
