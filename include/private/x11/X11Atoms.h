@@ -8,9 +8,9 @@
 #ifndef UI_X11_X11ATOMS_H_
 #define UI_X11_X11ATOMS_H_
 
-#ifndef UI_X11_WS_H_INCL_
-    #error "This header should not be included directly"
-#endif /* UI_X11_WS_H_INCL_ */
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/status.h>
+#include <X11/Xlib.h>
 
 // Flags
 #define MWM_HINTS_FUNCTIONS     (1L << 0)
@@ -55,7 +55,7 @@ namespace lsp
             {
                 #define WM_PREDEFINED_ATOM(name) Atom X11_ ## name;
                 #define WM_ATOM(name) Atom X11_ ## name;
-                #include <ui/ws/x11/X11AtomList.h>
+                #include <private/x11/X11AtomList.h>
                 #undef WM_ATOM
                 #undef WM_PREDEFINED_ATOM
             } x11_atoms_t;

@@ -8,9 +8,17 @@
 #ifndef UI_X11_X11CAIROSURFACE_H_
 #define UI_X11_X11CAIROSURFACE_H_
 
-#ifndef UI_X11_WS_H_INCL_
-    #error "This header should not be included directly"
-#endif /* UI_X11_WS_H_INCL_ */
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/types.h>
+
+#ifdef USE_CAIRO
+
+#include <lsp-plug.in/runtime/Color.h>
+#include <lsp-plug.in/ws/IGradient.h>
+#include <lsp-plug.in/ws/ISurface.h>
+
+#include <cairo/cairo.h>
+#include <X11/Xlib.h>
 
 namespace lsp
 {
@@ -195,5 +203,6 @@ namespace lsp
     }
 
 } /* namespace lsp */
+#endif /* USE_CAIRO */
 
 #endif /* UI_X11_X11CAIROSURFACE_H_ */

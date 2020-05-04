@@ -8,9 +8,12 @@
 #ifndef UI_X11_WINDOW_H_
 #define UI_X11_WINDOW_H_
 
-#ifndef UI_X11_WS_H_INCL_
-    #error "This header should not be included directly"
-#endif /* UI_X11_WS_H_INCL_ */
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ws/IEventHandler.h>
+
+#include <private/x11/X11CairoSurface.h>
 
 namespace lsp
 {
@@ -18,6 +21,8 @@ namespace lsp
     {
         namespace x11
         {
+            class X11Display;
+
             class X11Window: public INativeWindow, public IEventHandler
             {
                 protected:
@@ -41,10 +46,9 @@ namespace lsp
                     size_t              nFlags;
                     mouse_pointer_t     enPointer;
                     bool                bWrapper;
-//                    IClipboard         *pClipboard[_CBUF_TOTAL];
 
-                    realize_t           sSize;
-                    size_request_t      sConstraints;
+                    rectangle_t         sSize;
+                    size_limit_t        sConstraints;
 
                 protected:
                     void    drop_surface();
@@ -53,7 +57,7 @@ namespace lsp
 
                 protected:
 
-                    void        calc_constraints(realize_t *dst, const realize_t *req);
+                    void        calc_constraints(rectangle_t *dst, const rectangle_t *req);
 
                     status_t    do_update_constraints();
 
@@ -170,7 +174,7 @@ namespace lsp
                      * @param realize window realization structure
                      * @return status of operation
                      */
-                    virtual status_t set_geometry(const realize_t *realize);
+                    virtual status_t set_geometry(const rectangle_t *realize);
 
                     /** Set window's border style
                      *
@@ -190,9 +194,9 @@ namespace lsp
                      *
                      * @return window geometry
                      */
-                    virtual status_t get_geometry(realize_t *realize);
+                    virtual status_t get_geometry(rectangle_t *realize);
 
-                    virtual status_t get_absolute_geometry(realize_t *realize);
+                    virtual status_t get_absolute_geometry(rectangle_t *realize);
 
                     /** Hide window
                      *
@@ -254,14 +258,14 @@ namespace lsp
                      * @param c size constraints
                      * @return status of operations
                      */
-                    virtual status_t set_size_constraints(const size_request_t *c);
+                    virtual status_t set_size_constraints(const size_limit_t *c);
 
                     /** Get size constraints
                      *
                      * @param c size constraints
                      * @return status of operation
                      */
-                    virtual status_t get_size_constraints(size_request_t *c);
+                    virtual status_t get_size_constraints(size_limit_t *c);
 
                     /** Check constraints
                      *

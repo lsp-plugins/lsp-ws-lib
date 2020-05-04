@@ -8,13 +8,19 @@
 #ifndef UI_X11_X11DISPLAY_H_
 #define UI_X11_X11DISPLAY_H_
 
-#ifndef UI_X11_WS_H_INCL_
-    #error "This header should not be included directly"
-#endif /* UI_X11_WS_H_INCL_ */
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/ws/IDisplay.h>
+
+#include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/darray.h>
+
+#include <private/x11/X11Atoms.h>
+#include <private/x11/X11Window.h>
 
 #include <time.h>
-#include <dsp/atomic.h>
-#include <data/cvector.h>
+#include <X11/Xlib.h>
 
 namespace lsp
 {
@@ -23,7 +29,6 @@ namespace lsp
         namespace x11
         {
             class X11Window;
-            class X11Clipboard;
 
             class X11Display: public IDisplay
             {
@@ -139,27 +144,26 @@ namespace lsp
                     static int x11_error_handler(Display *dpy, XErrorEvent *ev);
 
                 protected:
-                    volatile bool   bExit;
-                    Display        *pDisplay;
-                    Window          hRootWnd;           // Root window of the display
-                    Window          hClipWnd;           // Unmapped clipboard window
-                    int             nBlackColor;
-                    int             nWhiteColor;
-                    x11_atoms_t     sAtoms;
-                    Cursor          vCursors[__MP_COUNT];
-                    size_t          nIOBufSize;
-                    uint8_t        *pIOBuf;
-                    IDataSource    *pCbOwner[_CBUF_TOTAL];
+                    volatile bool               bExit;
+                    Display                    *pDisplay;
+                    Window                      hRootWnd;           // Root window of the display
+                    Window                      hClipWnd;           // Unmapped clipboard window
+                    int                         nBlackColor;
+                    int                         nWhiteColor;
+                    x11_atoms_t                 sAtoms;
+                    Cursor                      vCursors[__MP_COUNT];
+                    size_t                      nIOBufSize;
+                    uint8_t                    *pIOBuf;
+                    IDataSource                *pCbOwner[_CBUF_TOTAL];
 
-                    cstorage<dtask_t>       sPending;
-                    cstorage<x11_screen_t>  vScreens;
-                    cvector<X11Window>      vWindows;
-                    cvector<X11Window>      vGrab[__GRAB_TOTAL];
-                    cvector<X11Window>      sTargets;
-                    cstorage<wnd_lock_t>    sLocks;
-                    cstorage<x11_async_t>   sAsync;
-
-                    cvector<char>           vDndMimeTypes;
+                    lltl::darray<dtask_t>       sPending;
+                    lltl::darray<x11_screen_t>  vScreens;
+                    lltl::parray<X11Window>     vWindows;
+                    lltl::parray<X11Window>     vGrab[__GRAB_TOTAL];
+                    lltl::parray<X11Window>     sTargets;
+                    lltl::darray<wnd_lock_t>    sLocks;
+                    lltl::darray<x11_async_t>   sAsync;
+                    lltl::parray<char>          vDndMimeTypes;
 
                 protected:
                     void            handleEvent(XEvent *ev);
@@ -177,8 +181,8 @@ namespace lsp
                     status_t        atom_to_bufid(Atom x, size_t *bufid);
 
                     status_t        read_property(Window wnd, Atom property, Atom ptype, uint8_t **data, size_t *size, Atom *type);
-                    status_t        decode_mime_types(cvector<char> *ctype, const uint8_t *data, size_t size);
-                    void            drop_mime_types(cvector<char> *ctype);
+                    status_t        decode_mime_types(lltl::parray<char> *ctype, const uint8_t *data, size_t size);
+                    void            drop_mime_types(lltl::parray<char> *ctype);
                     static status_t sink_data_source(IDataSink *dst, IDataSource *src);
 
                     void            handle_property_notify(XPropertyEvent *ev);
@@ -208,7 +212,6 @@ namespace lsp
                     status_t        proxy_drag_leave(dnd_proxy_t *task, XClientMessageEvent *ev);
                     status_t        proxy_drag_position(dnd_proxy_t *task, XClientMessageEvent *ev);
                     status_t        proxy_drag_drop(dnd_proxy_t *task, XClientMessageEvent *ev);
-//                    status_t        proxy_drag_enter(x11_async_t *task, XClientMessageEvent *ev);
 
                     x11_async_t    *lookup_dnd_proxy_task();
 

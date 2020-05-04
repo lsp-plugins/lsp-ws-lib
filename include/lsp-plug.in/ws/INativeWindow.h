@@ -145,10 +145,10 @@ namespace lsp
 
                 /** Set window geometry
                  *
-                 * @param realize window realization structure
+                 * @param size actual window parameters
                  * @return status of operation
                  */
-                virtual status_t set_geometry(const realize_t *realize);
+                virtual status_t set_geometry(const rectangle_t *size);
 
                 /** Set window's border style
                  *
@@ -168,14 +168,14 @@ namespace lsp
                  *
                  * @return window geometry
                  */
-                virtual status_t get_geometry(realize_t *realize);
+                virtual status_t get_geometry(rectangle_t *size);
 
                 /** Get absolute window's geometry
                  *
-                 * @param realize pointer to structure to store data
+                 * @param size pointer to structure to store data
                  * @return status of operation
                  */
-                virtual status_t get_absolute_geometry(realize_t *realize);
+                virtual status_t get_absolute_geometry(rectangle_t *size);
 
                 /** Get caption
                  *
@@ -239,19 +239,19 @@ namespace lsp
                  */
                 virtual status_t set_visibility(bool visible);
 
-                /** Set size constraints
+                /** Set size constraints of the window
                  *
                  * @param c size constraints
                  * @return status of operations
                  */
-                virtual status_t set_size_constraints(const size_request_t *c);
+                virtual status_t set_size_constraints(const size_limit_t *c);
 
                 /** Get size constraints
                  *
                  * @param c size constraints
                  * @return status of operation
                  */
-                virtual status_t get_size_constraints(size_request_t *c);
+                virtual status_t get_size_constraints(size_limit_t *c);
 
                 /** Set size constraints
                  *

@@ -239,29 +239,21 @@ namespace lsp
             ui_timestamp_t      nTime;      // Event timestamp in milliseconds
         } ws_event_t;
 
-        typedef struct size_request_t
+        typedef struct size_limit_t
         {
             ssize_t             nMinWidth;
             ssize_t             nMinHeight;
             ssize_t             nMaxWidth;
             ssize_t             nMaxHeight;
-        } size_request_t;
+        } size_limit_t;
 
-        typedef struct realize_t
+        typedef struct rectangle_t
         {
             ssize_t             nLeft;
             ssize_t             nTop;
             ssize_t             nWidth;
             ssize_t             nHeight;
-        } realize_t;
-
-        typedef struct padding_t
-        {
-            size_t              nLeft;
-            size_t              nRight;
-            size_t              nTop;
-            size_t              nBottom;
-        } padding_t;
+        } rectangle_t;
 
         /** Event handler identifier
          *
