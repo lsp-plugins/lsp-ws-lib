@@ -235,28 +235,28 @@ namespace lsp
                 return 0;
             }
 
-            IWindow *X11Display::createWindow()
+            IWindow *X11Display::create_window()
             {
                 return new X11Window(this, DefaultScreen(pDisplay), 0, NULL, false);
             }
 
-            IWindow *X11Display::createWindow(size_t screen)
+            IWindow *X11Display::create_window(size_t screen)
             {
                 return new X11Window(this, screen, 0, NULL, false);
             }
 
-            IWindow *X11Display::createWindow(void *handle)
+            IWindow *X11Display::create_window(void *handle)
             {
                 lsp_trace("handle = %p", handle);
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, false);
             }
 
-            IWindow *X11Display::wrapWindow(void *handle)
+            IWindow *X11Display::wrap_window(void *handle)
             {
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, true);
             }
 
-            ISurface *X11Display::createSurface(size_t width, size_t height)
+            ISurface *X11Display::create_surface(size_t width, size_t height)
             {
                 return new X11CairoSurface(width, height);
             }
@@ -422,7 +422,7 @@ namespace lsp
                         return STATUS_UNKNOWN_ERR;
                     }
 
-                    handleEvent(&event);
+                    handle_event(&event);
                 }
 
                 // Generate list of tasks for processing
@@ -1453,7 +1453,7 @@ namespace lsp
                 return res;
             }
 
-            void X11Display::handleEvent(XEvent *ev)
+            void X11Display::handle_event(XEvent *ev)
             {
                 if (ev->type > LASTEvent)
                     return;
@@ -1937,7 +1937,7 @@ namespace lsp
                 else
                 {
                     lsp_trace("Handling xevent as for %lx", long(wnd));
-                    handleEvent(event);
+                    handle_event(event);
                 }
             }
 
@@ -2790,7 +2790,7 @@ namespace lsp
                 bExit = true;
             }
 
-            bool X11Display::addWindow(X11Window *wnd)
+            bool X11Display::add_window(X11Window *wnd)
             {
                 return vWindows.add(wnd);
             }
@@ -3092,7 +3092,7 @@ namespace lsp
                 return None;
             }
 
-            status_t X11Display::setClipboard(size_t id, IDataSource *ds)
+            status_t X11Display::set_clipboard(size_t id, IDataSource *ds)
             {
                 // Acquire reference
                 if (ds != NULL)
@@ -3135,7 +3135,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::getClipboard(size_t id, IDataSink *dst)
+            status_t X11Display::get_clipboard(size_t id, IDataSink *dst)
             {
                 // Acquire data sink
                 if (dst == NULL)
@@ -3331,7 +3331,7 @@ namespace lsp
                 return NULL;
             }
 
-            const char * const *X11Display::getDragContentTypes()
+            const char * const *X11Display::get_drag_ctypes()
             {
                 dnd_recv_t *task = current_drag_task();
                 return (task != NULL) ? vDndMimeTypes.array() : NULL;
@@ -3395,7 +3395,7 @@ namespace lsp
                 ::XFlush(pDisplay);
             }
 
-            status_t X11Display::rejectDrag()
+            status_t X11Display::reject_drag()
             {
                 // Check task state
                 dnd_recv_t *task = current_drag_task();
@@ -3417,7 +3417,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+            status_t X11Display::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
             {
                 /**
                 XdndStatus

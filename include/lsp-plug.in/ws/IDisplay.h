@@ -104,19 +104,19 @@ namespace lsp
                  * @param id backend number starting with 0
                  * @return backend descriptor or NULL if backend with such identifier does not exist
                  */
-                const R3DBackendInfo *enumBackend(size_t id) const;
+                const R3DBackendInfo *enum_backend(size_t id) const;
 
                 /**
                  * Get currently used backend for 3D rendering
                  * @return selected backend descriptor
                  */
-                const R3DBackendInfo *getCurrentBackend() const;
+                const R3DBackendInfo *current_backend() const;
 
                 /**
                  * Get currently used backend identifier for 3D rendering
                  * @return selected backend identifier
                  */
-                ssize_t getCurrentBackendId() const;
+                ssize_t current_backend_id() const;
 
                 /**
                  * Select backend for rendering by specifying it's descriptor
@@ -126,7 +126,7 @@ namespace lsp
                  * @param backend backend for rendering
                  * @return status of operation
                  */
-                status_t selectBackend(const R3DBackendInfo *backend);
+                status_t select_backend(const R3DBackendInfo *backend);
 
                 /**
                  * Select backend for rendering by specifying it's descriptor identifier
@@ -136,80 +136,80 @@ namespace lsp
                  * @param id backend's descriptor identifier
                  * @return status of operation
                  */
-                status_t selectBackendId(size_t id);
+                status_t select_backend_id(size_t id);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
                  * @param prefix the prefix of the library name to lookup
                  */
-                void lookup3DBackends(const io::Path *path, const char *prefix);
+                void lookup_r3d_backends(const io::Path *path, const char *prefix);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
                  */
-                void lookup3DBackends(const char *path, const char *prefix);
+                void lookup_r3d_backends(const char *path, const char *prefix);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
                  */
-                void lookup3DBackends(const LSPString *path, const char *prefix);
+                void lookup_r3d_backends(const LSPString *path, const char *prefix);
 
                 /**
                  * Try to register the library as a 3D backend
                  * @param path the path to the library
                  * @return status of operation
                  */
-                status_t register3DBackend(const io::Path *path);
+                status_t register_r3d_backend(const io::Path *path);
 
                 /**
                  * Try to register the library as a 3D backend
                  * @param path the path to the library
                  * @return status of operation
                  */
-                status_t register3DBackend(const char *path);
+                status_t register_r3d_backend(const char *path);
 
                 /**
                  * Try to register the library as a 3D backend
                  * @param path the path to the library
                  * @return status of operation
                  */
-                status_t register3DBackend(const LSPString *path);
+                status_t register_r3d_backend(const LSPString *path);
 
 
                 /** Create native window
                  *
                  * @return native window
                  */
-                virtual IWindow *createWindow();
+                virtual IWindow *create_window();
 
                 /** Create window at the specified screen
                  *
                  * @param screen screen
                  * @return status native window
                  */
-                virtual IWindow *createWindow(size_t screen);
+                virtual IWindow *create_window(size_t screen);
 
                 /** Create native window as child of specified window handle
                  *
                  * @return native window as child of specified window handle
                  */
-                virtual IWindow *createWindow(void *handle);
+                virtual IWindow *create_window(void *handle);
 
                 /**
                  * Wrap window handle
                  * @param handle handle to wrap
                  * @return native window as wrapper of the handle
                  */
-                virtual IWindow *wrapWindow(void *handle);
+                virtual IWindow *wrap_window(void *handle);
 
                 /**
                  * Create 3D backend for graphics
                  * @return pointer to created backend
                  */
-                virtual IR3DBackend *create3DBackend(IWindow *parent);
+                virtual IR3DBackend *create_r3d_backend(IWindow *parent);
 
                 /** Create surface for drawing
                  *
@@ -217,7 +217,7 @@ namespace lsp
                  * @param height surface height
                  * @return surface or NULL on error
                  */
-                virtual ISurface *createSurface(size_t width, size_t height);
+                virtual ISurface *create_surface(size_t width, size_t height);
 
                 /** Submit task for execution
                  *
@@ -226,14 +226,14 @@ namespace lsp
                  * @param arg task handler argument
                  * @return submitted task identifier or negative error code
                  */
-                virtual taskid_t submitTask(timestamp_t time, task_handler_t handler, void *arg);
+                virtual taskid_t submit_task(timestamp_t time, task_handler_t handler, void *arg);
 
                 /** Cancel submitted task
                  *
                  * @param id task identifier to cancel
                  * @return status of operation
                  */
-                virtual status_t cancelTask(taskid_t id);
+                virtual status_t cancel_task(taskid_t id);
 
                 /**
                  * Associate data source with the specified clipboard
@@ -241,7 +241,7 @@ namespace lsp
                  * @param src data source to use
                  * @return status of operation
                  */
-                virtual status_t setClipboard(size_t id, IDataSource *src);
+                virtual status_t set_clipboard(size_t id, IDataSource *src);
 
                 /**
                  * Sink clipboard data source to the specified handler.
@@ -250,13 +250,13 @@ namespace lsp
                  * @param id clipboard identifier
                  * @return pointer to data source or NULL
                  */
-                virtual status_t getClipboard(size_t id, IDataSink *dst);
+                virtual status_t get_clipboard(size_t id, IDataSink *dst);
 
                 /**
                  * Reject drag request because drag is not supported at the current position
                  * @return status of operation
                  */
-                virtual status_t rejectDrag();
+                virtual status_t reject_drag();
 
                 /**
                  * Accept drag request
@@ -266,14 +266,14 @@ namespace lsp
                  * @param r parameters of the drag rectangle, can be NULL
                  * @return status of operation
                  */
-                virtual status_t acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                virtual status_t accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
 
                 /**
                  * Get currently pending content type of a drag
                  * @return NULL-terminated list of pending content types,
                  *   may be NULL if there is no currently pending Drag&Drop request
                  */
-                virtual const char * const *getDragContentTypes();
+                virtual const char * const *get_drag_ctypes();
 
                 /**
                  * Set callback which will be called after each main iteration

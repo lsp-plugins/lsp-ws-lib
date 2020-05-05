@@ -142,7 +142,7 @@ namespace lsp
                     static X11Display          *pHandlers;
                     X11Display                 *pNextHandler;
 
-                    static int x11_error_handler(Display *dpy, XErrorEvent *ev);
+                    static int                  x11_error_handler(Display *dpy, XErrorEvent *ev);
 
                 protected:
                     volatile bool               bExit;
@@ -167,7 +167,7 @@ namespace lsp
                     lltl::parray<char>          vDndMimeTypes;
 
                 protected:
-                    void            handleEvent(XEvent *ev);
+                    void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);
 
@@ -224,54 +224,54 @@ namespace lsp
                     virtual ~X11Display();
 
                 public:
-                    virtual status_t init(int argc, const char **argv);
-                    virtual void destroy();
+                    virtual status_t            init(int argc, const char **argv);
+                    virtual void                destroy();
 
-                    virtual IWindow *createWindow();
-                    virtual IWindow *createWindow(size_t screen);
-                    virtual IWindow *createWindow(void *handle);
-                    virtual IWindow *wrapWindow(void *handle);
-                    virtual ISurface *createSurface(size_t width, size_t height);
+                    virtual IWindow            *create_window();
+                    virtual IWindow            *create_window(size_t screen);
+                    virtual IWindow            *create_window(void *handle);
+                    virtual IWindow            *wrap_window(void *handle);
+                    virtual ISurface           *create_surface(size_t width, size_t height);
 
-                    virtual status_t main();
-                    virtual status_t main_iteration();
-                    virtual void quit_main();
+                    virtual status_t            main();
+                    virtual status_t            main_iteration();
+                    virtual void                quit_main();
 
-                    virtual size_t screens();
-                    virtual size_t default_screen();
-                    virtual status_t screen_size(size_t screen, ssize_t *w, ssize_t *h);
+                    virtual size_t              screens();
+                    virtual size_t              default_screen();
+                    virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h);
 
-                    virtual status_t setClipboard(size_t id, IDataSource *ds);
-                    virtual status_t getClipboard(size_t id, IDataSink *dst);
-                    virtual const char * const *getDragContentTypes();
+                    virtual status_t            set_clipboard(size_t id, IDataSource *ds);
+                    virtual status_t            get_clipboard(size_t id, IDataSink *dst);
+                    virtual const char * const *get_drag_ctypes();
 
-                    virtual status_t    rejectDrag();
-                    virtual status_t    acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                    virtual status_t            reject_drag();
+                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
 
-                    void                handle_error(XErrorEvent *ev);
+                    void                        handle_error(XErrorEvent *ev);
 
                 public:
-                    bool                addWindow(X11Window *wnd);
-                    bool                remove_window(X11Window *wnd);
+                    bool                        add_window(X11Window *wnd);
+                    bool                        remove_window(X11Window *wnd);
 
                     inline Display             *x11display() const  { return pDisplay; }
                     inline Window               x11root() const     { return hRootWnd; }
                     inline const x11_atoms_t   &atoms() const       { return sAtoms; }
-                    Cursor              get_cursor(mouse_pointer_t pointer);
+                    Cursor                      get_cursor(mouse_pointer_t pointer);
 
-                    size_t              get_screen(Window root);
+                    size_t                      get_screen(Window root);
 
-                    status_t            grab_events(X11Window *wnd, grab_t group);
-                    status_t            ungrab_events(X11Window *wnd);
+                    status_t                    grab_events(X11Window *wnd, grab_t group);
+                    status_t                    ungrab_events(X11Window *wnd);
 
-                    status_t            lock_events(X11Window *wnd, X11Window *lock);
-                    status_t            unlock_events(X11Window *wnd);
+                    status_t                    lock_events(X11Window *wnd, X11Window *lock);
+                    status_t                    unlock_events(X11Window *wnd);
 
-                    virtual void        sync();
-                    void                flush();
+                    virtual void                sync();
+                    void                        flush();
 
                 public:
-                    static const char *event_name(int xev_code);
+                    static const char          *event_name(int xev_code);
             };
         }
     }

@@ -35,22 +35,22 @@ namespace lsp
         {
         }
 
-        const R3DBackendInfo *IDisplay::enumBackend(size_t id) const
+        const R3DBackendInfo *IDisplay::enum_backend(size_t id) const
         {
             return s3DLibs.get(id);
         };
 
-        const R3DBackendInfo *IDisplay::getCurrentBackend() const
+        const R3DBackendInfo *IDisplay::current_backend() const
         {
             return s3DLibs.get(nCurrent3D);
         }
 
-        ssize_t IDisplay::getCurrentBackendId() const
+        ssize_t IDisplay::current_backend_id() const
         {
             return nCurrent3D;
         }
 
-        status_t IDisplay::selectBackend(const R3DBackendInfo *backend)
+        status_t IDisplay::select_backend(const R3DBackendInfo *backend)
         {
             if (backend == NULL)
                 return STATUS_BAD_ARGUMENTS;
@@ -65,7 +65,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IDisplay::selectBackendId(size_t id)
+        status_t IDisplay::select_backend_id(size_t id)
         {
             const r3d_lib_t *lib = s3DLibs.get(id);
             if (lib == NULL)
@@ -75,7 +75,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IDisplay::lookup3DBackends(const io::Path *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const io::Path *path, const char *prefix)
         {
             io::Dir dir;
 
@@ -108,43 +108,43 @@ namespace lsp
                     case io::fattr_t::FT_CHARACTER:
                         continue;
                     default:
-                        register3DBackend(&child);
+                        register_r3d_backend(&child);
                         break;
                 }
             }
         }
 
-        void IDisplay::lookup3DBackends(const char *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const char *path, const char *prefix)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup3DBackends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, prefix);
         }
 
-        void IDisplay::lookup3DBackends(const LSPString *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const LSPString *path, const char *prefix)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup3DBackends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, prefix);
         }
 
-        status_t IDisplay::register3DBackend(const io::Path *path)
+        status_t IDisplay::register_r3d_backend(const io::Path *path)
         {
             if (path == NULL)
                 return STATUS_BAD_ARGUMENTS;
-            return register3DBackend(path->as_string());
+            return register_r3d_backend(path->as_string());
         }
 
-        status_t IDisplay::register3DBackend(const char *path)
+        status_t IDisplay::register_r3d_backend(const char *path)
         {
             LSPString tmp;
             if (path == NULL)
                 return STATUS_BAD_ARGUMENTS;
             if (!tmp.set_utf8(path))
                 return STATUS_NO_MEM;
-            return register3DBackend(&tmp);
+            return register_r3d_backend(&tmp);
         }
 
         status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory)
@@ -194,7 +194,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        status_t IDisplay::register3DBackend(const LSPString *path)
+        status_t IDisplay::register_r3d_backend(const LSPString *path)
         {
             ipc::Library lib;
 
@@ -247,7 +247,7 @@ namespace lsp
             if (res == STATUS_OK)
                 res     = path.parent();
             if (res == STATUS_OK)
-                lookup3DBackends(&path, "");
+                lookup_r3d_backends(&path, "");
 
             return STATUS_OK;
         }
@@ -322,7 +322,7 @@ namespace lsp
             }
         }
 
-        IR3DBackend *IDisplay::create3DBackend(IWindow *parent)
+        IR3DBackend *IDisplay::create_r3d_backend(IWindow *parent)
         {
             if (parent == NULL)
                 return NULL;
@@ -491,27 +491,27 @@ namespace lsp
             return STATUS_BAD_ARGUMENTS;
         }
 
-        IWindow *IDisplay::createWindow()
+        IWindow *IDisplay::create_window()
         {
             return NULL;
         }
 
-        IWindow *IDisplay::createWindow(size_t screen)
+        IWindow *IDisplay::create_window(size_t screen)
         {
             return NULL;
         }
 
-        IWindow *IDisplay::createWindow(void *handle)
+        IWindow *IDisplay::create_window(void *handle)
         {
             return NULL;
         }
 
-        IWindow *IDisplay::wrapWindow(void *handle)
+        IWindow *IDisplay::wrap_window(void *handle)
         {
             return NULL;
         }
 
-        ISurface *IDisplay::createSurface(size_t width, size_t height)
+        ISurface *IDisplay::create_surface(size_t width, size_t height)
         {
             return NULL;
         }
@@ -529,7 +529,7 @@ namespace lsp
             return false;
         }
 
-        taskid_t IDisplay::submitTask(timestamp_t time, task_handler_t handler, void *arg)
+        taskid_t IDisplay::submit_task(timestamp_t time, task_handler_t handler, void *arg)
         {
             if (handler == NULL)
                 return -STATUS_BAD_ARGUMENTS;
@@ -566,7 +566,7 @@ namespace lsp
             return t->nID;
         }
 
-        status_t IDisplay::cancelTask(taskid_t id)
+        status_t IDisplay::cancel_task(taskid_t id)
         {
             if (id < 0)
                 return STATUS_INVALID_UID;
@@ -582,7 +582,7 @@ namespace lsp
             return STATUS_NOT_FOUND;
         }
 
-        status_t IDisplay::setClipboard(size_t id, IDataSource *c)
+        status_t IDisplay::set_clipboard(size_t id, IDataSource *c)
         {
             if (c == NULL)
                 return STATUS_BAD_ARGUMENTS;
@@ -591,7 +591,7 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::getClipboard(size_t id, IDataSink *dst)
+        status_t IDisplay::get_clipboard(size_t id, IDataSink *dst)
         {
             if (dst == NULL)
                 return STATUS_BAD_ARGUMENTS;
@@ -600,17 +600,17 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::rejectDrag()
+        status_t IDisplay::reject_drag()
         {
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::acceptDrag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+        status_t IDisplay::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        const char * const *IDisplay::getDragContentTypes()
+        const char * const *IDisplay::get_drag_ctypes()
         {
             return NULL;
         }

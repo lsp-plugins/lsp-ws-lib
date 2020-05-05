@@ -47,7 +47,7 @@ MTEST_BEGIN("ws", display)
         ws::IDisplay *dpy = ws::lsp_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
 
-        ws::IWindow *wnd = dpy->createWindow();
+        ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
