@@ -53,11 +53,16 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(320, 200, 320, 200) == STATUS_OK);
+
+        size_t screen = wnd->screen();
+        ssize_t sw, sh;
+        MTEST_ASSERT(dpy->screen_size(screen, &sw, &sh) == STATUS_OK);
+        wnd->move((sw - wnd->width()) >> 1, (sh - wnd->height()) >> 1);
+
         MTEST_ASSERT(wnd->show() == STATUS_OK);
 
         Handler h(wnd);
         wnd->set_handler(&h);
-//        dpy->set_main_callback(handler, arg)
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
 
