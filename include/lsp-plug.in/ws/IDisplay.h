@@ -140,20 +140,21 @@ namespace lsp
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
+                 * @param prefix the prefix of the library name to lookup
                  */
-                void lookup3DBackends(const io::Path *path);
+                void lookup3DBackends(const io::Path *path, const char *prefix);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
                  */
-                void lookup3DBackends(const char *path);
+                void lookup3DBackends(const char *path, const char *prefix);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
                  */
-                void lookup3DBackends(const LSPString *path);
+                void lookup3DBackends(const LSPString *path, const char *prefix);
 
                 /**
                  * Try to register the library as a 3D backend

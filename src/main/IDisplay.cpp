@@ -71,7 +71,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IDisplay::lookup3DBackends(const io::Path *path)
+        void IDisplay::lookup3DBackends(const io::Path *path, const char *prefix)
         {
             io::Dir dir;
 
@@ -80,14 +80,14 @@ namespace lsp
                 return;
 
             io::Path child;
-            LSPString item, prefix, postfix;
-            if (!prefix.set_ascii(LSP_R3D_BACKEND_PREFIX))
+            LSPString item, pref, postfix;
+            if (!pref.set_utf8(prefix))
                 return;
 
             io::fattr_t fattr;
             while ((res = dir.read(&item, false)) == STATUS_OK)
             {
-                if (!item.starts_with(&prefix))
+                if (!item.starts_with(&pref))
                     continue;
 
                 if ((res = child.set(path, &item)) != STATUS_OK)
@@ -108,20 +108,20 @@ namespace lsp
             }
         }
 
-        void IDisplay::lookup3DBackends(const char *path)
+        void IDisplay::lookup3DBackends(const char *path, const char *prefix)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup3DBackends(&tmp);
+            lookup3DBackends(&tmp, prefix);
         }
 
-        void IDisplay::lookup3DBackends(const LSPString *path)
+        void IDisplay::lookup3DBackends(const LSPString *path, const char *prefix)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup3DBackends(&tmp);
+            lookup3DBackends(&tmp, prefix);
         }
 
         status_t IDisplay::register3DBackend(const io::Path *path)
@@ -227,21 +227,13 @@ namespace lsp
         {
             status_t res;
 
-            #ifdef LSP_IDE_DEBUG
-                #ifdef PLATFORM_UNIX_COMPATIBLE
-                    res = commit_r3d_factory(NULL, &glx_factory); // Remember built-in factory
-                    if (res != STATUS_OK)
-                        return res;
-                #endif
-            #endif /* LSP_IDE_DEBUG */
-
             // Scan for another locations
             io::Path path;
             res = ipc::Library::get_self_file(&path);
             if (res == STATUS_OK)
                 res     = path.parent();
             if (res == STATUS_OK)
-                lookup3DBackends(&path);
+                lookup3DBackends(&path, "");
 
             return STATUS_OK;
         }
