@@ -18,10 +18,10 @@ DEPENDENCIES = \
 
 # For Linux-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),Linux)
-  DEPENDENCIES             += LIBSNDFILE XLIB
+  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
 endif
 
 # For BSD-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),BSD)
-  DEPENDENCIES             += LIBSNDFILE XLIB
+  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
 endif

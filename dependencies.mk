@@ -32,6 +32,10 @@ XLIB_VERSION               := system
 XLIB_NAME                  := x11
 XLIB_TYPE                  := pkg
 
+CAIRO_VERSION         	   := system
+CAIRO_NAME                 := cairo
+CAIRO_TYPE                 := pkg
+
 ifeq ($(PLATFORM),Windows)
   STDLIB_VERSION             := system
   STDLIB_TYPE                := opt
