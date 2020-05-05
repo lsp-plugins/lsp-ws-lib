@@ -23,4 +23,6 @@
 #include <lsp-plug.in/ws/INativeWindow.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 
+#include <lsp-plug.in/ws/factory.h>
+
 #endif /* LSP_PLUG_IN_WS_WS_H_ */
