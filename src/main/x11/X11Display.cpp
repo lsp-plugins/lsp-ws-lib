@@ -125,7 +125,7 @@ namespace lsp
                 do_destroy();
             }
 
-            int X11Display::init(int argc, const char **argv)
+            status_t X11Display::init(int argc, const char **argv)
             {
                 // Enable multi-threading
                 ::XInitThreads();
@@ -235,23 +235,23 @@ namespace lsp
                 return 0;
             }
 
-            INativeWindow *X11Display::createWindow()
+            IWindow *X11Display::createWindow()
             {
                 return new X11Window(this, DefaultScreen(pDisplay), 0, NULL, false);
             }
 
-            INativeWindow *X11Display::createWindow(size_t screen)
+            IWindow *X11Display::createWindow(size_t screen)
             {
                 return new X11Window(this, screen, 0, NULL, false);
             }
 
-            INativeWindow *X11Display::createWindow(void *handle)
+            IWindow *X11Display::createWindow(void *handle)
             {
                 lsp_trace("handle = %p", handle);
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, false);
             }
 
-            INativeWindow *X11Display::wrapWindow(void *handle)
+            IWindow *X11Display::wrapWindow(void *handle)
             {
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, true);
             }
@@ -350,7 +350,7 @@ namespace lsp
                 IDisplay::destroy();
             }
 
-            int X11Display::main()
+            status_t X11Display::main()
             {
                 // Make a pause
                 struct pollfd x11_poll;
@@ -363,7 +363,7 @@ namespace lsp
                 while (!bExit)
                 {
                     // Get current time
-                    clock_gettime(CLOCK_REALTIME, &ts);
+                    ::clock_gettime(CLOCK_REALTIME, &ts);
                     timestamp_t xts     = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
                     int wtime           = 50; // How many milliseconds to wait
 
@@ -376,6 +376,8 @@ namespace lsp
                         else if (delta <= wtime)
                             wtime               = delta;
                     }
+                    else if (::XPending(pDisplay) > 0)
+                        wtime               = 0;
 
                     // Try to poll input data for a 100 msec period
                     x11_poll.fd         = x11_fd;
@@ -408,7 +410,7 @@ namespace lsp
             status_t X11Display::do_main_iteration(timestamp_t ts)
             {
                 XEvent event;
-                int pending     = XPending(pDisplay);
+                int pending     = ::XPending(pDisplay);
                 status_t result = STATUS_OK;
 
                 // Process pending x11 events
@@ -466,7 +468,7 @@ namespace lsp
                 }
 
                 // Flush & sync display
-                XFlush(pDisplay);
+                ::XFlush(pDisplay);
 //                XSync(pDisplay, False);
 
                 // Call for main task
@@ -1511,7 +1513,7 @@ namespace lsp
 //                    }
                 }
 
-                ws_event_t ue;
+                event_t ue;
                 ue.nType        = UIE_UNKNOWN;
                 ue.nLeft        = 0;
                 ue.nTop         = 0;
@@ -1680,7 +1682,7 @@ namespace lsp
                 if (ue.nType != UIE_UNKNOWN)
                 {
                     Window child        = None;
-                    ws_event_t se       = ue;
+                    event_t se       = ue;
 
                     // Clear the collection
                     sTargets.clear();
@@ -2093,7 +2095,7 @@ namespace lsp
                         recv->hProxy        = task->hTarget;
 
                         // Form the notification event
-                        ws_event_t ue;
+                        event_t ue;
                         ue.nType            = UIE_DRAG_REQUEST;
                         ue.nLeft            = cx;
                         ue.nTop             = cy;
@@ -2388,7 +2390,7 @@ namespace lsp
                 #endif
 
                 // Create DRAG_ENTER event
-                ws_event_t ue;
+                event_t ue;
                 ue.nType        = UIE_DRAG_ENTER;
                 ue.nLeft        = 0;
                 ue.nTop         = 0;
@@ -2454,7 +2456,7 @@ namespace lsp
                 if (tgt == NULL)
                     return STATUS_NOT_FOUND;
 
-                ws_event_t ue;
+                event_t ue;
                 ue.nType        = UIE_DRAG_LEAVE;
                 ue.nLeft        = 0;
                 ue.nTop         = 0;
@@ -2519,7 +2521,7 @@ namespace lsp
                 task->enState       = DND_RECV_POSITION; // Allow specific state changes
 
                 // Form the notification event
-                ws_event_t ue;
+                event_t ue;
                 ue.nType            = UIE_DRAG_REQUEST;
                 ue.nLeft            = x;
                 ue.nTop             = y;

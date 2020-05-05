@@ -227,7 +227,7 @@ namespace lsp
 
         typedef uint64_t    ui_timestamp_t;
 
-        typedef struct ws_event_t
+        typedef struct event_t
         {
             size_t              nType;      // Type of event, see ui_event_type_t
             ssize_t             nLeft;      // Left position of something
@@ -237,7 +237,7 @@ namespace lsp
             ws_code_t           nCode;      // Key code, button, scroll direction
             size_t              nState;     // State
             ui_timestamp_t      nTime;      // Event timestamp in milliseconds
-        } ws_event_t;
+        } event_t;
 
         typedef struct size_limit_t
         {

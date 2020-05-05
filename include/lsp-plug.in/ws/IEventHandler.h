@@ -34,7 +34,7 @@ namespace lsp
                  * @param ev event
                  * @return status of operation
                  */
-                virtual status_t handle_event(const ws_event_t *ev);
+                virtual status_t handle_event(const event_t *ev);
         };
     } /* namespace tk */
 } /* namespace lsp */

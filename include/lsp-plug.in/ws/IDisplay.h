@@ -21,12 +21,13 @@
 #include <lsp-plug.in/ws/ISurface.h>
 #include <lsp-plug.in/ws/IDataSink.h>
 #include <lsp-plug.in/ws/IDataSource.h>
+#include <lsp-plug.in/ws/IWindow.h>
 
 namespace lsp
 {
     namespace ws
     {
-        class INativeWindow;
+        class IWindow;
         class IR3DBackend;
 
         typedef struct R3DBackendInfo
@@ -83,10 +84,10 @@ namespace lsp
                 virtual ~IDisplay();
 
             public:
-                virtual int init(int argc, const char **argv);
+                virtual status_t init(int argc, const char **argv);
                 virtual void destroy();
 
-                virtual int main();
+                virtual status_t main();
                 virtual status_t main_iteration();
                 virtual void quit_main();
 
@@ -182,33 +183,33 @@ namespace lsp
                  *
                  * @return native window
                  */
-                virtual INativeWindow *createWindow();
+                virtual IWindow *createWindow();
 
                 /** Create window at the specified screen
                  *
                  * @param screen screen
                  * @return status native window
                  */
-                virtual INativeWindow *createWindow(size_t screen);
+                virtual IWindow *createWindow(size_t screen);
 
                 /** Create native window as child of specified window handle
                  *
                  * @return native window as child of specified window handle
                  */
-                virtual INativeWindow *createWindow(void *handle);
+                virtual IWindow *createWindow(void *handle);
 
                 /**
                  * Wrap window handle
                  * @param handle handle to wrap
                  * @return native window as wrapper of the handle
                  */
-                virtual INativeWindow *wrapWindow(void *handle);
+                virtual IWindow *wrapWindow(void *handle);
 
                 /**
                  * Create 3D backend for graphics
                  * @return pointer to created backend
                  */
-                virtual IR3DBackend *create3DBackend(INativeWindow *parent);
+                virtual IR3DBackend *create3DBackend(IWindow *parent);
 
                 /** Create surface for drawing
                  *

@@ -13,6 +13,7 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/darray.h>
 
@@ -223,16 +224,16 @@ namespace lsp
                     virtual ~X11Display();
 
                 public:
-                    virtual int init(int argc, const char **argv);
+                    virtual status_t init(int argc, const char **argv);
                     virtual void destroy();
 
-                    virtual INativeWindow *createWindow();
-                    virtual INativeWindow *createWindow(size_t screen);
-                    virtual INativeWindow *createWindow(void *handle);
-                    virtual INativeWindow *wrapWindow(void *handle);
+                    virtual IWindow *createWindow();
+                    virtual IWindow *createWindow(size_t screen);
+                    virtual IWindow *createWindow(void *handle);
+                    virtual IWindow *wrapWindow(void *handle);
                     virtual ISurface *createSurface(size_t width, size_t height);
 
-                    virtual int main();
+                    virtual status_t main();
                     virtual status_t main_iteration();
                     virtual void quit_main();
 

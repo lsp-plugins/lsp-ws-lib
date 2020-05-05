@@ -5,16 +5,20 @@
  *      Author: sadko
  */
 
+#include <lsp-plug.in/r3d/version.h>
 #include <lsp-plug.in/r3d/factory.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
-#include <lsp-plug.in/ws/INativeWindow.h>
 #include <lsp-plug.in/io/Dir.h>
+#include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ws/IWindow.h>
 
 namespace lsp
 {
     namespace ws
     {
+
+
         IDisplay::IDisplay()
         {
             nTaskID             = 0;
@@ -88,6 +92,8 @@ namespace lsp
             while ((res = dir.read(&item, false)) == STATUS_OK)
             {
                 if (!item.starts_with(&pref))
+                    continue;
+                if (!ipc::Library::valid_library_name(&item))
                     continue;
 
                 if ((res = child.set(path, &item)) != STATUS_OK)
@@ -197,7 +203,15 @@ namespace lsp
             if (res != STATUS_OK)
                 return res;
 
-            // TODO: add version control
+            // Perform module version control
+            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE); // The required version of R3D interface
+            module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
+            const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if ((mversion == NULL) || (version_cmp(&r3d_version, mversion) != 0))
+            {
+                lib.close();
+                return STATUS_INCOMPATIBLE;
+            }
 
             // Lookup function
             r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(lib.import(LSP_R3D_FACTORY_FUNCTION_NAME));
@@ -223,7 +237,7 @@ namespace lsp
             return res;
         }
 
-        int IDisplay::init(int argc, const char **argv)
+        status_t IDisplay::init(int argc, const char **argv)
         {
             status_t res;
 
@@ -285,7 +299,7 @@ namespace lsp
                 sMainTask.pHandler(time, sMainTask.pArg);
         }
 
-        int IDisplay::main()
+        status_t IDisplay::main()
         {
             return STATUS_SUCCESS;
         }
@@ -308,7 +322,7 @@ namespace lsp
             }
         }
 
-        IR3DBackend *IDisplay::create3DBackend(INativeWindow *parent)
+        IR3DBackend *IDisplay::create3DBackend(IWindow *parent)
         {
             if (parent == NULL)
                 return NULL;
@@ -477,22 +491,22 @@ namespace lsp
             return STATUS_BAD_ARGUMENTS;
         }
 
-        INativeWindow *IDisplay::createWindow()
+        IWindow *IDisplay::createWindow()
         {
             return NULL;
         }
 
-        INativeWindow *IDisplay::createWindow(size_t screen)
+        IWindow *IDisplay::createWindow(size_t screen)
         {
             return NULL;
         }
 
-        INativeWindow *IDisplay::createWindow(void *handle)
+        IWindow *IDisplay::createWindow(void *handle)
         {
             return NULL;
         }
 
-        INativeWindow *IDisplay::wrapWindow(void *handle)
+        IWindow *IDisplay::wrapWindow(void *handle)
         {
             return NULL;
         }

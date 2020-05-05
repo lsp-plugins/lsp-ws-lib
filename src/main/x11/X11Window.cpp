@@ -12,7 +12,7 @@
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/common/debug.h>
-#include <lsp-plug.in/ws/INativeWindow.h>
+#include <lsp-plug.in/ws/IWindow.h>
 
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
@@ -30,7 +30,7 @@ namespace lsp
     {
         namespace x11
         {
-            X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): INativeWindow(core, handler)
+            X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): IWindow(core, handler)
             {
                 lsp_trace("hwindow = %x", int(wnd));
                 pX11Display             = core;
@@ -350,7 +350,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool X11Window::check_double_click(const ws_event_t *pe, const ws_event_t *ce)
+            bool X11Window::check_double_click(const event_t *pe, const event_t *ce)
             {
                 if ((pe->nType != UIE_MOUSE_UP) || (ce->nType != UIE_MOUSE_UP))
                     return false;
@@ -362,10 +362,10 @@ namespace lsp
                 return (ce->nLeft == pe->nLeft) && (ce->nTop == pe->nTop);
             }
 
-            status_t X11Window::handle_event(const ws_event_t *ev)
+            status_t X11Window::handle_event(const event_t *ev)
             {
                 // Additionally generated event
-                ws_event_t gen;
+                event_t gen;
                 gen.nType       = UIE_UNKNOWN;
     //            lsp_trace("ui_event type=%d", int(ev->nType));
 
@@ -695,13 +695,13 @@ namespace lsp
 
             status_t X11Window::resize(ssize_t width, ssize_t height)
             {
-                if (hWindow == 0)
-                    return STATUS_BAD_STATE;
-
                 sSize.nWidth    = width;
                 sSize.nHeight   = height;
 
                 calc_constraints(&sSize, &sSize);
+
+                if (hWindow == 0)
+                    return STATUS_OK;
 
                 lsp_trace("width=%d, height=%d", int(width), int(height));
 
@@ -817,7 +817,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::show(INativeWindow *over)
+            status_t X11Window::show(IWindow *over)
             {
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
@@ -901,6 +901,8 @@ namespace lsp
                 calc_constraints(&sSize, &sSize);
 
                 lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
+                if (hWindow == None)
+                    return STATUS_OK;
 
                 XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
 //                if (hParent > 0)

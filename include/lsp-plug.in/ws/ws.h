@@ -20,7 +20,7 @@
 
 #include <lsp-plug.in/ws/ISurface.h>
 #include <lsp-plug.in/ws/IDisplay.h>
-#include <lsp-plug.in/ws/INativeWindow.h>
+#include <lsp-plug.in/ws/IWindow.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 
 #include <lsp-plug.in/ws/factory.h>

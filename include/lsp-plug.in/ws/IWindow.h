@@ -1,12 +1,12 @@
 /*
- * INativeWindow.h
+ * IWindow.h
  *
  *  Created on: 12 дек. 2016 г.
  *      Author: sadko
  */
 
-#ifndef LSP_PLUG_IN_WS_INATIVEWINDOW_H_
-#define LSP_PLUG_IN_WS_INATIVEWINDOW_H_
+#ifndef LSP_PLUG_IN_WS_IWINDOW_H_
+#define LSP_PLUG_IN_WS_IWINDOW_H_
 
 #include <lsp-plug.in/ws/version.h>
 #include <lsp-plug.in/ws/IDisplay.h>
@@ -21,18 +21,18 @@ namespace lsp
         /** Native window class
          *
          */
-        class INativeWindow
+        class IWindow
         {
             protected:
                 IEventHandler  *pHandler;
                 IDisplay       *pDisplay;
 
             private:
-                INativeWindow & operator = (const INativeWindow);
+                IWindow & operator = (const IWindow);
 
             public:
-                explicit INativeWindow(IDisplay *dpy, IEventHandler *handler = NULL);
-                virtual ~INativeWindow();
+                explicit IWindow(IDisplay *dpy, IEventHandler *handler = NULL);
+                virtual ~IWindow();
 
                 /** Window initialization routine
                  *
@@ -46,6 +46,12 @@ namespace lsp
                 virtual void destroy();
 
             public:
+                /**
+                 * Get display
+                 * @return display
+                 */
+                inline IDisplay *display()          { return pDisplay; }
+
                 /** Get event handler
                  *
                  * @return event handler
@@ -112,10 +118,7 @@ namespace lsp
                  *
                  * @param handler event handler
                  */
-                inline void set_handler(IEventHandler *handler)
-                {
-                    pHandler = handler;
-                }
+                inline void set_handler(IEventHandler *handler)     { pHandler = handler; }
 
                 /** Move window
                  *
@@ -202,7 +205,7 @@ namespace lsp
                  * @param over the underlying window
                  * @return status of operation
                  */
-                virtual status_t show(INativeWindow *over);
+                virtual status_t show(IWindow *over);
 
                 /** Set left coordinate of the window
                  *
@@ -396,4 +399,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* LSP_PLUG_IN_WS_INATIVEWINDOW_H_ */
+#endif /* LSP_PLUG_IN_WS_IWINDOW_H_ */

@@ -19,7 +19,7 @@ namespace lsp
         {
         }
 
-        status_t IEventHandler::handle_event(const ws_event_t *ev)
+        status_t IEventHandler::handle_event(const event_t *ev)
         {
             return STATUS_OK;
         }

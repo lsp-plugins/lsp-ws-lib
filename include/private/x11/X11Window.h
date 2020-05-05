@@ -12,8 +12,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
-#include <lsp-plug.in/ws/INativeWindow.h>
-
+#include <lsp-plug.in/ws/IWindow.h>
 #include <private/x11/X11CairoSurface.h>
 
 namespace lsp
@@ -24,7 +23,7 @@ namespace lsp
         {
             class X11Display;
 
-            class X11Window: public INativeWindow, public IEventHandler
+            class X11Window: public IWindow, public IEventHandler
             {
                 protected:
                     enum flags_t
@@ -40,7 +39,7 @@ namespace lsp
                     ::Window            hParent;
                     X11CairoSurface    *pSurface;
                     border_style_t      enBorderStyle;
-                    ws_event_t          vMouseUp[2];
+                    event_t          vMouseUp[2];
                     motif_hints_t       sMotif;
                     size_t              nActions;
                     size_t              nScreen;
@@ -54,7 +53,7 @@ namespace lsp
                 protected:
                     void    drop_surface();
                     void    do_create();
-                    static bool check_double_click(const ws_event_t *pe, const ws_event_t *ce);
+                    static bool check_double_click(const event_t *pe, const event_t *ce);
 
                 protected:
 
@@ -143,7 +142,7 @@ namespace lsp
                      * @param ev event to handle
                      * @return status of operation
                      */
-                    virtual status_t handle_event(const ws_event_t *ev);
+                    virtual status_t handle_event(const event_t *ev);
 
                     /** Set event handler
                      *
@@ -211,7 +210,7 @@ namespace lsp
                      */
                     virtual status_t show();
 
-                    virtual status_t show(INativeWindow *over);
+                    virtual status_t show(IWindow *over);
 
                     /**
                      * Grab events from the screen
