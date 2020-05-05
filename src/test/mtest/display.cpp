@@ -51,8 +51,9 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
-        MTEST_ASSERT(wnd->set_size_constraints(320, 200, 320, 200) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);
 
         size_t screen = wnd->screen();
         ssize_t sw, sh;
