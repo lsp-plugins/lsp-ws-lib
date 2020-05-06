@@ -255,11 +255,6 @@ namespace lsp
             ssize_t             nHeight;
         } rectangle_t;
 
-        /** Event handler identifier
-         *
-         */
-        typedef ssize_t         ui_handler_id_t;
-
         enum surface_type_t
         {
             ST_UNKNOWN,
