@@ -201,7 +201,7 @@ namespace lsp
             BS_NONE,                // Not sizable; no visible border line
             BS_POPUP,               // Popup window
             BS_COMBO,               // Combo box window
-            BS_SIZABLE
+            BS_SIZEABLE             // Sizeable window
         };
 
         enum window_action_t

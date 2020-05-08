@@ -47,7 +47,7 @@ namespace lsp
                 }
                 nScreen                 = screen;
                 pSurface                = NULL;
-                enBorderStyle           = BS_SIZABLE;
+                enBorderStyle           = BS_SIZEABLE;
                 vMouseUp[0].nType       = UIE_UNKNOWN;
                 vMouseUp[1].nType       = UIE_UNKNOWN;
                 nActions                = WA_SINGLE;
@@ -247,7 +247,7 @@ namespace lsp
                     hWindow = wnd;
 
                     // Initialize window border style and actions
-                    set_border_style(BS_SIZABLE);
+                    set_border_style(BS_SIZEABLE);
                     set_window_actions(WA_ALL);
                     set_mouse_pointer(MP_DEFAULT);
                 }
@@ -513,7 +513,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:
-                    case BS_SIZABLE:
+                    case BS_SIZEABLE:
                         sMotif.decorations  = MWM_DECOR_ALL;
                         sMotif.input_mode   = MWM_INPUT_MODELESS;
                         sMotif.status       = 0;
@@ -558,7 +558,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:
-                    case BS_SIZABLE:
+                    case BS_SIZEABLE:
                     default:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
@@ -590,7 +590,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu
-                    case BS_SIZABLE:       // Standard resizable border
+                    case BS_SIZEABLE:       // Standard resizable border
                         break;
                 }
 
