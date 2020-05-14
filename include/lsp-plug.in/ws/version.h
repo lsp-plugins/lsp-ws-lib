@@ -15,7 +15,7 @@
 #ifdef LSP_WS_LIB_BUILTIN
     #define LSP_WS_LIB_EXPORT
     #define LSP_WS_LIB_CEXPORT
-    #define LSP_WS_LIB_IMPORT
+    #define LSP_WS_LIB_IMPORT           LSP_SYMBOL_IMPORT
     #define LSP_WS_LIB_CIMPORT
 #else
     #define LSP_WS_LIB_EXPORT           LSP_SYMBOL_EXPORT
