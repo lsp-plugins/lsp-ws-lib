@@ -35,12 +35,14 @@ namespace lsp
          * @param argv list of arguments
          * @return pointer to the display or NULL, returned object must be destructed by free_display call
          */
-        LSP_CSYMBOL_EXTERN IDisplay *lsp_create_display(int argc, const char **argv);
+        LSP_WS_LIB_CIMPORT
+        IDisplay *lsp_ws_create_display(int argc, const char **argv);
 
         /**
          * Display finalization routine
          */
-        LSP_CSYMBOL_EXTERN void lsp_free_display(IDisplay *dpy);
+        LSP_WS_LIB_CIMPORT
+        void lsp_ws_free_display(IDisplay *dpy);
     }
 }
 

@@ -204,7 +204,7 @@ namespace lsp
                 return res;
 
             // Perform module version control
-            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE); // The required version of R3D interface
+            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE_LIB); // The required version of R3D interface
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
             if ((mversion == NULL) || (version_cmp(&r3d_version, mversion) != 0))

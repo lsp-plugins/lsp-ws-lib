@@ -15,7 +15,8 @@ namespace lsp
 {
     namespace ws
     {
-        LSP_CSYMBOL_EXPORT IDisplay *lsp_create_display(int argc, const char **argv)
+        LSP_WS_LIB_CEXPORT
+        IDisplay *lsp_ws_create_display(int argc, const char **argv)
         {
         #ifdef USE_XLIB
             // Create X11 display
@@ -26,14 +27,15 @@ namespace lsp
                     status_t res = dpy->init(argc, argv);
                     if (res == STATUS_OK)
                         return dpy;
-                    lsp_free_display(dpy);
+                    lsp_ws_free_display(dpy);
                 }
             }
         #endif /* USE_XLIB */
             return NULL;
         }
 
-        LSP_CSYMBOL_EXPORT void lsp_free_display(IDisplay *dpy)
+        LSP_WS_LIB_CEXPORT
+        void lsp_ws_free_display(IDisplay *dpy)
         {
             if (dpy == NULL)
                 return;

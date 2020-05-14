@@ -44,7 +44,7 @@ MTEST_BEGIN("ws", display)
 
     MTEST_MAIN
     {
-        ws::IDisplay *dpy = ws::lsp_create_display(0, NULL);
+        ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
 
         ws::IWindow *wnd = dpy->create_window();
@@ -69,7 +69,7 @@ MTEST_BEGIN("ws", display)
 
         wnd->destroy();
         delete wnd;
-        ws::lsp_free_display(dpy);
+        ws::lsp_ws_free_display(dpy);
     }
 
 MTEST_END
