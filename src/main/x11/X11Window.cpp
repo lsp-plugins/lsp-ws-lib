@@ -909,6 +909,10 @@ namespace lsp
             status_t X11Window::set_size_constraints(const size_limit_t *c)
             {
                 sConstraints    = *c;
+                if (sConstraints.nMinWidth == 0)
+                    sConstraints.nMinWidth  = 1;
+                if (sConstraints.nMinHeight == 0)
+                    sConstraints.nMinHeight = 1;
 
                 calc_constraints(&sSize, &sSize);
 
