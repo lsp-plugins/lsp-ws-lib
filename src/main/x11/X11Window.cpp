@@ -674,6 +674,8 @@ namespace lsp
             {
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
+                if ((sSize.nLeft == left) && (sSize.nTop == top))
+                    return STATUS_OK;
 
                 sSize.nLeft     = left;
                 sSize.nTop      = top;
@@ -685,7 +687,7 @@ namespace lsp
 //                else
                 status_t result = do_update_constraints();
                 if (hParent <= 0)
-                    XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
+                    ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                 if (result != STATUS_OK)
                     return result;
                 pX11Display->flush();
@@ -695,6 +697,9 @@ namespace lsp
 
             status_t X11Window::resize(ssize_t width, ssize_t height)
             {
+                if ((sSize.nWidth == width) && (sSize.nHeight == height))
+                    return STATUS_OK;
+
                 sSize.nWidth    = width;
                 sSize.nHeight   = height;
 
@@ -706,7 +711,7 @@ namespace lsp
                 lsp_trace("width=%d, height=%d", int(width), int(height));
 
                 status_t result = do_update_constraints();
-                XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+                ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
 //                if (hParent > 0)
 //                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
                 if (result != STATUS_OK)
@@ -723,6 +728,12 @@ namespace lsp
 
                 rectangle_t old = sSize;
                 calc_constraints(&sSize, realize);
+
+                if ((old.nLeft == sSize.nLeft) &&
+                    (old.nTop == sSize.nTop) &&
+                    (old.nWidth == sSize.nWidth) &&
+                    (old.nHeight == sSize.nHeight))
+                    return STATUS_OK;
 
                 lsp_trace("left=%d, top=%d, width=%d, height=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
