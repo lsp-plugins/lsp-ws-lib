@@ -71,11 +71,12 @@ namespace lsp
          */
         enum mcd_t
         {
-            MCD_NONE            = 0,
-            MCD_UP              = 1,
-            MCD_DOWN            = 2,
-            MCD_LEFT            = 3,
-            MCD_RIGHT           = 4
+            MCD_UP              = 0,
+            MCD_DOWN            = 1,
+            MCD_LEFT            = 2,
+            MCD_RIGHT           = 3,
+
+            MCD_NONE            = 0xffff
         };
 
         /**
