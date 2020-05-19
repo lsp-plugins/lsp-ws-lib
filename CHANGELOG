@@ -7,6 +7,7 @@
 * Fixed typo in MP_VSPLIT constant.
 * Now constants in mcf_t enumeration may be computed as 1 << mcb_t
   enumeration element except special code MCB_NONE.
+* Added ws::init_event function for clearing ws::event_t structure.
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.

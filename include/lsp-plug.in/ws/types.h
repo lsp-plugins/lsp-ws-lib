@@ -346,6 +346,12 @@ namespace lsp
          *
          */
         typedef ssize_t     taskid_t;
+
+        /**
+         * Initialize empty event
+         * @param ev event to initialize
+         */
+        void                init_event(event_t *ev);
     }
 }
 
