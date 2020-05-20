@@ -33,13 +33,18 @@ namespace lsp
                         F_SYNC_WM       = 1 << 2
                     };
 
+                    typedef struct btn_event_t
+                    {
+                        event_t         sDown;
+                        event_t         sUp;
+                    } btn_event_t;
+
                 public:
                     X11Display         *pX11Display;
                     ::Window            hWindow;
                     ::Window            hParent;
                     X11CairoSurface    *pSurface;
                     border_style_t      enBorderStyle;
-                    event_t          vMouseUp[2];
                     motif_hints_t       sMotif;
                     size_t              nActions;
                     size_t              nScreen;
@@ -49,17 +54,19 @@ namespace lsp
 
                     rectangle_t         sSize;
                     size_limit_t        sConstraints;
+                    btn_event_t         vBtnEvent[3];
 
                 protected:
-                    void    drop_surface();
-                    void    do_create();
-                    static bool check_double_click(const event_t *pe, const event_t *ce);
+                    void                drop_surface();
+                    void                do_create();
+                    static bool         check_click(const btn_event_t *ev);
+                    static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
 
                 protected:
 
-                    void        calc_constraints(rectangle_t *dst, const rectangle_t *req);
+                    void                calc_constraints(rectangle_t *dst, const rectangle_t *req);
 
-                    status_t    do_update_constraints();
+                    status_t            do_update_constraints();
 
                 public:
                     explicit X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper);
@@ -69,12 +76,12 @@ namespace lsp
                      *
                      * @return status of operation
                      */
-                    virtual status_t init();
+                    virtual status_t    init();
 
                     /** Window finalization routine
                      *
                      */
-                    virtual void destroy();
+                    virtual void        destroy();
 
                 public:
                     /** Get event handler

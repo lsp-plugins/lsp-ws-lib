@@ -14,31 +14,54 @@ MTEST_BEGIN("ws", display)
     class Handler: public ws::IEventHandler
     {
         private:
+        test_type_t    *pTest;
             ws::IWindow    *pWnd;
 
         public:
-            inline Handler(ws::IWindow *wnd)
+            inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
+                pTest       = test;
                 pWnd        = wnd;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
             {
-                if (ev->nType == ws::UIE_REDRAW)
+                switch (ev->nType)
                 {
-                    Color c(0.0f, 0.5f, 0.75f);
-                    ws::ISurface *s = pWnd->get_surface();
-                    if (s != NULL)
-                        s->clear(&c);
+                    case ws::UIE_MOUSE_CLICK:
+                        pTest->printf("CLICK\n");
+                        break;
 
-                    return STATUS_OK;
+                    case ws::UIE_MOUSE_DBL_CLICK:
+                        pTest->printf("DBL_CLICK\n");
+                        break;
+
+                    case ws::UIE_MOUSE_TRI_CLICK:
+                        pTest->printf("TRI_CLICK\n");
+                        break;
+
+                    case ws::UIE_REDRAW:
+                    {
+                        Color c(0.0f, 0.5f, 0.75f);
+                        ws::ISurface *s = pWnd->get_surface();
+                        if (s != NULL)
+                            s->clear(&c);
+
+                        return STATUS_OK;
+                    }
+
+                    case ws::UIE_CLOSE:
+                    {
+                        pWnd->hide();
+                        pWnd->display()->quit_main();
+                        break;
+                    }
+
+                    default:
+                        return IEventHandler::handle_event(ev);
                 }
-                if (ev->nType == ws::UIE_CLOSE)
-                {
-                    pWnd->hide();
-                    pWnd->display()->quit_main();
-                }
-                return IEventHandler::handle_event(ev);
+
+                return STATUS_OK;
             }
     };
 
@@ -62,7 +85,7 @@ MTEST_BEGIN("ws", display)
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
 
-        Handler h(wnd);
+        Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);

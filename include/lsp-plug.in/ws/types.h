@@ -174,6 +174,7 @@ namespace lsp
             UIE_MOUSE_UP,
             UIE_MOUSE_MOVE,
             UIE_MOUSE_SCROLL,
+            UIE_MOUSE_CLICK,
             UIE_MOUSE_DBL_CLICK,
             UIE_MOUSE_TRI_CLICK,
             UIE_MOUSE_IN,

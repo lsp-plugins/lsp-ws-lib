@@ -48,8 +48,6 @@ namespace lsp
                 nScreen                 = screen;
                 pSurface                = NULL;
                 enBorderStyle           = BS_SIZEABLE;
-                vMouseUp[0].nType       = UIE_UNKNOWN;
-                vMouseUp[1].nType       = UIE_UNKNOWN;
                 nActions                = WA_SINGLE;
                 nFlags                  = 0;
                 enPointer               = MP_DEFAULT;
@@ -63,6 +61,14 @@ namespace lsp
                 sConstraints.nMinHeight = -1;
                 sConstraints.nMaxWidth  = -1;
                 sConstraints.nMaxHeight = -1;
+
+                for (size_t i=0; i<3; ++i)
+                {
+                    init_event(&vBtnEvent[i].sDown);
+                    init_event(&vBtnEvent[i].sUp);
+                    vBtnEvent[i].sDown.nType    = UIE_UNKNOWN;
+                    vBtnEvent[i].sUp.nType      = UIE_UNKNOWN;
+                }
             }
 
             void X11Window::do_create()
@@ -350,16 +356,27 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool X11Window::check_double_click(const event_t *pe, const event_t *ce)
+            bool X11Window::check_click(const btn_event_t *ev)
             {
-                if ((pe->nType != UIE_MOUSE_UP) || (ce->nType != UIE_MOUSE_UP))
+                if ((ev->sDown.nType != UIE_MOUSE_DOWN) || (ev->sUp.nType != UIE_MOUSE_UP))
                     return false;
-                if ((pe->nState != ce->nState) || (pe->nCode != ce->nCode))
+                if (ev->sDown.nCode != ev->sUp.nCode)
                     return false;
-                if (((ce->nTime - pe->nTime) > 400) || (ce->nTime < pe->nTime))
+                if ((ev->sUp.nTime < ev->sDown.nTime) || ((ev->sUp.nTime - ev->sDown.nTime) > 400))
                     return false;
 
-                return (ce->nLeft == pe->nLeft) && (ce->nTop == pe->nTop);
+                return (ev->sDown.nLeft == ev->sUp.nLeft) && (ev->sDown.nTop == ev->sUp.nTop);
+            }
+
+            bool X11Window::check_double_click(const btn_event_t *pe, const btn_event_t *ev)
+            {
+                if (!check_click(pe))
+                    return false;
+
+                if ((ev->sUp.nTime < pe->sUp.nTime) || ((ev->sUp.nTime - pe->sUp.nTime) > 400))
+                    return false;
+
+                return (pe->sUp.nLeft == ev->sUp.nLeft) && (pe->sUp.nTop == ev->sUp.nTop);
             }
 
             status_t X11Window::handle_event(const event_t *ev)
@@ -435,32 +452,33 @@ namespace lsp
                         break;
                     }
 
+                    case UIE_MOUSE_DOWN:
+                    {
+                        // Shift the buffer and push event
+                        vBtnEvent[0]            = vBtnEvent[1];
+                        vBtnEvent[1]            = vBtnEvent[2];
+                        vBtnEvent[2].sDown      = *ev;
+                        vBtnEvent[2].sUp.nType  = UIE_UNKNOWN;
+                        break;
+                    }
+
                     case UIE_MOUSE_UP:
                     {
-                        // Check that there was correct previous mouse up event
-                        if (check_double_click(&vMouseUp[1], ev))
-                        {
-                            // Generate mouse double click event
-                            gen.nType       = (check_double_click(&vMouseUp[0], &vMouseUp[1])) ? UIE_MOUSE_TRI_CLICK : UIE_MOUSE_DBL_CLICK;
-                            gen.nLeft       = ev->nLeft;
-                            gen.nTop        = ev->nTop;
-                            gen.nWidth      = ev->nWidth;
-                            gen.nHeight     = ev->nHeight;
-                            gen.nCode       = ev->nCode;
-                            gen.nState      = ev->nState;
-                            gen.nTime       = ev->nTime;
-                        }
+                        // Push event
+                        vBtnEvent[2].sUp        = *ev;
 
-                        // Do not allow series of triple-clicks
-                        if (gen.nType != UIE_MOUSE_TRI_CLICK)
+                        // Check that click happened
+                        if (check_click(&vBtnEvent[2]))
                         {
-                            vMouseUp[0]         = vMouseUp[1];
-                            vMouseUp[1]         = *ev;
-                        }
-                        else
-                        {
-                            vMouseUp[0].nType   = UIE_UNKNOWN;
-                            vMouseUp[1].nType   = UIE_UNKNOWN;
+                            gen                     = *ev;
+                            gen.nType               = UIE_MOUSE_CLICK;
+
+                            if (check_double_click(&vBtnEvent[1], &vBtnEvent[2]))
+                            {
+                                gen.nType               = UIE_MOUSE_DBL_CLICK;
+                                if (check_double_click(&vBtnEvent[0], &vBtnEvent[1]))
+                                    gen.nType               = UIE_MOUSE_TRI_CLICK;
+                            }
                         }
                         break;
                     }
