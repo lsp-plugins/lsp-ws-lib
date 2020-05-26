@@ -29,9 +29,9 @@ namespace lsp
     {
         namespace x11
         {
-            static unsigned int cursor_shapes[] =
+            static int cursor_shapes[] =
             {
-                (unsigned int)(-1), // MP_NONE
+                -1, // MP_NONE
                 XC_left_ptr, // MP_ARROW +++
                 XC_hand1, // MP_HAND +++
                 XC_cross, // MP_CROSS +++
@@ -117,7 +117,10 @@ namespace lsp
                 pIOBuf          = NULL;
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
-                    pCbOwner[i]             = NULL;
+                    pCbOwner[i]     = NULL;
+
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                    vCursors[i]     = None;
             }
 
             X11Display::~X11Display()
@@ -201,8 +204,8 @@ namespace lsp
                 // Initialize cursors
                 for (size_t i=0; i<__MP_COUNT; ++i)
                 {
-                    unsigned int id = cursor_shapes[i];
-                    if (id == (unsigned int)(-1))
+                    int id = cursor_shapes[i];
+                    if (id < 0)
                     {
                         Pixmap blank;
                         XColor dummy;
@@ -317,6 +320,18 @@ namespace lsp
                     pIOBuf = NULL;
                 }
 
+                // Destroy cursors
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                {
+                    if (vCursors[i] != None)
+                    {
+                        XFreeCursor(pDisplay, vCursors[i]);
+                        vCursors[i] = None;
+                    }
+                }
+
+
+                // Close display
                 Display *dpy = pDisplay;
                 if (dpy != NULL)
                 {
