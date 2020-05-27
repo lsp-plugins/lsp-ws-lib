@@ -31,6 +31,7 @@ namespace lsp
                 protected:
                     cairo_surface_t    *pSurface;
                     cairo_t            *pCR;
+                    cairo_font_options_t   *pFO;
                     bool                bBegin;
 
                 protected:
