@@ -146,6 +146,25 @@ namespace lsp
             return false;
         }
 
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, 0, text->length());
+        }
+
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, first, text->length());
+        }
+
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+        {
+            return false;
+        }
+
         void ISurface::clear(const Color &color)
         {
         }

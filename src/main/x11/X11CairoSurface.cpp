@@ -573,6 +573,13 @@ namespace lsp
                 return true;
             }
 
+            bool X11CairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                if (text == NULL)
+                    return false;
+                return get_text_parameters(f, tp, text->get_utf8(first, last));
+            }
+
             void X11CairoSurface::out_text(const Font &f, float x, float y, const Color &color, const char *text)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))

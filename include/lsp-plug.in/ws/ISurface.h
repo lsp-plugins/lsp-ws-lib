@@ -366,6 +366,36 @@ namespace lsp
                  */
                 virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
 
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @param last last character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+
                 /** Clear surface with specified color
                  *
                  * @param color color to use for clearing

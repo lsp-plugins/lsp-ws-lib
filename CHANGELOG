@@ -13,7 +13,8 @@
 * Added antialiasing flag to font parameters (by default disabled).
 * Font flags enumeration constants are now public.
 * Added estimation surface support by IDisplay interface.
-* Changed interface of ws::ISurface related to out_text() and out_text_relative() methods.
+* Changed interface of ws::ISurface related to out_text(),
+  out_text_relative() and get_text_parameters() methods.
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.
