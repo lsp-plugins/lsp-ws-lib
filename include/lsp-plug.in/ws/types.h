@@ -230,6 +230,17 @@ namespace lsp
             WA_SIZABLE      = WA_ALL
         };
 
+        enum font_flags_t
+        {
+            FF_BOLD         = 1 << 0,
+            FF_ITALIC       = 1 << 1,
+            FF_UNDERLINE    = 1 << 2,
+            FF_ANTIALIASING = 1 << 3,
+
+            FF_NONE         = 0,
+            FF_ALL          = FF_BOLD | FF_ITALIC | FF_UNDERLINE | FF_ANTIALIASING
+        };
+
         typedef uint64_t    ui_timestamp_t;
 
         typedef struct event_t
