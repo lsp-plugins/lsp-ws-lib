@@ -34,6 +34,7 @@ namespace lsp
                 explicit Font();
                 explicit Font(const char *name);
                 explicit Font(const char *name, float size);
+                explicit Font(const char *name, float size, size_t flags);
                 explicit Font(float size);
                 explicit Font(const Font *s);
 
@@ -57,6 +58,7 @@ namespace lsp
 
                 void                set_name(const char *name);
                 void                set(const Font *s);
+                void                set(const char *name, float size, size_t flags = 0);
 
                 bool                get_parameters(ISurface *s, font_parameters_t *fp);
                 bool                get_text_parameters(ISurface *s, text_parameters_t *tp, const char *text);
