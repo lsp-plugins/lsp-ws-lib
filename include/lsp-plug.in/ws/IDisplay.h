@@ -68,6 +68,7 @@ namespace lsp
                 r3d::factory_t             *p3DFactory;         // Pointer to the factory object
                 ssize_t                     nCurrent3D;         // Current 3D backend
                 ssize_t                     nPending3D;         // Pending 3D backend
+                ISurface                   *pEstimation;        // Estimation surface
 
             protected:
                 friend class IR3DBackend;
@@ -218,6 +219,14 @@ namespace lsp
                  * @return surface or NULL on error
                  */
                 virtual ISurface *create_surface(size_t width, size_t height);
+
+                /**
+                 * Get estimation surface. This surface is not for drawing but
+                 * for estimating additional parameters like text parameters, etc.
+                 *
+                 * @return pointer to estimation surface
+                 */
+                virtual ISurface *estimation_surface();
 
                 /** Submit task for execution
                  *

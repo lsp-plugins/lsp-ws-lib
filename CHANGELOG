@@ -12,6 +12,7 @@
 * Added UIE_MOUSE_CLICK event detection and generation for X11.
 * Added antialiasing flag to font parameters (by default disabled).
 * Font flags enumeration constants are now public.
+* Added estimation surface support by IDisplay interface.
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.

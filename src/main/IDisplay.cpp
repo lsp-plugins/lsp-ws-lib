@@ -29,6 +29,7 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
+            pEstimation         = NULL;
         }
 
         IDisplay::~IDisplay()
@@ -254,6 +255,14 @@ namespace lsp
 
         void IDisplay::destroy()
         {
+            // Destroy estimation surface
+            if (pEstimation != NULL)
+            {
+                pEstimation->destroy();
+                delete pEstimation;
+                pEstimation     = NULL;
+            }
+
             // Destroy all backends
             for (size_t j=0,m=s3DBackends.size(); j<m;++j)
             {
@@ -514,6 +523,13 @@ namespace lsp
         ISurface *IDisplay::create_surface(size_t width, size_t height)
         {
             return NULL;
+        }
+
+        ISurface *IDisplay::estimation_surface()
+        {
+            if (pEstimation != NULL)
+                return pEstimation;
+            return pEstimation  = create_surface(1, 1);
         }
     
         bool IDisplay::taskid_exists(taskid_t id)
