@@ -522,6 +522,9 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL))
                     return false;
 
+                bool aa = get_antialiasing();
+                set_antialiasing(f.is_antialiasing());
+
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
@@ -530,6 +533,8 @@ namespace lsp
 
                 cairo_font_extents_t fe;
                 cairo_font_extents(pCR, &fe);
+
+                set_antialiasing(aa);
 
                 fp->Ascent          = fe.ascent;
                 fp->Descent         = fe.descent;
@@ -545,6 +550,9 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL))
                     return false;
 
+                bool aa = get_antialiasing();
+                set_antialiasing(f.is_antialiasing());
+
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
@@ -553,6 +561,7 @@ namespace lsp
 
                 cairo_text_extents_t te;
                 cairo_text_extents(pCR, text, &te);
+                set_antialiasing(aa);
 
                 tp->XBearing        = te.x_bearing;
                 tp->YBearing        = te.y_bearing;
@@ -569,6 +578,8 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
 
+                bool aa = get_antialiasing();
+                set_antialiasing(f.is_antialiasing());
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
@@ -589,6 +600,8 @@ namespace lsp
                     cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 2);
                     cairo_stroke(pCR);
                 }
+
+                set_antialiasing(aa);
             }
 
             void X11CairoSurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const char *text, const Color &color)
@@ -599,6 +612,8 @@ namespace lsp
                 // Draw text border
                 cairo_text_extents_t extents;
 
+                bool aa = get_antialiasing();
+                set_antialiasing(f.is_antialiasing());
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
@@ -613,6 +628,8 @@ namespace lsp
 
                 cairo_move_to(pCR, fx, fy);
                 cairo_show_text(pCR, text);
+
+                set_antialiasing(aa);
             }
 
             void X11CairoSurface::square_dot(float x, float y, float width, const Color &color)
