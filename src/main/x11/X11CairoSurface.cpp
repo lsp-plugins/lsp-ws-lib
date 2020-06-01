@@ -339,7 +339,7 @@ namespace lsp
                 if (pCR == NULL)
                     return;
                 setSourceRGBA(color);
-                ::cairo_rectangle(pCR, left + 0.5f, top  + 0.5f, width, height);
+                ::cairo_rectangle(pCR, left, top, width, height);
                 ::cairo_fill(pCR);
             }
 
@@ -350,7 +350,7 @@ namespace lsp
 
                 X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
                 cg->apply(pCR);
-                cairo_rectangle(pCR, left + 0.5f, top + 0.5f, width, height);
+                cairo_rectangle(pCR, left, top, width, height);
                 cairo_fill(pCR);
             }
 
