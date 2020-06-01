@@ -84,15 +84,19 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_rect(float left, float top, float width, float height, const Color &color)
+        void ISurface::fill_rect(const Color &color, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::fill_rect(float left, float top, float width, float height, IGradient *g)
+        void ISurface::fill_rect(IGradient *g, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::wire_rect(float left, float top, float width, float height, float line_width, const Color &color)
+        void ISurface::wire_rect(const Color &color, float left, float top, float width, float height, float line_width)
+        {
+        }
+
+        void ISurface::wire_rect(IGradient *g, float left, float top, float width, float height, float line_width)
         {
         }
 

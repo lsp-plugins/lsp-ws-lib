@@ -186,34 +186,45 @@ namespace lsp
 
                 /** Draw filled rectangle
                  *
+                 * @param color color of rectangle
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param color color of rectangle
                  */
-                virtual void fill_rect(float left, float top, float width, float height, const Color &color);
+                virtual void fill_rect(const Color &color, float left, float top, float width, float height);
 
                 /** Draw filled rectangle
                  *
+                 * @param g gradient to use
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param g gradient to use
                  */
-                virtual void fill_rect(float left, float top, float width, float height, IGradient *g);
+                virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
 
                 /** Draw wired rectangle
                  *
+                 * @param color color of rectangle
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
                  * @param line_width width of line
-                 * @param color color of rectangle
                  */
-                virtual void wire_rect(float left, float top, float width, float height, float line_width, const Color &color);
+                virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
+
+                /**
+                 * Draw wired rectangle
+                 * @param g gradient to use
+                 * @param left left-top corner x coorinate
+                 * @param top left-top corner y coorinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
 
                 /** Wire rectangle with rounded corners
                  *

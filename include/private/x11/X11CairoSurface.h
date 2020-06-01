@@ -107,11 +107,13 @@ namespace lsp
 
                     virtual void clear_rgba(uint32_t color);
 
-                    virtual void fill_rect(float left, float top, float width, float height, const Color &color);
+                    virtual void fill_rect(const Color &color, float left, float top, float width, float height);
 
-                    virtual void fill_rect(float left, float top, float width, float height, IGradient *g);
+                    virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
 
-                    virtual void wire_rect(float left, float top, float width, float height, float line_width, const Color &color);
+                    virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
+
+                    virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
 
                     virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color);
 
