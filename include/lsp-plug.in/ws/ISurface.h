@@ -428,96 +428,96 @@ namespace lsp
                 /** Ouput single-line text
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x left position
                  * @param y top position
-                 * @param color text color
                  * @param text text to output
                  */
-                virtual void out_text(const Font &f, float x, float y, const Color &color, const char *text);
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text);
 
                 /**
                  * Output single-line text
                  * @param f font
+                 * @param color color
                  * @param x left position
                  * @param y top position
-                 * @param color color
                  * @param text text
                  */
-                virtual void out_text(const Font &f, float x, float y, const Color &color, const LSPString *text);
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text);
 
                 /**
                  * Output single-line text
                  * @param f font
+                 * @param color color
                  * @param x left position
                  * @param y top position
-                 * @param color color
                  * @param text text
                  * @param first index of first character
                  */
-                virtual void out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first);
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first);
 
                 /**
                  * Output single-line text
                  * @param f font
+                 * @param color color
                  * @param x left position
                  * @param y top position
-                 * @param color color
                  * @param text text
                  * @param first index of first character
                  * @param last index of last character
                  */
-                virtual void out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first, ssize_t last);
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last);
 
                 /** Ouput single-line text relative to the specified position
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x position left
                  * @param y position top
                  * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
                  * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
-                 * @param color text color
                  * @param text text to output
                  */
-                virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const char *text);
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text);
 
                 /** Ouput single-line text relative to the specified position
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x position left
                  * @param y position top
                  * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
                  * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
-                 * @param color text color
                  * @param text text to output
                  */
-                virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text);
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text);
 
                 /** Ouput single-line text relative to the specified position
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x position left
                  * @param y position top
                  * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
                  * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
-                 * @param color text color
                  * @param text text to output
                  * @param first first character of string
                  */
-                virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first);
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first);
 
                 /** Ouput single-line text relative to the specified position
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x position left
                  * @param y position top
                  * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
                  * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
-                 * @param color text color
                  * @param text text to output
                  * @param first first character of string
                  * @param last last character of string
                  */
-                virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first, ssize_t last);
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
                 /**
                  * Draw square dot

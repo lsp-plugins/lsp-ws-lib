@@ -608,7 +608,7 @@ namespace lsp
                 return get_text_parameters(f, tp, text->get_utf8(first, last));
             }
 
-            void X11CairoSurface::out_text(const Font &f, float x, float y, const Color &color, const char *text)
+            void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -644,14 +644,14 @@ namespace lsp
                 set_antialiasing(aa);
             }
 
-            void X11CairoSurface::out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first, ssize_t last)
+            void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if (text == NULL)
                     return;
-                out_text(f, x, y, color, text->get_utf8(first, last));
+                out_text(f, color, x, y, text->get_utf8(first, last));
             }
 
-            void X11CairoSurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const char *text)
+            void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -684,11 +684,11 @@ namespace lsp
                 set_antialiasing(aa);
             }
 
-            void X11CairoSurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first, ssize_t last)
+            void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if (text == NULL)
                     return;
-                out_text_relative(f, x, y, dx, dy, color, text->get_utf8(first, last));
+                out_text_relative(f, color, x, y, dx, dy, text->get_utf8(first, last));
             }
 
             void X11CairoSurface::square_dot(float x, float y, float width, const Color &color)

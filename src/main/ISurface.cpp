@@ -189,47 +189,47 @@ namespace lsp
         {
         }
 
-        void ISurface::out_text(const Font &f, float x, float y, const Color &color, const char *text)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
         {
         }
 
-        void ISurface::out_text(const Font &f, float x, float y, const Color &color, const LSPString *text)
-        {
-            if (text == NULL)
-                return;
-            out_text(f, x, y, color, text, 0, text->length());
-        }
-
-        void ISurface::out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text)
         {
             if (text == NULL)
                 return;
-            out_text(f, x, y, color, text, first, text->length());
+            out_text(f, color, x, y, text, 0, text->length());
         }
 
-        void ISurface::out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first, ssize_t last)
-        {
-        }
-
-        void ISurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const char *text)
-        {
-        }
-
-        void ISurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first)
         {
             if (text == NULL)
                 return;
-            out_text_relative(f, x, y, dx, dy, color, text, 0, text->length());
+            out_text(f, color, x, y, text, first, text->length());
         }
 
-        void ISurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+        {
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+        {
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text)
         {
             if (text == NULL)
                 return;
-            out_text_relative(f, x, y, dx, dy, color, text, first, text->length());
+            out_text_relative(f, color, x, y, dx, dy, text, 0, text->length());
         }
 
-        void ISurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first, ssize_t last)
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return;
+            out_text_relative(f, color, x, y, dx, dy, text, first, text->length());
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
         {
         }
 

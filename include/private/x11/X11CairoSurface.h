@@ -143,13 +143,13 @@ namespace lsp
 
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
-                    virtual void out_text(const Font &f, float x, float y, const Color &color, const char *text);
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text);
 
-                    virtual void out_text(const Font &f, float x, float y, const Color &color, const LSPString *text, ssize_t first, ssize_t last);
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last);
 
-                    virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const char *text);
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text);
 
-                    virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const Color &color, const LSPString *text, ssize_t first, ssize_t last);
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
                     virtual void square_dot(float x, float y, float width, const Color &color);
 
