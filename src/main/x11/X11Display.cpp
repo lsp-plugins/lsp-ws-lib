@@ -1569,11 +1569,12 @@ namespace lsp
                             int(ev->xbutton.x), int(ev->xbutton.y),
                             (ev->type == ButtonRelease) ? "true" : "false");
 
-                        // Check if it is a button press/release
-                        ue.nCode        = decode_mcb(ev->xbutton.button);
-                        if (ue.nCode != MCB_NONE)
+                        // Check that it is a scrolling
+                        ue.nCode        = decode_mcd(ev->xbutton.button);
+                        if ((ue.nCode != MCD_NONE) && (ev->type == ButtonPress))
                         {
-                            ue.nType        = (ev->type == ButtonPress) ? UIE_MOUSE_DOWN : UIE_MOUSE_UP;
+                            // Skip ButtonRelease
+                            ue.nType        = UIE_MOUSE_SCROLL;
                             ue.nLeft        = ev->xbutton.x;
                             ue.nTop         = ev->xbutton.y;
                             ue.nState       = decode_state(ev->xbutton.state);
@@ -1581,12 +1582,11 @@ namespace lsp
                             break;
                         }
 
-                        // Check that it is a scrolling
-                        ue.nCode        = decode_mcd(ev->xbutton.button);
-                        if ((ue.nCode != MCD_NONE) && (ev->type == ButtonPress))
+                        // Check if it is a button press/release
+                        ue.nCode        = decode_mcb(ev->xbutton.button);
+                        if (ue.nCode != MCB_NONE)
                         {
-                            // Skip ButtonRelease
-                            ue.nType        = UIE_MOUSE_SCROLL;
+                            ue.nType        = (ev->type == ButtonPress) ? UIE_MOUSE_DOWN : UIE_MOUSE_UP;
                             ue.nLeft        = ev->xbutton.x;
                             ue.nTop         = ev->xbutton.y;
                             ue.nState       = decode_state(ev->xbutton.state);
