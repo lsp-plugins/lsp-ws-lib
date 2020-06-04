@@ -632,10 +632,12 @@ namespace lsp
                 {
                     cairo_text_extents_t te;
                     cairo_text_extents(pCR, text, &te);
-                    cairo_set_line_width(pCR, 1.0f);
+                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
 
-                    cairo_move_to(pCR, x, y + te.y_advance + 2);
-                    cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 2);
+                    cairo_set_line_width(pCR, width);
+
+                    cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
+                    cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
                     cairo_stroke(pCR);
                 }
 
