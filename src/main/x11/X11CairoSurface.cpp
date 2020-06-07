@@ -435,7 +435,7 @@ namespace lsp
                 cairo_set_line_width(pCR, w);
             }
 
-            void X11CairoSurface::fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, const Color &color)
+            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float left, float top, float width, float height, float radius)
             {
                 if (pCR == NULL)
                     return;
@@ -444,7 +444,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, IGradient *g)
+            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float left, float top, float width, float height, float radius)
             {
                 if (pCR == NULL)
                     return;
@@ -462,47 +462,6 @@ namespace lsp
                 cairo_set_line_width(pCR, line_width);
                 cairo_rectangle(pCR, left, top, width, height);
                 cairo_stroke_preserve(pCR);
-                cairo_fill(pCR);
-            }
-
-            void X11CairoSurface::fill_round_rect(float left, float top, float width, float height, float r, const Color &color)
-            {
-                if (pCR == NULL)
-                    return;
-
-                float x0 = left, y0 = top, x1 = left + width, y1 = top + height;
-
-                setSourceRGBA(color);
-                cairo_move_to(pCR, x1 - r, y0);
-                cairo_curve_to(pCR, x1, y0, x1, y0, x1, y0 + r);
-                cairo_line_to(pCR, x1, y1 - r);
-                cairo_curve_to(pCR, x1, y1, x1, y1, x1 - r, y1);
-                cairo_line_to(pCR, x0 + r, y1);
-                cairo_curve_to(pCR, x0, y1, x0, y1, x0, y1 - r);
-                cairo_line_to(pCR, x0, y0 + r);
-                cairo_curve_to(pCR, x0, y0, x0, y0, x0 + r, y0);
-                cairo_close_path(pCR);
-                cairo_fill(pCR);
-            }
-
-            void X11CairoSurface::fill_round_rect(float left, float top, float width, float height, float r, IGradient *g)
-            {
-                if (pCR == NULL)
-                    return;
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
-
-                float x0 = left, y0 = top, x1 = left + width, y1 = top + height;
-
-                cg->apply(pCR);
-                cairo_move_to(pCR, x1 - r, y0);
-                cairo_curve_to(pCR, x1, y0, x1, y0, x1, y0 + r);
-                cairo_line_to(pCR, x1, y1 - r);
-                cairo_curve_to(pCR, x1, y1, x1, y1, x1 - r, y1);
-                cairo_line_to(pCR, x0 + r, y1);
-                cairo_curve_to(pCR, x0, y1, x0, y1, x0, y1 - r);
-                cairo_line_to(pCR, x0, y0 + r);
-                cairo_curve_to(pCR, x0, y0, x0, y0, x0 + r, y0);
-                cairo_close_path(pCR);
                 cairo_fill(pCR);
             }
 
