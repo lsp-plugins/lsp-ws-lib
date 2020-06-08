@@ -31,27 +31,31 @@ namespace lsp
         {
             static int cursor_shapes[] =
             {
-                -1, // MP_NONE
-                XC_left_ptr, // MP_ARROW +++
-                XC_hand1, // MP_HAND +++
-                XC_cross, // MP_CROSS +++
-                XC_xterm, // MP_IBEAM +++
-                XC_pencil, // MP_DRAW +++
-                XC_plus, // MP_PLUS +++
-                XC_bottom_right_corner, // MP_SIZE_NESW ---
-                XC_sb_v_double_arrow, // MP_SIZE_NS +++
-                XC_sb_h_double_arrow, // MP_SIZE_WE +++
-                XC_bottom_left_corner, // MP_SIZE_NWSE ---
-                XC_center_ptr, // MP_UP_ARROW ---
-                XC_watch, // MP_HOURGLASS +++
-                XC_fleur, // MP_DRAG +++
-                XC_circle, // MP_NO_DROP +++
-                XC_pirate, // MP_DANGER +++
-                XC_right_side, // MP_HSPLIT ---
-                XC_bottom_side, // MP_VPSLIT ---
-                XC_exchange, // MP_MULTIDRAG ---
-                XC_watch, // MP_APP_START ---
-                XC_question_arrow // MP_HELP +++
+                -1,                         // MP_NONE
+                XC_left_ptr,                // MP_ARROW
+                XC_sb_left_arrow,           // MP_ARROW_LEFT
+                XC_sb_right_arrow,          // MP_ARROW_RIGHT
+                XC_sb_up_arrow,             // MP_ARROW_UP
+                XC_sb_down_arrow,           // MP_ARROW_DOWN
+                XC_hand1,                   // MP_HAND
+                XC_cross,                   // MP_CROSS
+                XC_xterm,                   // MP_IBEAM
+                XC_pencil,                  // MP_DRAW
+                XC_plus,                    // MP_PLUS
+                XC_bottom_right_corner,     // MP_SIZE_NESW
+                XC_sb_v_double_arrow,       // MP_SIZE_NS
+                XC_sb_h_double_arrow,       // MP_SIZE_WE
+                XC_bottom_left_corner,      // MP_SIZE_NWSE
+                XC_center_ptr,              // MP_UP_ARROW
+                XC_watch,                   // MP_HOURGLASS
+                XC_fleur,                   // MP_DRAG
+                XC_circle,                  // MP_NO_DROP
+                XC_pirate,                  // MP_DANGER
+                XC_right_side,              // MP_HSPLIT
+                XC_bottom_side,             // MP_VPSLIT
+                XC_exchange,                // MP_MULTIDRAG
+                XC_watch,                   // MP_APP_START
+                XC_question_arrow           // MP_HELP
             };
 
             // Cursors matched to KDE:
@@ -89,10 +93,6 @@ namespace lsp
             //XC_lr_angle,
             //XC_right_side,
             //XC_right_tee,
-            //XC_sb_down_arrow,
-            //XC_sb_left_arrow,
-            //XC_sb_right_arrow,
-            //XC_sb_up_arrow,
             //XC_tcross,
             //XC_top_left_corner,
             //XC_top_right_corner,

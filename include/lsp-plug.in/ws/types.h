@@ -126,27 +126,31 @@ namespace lsp
 
         enum mouse_pointer_t
         {
-            MP_NONE,        // No cursor
-            MP_ARROW,       // Standard arrow
-            MP_HAND,        // Hand pointer
-            MP_CROSS,       // Crosshair
-            MP_IBEAM,       // Text-editing I-beam
-            MP_DRAW,        // Drawing tool (pencil)
-            MP_PLUS,        // Plus
-            MP_SIZE_NESW,   // Sizing cursor oriented diagonally from northeast to southwest
-            MP_SIZE_NS,     // Sizing cursor oriented vertically
-            MP_SIZE_WE,     // Sizing cursor oriented horizontally
-            MP_SIZE_NWSE,   // Sizing cursor oriented diagonally from northwest to southeast
-            MP_UP_ARROW,    // Arrow pointing up
-            MP_HOURGLASS,   // Hourglass
-            MP_DRAG,        // Arrow with a blank page in the lower-right corner
-            MP_NO_DROP,     // Diagonal slash through a white circle
-            MP_DANGER,      // Danger cursor
-            MP_HSPLIT,      // Black double-vertical bar with arrows pointing right and left
-            MP_VSPLIT,      // Black double-horizontal bar with arrows pointing up and down
-            MP_MULTIDRAG,   // Arrow with three blank pages in the lower-right corner
-            MP_APP_START,   // Arrow combined with an hourglass
-            MP_HELP,        // Arrow next to a black question mark
+            MP_NONE,            // No cursor
+            MP_ARROW,           // Standard arrow
+            MP_ARROW_LEFT,      // Arrow left
+            MP_ARROW_RIGHT,     // Arrow right
+            MP_ARROW_UP,        // Arrow up
+            MP_ARROW_DOWN,      // Arrow down
+            MP_HAND,            // Hand pointer
+            MP_CROSS,           // Crosshair
+            MP_IBEAM,           // Text-editing I-beam
+            MP_DRAW,            // Drawing tool (pencil)
+            MP_PLUS,            // Plus
+            MP_SIZE_NESW,       // Sizing cursor oriented diagonally from northeast to southwest
+            MP_SIZE_NS,         // Sizing cursor oriented vertically
+            MP_SIZE_WE,         // Sizing cursor oriented horizontally
+            MP_SIZE_NWSE,       // Sizing cursor oriented diagonally from northwest to southeast
+            MP_UP_ARROW,        // Arrow pointing up
+            MP_HOURGLASS,       // Hourglass
+            MP_DRAG,            // Arrow with a blank page in the lower-right corner
+            MP_NO_DROP,         // Diagonal slash through a white circle
+            MP_DANGER,          // Danger cursor
+            MP_HSPLIT,          // Black double-vertical bar with arrows pointing right and left
+            MP_VSPLIT,          // Black double-horizontal bar with arrows pointing up and down
+            MP_MULTIDRAG,       // Arrow with three blank pages in the lower-right corner
+            MP_APP_START,       // Arrow combined with an hourglass
+            MP_HELP,            // Arrow next to a black question mark
 
             // Boundaries
             __MP_LAST       = MP_HELP,
