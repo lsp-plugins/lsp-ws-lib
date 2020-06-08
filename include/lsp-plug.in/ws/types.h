@@ -126,7 +126,7 @@ namespace lsp
 
         enum mouse_pointer_t
         {
-            MP_NONE,
+            MP_NONE,        // No cursor
             MP_ARROW,       // Standard arrow
             MP_HAND,        // Hand pointer
             MP_CROSS,       // Crosshair
@@ -148,9 +148,12 @@ namespace lsp
             MP_APP_START,   // Arrow combined with an hourglass
             MP_HELP,        // Arrow next to a black question mark
 
+            // Boundaries
+            __MP_LAST       = MP_HELP,
+            __MP_COUNT      = __MP_LAST + 1,
+
             // Aliases
             MP_SIZE         = MP_ARROW,
-            MP_DEFAULT      = MP_ARROW,
             MP_TEXT         = MP_IBEAM,
             MP_VSIZE        = MP_SIZE_NS,
             MP_HSIZE        = MP_SIZE_WE,
@@ -159,10 +162,7 @@ namespace lsp
             MP_HYPERLINK    = MP_HAND,
             MP_PENCIL       = MP_DRAW,
             MP_TABLE_CELL   = MP_PLUS,
-
-            // Boundaries
-            __MP_LAST       = MP_HELP,
-            __MP_COUNT      = __MP_LAST + 1
+            MP_DEFAULT      = -1
         };
 
         enum ui_event_type_t

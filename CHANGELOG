@@ -13,6 +13,7 @@
 * Added antialiasing flag to font parameters (by default disabled).
 * Font flags enumeration constants are now public.
 * Added estimation surface support by IDisplay interface.
+* ws::MP_DEFAULT now is a separate constant, not an alias to ws::MP_ARROW.
 * Changed interface of ws::ISurface related to following drawing functions:
   * out_text()
   * out_text_relative()

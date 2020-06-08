@@ -3075,6 +3075,11 @@ namespace lsp
 
             Cursor X11Display::get_cursor(mouse_pointer_t pointer)
             {
+                if (pointer == MP_DEFAULT)
+                    pointer = MP_ARROW;
+                else if ((pointer < 0) || (pointer > __MP_COUNT))
+                    pointer = MP_NONE;
+
                 return vCursors[pointer];
             }
 
