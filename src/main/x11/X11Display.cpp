@@ -1571,14 +1571,17 @@ namespace lsp
 
                         // Check that it is a scrolling
                         ue.nCode        = decode_mcd(ev->xbutton.button);
-                        if ((ue.nCode != MCD_NONE) && (ev->type == ButtonPress))
+                        if (ue.nCode != MCD_NONE)
                         {
                             // Skip ButtonRelease
-                            ue.nType        = UIE_MOUSE_SCROLL;
-                            ue.nLeft        = ev->xbutton.x;
-                            ue.nTop         = ev->xbutton.y;
-                            ue.nState       = decode_state(ev->xbutton.state);
-                            ue.nTime        = ev->xbutton.time;
+                            if (ev->type == ButtonPress)
+                            {
+                                ue.nType        = UIE_MOUSE_SCROLL;
+                                ue.nLeft        = ev->xbutton.x;
+                                ue.nTop         = ev->xbutton.y;
+                                ue.nState       = decode_state(ev->xbutton.state);
+                                ue.nTime        = ev->xbutton.time;
+                            }
                             break;
                         }
 
