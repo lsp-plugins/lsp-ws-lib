@@ -891,9 +891,9 @@ namespace lsp
             }
 
             void X11CairoSurface::fill_frame(
+                const Color &color,
                 float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih,
-                const Color &color
+                float ix, float iy, float iw, float ih
             )
             {
                 if (pCR == NULL)
@@ -1012,15 +1012,16 @@ namespace lsp
             }
 
             void X11CairoSurface::fill_round_frame(
-                    float fx, float fy, float fw, float fh,
-                    float ix, float iy, float iw, float ih,
+                    const Color &color,
                     float radius, size_t flags,
-                    const Color &color)
+                    float fx, float fy, float fw, float fh,
+                    float ix, float iy, float iw, float ih
+                    )
             {
                 if (pCR == NULL)
                     return;
 
-                fill_frame(fx, fy, fw, fh, ix, iy, iw, ih, color);
+                fill_frame(color, fx, fy, fw, fh, ix, iy, iw, ih);
                 setSourceRGBA(color);
 
                 // Can draw?

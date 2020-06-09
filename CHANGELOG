@@ -26,6 +26,8 @@
   * fill_rect()
   * wire_rect()
   * fill_round_rect()
+  * fill_frame()
+  * fill_round_fame()
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.

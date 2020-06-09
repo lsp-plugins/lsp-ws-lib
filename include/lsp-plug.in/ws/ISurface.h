@@ -196,6 +196,13 @@ namespace lsp
 
                 /** Draw filled rectangle
                  *
+                 * @param color color of rectangle
+                 * @param r rectangle to fill
+                 */
+                virtual void fill_rect(const Color &color, const ws::rectangle_t *r);
+
+                /** Draw filled rectangle
+                 *
                  * @param g gradient to use
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
@@ -203,6 +210,13 @@ namespace lsp
                  * @param height height of rectangle
                  */
                 virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
+
+                /** Draw filled rectangle
+                 *
+                 * @param g gradient to use
+                 * @param r rectangle to fill
+                 */
+                virtual void fill_rect(IGradient *g, const ws::rectangle_t *r);
 
                 /** Draw wired rectangle
                  *
@@ -593,16 +607,24 @@ namespace lsp
                  */
                 virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
 
-                virtual void fill_frame(
+                virtual void fill_frame(const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
-                        const Color &color);
+                        float ix, float iy, float iw, float ih
+                        );
+
+                virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 virtual void fill_round_frame(
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
+                        const Color &color,
                         float radius, size_t flags,
-                        const Color &color);
+                        float fx, float fy, float fw, float fh,
+                        float ix, float iy, float iw, float ih
+                    );
+
+                virtual void fill_round_frame(
+                        const Color &color, float radius, size_t flags,
+                        const ws::rectangle_t *out, const ws::rectangle_t *in
+                    );
 
                 /** Draw polygon
                  *
@@ -669,6 +691,12 @@ namespace lsp
                  * @param h height
                  */
                 virtual void clip_begin(float x, float y, float w, float h);
+
+                /**
+                 * Begin clipping of the rectangle area
+                 * @param area the area to clip
+                 */
+                virtual void clip_begin(ws::rectangle_t *area);
 
                 /**
                  * End clipping

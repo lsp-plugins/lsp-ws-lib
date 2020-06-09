@@ -181,16 +181,17 @@ namespace lsp
                     void clip_end();
 
                     virtual void fill_frame(
+                        const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
-                        const Color &color
+                        float ix, float iy, float iw, float ih
                     );
 
                     virtual void fill_round_frame(
-                            float fx, float fy, float fw, float fh,
-                            float ix, float iy, float iw, float ih,
+                            const Color &color,
                             float radius, size_t flags,
-                            const Color &color);
+                            float fx, float fy, float fw, float fh,
+                            float ix, float iy, float iw, float ih
+                            );
 
                     virtual bool get_antialiasing();
 
