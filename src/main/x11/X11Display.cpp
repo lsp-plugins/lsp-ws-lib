@@ -1549,7 +1549,7 @@ namespace lsp
                         XComposeStatus status;
 
                         XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
-                        ws_code_t key   = decode_keycode(ksym);
+                        code_t key   = decode_keycode(ksym);
 
                         if (key != WSK_UNKNOWN)
                         {

@@ -31,7 +31,7 @@ namespace lsp
 
             size_t      decode_state(size_t code);
 
-            ws_code_t   decode_keycode(KeySym code);
+            code_t   decode_keycode(KeySym code);
         }
     }
 }

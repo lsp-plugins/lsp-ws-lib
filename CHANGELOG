@@ -14,6 +14,8 @@
 * Font flags enumeration constants are now public.
 * Added estimation surface support by IDisplay interface.
 * ws::MP_DEFAULT now is a separate constant, not an alias to ws::MP_ARROW.
+* Renamed ws::ws_code_t to ws::code_t.
+* Renamed ws::ws_keycodes_t to ws::keycode_t.
 * Added following mouse cursors:
   * ws::MP_ARROW_LEFT
   * ws::MP_ARROW_RIGHT

@@ -981,7 +981,7 @@ namespace lsp
                 return result;
             }
 
-            ws_code_t decode_keycode(KeySym code)
+            code_t decode_keycode(KeySym code)
             {
                 /* FROM <x11/keysymdef.h>:
                  *
@@ -1016,7 +1016,7 @@ namespace lsp
                 else if ((code & 0xffff00) == 0xff00)
                 {
                     // Contol keys
-                    ws_code_t result = ctltable[code & 0xff];
+                    code_t result = ctltable[code & 0xff];
                     return (result != 0xff) ? result + WSK_FIRST : WSK_UNKNOWN;
                 }
 
