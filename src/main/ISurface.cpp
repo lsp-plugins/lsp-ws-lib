@@ -331,7 +331,7 @@ namespace lsp
         {
         }
 
-        void ISurface::clip_begin(ws::rectangle_t *area)
+        void ISurface::clip_begin(const ws::rectangle_t *area)
         {
             clip_begin(area->nLeft, area->nTop, area->nWidth, area->nHeight);
         }

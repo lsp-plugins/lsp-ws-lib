@@ -696,7 +696,7 @@ namespace lsp
                  * Begin clipping of the rectangle area
                  * @param area the area to clip
                  */
-                virtual void clip_begin(ws::rectangle_t *area);
+                virtual void clip_begin(const ws::rectangle_t *area);
 
                 /**
                  * End clipping
