@@ -435,7 +435,7 @@ namespace lsp
                 cairo_set_line_width(pCR, w);
             }
 
-            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float left, float top, float width, float height, float radius)
+            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
@@ -444,13 +444,32 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float left, float top, float width, float height, float radius)
+            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+            {
+                if (pCR == NULL)
+                    return;
+                setSourceRGBA(color);
+                drawRoundRect(r->nLeft, r->nTop, r->nWidth, r->nHeight, radius, mask);
+                cairo_fill(pCR);
+            }
+
+            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
                 X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
                 cg->apply(pCR);
                 drawRoundRect(left, top, width, height, radius, mask);
+                cairo_fill(pCR);
+            }
+
+            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+            {
+                if (pCR == NULL)
+                    return;
+                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                cg->apply(pCR);
+                drawRoundRect(r->nLeft, r->nTop, r->nWidth, r->nHeight, radius, mask);
                 cairo_fill(pCR);
             }
 

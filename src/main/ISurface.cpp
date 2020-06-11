@@ -118,12 +118,22 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_round_rect(const Color &color, size_t mask, float left, float top, float width, float height, float radius)
+        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::fill_round_rect(IGradient *g, size_t mask, float left, float top, float width, float height, float radius)
+        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
         {
+            fill_round_rect(color, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
+        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
+        {
+        }
+
+        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_round_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
         void ISurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)

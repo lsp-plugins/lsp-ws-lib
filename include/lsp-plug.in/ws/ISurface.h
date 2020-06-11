@@ -277,6 +277,7 @@ namespace lsp
                 /** Fill rectangle with rounded corners
                  *
                  * @param color rectangle color
+                 * @param radius the corner radius
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
@@ -286,13 +287,26 @@ namespace lsp
                  * @param top left-top corner y coordinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param radius the corner radius
                  */
-                virtual void fill_round_rect(const Color &color, size_t mask, float left, float top, float width, float height, float radius);
+                virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
 
                 /** Fill rectangle with rounded corners
                  *
                  * @param g gradient to use
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param radius the corner radius
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
@@ -302,9 +316,21 @@ namespace lsp
                  * @param top left-top corner y coordinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param radius the corner radius
                  */
-                virtual void fill_round_rect(IGradient *g, size_t mask, float left, float top, float width, float height, float radius);
+                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
                 /** Draw full rectangle
                  *
