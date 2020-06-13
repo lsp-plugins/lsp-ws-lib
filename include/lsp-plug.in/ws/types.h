@@ -254,7 +254,7 @@ namespace lsp
             ssize_t             nTop;       // Top position of something
             ssize_t             nWidth;     // Width of something
             ssize_t             nHeight;    // Height of something
-            code_t           nCode;      // Key code, button, scroll direction
+            code_t              nCode;      // Key code, button, scroll direction
             size_t              nState;     // State
             ui_timestamp_t      nTime;      // Event timestamp in milliseconds
         } event_t;

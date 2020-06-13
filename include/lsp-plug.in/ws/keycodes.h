@@ -193,9 +193,9 @@ namespace lsp
 
             WSK_KEYSET_MODIFIERS_LAST   = WSK_HYPER_R,
 
-            WSK_LAST                = 0x800000ff,
+            WSK_LAST                    = 0x800000ff,
 
-            WSK_UNKNOWN             = 0xffffffff
+            WSK_UNKNOWN                 = 0xffffffff
         };
 
         inline bool is_character_key(code_t key)
