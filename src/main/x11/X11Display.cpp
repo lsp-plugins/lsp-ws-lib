@@ -1534,6 +1534,7 @@ namespace lsp
                 ue.nTop         = 0;
                 ue.nWidth       = 0;
                 ue.nHeight      = 0;
+                ue.nRawCode     = 0;
                 ue.nCode        = 0;
                 ue.nState       = 0;
                 ue.nTime        = 0;
@@ -1551,12 +1552,15 @@ namespace lsp
                         XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
                         code_t key   = decode_keycode(ksym);
 
+                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
+
                         if (key != WSK_UNKNOWN)
                         {
                             ue.nType        = (ev->type == KeyPress) ? UIE_KEY_DOWN : UIE_KEY_UP;
                             ue.nLeft        = ev->xkey.x;
                             ue.nTop         = ev->xkey.y;
                             ue.nCode        = key;
+                            ue.nRawCode     = ksym;
                             ue.nState       = decode_state(ev->xkey.state);
                             ue.nTime        = ev->xkey.time;
                         }
