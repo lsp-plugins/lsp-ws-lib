@@ -636,6 +636,11 @@ namespace lsp
             sMainTask.pHandler      = handler;
             sMainTask.pArg          = arg;
         }
+
+        status_t IDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
     }
 
 } /* namespace lsp */

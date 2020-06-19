@@ -14,7 +14,7 @@ MTEST_BEGIN("ws", display)
     class Handler: public ws::IEventHandler
     {
         private:
-        test_type_t    *pTest;
+            test_type_t    *pTest;
             ws::IWindow    *pWnd;
 
         public:
@@ -49,6 +49,16 @@ MTEST_BEGIN("ws", display)
 
                         return STATUS_OK;
                     }
+
+                    case ws::UIE_MOUSE_MOVE:
+                    {
+                        size_t screen;
+                        ssize_t left, top;
+
+                        if (pWnd->display()->get_pointer_location(&screen, &left, &top) == STATUS_OK)
+                            pTest->printf("Pointer location: screen=%d, left=%d, top=%d\n", int(screen), int(left), int(top));
+                        return STATUS_OK;
+                    };
 
                     case ws::UIE_CLOSE:
                     {

@@ -250,6 +250,8 @@ namespace lsp
 
                     void                        handle_error(XErrorEvent *ev);
 
+                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
+
                 public:
                     bool                        add_window(X11Window *wnd);
                     bool                        remove_window(X11Window *wnd);

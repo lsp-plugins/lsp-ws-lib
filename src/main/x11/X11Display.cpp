@@ -3558,6 +3558,37 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            status_t X11Display::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
+            {
+                Window r, root, child;
+                int x_root, y_root, x_child, y_child;
+                unsigned int mask;
+
+                if (pDisplay == NULL)
+                    return STATUS_BAD_STATE;
+
+                for (size_t i=0, n=vScreens.size(); i<n; ++i)
+                {
+                    r = RootWindow(pDisplay, i);
+                    if (XQueryPointer(pDisplay, r, &root, &child, &x_root, &y_root, &x_child, &y_child, &mask))
+                    {
+                        if (root == r)
+                        {
+                            if (screen != NULL)
+                                *screen = i;
+                            if (left != NULL)
+                                *left   = x_root;
+                            if (top != NULL)
+                                *top    = y_root;
+
+                            return STATUS_OK;
+                        }
+                    }
+                }
+
+                return STATUS_NOT_FOUND;
+            }
+
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */

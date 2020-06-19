@@ -30,6 +30,7 @@
   * fill_round_rect()
   * fill_frame()
   * fill_round_fame()
+* Added IDisplay::get_pointer_location() method for lookup of mouse pointer location.
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.

@@ -285,6 +285,15 @@ namespace lsp
                 virtual const char * const *get_drag_ctypes();
 
                 /**
+                 * Get current cursor location
+                 * @param screen current screen where the pointer is located
+                 * @param left pointer to store X position
+                 * @param top pointer to store Y position
+                 * @return status of operation
+                 */
+                virtual status_t get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
+
+                /**
                  * Set callback which will be called after each main iteration
                  * @param handler callback handler routine
                  * @param arg additional argument
