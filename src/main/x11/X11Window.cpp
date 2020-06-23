@@ -384,6 +384,7 @@ namespace lsp
                 // Additionally generated event
                 event_t gen;
                 gen.nType       = UIE_UNKNOWN;
+                IEventHandler *handler = pHandler;
     //            lsp_trace("ui_event type=%d", int(ev->nType));
 
                 switch (ev->nType)
@@ -486,7 +487,7 @@ namespace lsp
                     case UIE_CLOSE:
                     {
                         lsp_trace("close request on window");
-                        if (pHandler == NULL)
+                        if (handler == NULL)
                         {
                             this->destroy();
                             delete this;
@@ -499,11 +500,11 @@ namespace lsp
                 }
 
                 // Pass event to event handler
-                if (pHandler != NULL)
+                if (handler != NULL)
                 {
-                    pHandler->handle_event(ev);
+                    handler->handle_event(ev);
                     if (gen.nType != UIE_UNKNOWN)
-                        pHandler->handle_event(&gen);
+                        handler->handle_event(&gen);
                 }
 
                 return STATUS_OK;
