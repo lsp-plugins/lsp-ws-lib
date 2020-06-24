@@ -1014,7 +1014,7 @@ namespace lsp
                 ev.xclient.data.l[3]    = 0;
                 ev.xclient.data.l[4]    = 0;
 
-                ::XSendEvent(dpy, hWindow, True, NoEventMask, &ev);
+                ::XSendEvent(dpy, pX11Display->hRootWnd, True, NoEventMask, &ev);
             }
 
             status_t X11Window::set_focus(bool focus)
