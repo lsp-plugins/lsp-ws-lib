@@ -2847,6 +2847,11 @@ namespace lsp
 
             bool X11Display::remove_window(X11Window *wnd)
             {
+                // Remove focus window
+                if (pFocusWindow == wnd)
+                    pFocusWindow = NULL;
+
+                // Remove window from list
                 if (!vWindows.premove(wnd))
                     return false;
 

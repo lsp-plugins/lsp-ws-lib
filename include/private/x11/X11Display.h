@@ -149,6 +149,7 @@ namespace lsp
                     Display                    *pDisplay;
                     Window                      hRootWnd;           // Root window of the display
                     Window                      hClipWnd;           // Unmapped clipboard window
+                    X11Window                  *pFocusWindow;       // Focus window after show
                     int                         nBlackColor;
                     int                         nWhiteColor;
                     x11_atoms_t                 sAtoms;

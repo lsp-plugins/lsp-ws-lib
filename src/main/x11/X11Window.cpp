@@ -401,6 +401,10 @@ namespace lsp
                         Display *dpy    = pX11Display->x11display();
                         Visual *v       = DefaultVisual(dpy, screen());
                         pSurface        = new X11CairoSurface(dpy, hWindow, v, sSize.nWidth, sSize.nHeight);
+
+                        // Need to take focus?
+                        if (pX11Display->pFocusWindow == this)
+                            set_focus(true);
                         break;
                     }
 
@@ -823,6 +827,9 @@ namespace lsp
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
 
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow = NULL;
+
                 Display *dpy = pX11Display->x11display();
                 if (nFlags & F_GRABBING)
                 {
@@ -879,7 +886,7 @@ namespace lsp
                 ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
                 ::XRaiseWindow(pX11Display->x11display(), hWindow);
                 ::XMapWindow(pX11Display->x11display(), hWindow);
-                pX11Display->flush();
+                pX11Display->sync();
 //                XWindowAttributes atts;
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
 //                lsp_trace("window x=%d, y=%d", atts.x, atts.y);
@@ -987,42 +994,49 @@ namespace lsp
 
             status_t X11Window::set_focus(bool focus)
             {
-                if (hWindow == 0)
+                if ((hWindow == 0) || (pSurface == NULL))
                 {
-                    lsp_trace("focusing window: bad handle");
-                    return STATUS_BAD_STATE;
-                }
-                if (pSurface == NULL)
-                {
-                    lsp_trace("focusing window: bad surface");
+                    if (focus)
+                        pX11Display->pFocusWindow   = this;
+                    else if (pX11Display->pFocusWindow == this)
+                        pX11Display->pFocusWindow   = NULL;
                     return STATUS_OK;
                 }
 
                 lsp_trace("focusing window: focus=%s", (focus) ? "true" : "false");
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow   = NULL;
+
+                pX11Display->sync();
                 if (focus)
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-                pX11Display->flush();
+                pX11Display->sync();
                 return STATUS_OK;
             }
 
             status_t X11Window::toggle_focus()
             {
-                if (hWindow == 0)
-                    return STATUS_BAD_STATE;
-                if (pSurface == NULL)
+                if ((pSurface == NULL) || (hWindow == 0))
+                {
+                    pX11Display->pFocusWindow   = (pX11Display->pFocusWindow != this) ? this : NULL;
                     return STATUS_OK;
+                }
 
                 Window wnd;
                 int ret;
+
+                pX11Display->sync();
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow   = NULL;
                 XGetInputFocus(pX11Display->x11display(), &wnd, &ret);
 
                 if (wnd != hWindow)
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-                pX11Display->flush();
+                pX11Display->sync();
                 return STATUS_OK;
             }
 
