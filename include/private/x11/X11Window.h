@@ -51,6 +51,7 @@ namespace lsp
                     size_t              nFlags;
                     mouse_pointer_t     enPointer;
                     bool                bWrapper;
+                    bool                bVisible;
 
                     rectangle_t         sSize;
                     size_limit_t        sConstraints;
@@ -61,6 +62,7 @@ namespace lsp
                     void                do_create();
                     static bool         check_click(const btn_event_t *ev);
                     static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
+                    void                send_focus_event();
 
                 protected:
 

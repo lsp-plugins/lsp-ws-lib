@@ -35,6 +35,7 @@ namespace lsp
                 lsp_trace("hwindow = %x", int(wnd));
                 pX11Display             = core;
                 bWrapper                = wrapper;
+                bVisible                = false;
                 if (wrapper)
                 {
                     hWindow                 = wnd;
@@ -391,6 +392,7 @@ namespace lsp
                 {
                     case UIE_SHOW:
                     {
+                        bVisible        = true;
                         if (bWrapper)
                             break;
 
@@ -410,6 +412,7 @@ namespace lsp
 
                     case UIE_HIDE:
                     {
+                        bVisible        = false;
                         if (bWrapper)
                             break;
 
@@ -824,6 +827,7 @@ namespace lsp
 
             status_t X11Window::hide()
             {
+                bVisible    = false;
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
 
@@ -992,9 +996,30 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            void X11Window::send_focus_event()
+            {
+                Display *dpy = pX11Display->x11display();
+
+                XEvent  ev;
+                ev.xclient.type         = ClientMessage;
+                ev.xclient.serial       = 0;
+                ev.xclient.send_event   = True;
+                ev.xclient.display      = dpy;
+                ev.xclient.window       = pX11Display->hRootWnd;
+                ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
+                ev.xclient.format       = 32;
+                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO)) ? 2 : 1;
+                ev.xclient.data.l[1]    = CurrentTime;
+                ev.xclient.data.l[2]    = hWindow;
+                ev.xclient.data.l[3]    = 0;
+                ev.xclient.data.l[4]    = 0;
+
+                ::XSendEvent(dpy, hWindow, True, NoEventMask, &ev);
+            }
+
             status_t X11Window::set_focus(bool focus)
             {
-                if ((hWindow == 0) || (pSurface == NULL))
+                if ((hWindow == 0) || (!bVisible))
                 {
                     if (focus)
                         pX11Display->pFocusWindow   = this;
@@ -1009,16 +1034,20 @@ namespace lsp
 
                 pX11Display->sync();
                 if (focus)
+                {
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                    send_focus_event();
+                }
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
+
                 pX11Display->sync();
                 return STATUS_OK;
             }
 
             status_t X11Window::toggle_focus()
             {
-                if ((pSurface == NULL) || (hWindow == 0))
+                if ((pSurface == NULL) || (!bVisible))
                 {
                     pX11Display->pFocusWindow   = (pX11Display->pFocusWindow != this) ? this : NULL;
                     return STATUS_OK;
@@ -1033,9 +1062,13 @@ namespace lsp
                 XGetInputFocus(pX11Display->x11display(), &wnd, &ret);
 
                 if (wnd != hWindow)
+                {
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                    send_focus_event();
+                }
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
+
                 pX11Display->sync();
                 return STATUS_OK;
             }
