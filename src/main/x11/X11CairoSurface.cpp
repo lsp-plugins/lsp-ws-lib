@@ -409,7 +409,7 @@ namespace lsp
                 cairo_close_path(pCR);
             }
 
-            void X11CairoSurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color)
+            void X11CairoSurface::wire_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;
@@ -421,7 +421,7 @@ namespace lsp
                 cairo_set_line_width(pCR, w);
             }
 
-            void X11CairoSurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g)
+            void X11CairoSurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;

@@ -110,12 +110,22 @@ namespace lsp
         {
         }
 
-        void ISurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color)
+        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g)
+        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
         {
+            wire_round_rect(c, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
+        }
+
+        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+        {
+        }
+
+        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
+        {
+            wire_round_rect(g, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
         }
 
         void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)

@@ -242,37 +242,65 @@ namespace lsp
 
                 /** Wire rectangle with rounded corners
                  *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
+                 * @param color rectangle color
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
                  *      0x04 - right-bottom corner is rounded
                  *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
                  * @param line_width width of line
-                 * @param color rectangle color
                  */
-                virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color);
+                virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                 /** Wire rectangle with rounded corners
                  *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
+                 * @param color rectangle color
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
                  *      0x04 - right-bottom corner is rounded
                  *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
                  * @param line_width width of line
-                 * @param color gradient to use
                  */
-                virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g);
+                virtual void wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
 
                 /** Fill rectangle with rounded corners
                  *

@@ -115,9 +115,9 @@ namespace lsp
 
                     virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
 
-                    virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color);
+                    virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
-                    virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g);
+                    virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                     virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
 
