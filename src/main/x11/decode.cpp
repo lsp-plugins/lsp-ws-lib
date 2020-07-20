@@ -942,15 +942,15 @@ namespace lsp
 
             mcb_t decode_mcb(size_t code)
             {
-                if ((code >= 1) && (code <= 3))
-                    return mcb_t(code);
+                if ((code >= 1) && (code <= 7))
+                    return mcb_t(MCB_LEFT + code - 1);
                 return MCB_NONE;
             }
 
             mcd_t decode_mcd(size_t code)
             {
                 if ((code >= 4) && (code <= 7))
-                    return mcd_t(code - 3);
+                    return mcd_t(MCD_UP + code - 4);
                 return MCD_NONE;
             }
 
@@ -981,7 +981,7 @@ namespace lsp
                 return result;
             }
 
-            ws_code_t decode_keycode(KeySym code)
+            code_t decode_keycode(KeySym code)
             {
                 /* FROM <x11/keysymdef.h>:
                  *
@@ -1016,7 +1016,7 @@ namespace lsp
                 else if ((code & 0xffff00) == 0xff00)
                 {
                     // Contol keys
-                    ws_code_t result = ctltable[code & 0xff];
+                    code_t result = ctltable[code & 0xff];
                     return (result != 0xff) ? result + WSK_FIRST : WSK_UNKNOWN;
                 }
 

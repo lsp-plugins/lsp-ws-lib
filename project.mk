@@ -3,7 +3,7 @@ ARTIFACT_NAME               = lsp-ws-lib
 ARTIFACT_VARS               = LSP_WS_LIB
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
-VERSION                     = 0.5.0
+ARTIFACT_VERSION            = 0.5.1
 
 # List of dependencies
 TEST_DEPENDENCIES = \

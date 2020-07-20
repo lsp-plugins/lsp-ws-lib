@@ -29,29 +29,33 @@ namespace lsp
     {
         namespace x11
         {
-            static unsigned int cursor_shapes[] =
+            static int cursor_shapes[] =
             {
-                (unsigned int)(-1), // MP_NONE
-                XC_left_ptr, // MP_ARROW +++
-                XC_hand1, // MP_HAND +++
-                XC_cross, // MP_CROSS +++
-                XC_xterm, // MP_IBEAM +++
-                XC_pencil, // MP_DRAW +++
-                XC_plus, // MP_PLUS +++
-                XC_bottom_right_corner, // MP_SIZE_NESW ---
-                XC_sb_v_double_arrow, // MP_SIZE_NS +++
-                XC_sb_h_double_arrow, // MP_SIZE_WE +++
-                XC_bottom_left_corner, // MP_SIZE_NWSE ---
-                XC_center_ptr, // MP_UP_ARROW ---
-                XC_watch, // MP_HOURGLASS +++
-                XC_fleur, // MP_DRAG +++
-                XC_circle, // MP_NO_DROP +++
-                XC_pirate, // MP_DANGER +++
-                XC_right_side, // MP_HSPLIT ---
-                XC_bottom_side, // MP_VPSLIT ---
-                XC_exchange, // MP_MULTIDRAG ---
-                XC_watch, // MP_APP_START ---
-                XC_question_arrow // MP_HELP +++
+                -1,                         // MP_NONE
+                XC_left_ptr,                // MP_ARROW
+                XC_sb_left_arrow,           // MP_ARROW_LEFT
+                XC_sb_right_arrow,          // MP_ARROW_RIGHT
+                XC_sb_up_arrow,             // MP_ARROW_UP
+                XC_sb_down_arrow,           // MP_ARROW_DOWN
+                XC_hand1,                   // MP_HAND
+                XC_cross,                   // MP_CROSS
+                XC_xterm,                   // MP_IBEAM
+                XC_pencil,                  // MP_DRAW
+                XC_plus,                    // MP_PLUS
+                XC_bottom_right_corner,     // MP_SIZE_NESW
+                XC_sb_v_double_arrow,       // MP_SIZE_NS
+                XC_sb_h_double_arrow,       // MP_SIZE_WE
+                XC_bottom_left_corner,      // MP_SIZE_NWSE
+                XC_center_ptr,              // MP_UP_ARROW
+                XC_watch,                   // MP_HOURGLASS
+                XC_fleur,                   // MP_DRAG
+                XC_circle,                  // MP_NO_DROP
+                XC_pirate,                  // MP_DANGER
+                XC_right_side,              // MP_HSPLIT
+                XC_bottom_side,             // MP_VPSLIT
+                XC_exchange,                // MP_MULTIDRAG
+                XC_watch,                   // MP_APP_START
+                XC_question_arrow           // MP_HELP
             };
 
             // Cursors matched to KDE:
@@ -89,10 +93,6 @@ namespace lsp
             //XC_lr_angle,
             //XC_right_side,
             //XC_right_tee,
-            //XC_sb_down_arrow,
-            //XC_sb_left_arrow,
-            //XC_sb_right_arrow,
-            //XC_sb_up_arrow,
             //XC_tcross,
             //XC_top_left_corner,
             //XC_top_right_corner,
@@ -117,7 +117,10 @@ namespace lsp
                 pIOBuf          = NULL;
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
-                    pCbOwner[i]             = NULL;
+                    pCbOwner[i]     = NULL;
+
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                    vCursors[i]     = None;
             }
 
             X11Display::~X11Display()
@@ -201,8 +204,8 @@ namespace lsp
                 // Initialize cursors
                 for (size_t i=0; i<__MP_COUNT; ++i)
                 {
-                    unsigned int id = cursor_shapes[i];
-                    if (id == (unsigned int)(-1))
+                    int id = cursor_shapes[i];
+                    if (id < 0)
                     {
                         Pixmap blank;
                         XColor dummy;
@@ -317,6 +320,18 @@ namespace lsp
                     pIOBuf = NULL;
                 }
 
+                // Destroy cursors
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                {
+                    if (vCursors[i] != None)
+                    {
+                        XFreeCursor(pDisplay, vCursors[i]);
+                        vCursors[i] = None;
+                    }
+                }
+
+
+                // Close display
                 Display *dpy = pDisplay;
                 if (dpy != NULL)
                 {
@@ -1519,6 +1534,7 @@ namespace lsp
                 ue.nTop         = 0;
                 ue.nWidth       = 0;
                 ue.nHeight      = 0;
+                ue.nRawCode     = 0;
                 ue.nCode        = 0;
                 ue.nState       = 0;
                 ue.nTime        = 0;
@@ -1534,7 +1550,9 @@ namespace lsp
                         XComposeStatus status;
 
                         XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
-                        ws_code_t key   = decode_keycode(ksym);
+                        code_t key   = decode_keycode(ksym);
+
+                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
 
                         if (key != WSK_UNKNOWN)
                         {
@@ -1542,6 +1560,7 @@ namespace lsp
                             ue.nLeft        = ev->xkey.x;
                             ue.nTop         = ev->xkey.y;
                             ue.nCode        = key;
+                            ue.nRawCode     = ksym;
                             ue.nState       = decode_state(ev->xkey.state);
                             ue.nTime        = ev->xkey.time;
                         }
@@ -1554,24 +1573,27 @@ namespace lsp
                             int(ev->xbutton.x), int(ev->xbutton.y),
                             (ev->type == ButtonRelease) ? "true" : "false");
 
+                        // Check that it is a scrolling
+                        ue.nCode        = decode_mcd(ev->xbutton.button);
+                        if (ue.nCode != MCD_NONE)
+                        {
+                            // Skip ButtonRelease
+                            if (ev->type == ButtonPress)
+                            {
+                                ue.nType        = UIE_MOUSE_SCROLL;
+                                ue.nLeft        = ev->xbutton.x;
+                                ue.nTop         = ev->xbutton.y;
+                                ue.nState       = decode_state(ev->xbutton.state);
+                                ue.nTime        = ev->xbutton.time;
+                            }
+                            break;
+                        }
+
                         // Check if it is a button press/release
                         ue.nCode        = decode_mcb(ev->xbutton.button);
                         if (ue.nCode != MCB_NONE)
                         {
                             ue.nType        = (ev->type == ButtonPress) ? UIE_MOUSE_DOWN : UIE_MOUSE_UP;
-                            ue.nLeft        = ev->xbutton.x;
-                            ue.nTop         = ev->xbutton.y;
-                            ue.nState       = decode_state(ev->xbutton.state);
-                            ue.nTime        = ev->xbutton.time;
-                            break;
-                        }
-
-                        // Check that it is a scrolling
-                        ue.nCode        = decode_mcd(ev->xbutton.button);
-                        if ((ue.nCode != MCD_NONE) && (ev->type == ButtonPress))
-                        {
-                            // Skip ButtonRelease
-                            ue.nType        = UIE_MOUSE_SCROLL;
                             ue.nLeft        = ev->xbutton.x;
                             ue.nTop         = ev->xbutton.y;
                             ue.nState       = decode_state(ev->xbutton.state);
@@ -2825,6 +2847,11 @@ namespace lsp
 
             bool X11Display::remove_window(X11Window *wnd)
             {
+                // Remove focus window
+                if (pFocusWindow == wnd)
+                    pFocusWindow = NULL;
+
+                // Remove window from list
                 if (!vWindows.premove(wnd))
                     return false;
 
@@ -3060,6 +3087,11 @@ namespace lsp
 
             Cursor X11Display::get_cursor(mouse_pointer_t pointer)
             {
+                if (pointer == MP_DEFAULT)
+                    pointer = MP_ARROW;
+                else if ((pointer < 0) || (pointer > __MP_COUNT))
+                    pointer = MP_NONE;
+
                 return vCursors[pointer];
             }
 
@@ -3529,6 +3561,37 @@ namespace lsp
                 ::XFlush(pDisplay);
 
                 return STATUS_OK;
+            }
+
+            status_t X11Display::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
+            {
+                Window r, root, child;
+                int x_root, y_root, x_child, y_child;
+                unsigned int mask;
+
+                if (pDisplay == NULL)
+                    return STATUS_BAD_STATE;
+
+                for (size_t i=0, n=vScreens.size(); i<n; ++i)
+                {
+                    r = RootWindow(pDisplay, i);
+                    if (XQueryPointer(pDisplay, r, &root, &child, &x_root, &y_root, &x_child, &y_child, &mask))
+                    {
+                        if (root == r)
+                        {
+                            if (screen != NULL)
+                                *screen = i;
+                            if (left != NULL)
+                                *left   = x_root;
+                            if (top != NULL)
+                                *top    = y_root;
+
+                            return STATUS_OK;
+                        }
+                    }
+                }
+
+                return STATUS_NOT_FOUND;
             }
 
         } /* namespace x11 */

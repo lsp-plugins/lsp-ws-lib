@@ -149,6 +149,7 @@ namespace lsp
                     Display                    *pDisplay;
                     Window                      hRootWnd;           // Root window of the display
                     Window                      hClipWnd;           // Unmapped clipboard window
+                    X11Window                  *pFocusWindow;       // Focus window after show
                     int                         nBlackColor;
                     int                         nWhiteColor;
                     x11_atoms_t                 sAtoms;
@@ -249,6 +250,8 @@ namespace lsp
                     virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
 
                     void                        handle_error(XErrorEvent *ev);
+
+                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
 
                 public:
                     bool                        add_window(X11Window *wnd);

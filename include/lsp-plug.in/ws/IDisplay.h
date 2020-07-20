@@ -68,6 +68,7 @@ namespace lsp
                 r3d::factory_t             *p3DFactory;         // Pointer to the factory object
                 ssize_t                     nCurrent3D;         // Current 3D backend
                 ssize_t                     nPending3D;         // Pending 3D backend
+                ISurface                   *pEstimation;        // Estimation surface
 
             protected:
                 friend class IR3DBackend;
@@ -219,6 +220,14 @@ namespace lsp
                  */
                 virtual ISurface *create_surface(size_t width, size_t height);
 
+                /**
+                 * Get estimation surface. This surface is not for drawing but
+                 * for estimating additional parameters like text parameters, etc.
+                 *
+                 * @return pointer to estimation surface
+                 */
+                virtual ISurface *estimation_surface();
+
                 /** Submit task for execution
                  *
                  * @param time time when the task should be triggered (timestamp in milliseconds)
@@ -274,6 +283,15 @@ namespace lsp
                  *   may be NULL if there is no currently pending Drag&Drop request
                  */
                 virtual const char * const *get_drag_ctypes();
+
+                /**
+                 * Get current cursor location
+                 * @param screen current screen where the pointer is located
+                 * @param left pointer to store X position
+                 * @param top pointer to store Y position
+                 * @return status of operation
+                 */
+                virtual status_t get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
 
                 /**
                  * Set callback which will be called after each main iteration

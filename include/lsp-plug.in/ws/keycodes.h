@@ -15,7 +15,7 @@ namespace lsp
 {
     namespace ws
     {
-        enum ws_keycodes_t
+        enum keycode_t
         {
             WSK_FIRST                   = 0x80000000,
 
@@ -193,47 +193,47 @@ namespace lsp
 
             WSK_KEYSET_MODIFIERS_LAST   = WSK_HYPER_R,
 
-            WSK_LAST                = 0x800000ff,
+            WSK_LAST                    = 0x800000ff,
 
-            WSK_UNKNOWN             = 0xffffffff
+            WSK_UNKNOWN                 = 0xffffffff
         };
 
-        inline bool is_character_key(ws_code_t key)
+        inline bool is_character_key(code_t key)
         {
             return key < WSK_FIRST;
         }
 
-        inline bool is_special_key(ws_code_t key)
+        inline bool is_special_key(code_t key)
         {
             return (key >= WSK_FIRST) && (key <= WSK_LAST);
         }
 
-        inline bool is_unknown_key(ws_code_t key)
+        inline bool is_unknown_key(code_t key)
         {
             return (key > WSK_LAST);
         }
 
-        inline bool is_function_key(ws_code_t key)
+        inline bool is_function_key(code_t key)
         {
             return (key >= WSK_KEYSET_FUNCTION_FIRST) && (key <= WSK_KEYSET_FUNCTION_LAST);
         }
 
-        inline bool is_control_key(ws_code_t key)
+        inline bool is_control_key(code_t key)
         {
             return (key >= WSK_KEYSET_CONTROL_FIRST) && (key <= WSK_KEYSET_CONTROL_LAST);
         }
 
-        inline bool is_keypad_key(ws_code_t key)
+        inline bool is_keypad_key(code_t key)
         {
             return (key >= WSK_KEYSET_KEYPAD_FIRST) && (key <= WSK_KEYSET_KEYPAD_LAST);
         }
 
-        inline bool is_aux_key(ws_code_t key)
+        inline bool is_aux_key(code_t key)
         {
             return (key >= WSK_AUX_FUNCTION_FIRST) && (key <= WSK_AUX_FUNCTION_LAST);
         }
 
-        inline bool is_modifier_key(ws_code_t key)
+        inline bool is_modifier_key(code_t key)
         {
             return (key >= WSK_KEYSET_MODIFIERS_FIRST) && (key <= WSK_KEYSET_MODIFIERS_LAST);
         }

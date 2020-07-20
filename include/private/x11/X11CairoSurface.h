@@ -31,6 +31,7 @@ namespace lsp
                 protected:
                     cairo_surface_t    *pSurface;
                     cairo_t            *pCR;
+                    cairo_font_options_t   *pFO;
                     bool                bBegin;
 
                 protected:
@@ -106,25 +107,27 @@ namespace lsp
 
                     virtual void clear_rgba(uint32_t color);
 
-                    virtual void fill_rect(float left, float top, float width, float height, const Color &color);
+                    virtual void fill_rect(const Color &color, float left, float top, float width, float height);
 
-                    virtual void fill_rect(float left, float top, float width, float height, IGradient *g);
+                    virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
 
-                    virtual void wire_rect(float left, float top, float width, float height, float line_width, const Color &color);
+                    virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
 
-                    virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color);
+                    virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
 
-                    virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g);
+                    virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
-                    virtual void fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, const Color &color);
+                    virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
-                    virtual void fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, IGradient *g);
+                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
+
+                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
+
+                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
+
+                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
                     virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color);
-
-                    virtual void fill_round_rect(float left, float top, float width, float height, float radius, const Color &color);
-
-                    virtual void fill_round_rect(float left, float top, float width, float height, float radius, IGradient *g);
 
                     virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color);
 
@@ -138,9 +141,15 @@ namespace lsp
 
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
 
-                    virtual void out_text(const Font &f, float x, float y, const char *text, const Color &color);
+                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
-                    virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const char *text, const Color &color);
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text);
+
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last);
+
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text);
+
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
                     virtual void square_dot(float x, float y, float width, const Color &color);
 
@@ -176,16 +185,17 @@ namespace lsp
                     void clip_end();
 
                     virtual void fill_frame(
+                        const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
-                        const Color &color
+                        float ix, float iy, float iw, float ih
                     );
 
                     virtual void fill_round_frame(
-                            float fx, float fy, float fw, float fh,
-                            float ix, float iy, float iw, float ih,
+                            const Color &color,
                             float radius, size_t flags,
-                            const Color &color);
+                            float fx, float fy, float fw, float fh,
+                            float ix, float iy, float iw, float ih
+                            );
 
                     virtual bool get_antialiasing();
 

@@ -35,6 +35,7 @@ namespace lsp
                 lsp_trace("hwindow = %x", int(wnd));
                 pX11Display             = core;
                 bWrapper                = wrapper;
+                bVisible                = false;
                 if (wrapper)
                 {
                     hWindow                 = wnd;
@@ -47,9 +48,7 @@ namespace lsp
                 }
                 nScreen                 = screen;
                 pSurface                = NULL;
-                enBorderStyle           = BS_SIZABLE;
-                vMouseUp[0].nType       = UIE_UNKNOWN;
-                vMouseUp[1].nType       = UIE_UNKNOWN;
+                enBorderStyle           = BS_SIZEABLE;
                 nActions                = WA_SINGLE;
                 nFlags                  = 0;
                 enPointer               = MP_DEFAULT;
@@ -63,6 +62,14 @@ namespace lsp
                 sConstraints.nMinHeight = -1;
                 sConstraints.nMaxWidth  = -1;
                 sConstraints.nMaxHeight = -1;
+
+                for (size_t i=0; i<3; ++i)
+                {
+                    init_event(&vBtnEvent[i].sDown);
+                    init_event(&vBtnEvent[i].sUp);
+                    vBtnEvent[i].sDown.nType    = UIE_UNKNOWN;
+                    vBtnEvent[i].sUp.nType      = UIE_UNKNOWN;
+                }
             }
 
             void X11Window::do_create()
@@ -247,7 +254,7 @@ namespace lsp
                     hWindow = wnd;
 
                     // Initialize window border style and actions
-                    set_border_style(BS_SIZABLE);
+                    set_border_style(BS_SIZEABLE);
                     set_window_actions(WA_ALL);
                     set_mouse_pointer(MP_DEFAULT);
                 }
@@ -350,16 +357,27 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool X11Window::check_double_click(const event_t *pe, const event_t *ce)
+            bool X11Window::check_click(const btn_event_t *ev)
             {
-                if ((pe->nType != UIE_MOUSE_UP) || (ce->nType != UIE_MOUSE_UP))
+                if ((ev->sDown.nType != UIE_MOUSE_DOWN) || (ev->sUp.nType != UIE_MOUSE_UP))
                     return false;
-                if ((pe->nState != ce->nState) || (pe->nCode != ce->nCode))
+                if (ev->sDown.nCode != ev->sUp.nCode)
                     return false;
-                if (((ce->nTime - pe->nTime) > 400) || (ce->nTime < pe->nTime))
+                if ((ev->sUp.nTime < ev->sDown.nTime) || ((ev->sUp.nTime - ev->sDown.nTime) > 400))
                     return false;
 
-                return (ce->nLeft == pe->nLeft) && (ce->nTop == pe->nTop);
+                return (ev->sDown.nLeft == ev->sUp.nLeft) && (ev->sDown.nTop == ev->sUp.nTop);
+            }
+
+            bool X11Window::check_double_click(const btn_event_t *pe, const btn_event_t *ev)
+            {
+                if (!check_click(pe))
+                    return false;
+
+                if ((ev->sUp.nTime < pe->sUp.nTime) || ((ev->sUp.nTime - pe->sUp.nTime) > 400))
+                    return false;
+
+                return (pe->sUp.nLeft == ev->sUp.nLeft) && (pe->sUp.nTop == ev->sUp.nTop);
             }
 
             status_t X11Window::handle_event(const event_t *ev)
@@ -367,12 +385,14 @@ namespace lsp
                 // Additionally generated event
                 event_t gen;
                 gen.nType       = UIE_UNKNOWN;
+                IEventHandler *handler = pHandler;
     //            lsp_trace("ui_event type=%d", int(ev->nType));
 
                 switch (ev->nType)
                 {
                     case UIE_SHOW:
                     {
+                        bVisible        = true;
                         if (bWrapper)
                             break;
 
@@ -383,11 +403,16 @@ namespace lsp
                         Display *dpy    = pX11Display->x11display();
                         Visual *v       = DefaultVisual(dpy, screen());
                         pSurface        = new X11CairoSurface(dpy, hWindow, v, sSize.nWidth, sSize.nHeight);
+
+                        // Need to take focus?
+                        if (pX11Display->pFocusWindow == this)
+                            set_focus(true);
                         break;
                     }
 
                     case UIE_HIDE:
                     {
+                        bVisible        = false;
                         if (bWrapper)
                             break;
 
@@ -435,32 +460,33 @@ namespace lsp
                         break;
                     }
 
+                    case UIE_MOUSE_DOWN:
+                    {
+                        // Shift the buffer and push event
+                        vBtnEvent[0]            = vBtnEvent[1];
+                        vBtnEvent[1]            = vBtnEvent[2];
+                        vBtnEvent[2].sDown      = *ev;
+                        vBtnEvent[2].sUp.nType  = UIE_UNKNOWN;
+                        break;
+                    }
+
                     case UIE_MOUSE_UP:
                     {
-                        // Check that there was correct previous mouse up event
-                        if (check_double_click(&vMouseUp[1], ev))
-                        {
-                            // Generate mouse double click event
-                            gen.nType       = (check_double_click(&vMouseUp[0], &vMouseUp[1])) ? UIE_MOUSE_TRI_CLICK : UIE_MOUSE_DBL_CLICK;
-                            gen.nLeft       = ev->nLeft;
-                            gen.nTop        = ev->nTop;
-                            gen.nWidth      = ev->nWidth;
-                            gen.nHeight     = ev->nHeight;
-                            gen.nCode       = ev->nCode;
-                            gen.nState      = ev->nState;
-                            gen.nTime       = ev->nTime;
-                        }
+                        // Push event
+                        vBtnEvent[2].sUp        = *ev;
 
-                        // Do not allow series of triple-clicks
-                        if (gen.nType != UIE_MOUSE_TRI_CLICK)
+                        // Check that click happened
+                        if (check_click(&vBtnEvent[2]))
                         {
-                            vMouseUp[0]         = vMouseUp[1];
-                            vMouseUp[1]         = *ev;
-                        }
-                        else
-                        {
-                            vMouseUp[0].nType   = UIE_UNKNOWN;
-                            vMouseUp[1].nType   = UIE_UNKNOWN;
+                            gen                     = *ev;
+                            gen.nType               = UIE_MOUSE_CLICK;
+
+                            if (check_double_click(&vBtnEvent[1], &vBtnEvent[2]))
+                            {
+                                gen.nType               = UIE_MOUSE_DBL_CLICK;
+                                if (check_double_click(&vBtnEvent[0], &vBtnEvent[1]))
+                                    gen.nType               = UIE_MOUSE_TRI_CLICK;
+                            }
                         }
                         break;
                     }
@@ -468,7 +494,7 @@ namespace lsp
                     case UIE_CLOSE:
                     {
                         lsp_trace("close request on window");
-                        if (pHandler == NULL)
+                        if (handler == NULL)
                         {
                             this->destroy();
                             delete this;
@@ -481,11 +507,11 @@ namespace lsp
                 }
 
                 // Pass event to event handler
-                if (pHandler != NULL)
+                if (handler != NULL)
                 {
-                    pHandler->handle_event(ev);
+                    handler->handle_event(ev);
                     if (gen.nType != UIE_UNKNOWN)
-                        pHandler->handle_event(&gen);
+                        handler->handle_event(&gen);
                 }
 
                 return STATUS_OK;
@@ -513,7 +539,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:
-                    case BS_SIZABLE:
+                    case BS_SIZEABLE:
                         sMotif.decorations  = MWM_DECOR_ALL;
                         sMotif.input_mode   = MWM_INPUT_MODELESS;
                         sMotif.status       = 0;
@@ -558,7 +584,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:
-                    case BS_SIZABLE:
+                    case BS_SIZEABLE:
                     default:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
@@ -590,7 +616,7 @@ namespace lsp
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu
-                    case BS_SIZABLE:       // Standard resizable border
+                    case BS_SIZEABLE:       // Standard resizable border
                         break;
                 }
 
@@ -674,6 +700,8 @@ namespace lsp
             {
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
+                if ((sSize.nLeft == left) && (sSize.nTop == top))
+                    return STATUS_OK;
 
                 sSize.nLeft     = left;
                 sSize.nTop      = top;
@@ -685,7 +713,7 @@ namespace lsp
 //                else
                 status_t result = do_update_constraints();
                 if (hParent <= 0)
-                    XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
+                    ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                 if (result != STATUS_OK)
                     return result;
                 pX11Display->flush();
@@ -695,6 +723,9 @@ namespace lsp
 
             status_t X11Window::resize(ssize_t width, ssize_t height)
             {
+                if ((sSize.nWidth == width) && (sSize.nHeight == height))
+                    return STATUS_OK;
+
                 sSize.nWidth    = width;
                 sSize.nHeight   = height;
 
@@ -706,7 +737,7 @@ namespace lsp
                 lsp_trace("width=%d, height=%d", int(width), int(height));
 
                 status_t result = do_update_constraints();
-                XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+                ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
 //                if (hParent > 0)
 //                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
                 if (result != STATUS_OK)
@@ -721,18 +752,36 @@ namespace lsp
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
 
+                rectangle_t old = sSize;
                 calc_constraints(&sSize, realize);
+
+                if ((old.nLeft == sSize.nLeft) &&
+                    (old.nTop == sSize.nTop) &&
+                    (old.nWidth == sSize.nWidth) &&
+                    (old.nHeight == sSize.nHeight))
+                    return STATUS_OK;
 
                 lsp_trace("left=%d, top=%d, width=%d, height=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 status_t result = do_update_constraints();
                 if (hParent > 0)
                 {
-                    XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
-//                    XMoveResizeWindow(pX11Display->x11display(), hParent, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                    if ((old.nWidth == sSize.nWidth) &&
+                        (old.nHeight == sSize.nHeight))
+                        return STATUS_OK;
+
+                    ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                 }
                 else
-                    XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                {
+                    if ((old.nLeft == sSize.nLeft) &&
+                        (old.nTop == sSize.nTop) &&
+                        (old.nWidth == sSize.nWidth) &&
+                        (old.nHeight == sSize.nHeight))
+                        return STATUS_OK;
+
+                    ::XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                }
                 if (result != STATUS_OK)
                     return result;
 
@@ -778,8 +827,12 @@ namespace lsp
 
             status_t X11Window::hide()
             {
+                bVisible    = false;
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
+
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow = NULL;
 
                 Display *dpy = pX11Display->x11display();
                 if (nFlags & F_GRABBING)
@@ -837,7 +890,7 @@ namespace lsp
                 ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
                 ::XRaiseWindow(pX11Display->x11display(), hWindow);
                 ::XMapWindow(pX11Display->x11display(), hWindow);
-                pX11Display->flush();
+                pX11Display->sync();
 //                XWindowAttributes atts;
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
 //                lsp_trace("window x=%d, y=%d", atts.x, atts.y);
@@ -897,6 +950,10 @@ namespace lsp
             status_t X11Window::set_size_constraints(const size_limit_t *c)
             {
                 sConstraints    = *c;
+                if (sConstraints.nMinWidth == 0)
+                    sConstraints.nMinWidth  = 1;
+                if (sConstraints.nMinHeight == 0)
+                    sConstraints.nMinHeight = 1;
 
                 calc_constraints(&sSize, &sSize);
 
@@ -939,44 +996,80 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            void X11Window::send_focus_event()
+            {
+                Display *dpy = pX11Display->x11display();
+
+                XEvent  ev;
+                ev.xclient.type         = ClientMessage;
+                ev.xclient.serial       = 0;
+                ev.xclient.send_event   = True;
+                ev.xclient.display      = dpy;
+                ev.xclient.window       = pX11Display->hRootWnd;
+                ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
+                ev.xclient.format       = 32;
+                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO)) ? 2 : 1;
+                ev.xclient.data.l[1]    = CurrentTime;
+                ev.xclient.data.l[2]    = hWindow;
+                ev.xclient.data.l[3]    = 0;
+                ev.xclient.data.l[4]    = 0;
+
+                ::XSendEvent(dpy, pX11Display->hRootWnd, True, NoEventMask, &ev);
+            }
+
             status_t X11Window::set_focus(bool focus)
             {
-                if (hWindow == 0)
+                if ((hWindow == 0) || (!bVisible))
                 {
-                    lsp_trace("focusing window: bad handle");
-                    return STATUS_BAD_STATE;
-                }
-                if (pSurface == NULL)
-                {
-                    lsp_trace("focusing window: bad surface");
+                    if (focus)
+                        pX11Display->pFocusWindow   = this;
+                    else if (pX11Display->pFocusWindow == this)
+                        pX11Display->pFocusWindow   = NULL;
                     return STATUS_OK;
                 }
 
                 lsp_trace("focusing window: focus=%s", (focus) ? "true" : "false");
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow   = NULL;
+
+                pX11Display->sync();
                 if (focus)
+                {
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                    send_focus_event();
+                }
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-                pX11Display->flush();
+
+                pX11Display->sync();
                 return STATUS_OK;
             }
 
             status_t X11Window::toggle_focus()
             {
-                if (hWindow == 0)
-                    return STATUS_BAD_STATE;
-                if (pSurface == NULL)
+                if ((pSurface == NULL) || (!bVisible))
+                {
+                    pX11Display->pFocusWindow   = (pX11Display->pFocusWindow != this) ? this : NULL;
                     return STATUS_OK;
+                }
 
                 Window wnd;
                 int ret;
+
+                pX11Display->sync();
+                if (pX11Display->pFocusWindow == this)
+                    pX11Display->pFocusWindow   = NULL;
                 XGetInputFocus(pX11Display->x11display(), &wnd, &ret);
 
                 if (wnd != hWindow)
+                {
                     XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                    send_focus_event();
+                }
                 else
                     XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-                pX11Display->flush();
+
+                pX11Display->sync();
                 return STATUS_OK;
             }
 

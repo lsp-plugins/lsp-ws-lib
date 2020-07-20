@@ -186,100 +186,179 @@ namespace lsp
 
                 /** Draw filled rectangle
                  *
+                 * @param color color of rectangle
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param color color of rectangle
                  */
-                virtual void fill_rect(float left, float top, float width, float height, const Color &color);
+                virtual void fill_rect(const Color &color, float left, float top, float width, float height);
 
                 /** Draw filled rectangle
                  *
+                 * @param color color of rectangle
+                 * @param r rectangle to fill
+                 */
+                virtual void fill_rect(const Color &color, const ws::rectangle_t *r);
+
+                /** Draw filled rectangle
+                 *
+                 * @param g gradient to use
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
-                 * @param g gradient to use
                  */
-                virtual void fill_rect(float left, float top, float width, float height, IGradient *g);
+                virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
+
+                /** Draw filled rectangle
+                 *
+                 * @param g gradient to use
+                 * @param r rectangle to fill
+                 */
+                virtual void fill_rect(IGradient *g, const ws::rectangle_t *r);
 
                 /** Draw wired rectangle
                  *
+                 * @param color color of rectangle
                  * @param left left-top corner x coorinate
                  * @param top left-top corner y coorinate
                  * @param width width of rectangle
                  * @param height height of rectangle
                  * @param line_width width of line
-                 * @param color color of rectangle
                  */
-                virtual void wire_rect(float left, float top, float width, float height, float line_width, const Color &color);
+                virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
 
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param line_width width of line
-                 * @param color rectangle color
-                 */
-                virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color);
-
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param line_width width of line
-                 * @param color gradient to use
-                 */
-                virtual void wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g);
-
-                /** Fill rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param color rectangle color
-                 */
-                virtual void fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, const Color &color);
-
-                /** Fill rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius the corner radius
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
+                /**
+                 * Draw wired rectangle
                  * @param g gradient to use
+                 * @param left left-top corner x coorinate
+                 * @param top left-top corner y coorinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
                  */
-                virtual void fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, IGradient *g);
+                virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param color rectangle color
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param color rectangle color
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param color rectangle color
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 */
+                virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 */
+                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
+
+                /** Fill rectangle with rounded corners
+                 *
+                 * @param g gradient to use
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
                 /** Draw full rectangle
                  *
@@ -291,28 +370,6 @@ namespace lsp
                  * @param color color of rectangle
                  */
                 virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color);
-
-                /** Draw rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius rounding radius
-                 * @param color color
-                 */
-                virtual void fill_round_rect(float left, float top, float width, float height, float radius, const Color &color);
-
-                /** Draw rectangle with rounded corners
-                 *
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param radius rounding radius
-                 * @param color color
-                 */
-                virtual void fill_round_rect(float left, float top, float width, float height, float radius, IGradient *g);
 
                 /** Fill sector of the round
                  *
@@ -366,6 +423,36 @@ namespace lsp
                  */
                 virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
 
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @param last last character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+
                 /** Clear surface with specified color
                  *
                  * @param color color to use for clearing
@@ -387,24 +474,96 @@ namespace lsp
                 /** Ouput single-line text
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x left position
                  * @param y top position
                  * @param text text to output
-                 * @param color text color
                  */
-                virtual void out_text(const Font &f, float x, float y, const char *text, const Color &color);
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text);
+
+                /**
+                 * Output single-line text
+                 * @param f font
+                 * @param color color
+                 * @param x left position
+                 * @param y top position
+                 * @param text text
+                 */
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text);
+
+                /**
+                 * Output single-line text
+                 * @param f font
+                 * @param color color
+                 * @param x left position
+                 * @param y top position
+                 * @param text text
+                 * @param first index of first character
+                 */
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first);
+
+                /**
+                 * Output single-line text
+                 * @param f font
+                 * @param color color
+                 * @param x left position
+                 * @param y top position
+                 * @param text text
+                 * @param first index of first character
+                 * @param last index of last character
+                 */
+                virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last);
 
                 /** Ouput single-line text relative to the specified position
                  *
                  * @param f font to use
+                 * @param color text color
                  * @param x position left
                  * @param y position top
                  * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
                  * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
                  * @param text text to output
-                 * @param color text color
                  */
-                virtual void out_text_relative(const Font &f, float x, float y, float dx, float dy, const char *text, const Color &color);
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text);
+
+                /** Ouput single-line text relative to the specified position
+                 *
+                 * @param f font to use
+                 * @param color text color
+                 * @param x position left
+                 * @param y position top
+                 * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
+                 * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
+                 * @param text text to output
+                 */
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text);
+
+                /** Ouput single-line text relative to the specified position
+                 *
+                 * @param f font to use
+                 * @param color text color
+                 * @param x position left
+                 * @param y position top
+                 * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
+                 * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
+                 * @param text text to output
+                 * @param first first character of string
+                 */
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first);
+
+                /** Ouput single-line text relative to the specified position
+                 *
+                 * @param f font to use
+                 * @param color text color
+                 * @param x position left
+                 * @param y position top
+                 * @param dx relative offset by the x position. -1 = leftmost, +1 = rightmost, 0 = middle
+                 * @param dy relative offset by the y position. -1 = topmost, +1 = bottommost, 0 = middle
+                 * @param text text to output
+                 * @param first first character of string
+                 * @param last last character of string
+                 */
+                virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
                 /**
                  * Draw square dot
@@ -502,16 +661,24 @@ namespace lsp
                  */
                 virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
 
-                virtual void fill_frame(
+                virtual void fill_frame(const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
-                        const Color &color);
+                        float ix, float iy, float iw, float ih
+                        );
+
+                virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 virtual void fill_round_frame(
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
+                        const Color &color,
                         float radius, size_t flags,
-                        const Color &color);
+                        float fx, float fy, float fw, float fh,
+                        float ix, float iy, float iw, float ih
+                    );
+
+                virtual void fill_round_frame(
+                        const Color &color, float radius, size_t flags,
+                        const ws::rectangle_t *out, const ws::rectangle_t *in
+                    );
 
                 /** Draw polygon
                  *
@@ -578,6 +745,12 @@ namespace lsp
                  * @param h height
                  */
                 virtual void clip_begin(float x, float y, float w, float h);
+
+                /**
+                 * Begin clipping of the rectangle area
+                 * @param area the area to clip
+                 */
+                virtual void clip_begin(const ws::rectangle_t *area);
 
                 /**
                  * End clipping

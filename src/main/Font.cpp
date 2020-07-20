@@ -34,6 +34,13 @@ namespace lsp
             nFlags      = 0;
         }
 
+        Font::Font(const char *name, float size, size_t flags)
+        {
+            sName       = ::strdup(name);
+            fSize       = size;
+            nFlags      = flags & FF_ALL;
+        }
+
         Font::Font(float size)
         {
             sName       = ::strdup("Sans");
@@ -43,6 +50,7 @@ namespace lsp
 
         Font::Font(const Font *s)
         {
+            sName       = NULL;
             set(s);
         }
 
@@ -62,6 +70,15 @@ namespace lsp
             sName       = (s->sName != NULL) ? strdup(s->sName) : NULL;
             fSize       = s->fSize;
             nFlags      = s->nFlags;
+        }
+
+        void Font::set(const char *name, float size, size_t flags)
+        {
+            if (sName != NULL)
+                ::free(sName);
+            sName       = (name != NULL) ? strdup(name) : NULL;
+            fSize       = size;
+            nFlags      = flags & FF_ALL;
         }
 
         void Font::set_name(const char *name)

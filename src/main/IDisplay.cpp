@@ -29,6 +29,7 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
+            pEstimation         = NULL;
         }
 
         IDisplay::~IDisplay()
@@ -204,7 +205,7 @@ namespace lsp
                 return res;
 
             // Perform module version control
-            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE); // The required version of R3D interface
+            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE_LIB); // The required version of R3D interface
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
             if ((mversion == NULL) || (version_cmp(&r3d_version, mversion) != 0))
@@ -254,6 +255,14 @@ namespace lsp
 
         void IDisplay::destroy()
         {
+            // Destroy estimation surface
+            if (pEstimation != NULL)
+            {
+                pEstimation->destroy();
+                delete pEstimation;
+                pEstimation     = NULL;
+            }
+
             // Destroy all backends
             for (size_t j=0,m=s3DBackends.size(); j<m;++j)
             {
@@ -515,6 +524,13 @@ namespace lsp
         {
             return NULL;
         }
+
+        ISurface *IDisplay::estimation_surface()
+        {
+            if (pEstimation != NULL)
+                return pEstimation;
+            return pEstimation  = create_surface(1, 1);
+        }
     
         bool IDisplay::taskid_exists(taskid_t id)
         {
@@ -619,6 +635,11 @@ namespace lsp
         {
             sMainTask.pHandler      = handler;
             sMainTask.pArg          = arg;
+        }
+
+        status_t IDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
+        {
+            return STATUS_NOT_IMPLEMENTED;
         }
     }
 

@@ -84,43 +84,69 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_rect(float left, float top, float width, float height, const Color &color)
+        void ISurface::fill_rect(const Color &color, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::fill_rect(float left, float top, float width, float height, IGradient *g)
+        void ISurface::fill_rect(const Color &color, const ws::rectangle_t *r)
+        {
+            fill_rect(color, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
+        void ISurface::fill_rect(IGradient *g, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::wire_rect(float left, float top, float width, float height, float line_width, const Color &color)
+        void ISurface::fill_rect(IGradient *g, const ws::rectangle_t *r)
+        {
+            fill_rect(g, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
+        void ISurface::wire_rect(const Color &color, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, const Color &color)
+        void ISurface::wire_rect(IGradient *g, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::wire_round_rect(float left, float top, float width, float height, float radius, size_t mask, float line_width, IGradient *g)
+        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, const Color &color)
+        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
+        {
+            wire_round_rect(c, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
+        }
+
+        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::fill_round_rect(float left, float top, float width, float height, float radius, size_t mask, IGradient *g)
+        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
         {
+            wire_round_rect(g, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
+        }
+
+        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
+        {
+        }
+
+        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_round_rect(color, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
+        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
+        {
+        }
+
+        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_round_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
         void ISurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)
-        {
-        }
-
-        void ISurface::fill_round_rect(float left, float top, float width, float height, float radius, const Color &color)
-        {
-        }
-
-        void ISurface::fill_round_rect(float left, float top, float width, float height, float radius, IGradient *g)
         {
         }
 
@@ -146,6 +172,25 @@ namespace lsp
             return false;
         }
 
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, 0, text->length());
+        }
+
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, first, text->length());
+        }
+
+        bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+        {
+            return false;
+        }
+
         void ISurface::clear(const Color &color)
         {
         }
@@ -166,11 +211,47 @@ namespace lsp
         {
         }
 
-        void ISurface::out_text(const Font &f, float x, float y, const char *text, const Color &color)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
         {
         }
 
-        void ISurface::out_text_relative(const Font &f, float x, float y, float dx, float dy, const char *text, const Color &color)
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text)
+        {
+            if (text == NULL)
+                return;
+            out_text(f, color, x, y, text, 0, text->length());
+        }
+
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return;
+            out_text(f, color, x, y, text, first, text->length());
+        }
+
+        void ISurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+        {
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+        {
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text)
+        {
+            if (text == NULL)
+                return;
+            out_text_relative(f, color, x, y, dx, dy, text, 0, text->length());
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return;
+            out_text_relative(f, color, x, y, dx, dy, text, first, text->length());
+        }
+
+        void ISurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
         {
         }
 
@@ -207,20 +288,39 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_frame(
+        void ISurface::fill_frame(const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih,
-                        const Color &color
+                        float ix, float iy, float iw, float ih
                     )
         {
         }
 
-        void ISurface::fill_round_frame(
-                float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih,
-                float radius, size_t flags,
-                const Color &color)
+        void ISurface::fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in)
         {
+            fill_frame(color,
+                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
+                    in->nLeft, in->nTop, in->nWidth, in->nHeight
+            );
+        }
+
+        void ISurface::fill_round_frame(
+                const Color &color,
+                float radius, size_t flags,
+                float fx, float fy, float fw, float fh,
+                float ix, float iy, float iw, float ih
+            )
+        {
+        }
+
+        void ISurface::fill_round_frame(
+                const Color &color, float radius, size_t flags,
+                const ws::rectangle_t *out, const ws::rectangle_t *in
+            )
+        {
+            fill_round_frame(color, radius, flags,
+                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
+                    in->nLeft, in->nTop, in->nWidth, in->nHeight
+            );
         }
 
         void ISurface::fill_poly(const float *x, const float *y, size_t n, const Color & color)
@@ -249,6 +349,11 @@ namespace lsp
 
         void ISurface::clip_begin(float x, float y, float w, float h)
         {
+        }
+
+        void ISurface::clip_begin(const ws::rectangle_t *area)
+        {
+            clip_begin(area->nLeft, area->nTop, area->nWidth, area->nHeight);
         }
 
         void ISurface::clip_end()

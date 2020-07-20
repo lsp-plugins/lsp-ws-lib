@@ -2,5 +2,37 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 0.5.1 ===
+* Removed ui_handler_id_t from types.
+* Renamed constant BS_SIZABLE to BS_SIZEABLE.
+* Fixed typo in MP_VSPLIT constant.
+* Now constants in mcf_t enumeration may be computed as 1 << mcb_t
+  enumeration element except special code MCB_NONE.
+* Added ws::init_event function for clearing ws::event_t structure.
+* Added UIE_MOUSE_CLICK event.
+* Added UIE_MOUSE_CLICK event detection and generation for X11.
+* Added antialiasing flag to font parameters (by default disabled).
+* Font flags enumeration constants are now public.
+* Added estimation surface support by IDisplay interface.
+* ws::MP_DEFAULT now is a separate constant, not an alias to ws::MP_ARROW.
+* Renamed ws::ws_code_t to ws::code_t.
+* Renamed ws::ws_keycodes_t to ws::keycode_t.
+* Added following mouse cursors:
+  * ws::MP_ARROW_LEFT
+  * ws::MP_ARROW_RIGHT
+  * ws::MP_ARROW_UP
+  * ws::MP_ARROW_DOWN
+* Changed interface of ws::ISurface related to following drawing functions:
+  * out_text()
+  * out_text_relative()
+  * get_text_parameters()
+  * fill_rect()
+  * wire_rect()
+  * fill_round_rect()
+  * fill_frame()
+  * fill_round_fame()
+  * wire_round_rect()
+* Added IDisplay::get_pointer_location() method for lookup of mouse pointer location.
+
 === 0.5.0 ===
 * Initial release.
