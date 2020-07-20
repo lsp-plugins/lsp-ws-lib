@@ -37,6 +37,7 @@ $(LSP_WS_LIB_BIN)/main/IWindow.o: main/IWindow.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
@@ -71,7 +72,8 @@ $(LSP_WS_LIB_BIN)/main/ISurface.o: main/ISurface.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/LSPString.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
- $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h
 $(LSP_WS_LIB_BIN)/main/IR3DBackend.o: main/IR3DBackend.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IR3DBackend.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
@@ -87,6 +89,7 @@ $(LSP_WS_LIB_BIN)/main/IR3DBackend.o: main/IR3DBackend.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -114,7 +117,8 @@ $(LSP_WS_LIB_BIN)/main/IGradient.o: main/IGradient.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/version.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
- $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h
 $(LSP_WS_LIB_BIN)/main/IEventHandler.o: main/IEventHandler.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
@@ -140,6 +144,7 @@ $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -188,7 +193,8 @@ $(LSP_WS_LIB_BIN)/main/Font.o: main/Font.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/LSPString.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
- $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h
 $(LSP_WS_LIB_BIN)/main/factory.o: main/factory.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/factory.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
@@ -200,6 +206,7 @@ $(LSP_WS_LIB_BIN)/main/factory.o: main/factory.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
@@ -231,6 +238,7 @@ $(LSP_WS_LIB_BIN)/test/mtest/display.o: test/mtest/display.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \

@@ -2,7 +2,8 @@
 * RECENT CHANGES
 *******************************************************************************
 
-=== 0.5.2 ===
+=== 0.5.1 ===
+* Removed ui_handler_id_t from types.
 * Renamed constant BS_SIZABLE to BS_SIZEABLE.
 * Fixed typo in MP_VSPLIT constant.
 * Now constants in mcf_t enumeration may be computed as 1 << mcb_t
@@ -32,9 +33,6 @@
   * fill_round_fame()
   * wire_round_rect()
 * Added IDisplay::get_pointer_location() method for lookup of mouse pointer location.
-
-=== 0.5.1 ===
-* Removed ui_handler_id_t from types.
 
 === 0.5.0 ===
 * Initial release.
