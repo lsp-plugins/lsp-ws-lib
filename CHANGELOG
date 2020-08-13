@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 0.5.2 ===
+* Added nPreWidth and nPreHeight to ws::size_limit_t structure which should contain
+  preferred width and height values.
 
 === 0.5.1 ===
 * Removed ui_handler_id_t from types.
