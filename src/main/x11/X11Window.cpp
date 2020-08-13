@@ -62,6 +62,8 @@ namespace lsp
                 sConstraints.nMinHeight = -1;
                 sConstraints.nMaxWidth  = -1;
                 sConstraints.nMaxHeight = -1;
+                sConstraints.nPreWidth  = -1;
+                sConstraints.nPreHeight = -1;
 
                 for (size_t i=0; i<3; ++i)
                 {

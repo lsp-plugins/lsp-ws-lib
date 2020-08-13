@@ -249,23 +249,25 @@ namespace lsp
 
         typedef struct event_t
         {
-            size_t              nType;      // Type of event, see ui_event_type_t
-            ssize_t             nLeft;      // Left position of something
-            ssize_t             nTop;       // Top position of something
-            ssize_t             nWidth;     // Width of something
-            ssize_t             nHeight;    // Height of something
-            code_t              nCode;      // Key code, button, scroll direction
-            code_t              nRawCode;   // Raw code
-            size_t              nState;     // State
-            ui_timestamp_t      nTime;      // Event timestamp in milliseconds
+            size_t              nType;          // Type of event, see ui_event_type_t
+            ssize_t             nLeft;          // Left position of something
+            ssize_t             nTop;           // Top position of something
+            ssize_t             nWidth;         // Width of something
+            ssize_t             nHeight;        // Height of something
+            code_t              nCode;          // Key code, button, scroll direction
+            code_t              nRawCode;       // Raw code
+            size_t              nState;         // State
+            ui_timestamp_t      nTime;          // Event timestamp in milliseconds
         } event_t;
 
         typedef struct size_limit_t
         {
-            ssize_t             nMinWidth;
-            ssize_t             nMinHeight;
-            ssize_t             nMaxWidth;
-            ssize_t             nMaxHeight;
+            ssize_t             nMinWidth;      // Minimum possible width in pixels
+            ssize_t             nMinHeight;     // Minimum possible height in pixels
+            ssize_t             nMaxWidth;      // Maximum possible width in pixels
+            ssize_t             nMaxHeight;     // Maximum possible height in pixels
+            ssize_t             nPreWidth;      // Preferrable width in pixels
+            ssize_t             nPreHeight;     // Preferrable height in pixels
         } size_limit_t;
 
         typedef struct rectangle_t
