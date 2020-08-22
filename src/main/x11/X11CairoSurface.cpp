@@ -304,10 +304,11 @@ namespace lsp
 
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
-                ::cairo_set_source_rgb(pCR,
+                ::cairo_set_source_rgba(pCR,
                     float((rgba >> 16) & 0xff)/255.0f,
                     float((rgba >> 8) & 0xff)/255.0f,
-                    float(rgba & 0xff)/255.0f
+                    float(rgba & 0xff)/255.0f,
+                    float((rgba >> 24) & 0xff)/255.0f
                 );
                 ::cairo_paint(pCR);
                 ::cairo_set_operator (pCR, op);
