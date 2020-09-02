@@ -111,6 +111,7 @@ namespace lsp
                 pDisplay        = NULL;
                 hRootWnd        = -1;
                 hClipWnd        = None;
+                pFocusWindow    = NULL;
                 nBlackColor     = 0;
                 nWhiteColor     = 0;
                 nIOBufSize      = X11IOBUF_SIZE;
