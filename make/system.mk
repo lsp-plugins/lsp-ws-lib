@@ -1,3 +1,23 @@
+#
+# Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
+#           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+#
+# This file is part of lsp-ws-lib
+#
+# lsp-ws-lib is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# lsp-ws-lib is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with lsp-ws-lib.  If not, see <https://www.gnu.org/licenses/>.
+#
+
 # Detect operating system
 ifndef PLATFORM
   ifeq ($(findstring Windows,$(OS)),Windows)
@@ -64,6 +84,15 @@ ifndef LIBRARY_EXT
   endif
 endif
 
+# Extension of libraries
+ifndef LIBRARY_PREFIX
+  ifeq ($(PLATFORM),Windows)
+    LIBRARY_PREFIX           :=
+  else
+    LIBRARY_PREFIX           := lib
+  endif
+endif
+
 # Extension of executables
 ifndef EXECUTABLE_EXT
   ifeq ($(PLATFORM),Windows)
@@ -73,6 +102,16 @@ ifndef EXECUTABLE_EXT
   endif
 endif
 
+# Extension of executables
+ifndef STATICLIB_EXT
+  STATICLIB_EXT            := .a
+endif
+
+# Extension of pkgconfig files
+ifndef PKGCONFIG_EXT
+  PKGCONFIG_EXT            := .pc
+endif
+
 # Installation prefix
 ifndef PREFIX
   ifeq ($(PLATFORM),Windows)
@@ -80,6 +119,21 @@ ifndef PREFIX
   else
     PREFIX                   := /usr/local
   endif
+endif
+
+# Library prefix
+ifndef LIBDIR
+  LIBDIR                   := $(PREFIX)/lib
+endif
+
+# Binaries prefix
+ifndef BINDIR
+  BINDIR                   := $(PREFIX)/bin
+endif
+
+# Binaries prefix
+ifndef INCDIR
+  INCDIR                   := $(PREFIX)/include
 endif
 
 # Temporary directory
@@ -98,8 +152,14 @@ COMMON_VARS = \
 	PLATFORM \
 	ARCHITECTURE \
 	LIBRARY_EXT \
+	LIBRARY_PREFIX \
+	STATICLIB_EXT \
 	EXECUTABLE_EXT \
+	PKGCONFIG_EXT \
 	PREFIX \
+	LIBDIR \
+	BINDIR \
+	INCDIR \
 	TEMPDIR \
 	TEST \
 	DEBUG \
@@ -111,12 +171,18 @@ COMMON_VARS = \
 sysvars:
 	@echo "List of available system variables:"
 	@echo "  ARCHITECTURE              target architecture to perform build"
+	@echo "  BINDIR                    location of the binaries"
 	@echo "  DEBUG                     build with debug options"
 	@echo "  EXECUTABLE_EXT            file extension for executable files"
+	@echo "  INCDIR                    location of the header files"
+	@echo "  LIBDIR                    location of the library"
 	@echo "  LIBRARY_EXT               file extension for library files"
+	@echo "  LIBRARY_PREFIX            prefix used for library file"
+	@echo "  PKGCONFIG_EXT             file extension for pkgconfig files"
 	@echo "  PLATFORM                  target software platform to perform build"
 	@echo "  PREFIX                    installation prefix for binary files"
 	@echo "  PROFILE                   build with profile options"
+	@echo "  STATICLIB_EXT             file extension for static library files"
 	@echo "  TEMPDIR                   location of temporary directory"
 	@echo "  TEST                      use test build"
 	@echo "  TRACE                     compile with additional trace information output"
