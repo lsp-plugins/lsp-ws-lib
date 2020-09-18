@@ -49,12 +49,12 @@ BSD_DEPENDENCIES = \
 
 # For Linux-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),Linux)
-  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
+  DEPENDENCIES             += $(LINUX_DEPENDENCIES)
 endif
 
 # For BSD-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),BSD)
-  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
+  DEPENDENCIES             += $(BSD_DEPENDENCIES)
 endif
 
 ALL_DEPENDENCIES = \
