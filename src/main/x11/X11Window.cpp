@@ -1,8 +1,22 @@
 /*
- * X11Window.cpp
+ * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
- *  Created on: 10 окт. 2016 г.
- *      Author: sadko
+ * This file is part of lsp-ws-lib
+ * Created on: 10 окт. 2016 г.
+ *
+ * lsp-ws-lib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-ws-lib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <lsp-plug.in/common/types.h>
@@ -62,6 +76,8 @@ namespace lsp
                 sConstraints.nMinHeight = -1;
                 sConstraints.nMaxWidth  = -1;
                 sConstraints.nMaxHeight = -1;
+                sConstraints.nPreWidth  = -1;
+                sConstraints.nPreHeight = -1;
 
                 for (size_t i=0; i<3; ++i)
                 {
