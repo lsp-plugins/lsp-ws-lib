@@ -846,7 +846,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::fill_poly(const float *x, const float *y, size_t n, const Color & color)
+            void X11CairoSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -859,7 +859,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_poly(const float *x, const float *y, size_t n, IGradient *gr)
+            void X11CairoSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL) || (gr == NULL))
                     return;
@@ -873,7 +873,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::wire_poly(const float *x, const float *y, size_t n, float width, const Color & color)
+            void X11CairoSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -887,7 +887,7 @@ namespace lsp
                 cairo_stroke(pCR);
             }
 
-            void X11CairoSurface::draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire)
+            void X11CairoSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -896,12 +896,20 @@ namespace lsp
                 for (size_t i=1; i < n; ++i)
                     cairo_line_to(pCR, *(x++), *(y++));
 
-                setSourceRGBA(fill);
-                cairo_fill_preserve(pCR);
+                if (width > 0.0f)
+                {
+                    setSourceRGBA(fill);
+                    cairo_fill_preserve(pCR);
 
-                cairo_set_line_width(pCR, width);
-                setSourceRGBA(wire);
-                cairo_stroke(pCR);
+                    cairo_set_line_width(pCR, width);
+                    setSourceRGBA(wire);
+                    cairo_stroke(pCR);
+                }
+                else
+                {
+                    setSourceRGBA(fill);
+                    cairo_fill(pCR);
+                }
             }
 
             void X11CairoSurface::fill_circle(float x, float y, float r, const Color & color)

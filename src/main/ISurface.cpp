@@ -337,19 +337,19 @@ namespace lsp
             );
         }
 
-        void ISurface::fill_poly(const float *x, const float *y, size_t n, const Color & color)
+        void ISurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::fill_poly(const float *x, const float *y, size_t n, IGradient *gr)
+        void ISurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::wire_poly(const float *x, const float *y, size_t n, float width, const Color & color)
+        void ISurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire)
+        void ISurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
         {
         }
 
