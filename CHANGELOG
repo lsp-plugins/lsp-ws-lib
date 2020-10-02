@@ -4,6 +4,7 @@
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.
+* Added ISurface::draw method that uses ws::rectangle_t as an argument.
 
 === 0.5.2 ===
 * Added nPreWidth and nPreHeight to ws::size_limit_t structure which should contain

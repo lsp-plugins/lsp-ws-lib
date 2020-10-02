@@ -85,6 +85,14 @@ namespace lsp
         {
         }
 
+        void ISurface::draw(ISurface *s, const ws::rectangle_t *r)
+        {
+            float sx = (r->nWidth  > 0) ? float(s->width())  / float(r->nWidth ) : 0.0f;
+            float sy = (r->nHeight > 0) ? float(s->height()) / float(r->nHeight) : 0.0f;
+
+            return draw(s, r->nLeft, r->nTop, sx, sy);
+        }
+
         void ISurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
         {
         }

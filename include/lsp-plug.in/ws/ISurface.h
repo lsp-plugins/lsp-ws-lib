@@ -163,6 +163,13 @@ namespace lsp
                  */
                 virtual void draw(ISurface *s, float x, float y, float sx, float sy);
 
+                /**
+                 * Draw surface
+                 * @param s surface to draw
+                 * @param r the rectangle to place the surface
+                 */
+                virtual void draw(ISurface *s, const ws::rectangle_t *r);
+
                 /** Draw surface with alpha blending
                  *
                  * @param s surface to draw
