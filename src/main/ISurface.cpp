@@ -87,8 +87,8 @@ namespace lsp
 
         void ISurface::draw(ISurface *s, const ws::rectangle_t *r)
         {
-            float sx = (r->nWidth  > 0) ? float(s->width())  / float(r->nWidth ) : 0.0f;
-            float sy = (r->nHeight > 0) ? float(s->height()) / float(r->nHeight) : 0.0f;
+            float sx = (s->width()  > 0) ? float(r->nWidth ) / float(s->width())  : 0.0f;
+            float sy = (s->height() > 0) ? float(r->nHeight) / float(s->height()) : 0.0f;
 
             return draw(s, r->nLeft, r->nTop, sx, sy);
         }
