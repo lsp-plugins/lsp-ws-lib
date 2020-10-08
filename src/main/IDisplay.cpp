@@ -21,6 +21,7 @@
 
 #include <lsp-plug.in/r3d/iface/version.h>
 #include <lsp-plug.in/r3d/iface/factory.h>
+#include <lsp-plug.in/r3d/iface/builtin.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
@@ -265,6 +266,18 @@ namespace lsp
         status_t IDisplay::init(int argc, const char **argv)
         {
             status_t res;
+
+            // Scan for built-in libraries
+            for (int idx=0; ; ++idx)
+            {
+                r3d::factory_t *factory = r3d::Factory::enumerate(idx);
+                if (factory == NULL)
+                    break;
+
+                // Commit factory to the list of backends
+                if ((res = commit_r3d_factory(NULL, factory)) != STATUS_OK)
+                    return res;
+            }
 
             // Scan for another locations
             io::Path path;
