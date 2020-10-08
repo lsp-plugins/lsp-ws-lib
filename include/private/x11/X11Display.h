@@ -234,6 +234,8 @@ namespace lsp
                     dnd_recv_t     *current_drag_task();
                     void            complete_async_tasks();
 
+                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
+
                 public:
                     explicit X11Display();
                     virtual ~X11Display();

@@ -27,8 +27,8 @@
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ipc/Library.h>
 #include <lsp-plug.in/ws/types.h>
-#include <lsp-plug.in/r3d/backend.h>
-#include <lsp-plug.in/r3d/factory.h>
+#include <lsp-plug.in/r3d/iface/backend.h>
+#include <lsp-plug.in/r3d/iface/factory.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/parray.h>
 
@@ -50,6 +50,7 @@ namespace lsp
             LSPString   uid;
             LSPString   display;
             LSPString   lc_key;
+            bool        offscren;       // Off-screen rendering engine
         } R3DBackendInfo;
 
         /** Display
@@ -93,25 +94,26 @@ namespace lsp
                 status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
+                virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
 
             public:
                 explicit IDisplay();
                 virtual ~IDisplay();
 
             public:
-                virtual status_t init(int argc, const char **argv);
-                virtual void destroy();
+                virtual status_t    init(int argc, const char **argv);
+                virtual void        destroy();
 
-                virtual status_t main();
-                virtual status_t main_iteration();
-                virtual void quit_main();
+                virtual status_t    main();
+                virtual status_t    main_iteration();
+                virtual void        quit_main();
 
-                virtual size_t screens();
-                virtual size_t default_screen();
+                virtual size_t      screens();
+                virtual size_t      default_screen();
 
-                virtual void sync();
+                virtual void        sync();
 
-                virtual status_t screen_size(size_t screen, ssize_t *w, ssize_t *h);
+                virtual status_t    screen_size(size_t screen, ssize_t *w, ssize_t *h);
 
             public:
                 /**

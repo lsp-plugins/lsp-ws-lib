@@ -19,8 +19,8 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/r3d/version.h>
-#include <lsp-plug.in/r3d/factory.h>
+#include <lsp-plug.in/r3d/iface/version.h>
+#include <lsp-plug.in/r3d/iface/factory.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
@@ -162,6 +162,13 @@ namespace lsp
             return register_r3d_backend(&tmp);
         }
 
+        bool IDisplay::r3d_backend_supported(const r3d::backend_metadata_t *meta)
+        {
+            if (meta->wnd_type == r3d::WND_HANDLE_NONE)
+                return true;
+            return false;
+        }
+
         status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory)
         {
             for (size_t id=0; ; ++id)
@@ -180,6 +187,7 @@ namespace lsp
 
                 r3dlib->builtin     = (path != NULL) ? NULL : factory;
                 r3dlib->local_id    = id;
+                r3dlib->offscren    = meta->wnd_type == r3d::WND_HANDLE_NONE;
                 if (path != NULL)
                 {
                     if (!r3dlib->library.set(path))
@@ -219,7 +227,7 @@ namespace lsp
                 return res;
 
             // Perform module version control
-            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_BASE_LIB); // The required version of R3D interface
+            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_IFACE); // The required version of R3D interface
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
             if ((mversion == NULL) || (version_cmp(&r3d_version, mversion) != 0))
@@ -237,19 +245,21 @@ namespace lsp
             }
 
             // Try to instantiate factory
-            r3d::factory_t *factory  = func();
-            if (factory == NULL)
+            size_t found = 0;
+            for (int idx=0; ; ++idx)
             {
-                lib.close();
-                return STATUS_NOT_FOUND;
-            }
+                r3d::factory_t *factory  = func(idx);
+                if (factory == NULL)
+                    break;
 
-            // Fetch metadata
-            res = commit_r3d_factory(path, factory);
+                // Fetch metadata and store
+                res = commit_r3d_factory(path, factory);
+                ++found;
+            }
 
             // Close the library
             lib.close();
-            return res;
+            return (found > 0) ? res : STATUS_NOT_FOUND;
         }
 
         status_t IDisplay::init(int argc, const char **argv)
@@ -417,20 +427,32 @@ namespace lsp
                 if (res != STATUS_OK)
                     return res;
 
-                // Obtain factory function
+                // Find the proper factory function
+                factory = NULL;
                 r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(dlib.import(LSP_R3D_FACTORY_FUNCTION_NAME));
-                if (func == NULL)
+                if (func != NULL)
                 {
-                    dlib.close();
-                    return res;
+                    // Lookup for the proper factory
+                    for (int idx=0; ; ++idx)
+                    {
+                        // Enumerate factory
+                        factory     = func(idx);
+                        if (factory == NULL)
+                            break;
+
+                        // Get metadata
+                        const r3d::backend_metadata_t *meta = factory->metadata(factory, lib->local_id);
+                        if ((meta != NULL) &&
+                            (strcmp(meta->id, lib->uid.get_utf8()) == 0))
+                            break;
+                    }
                 }
 
-                // Create the factory
-                factory     = func();
+                // Return error if factory function was not found
                 if (factory == NULL)
                 {
                     dlib.close();
-                    return STATUS_UNKNOWN_ERR;
+                    return STATUS_NOT_FOUND;
                 }
             }
             else

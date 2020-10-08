@@ -3609,6 +3609,13 @@ namespace lsp
                 return STATUS_NOT_FOUND;
             }
 
+            bool X11Display::r3d_backend_supported(const r3d::backend_metadata_t *meta)
+            {
+                // X11 display supportx X11 window handles
+                if (meta->wnd_type == r3d::WND_HANDLE_X11)
+                    return true;
+                return IDisplay::r3d_backend_supported(meta);
+            }
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */
