@@ -342,7 +342,7 @@ namespace lsp
         void IDisplay::call_main_task(timestamp_t time)
         {
             if (sMainTask.pHandler != NULL)
-                sMainTask.pHandler(time, sMainTask.pArg);
+                sMainTask.pHandler(time, time, sMainTask.pArg);
         }
 
         status_t IDisplay::main()

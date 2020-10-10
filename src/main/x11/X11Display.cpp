@@ -491,7 +491,7 @@ namespace lsp
                         dtask_t *t  = sPending.uget(i);
 
                         // Process task
-                        result  = t->pHandler(ts, t->pArg);
+                        result  = t->pHandler(t->nTime, ts, t->pArg);
                         if (result != STATUS_OK)
                             break;
                     }
