@@ -1544,15 +1544,7 @@ namespace lsp
                 }
 
                 event_t ue;
-                ue.nType        = UIE_UNKNOWN;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nRawCode     = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
+                init_event(&ue);
 
                 // Decode event
                 switch (ev->type)
@@ -1719,7 +1711,7 @@ namespace lsp
                 if (ue.nType != UIE_UNKNOWN)
                 {
                     Window child        = None;
-                    event_t se       = ue;
+                    event_t se          = ue;
 
                     // Clear the collection
                     sTargets.clear();
