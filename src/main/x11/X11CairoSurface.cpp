@@ -546,7 +546,7 @@ namespace lsp
                 // Set antialiasing
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
@@ -583,7 +583,7 @@ namespace lsp
                 // Set antialiasing
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
@@ -624,7 +624,7 @@ namespace lsp
                 // Set antialiasing
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
@@ -675,7 +675,7 @@ namespace lsp
 
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
