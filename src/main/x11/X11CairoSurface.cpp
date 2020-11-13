@@ -596,6 +596,10 @@ namespace lsp
                 // Get text parameters
                 cairo_text_extents_t te;
                 cairo_text_extents(pCR, text, &te);
+
+                // Reset font options and antialiasing
+                cairo_set_font_options(pCR, pFO);
+                cairo_font_options_destroy(fo);
                 set_antialiasing(aa);
 
                 // Return result
