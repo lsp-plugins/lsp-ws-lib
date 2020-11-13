@@ -24,7 +24,7 @@ ARTIFACT_DESC               = LSP window subsystem core library
 ARTIFACT_VARS               = LSP_WS_LIB
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
-ARTIFACT_VERSION            = 0.5.3-devel
+ARTIFACT_VERSION            = 0.5.3
 
 # List of dependencies
 TEST_DEPENDENCIES = \
