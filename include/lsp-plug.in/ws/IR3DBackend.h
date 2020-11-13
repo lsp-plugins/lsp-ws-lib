@@ -23,7 +23,7 @@
 #define LSP_PLUG_IN_WS_IR3DBACKEND_H_
 
 #include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/r3d/backend.h>
+#include <lsp-plug.in/r3d/iface/backend.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 
 namespace lsp

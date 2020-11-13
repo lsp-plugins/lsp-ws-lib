@@ -85,6 +85,14 @@ namespace lsp
         {
         }
 
+        void ISurface::draw(ISurface *s, const ws::rectangle_t *r)
+        {
+            float sx = (s->width()  > 0) ? float(r->nWidth ) / float(s->width())  : 0.0f;
+            float sy = (s->height() > 0) ? float(r->nHeight) / float(s->height()) : 0.0f;
+
+            return draw(s, r->nLeft, r->nTop, sx, sy);
+        }
+
         void ISurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
         {
         }
@@ -337,19 +345,19 @@ namespace lsp
             );
         }
 
-        void ISurface::fill_poly(const float *x, const float *y, size_t n, const Color & color)
+        void ISurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::fill_poly(const float *x, const float *y, size_t n, IGradient *gr)
+        void ISurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::wire_poly(const float *x, const float *y, size_t n, float width, const Color & color)
+        void ISurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
         {
         }
 
-        void ISurface::draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire)
+        void ISurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
         {
         }
 

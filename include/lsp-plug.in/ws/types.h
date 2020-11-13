@@ -360,11 +360,12 @@ namespace lsp
 
         /** Task handler
          *
+         * @param sched actual time at which the task has been scheduled
          * @param time current time at which the timer was executed
          * @param arg argument passed to task handler
          * @return status of operation
          */
-        typedef status_t    (* task_handler_t)(timestamp_t time, void *arg);
+        typedef status_t    (* task_handler_t)(timestamp_t sched, timestamp_t time, void *arg);
 
         /** Clipboard handler
          *

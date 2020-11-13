@@ -43,11 +43,10 @@ $(LSP_WS_LIB_BIN)/main/IWindow.o: main/IWindow.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/backend.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/types.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/factory.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/base.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/darray.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/parray.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \
@@ -77,9 +76,9 @@ $(LSP_WS_LIB_BIN)/main/ISurface.o: main/ISurface.cpp \
 $(LSP_WS_LIB_BIN)/main/IR3DBackend.o: main/IR3DBackend.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IR3DBackend.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/backend.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/types.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
@@ -94,8 +93,7 @@ $(LSP_WS_LIB_BIN)/main/IR3DBackend.o: main/IR3DBackend.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/factory.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/base.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/darray.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/parray.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \
@@ -129,14 +127,14 @@ $(LSP_WS_LIB_BIN)/main/IEventHandler.o: main/IEventHandler.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/version.h
 $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/factory.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/base.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/backend.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/types.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/builtin.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDisplay.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/LSPString.h \
@@ -212,11 +210,10 @@ $(LSP_WS_LIB_BIN)/main/factory.o: main/factory.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/backend.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/types.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/factory.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/base.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/darray.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/parray.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \
@@ -244,11 +241,10 @@ $(LSP_WS_LIB_BIN)/test/mtest/display.o: test/mtest/display.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/backend.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/version.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/types.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/factory.h \
- $(LSP_R3D_BASE_LIB_INC)/lsp-plug.in/r3d/base.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/darray.h \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/parray.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \

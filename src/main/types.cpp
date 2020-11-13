@@ -27,7 +27,7 @@ namespace lsp
     {
         void init_event(event_t *ev)
         {
-            ev->nType       = 0;
+            ev->nType       = UIE_UNKNOWN;
             ev->nLeft       = 0;
             ev->nTop        = 0;
             ev->nWidth      = 0;

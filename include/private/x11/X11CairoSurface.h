@@ -182,13 +182,13 @@ namespace lsp
 
                     virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
 
-                    virtual void fill_poly(const float *x, const float *y, size_t n, const Color & color);
+                    virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n);
 
-                    virtual void fill_poly(const float *x, const float *y, size_t n, IGradient *gr);
+                    virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n);
 
-                    virtual void wire_poly(const float *x, const float *y, size_t n, float width, const Color & color);
+                    virtual void wire_poly(const Color & color, float width, const float *x, const float *y, size_t n);
 
-                    virtual void draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire);
+                    virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n);
 
                     virtual void fill_circle(float x, float y, float r, const Color & color);
 

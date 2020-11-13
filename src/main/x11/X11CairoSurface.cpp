@@ -543,20 +543,29 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL))
                     return false;
 
-                bool aa = get_antialiasing();
-                set_antialiasing(f.is_antialiasing());
+                // Set antialiasing
+                bool aa = set_antialiasing(f.is_antialiasing());
+                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
+                // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
                 );
                 cairo_set_font_size(pCR, f.get_size());
+                cairo_set_font_options(pCR, fo);
 
+                // Get font parameters
                 cairo_font_extents_t fe;
                 cairo_font_extents(pCR, &fe);
 
+                // Reset font options and antialiasing
+                cairo_set_font_options(pCR, pFO);
+                cairo_font_options_destroy(fo);
                 set_antialiasing(aa);
 
+                // Return result
                 fp->Ascent          = fe.ascent;
                 fp->Descent         = fe.descent;
                 fp->Height          = fe.height;
@@ -571,19 +580,29 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL))
                     return false;
 
-                bool aa = get_antialiasing();
-                set_antialiasing(f.is_antialiasing());
+                // Set antialiasing
+                bool aa = set_antialiasing(f.is_antialiasing());
+                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
+                // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
                 );
                 cairo_set_font_size(pCR, f.get_size());
+                cairo_set_font_options(pCR, fo);
 
+                // Get text parameters
                 cairo_text_extents_t te;
                 cairo_text_extents(pCR, text, &te);
+
+                // Reset font options and antialiasing
+                cairo_set_font_options(pCR, pFO);
+                cairo_font_options_destroy(fo);
                 set_antialiasing(aa);
 
+                // Return result
                 tp->XBearing        = te.x_bearing;
                 tp->YBearing        = te.y_bearing;
                 tp->Width           = te.width;
@@ -606,10 +625,12 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
 
+                // Set antialiasing
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
+                // Configure font options
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
@@ -617,6 +638,7 @@ namespace lsp
                 cairo_set_font_size(pCR, f.get_size());
                 cairo_set_font_options(pCR, fo);
 
+                // Draw
                 cairo_move_to(pCR, x, y);
                 setSourceRGBA(color);
                 cairo_show_text(pCR, text);
@@ -634,6 +656,7 @@ namespace lsp
                     cairo_stroke(pCR);
                 }
 
+                // Reset font options and antialiasing
                 cairo_set_font_options(pCR, pFO);
                 cairo_font_options_destroy(fo);
                 set_antialiasing(aa);
@@ -656,7 +679,7 @@ namespace lsp
 
                 bool aa = set_antialiasing(f.is_antialiasing());
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_BEST : CAIRO_ANTIALIAS_NONE);
+                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
@@ -846,7 +869,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::fill_poly(const float *x, const float *y, size_t n, const Color & color)
+            void X11CairoSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -859,7 +882,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_poly(const float *x, const float *y, size_t n, IGradient *gr)
+            void X11CairoSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL) || (gr == NULL))
                     return;
@@ -873,7 +896,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::wire_poly(const float *x, const float *y, size_t n, float width, const Color & color)
+            void X11CairoSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -887,7 +910,7 @@ namespace lsp
                 cairo_stroke(pCR);
             }
 
-            void X11CairoSurface::draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire)
+            void X11CairoSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
                 if ((n < 2) || (pCR == NULL))
                     return;
@@ -896,12 +919,20 @@ namespace lsp
                 for (size_t i=1; i < n; ++i)
                     cairo_line_to(pCR, *(x++), *(y++));
 
-                setSourceRGBA(fill);
-                cairo_fill_preserve(pCR);
+                if (width > 0.0f)
+                {
+                    setSourceRGBA(fill);
+                    cairo_fill_preserve(pCR);
 
-                cairo_set_line_width(pCR, width);
-                setSourceRGBA(wire);
-                cairo_stroke(pCR);
+                    cairo_set_line_width(pCR, width);
+                    setSourceRGBA(wire);
+                    cairo_stroke(pCR);
+                }
+                else
+                {
+                    setSourceRGBA(fill);
+                    cairo_fill(pCR);
+                }
             }
 
             void X11CairoSurface::fill_circle(float x, float y, float r, const Color & color)

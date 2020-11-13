@@ -491,7 +491,7 @@ namespace lsp
                         dtask_t *t  = sPending.uget(i);
 
                         // Process task
-                        result  = t->pHandler(ts, t->pArg);
+                        result  = t->pHandler(t->nTime, ts, t->pArg);
                         if (result != STATUS_OK)
                             break;
                     }
@@ -1544,15 +1544,7 @@ namespace lsp
                 }
 
                 event_t ue;
-                ue.nType        = UIE_UNKNOWN;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nRawCode     = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
+                init_event(&ue);
 
                 // Decode event
                 switch (ev->type)
@@ -1719,7 +1711,7 @@ namespace lsp
                 if (ue.nType != UIE_UNKNOWN)
                 {
                     Window child        = None;
-                    event_t se       = ue;
+                    event_t se          = ue;
 
                     // Clear the collection
                     sTargets.clear();
@@ -3609,6 +3601,13 @@ namespace lsp
                 return STATUS_NOT_FOUND;
             }
 
+            bool X11Display::r3d_backend_supported(const r3d::backend_metadata_t *meta)
+            {
+                // X11 display supportx X11 window handles
+                if (meta->wnd_type == r3d::WND_HANDLE_X11)
+                    return true;
+                return IDisplay::r3d_backend_supported(meta);
+            }
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */

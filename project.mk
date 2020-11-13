@@ -24,7 +24,7 @@ ARTIFACT_DESC               = LSP window subsystem core library
 ARTIFACT_VARS               = LSP_WS_LIB
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_EXPORT_ALL         = 1
-ARTIFACT_VERSION            = 0.5.2
+ARTIFACT_VERSION            = 0.5.3
 
 # List of dependencies
 TEST_DEPENDENCIES = \
@@ -34,7 +34,7 @@ DEPENDENCIES = \
   STDLIB \
   LSP_COMMON_LIB \
   LSP_LLTL_LIB \
-  LSP_R3D_BASE_LIB \
+  LSP_R3D_IFACE \
   LSP_RUNTIME_LIB
 
 LINUX_DEPENDENCIES = \
@@ -47,19 +47,26 @@ BSD_DEPENDENCIES = \
   XLIB \
   CAIRO
 
+OPTIONAL_DEPENDENCIES = \
+  LSP_R3D_BASE_LIB \
+  LSP_R3D_GLX_LIB \
+  OPENGL
+
 # For Linux-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),Linux)
-  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
+  DEPENDENCIES             += $(LINUX_DEPENDENCIES)
+  TEST_DEPENDENCIES        += LSP_R3D_BASE_LIB LSP_R3D_GLX_LIB OPENGL
 endif
 
 # For BSD-based systems, use libsndfile and xlib
 ifeq ($(PLATFORM),BSD)
-  DEPENDENCIES             += LIBSNDFILE XLIB CAIRO
+  DEPENDENCIES             += $(BSD_DEPENDENCIES)
+  TEST_DEPENDENCIES        += LSP_R3D_BASE_LIB LSP_R3D_GLX_LIB OPENGL
 endif
 
 ALL_DEPENDENCIES = \
   $(DEPENDENCIES) \
   $(TEST_DEPENDENCIES) \
+  $(OPTIONAL_DEPENDENCIES) \
   $(LINUX_DEPENDENCIES) \
   $(BSD_DEPENDENCIES)
-  

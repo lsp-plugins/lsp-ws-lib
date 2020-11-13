@@ -163,6 +163,13 @@ namespace lsp
                  */
                 virtual void draw(ISurface *s, float x, float y, float sx, float sy);
 
+                /**
+                 * Draw surface
+                 * @param s surface to draw
+                 * @param r the rectangle to place the surface
+                 */
+                virtual void draw(ISurface *s, const ws::rectangle_t *r);
+
                 /** Draw surface with alpha blending
                  *
                  * @param s surface to draw
@@ -696,42 +703,42 @@ namespace lsp
 
                 /** Draw polygon
                  *
+                 * @param color polygon color
                  * @param x array of x point coordinates
                  * @param y array of y point coordinates
                  * @param n number of elements in each array
-                 * @param color polygon color
                  */
-                virtual void fill_poly(const float *x, const float *y, size_t n, const Color & color);
+                virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n);
 
                 /** Draw polygon
                  *
+                 * @param gr gradient to fill
                  * @param x array of x point coordinates
                  * @param y array of y point coordinates
                  * @param n number of elements in each array
-                 * @param gr gradient to fille
                  */
-                virtual void fill_poly(const float *x, const float *y, size_t n, IGradient *gr);
+                virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n);
 
                 /** Wire polygon
                  *
+                 * @param color polygon line color
                  * @param x array of x point coordinates
                  * @param y array of y point coordinates
                  * @param n number of elements in each array
                  * @param width line width
-                 * @param color polygon line color
                  */
-                virtual void wire_poly(const float *x, const float *y, size_t n, float width, const Color & color);
+                virtual void wire_poly(const Color & color, float width, const float *x, const float *y, size_t n);
 
                 /** Draw filled and wired polygon
                  *
+                 * @param fill polygon fill color
+                 * @param wire polygon wire color
                  * @param x array of x point coordinates
                  * @param y array of y point coordinates
                  * @param n number of elements in each array
                  * @param width line width
-                 * @param fill polygon fill color
-                 * @param wire polygon wire color
                  */
-                virtual void draw_poly(const float *x, const float *y, size_t n, float width, const Color &fill, const Color &wire);
+                virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n);
 
                 /** Fill circle
                  *

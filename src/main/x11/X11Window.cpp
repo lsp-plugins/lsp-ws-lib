@@ -390,6 +390,8 @@ namespace lsp
                 if (!check_click(pe))
                     return false;
 
+                if (pe->sDown.nCode != ev->sDown.nCode)
+                    return false;
                 if ((ev->sUp.nTime < pe->sUp.nTime) || ((ev->sUp.nTime - pe->sUp.nTime) > 400))
                     return false;
 
@@ -482,7 +484,7 @@ namespace lsp
                         vBtnEvent[0]            = vBtnEvent[1];
                         vBtnEvent[1]            = vBtnEvent[2];
                         vBtnEvent[2].sDown      = *ev;
-                        vBtnEvent[2].sUp.nType  = UIE_UNKNOWN;
+                        init_event(&vBtnEvent[2].sUp);
                         break;
                     }
 
