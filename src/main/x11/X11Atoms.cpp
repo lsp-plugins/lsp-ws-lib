@@ -21,7 +21,7 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_XLIB
+#ifdef USE_LIBX11
 
 #include <private/x11/X11Atoms.h>
 #include <X11/Xlib.h>
@@ -55,4 +55,4 @@ namespace lsp
     }
 }
 
-#endif /* USE_XLIB */
+#endif /* USE_LIBX11 */

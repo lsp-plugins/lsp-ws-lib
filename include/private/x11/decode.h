@@ -25,7 +25,7 @@
 #include <lsp-plug.in/ws/version.h>
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_XLIB
+#ifdef USE_LIBX11
 
 #include <lsp-plug.in/ws/types.h>
 #include <X11/Xlib.h>
@@ -50,6 +50,6 @@ namespace lsp
     }
 }
 
-#endif /* USE_XLIB */
+#endif /* USE_LIBX11 */
 
 #endif /* LSP_PLUG_IN_WS_X11_DECODE_H_ */

@@ -21,7 +21,7 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_XLIB
+#ifdef USE_LIBX11
 
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/common/endian.h>
@@ -1408,4 +1408,4 @@ namespace lsp
     }
  */
 
-#endif /* USE_XLIB */
+#endif /* USE_LIBX11 */

@@ -25,7 +25,7 @@
 #include <lsp-plug.in/ws/version.h>
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_CAIRO
+#ifdef USE_LIBCAIRO
 
 #include <lsp-plug.in/ws/IGradient.h>
 #include <cairo/cairo.h>
@@ -77,6 +77,6 @@ namespace lsp
     }
 } /* namespace lsp */
 
-#endif /* USE_CAIRO */
+#endif /* USE_LIBCAIRO */
 
 #endif /* UI_X11_X11CAIROGRADIENT_H_ */
