@@ -119,6 +119,13 @@ namespace lsp
                         Window              hProxy;
                     } dnd_recv_t;
 
+                    typedef struct xtranslate_t
+                    {
+                        Window              hSrcW;          // Source Window
+                        Window              hDstW;          // Destination window
+                        bool                bSuccess;       // Success flag
+                    } xtranslate_t;
+
                     typedef struct dnd_proxy_t: public cb_common_t
                     {
                         Window              hTarget;        // The target window which has XDndProxy attribute
@@ -180,6 +187,7 @@ namespace lsp
                     lltl::darray<wnd_lock_t>    sLocks;
                     lltl::darray<x11_async_t>   sAsync;
                     lltl::parray<char>          vDndMimeTypes;
+                    xtranslate_t                sTranslateReq;
 
                 protected:
                     void            handle_event(XEvent *ev);
@@ -233,6 +241,8 @@ namespace lsp
 
                     dnd_recv_t     *current_drag_task();
                     void            complete_async_tasks();
+
+                    bool            translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return);
 
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
 

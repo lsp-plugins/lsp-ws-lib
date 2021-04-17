@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 0.5.4 ===
+* Added BadWindow error handling for the XTranslateCoordinates call that could cause
+  the program to crash.
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.

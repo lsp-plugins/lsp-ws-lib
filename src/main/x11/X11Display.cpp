@@ -136,6 +136,10 @@ namespace lsp
 
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = None;
+
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+                sTranslateReq.bSuccess  = false;
             }
 
             X11Display::~X11Display()
@@ -245,7 +249,7 @@ namespace lsp
                 while (!atomic_cas(&hLock, 0, 1)) { /* Wait */ }
 
                 // Dispatch errors between Displays
-                for (X11Display *dp = pHandlers; dp != NULL; ++dp)
+                for (X11Display *dp = pHandlers; dp != NULL; dp = dp->pNextHandler)
                     if (dp->pDisplay == dpy)
                         dp->handle_error(ev);
 
@@ -284,7 +288,7 @@ namespace lsp
                 // Cancel async tasks
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task           = sAsync.get(i);
+                    x11_async_t *task           = sAsync.uget(i);
                     if (!task->cb_common.bComplete)
                     {
                         task->result                = STATUS_CANCELLED;
@@ -869,7 +873,7 @@ namespace lsp
                 for (size_t i=0; i<sAsync.size(); )
                 {
                     // Skip non-complete tasks
-                    x11_async_t *task = sAsync.get(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (!task->cb_common.bComplete)
                     {
                         ++i;
@@ -1802,10 +1806,12 @@ namespace lsp
 
                         // Translate coordinates if originating and target window differs
                         int x, y;
-                        ::XTranslateCoordinates(pDisplay,
+                        if (!translate_coordinates(
                             ev->xany.window, wnd->x11handle(),
                             ue.nLeft, ue.nTop,
-                            &x, &y, &child);
+                            &x, &y, &child))
+                            break;
+
                         se.nLeft    = x;
                         se.nTop     = y;
 
@@ -2020,7 +2026,11 @@ namespace lsp
                 while (true)
                 {
                     // Translate coordinates
-                    ::XTranslateCoordinates(pDisplay, root, parent, x, y, &cx, &cy, &child);
+                    if (!translate_coordinates(root, parent, x, y, &cx, &cy, &child))
+                    {
+                        child   = None;
+                        break;
+                    }
                     lsp_trace(" found child %lx pointer location: x=%d, y=%d -> cx=%d, cy=%d",
                             long(child), x, y, cx, cy
                     );
@@ -2544,9 +2554,8 @@ namespace lsp
                 }
 
                 Window child        = None;
-                ::XSync(pDisplay, False);
-                ::XTranslateCoordinates(pDisplay, hRootWnd, task->hTarget, x, y, &x, &y, &child);
-                ::XSync(pDisplay, False);
+                if (!translate_coordinates(hRootWnd, task->hTarget, x, y, &x, &y, &child))
+                    return STATUS_NOT_FOUND;
                 task->enState       = DND_RECV_POSITION; // Allow specific state changes
 
                 // Form the notification event
@@ -3304,7 +3313,7 @@ namespace lsp
 
             void X11Display::handle_error(XErrorEvent *ev)
             {
-#ifdef LSP_TRACE
+            #ifdef LSP_TRACE
                 const char *error = "Unknown";
 
                 switch (ev->error_code)
@@ -3329,9 +3338,10 @@ namespace lsp
                     default: break;
                 #undef DE
                 }
-                lsp_trace("error: code=%d (%s), serial=%ld, request=%d, minor=%d",
-                        int(ev->error_code), error, ev->serial, int(ev->request_code), int(ev->minor_code));
-#endif
+                lsp_trace("this=%p, error: code=%d (%s), serial=%ld, request=%d, minor=%d",
+                        this, int(ev->error_code), error, ev->serial, int(ev->request_code), int(ev->minor_code)
+                );
+                #endif
                 if (ev->error_code == BadWindow)
                 {
                     for (size_t i=0, n=sAsync.size(); i<n; ++i)
@@ -3354,6 +3364,11 @@ namespace lsp
                                 break;
                         }
                     }
+
+                    // Failed XTranslateCoordinates request?
+                    if ((sTranslateReq.hSrcW == ev->resourceid) ||
+                        (sTranslateReq.hDstW == ev->resourceid))
+                        sTranslateReq.bSuccess = false;
                 }
 
             }
@@ -3405,12 +3420,6 @@ namespace lsp
                 Window target = (task->hProxy != None) ? task->hProxy : task->hTarget;
                 lsp_trace("Sending XdndStatus (reject) from %lx to %lx", long(target), long(task->hSource));
                 
-//                XWindowAttributes xwa;
-//                Window child = None;
-//                int x = 0, y = 0;
-//                ::XGetWindowAttributes(pDisplay, task->hTarget, &xwa);
-//                ::XTranslateCoordinates(pDisplay, task->hTarget, hRootWnd, 0, 0, &x, &y, &child);
-
                 XEvent xev;
                 XClientMessageEvent *ev = &xev.xclient;
                 ev->type            = ClientMessage;
@@ -3522,8 +3531,8 @@ namespace lsp
                     Window child = None;
                     if ((r->nWidth < 0) || (r->nWidth >= 0x10000) || (r->nHeight < 0) || (r->nHeight > 0x10000))
                         return STATUS_INVALID_VALUE;
-                    ::XTranslateCoordinates(pDisplay, task->hTarget, hRootWnd, r->nLeft, r->nTop, &x, &y, &child);
-                    ::XSync(pDisplay, False);
+                    if (!translate_coordinates(task->hTarget, hRootWnd, r->nLeft, r->nTop, &x, &y, &child))
+                        return STATUS_INVALID_VALUE;
                     if ((x < 0) || (x >= 0x10000) || (y < 0) || (y >= 0x10000))
                         return STATUS_INVALID_VALUE;
                 }
@@ -3607,6 +3616,39 @@ namespace lsp
                 if (meta->wnd_type == r3d::WND_HANDLE_X11)
                     return true;
                 return IDisplay::r3d_backend_supported(meta);
+            }
+
+            bool X11Display::translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return)
+            {
+                // Create the request
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+                sTranslateReq.bSuccess  = true;
+
+                // Override error handler
+                ::XSync(pDisplay, False);
+                XErrorHandler old = ::XSetErrorHandler(x11_error_handler);
+
+                // Run the query
+                ::XTranslateCoordinates(pDisplay, src_w, dest_w, src_x, src_y, dest_x, dest_y, child_return);
+
+                // Reset to previous handler
+                ::XSync(pDisplay, False);
+                ::XSetErrorHandler(old);
+
+                // Reset state of request
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+
+            #ifdef LSP_TRACE
+                if (!sTranslateReq.bSuccess)
+                    lsp_trace("this=%p: failed to translate coorinates (%d, %d) for windows 0x%lx -> 0x%lx",
+                            this,
+                            src_x, src_y, long(src_w), long(dest_w)
+                    );
+            #endif
+
+                return sTranslateReq.bSuccess;
             }
         } /* namespace x11 */
     } /* namespace ws */
