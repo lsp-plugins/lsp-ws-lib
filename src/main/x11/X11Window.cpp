@@ -626,11 +626,13 @@ namespace lsp
                 {
                     case BS_DIALOG:         // Not resizable; no minimize/maximize menu
                         atoms[n_items++] = a.X11__NET_WM_STATE_MODAL;
+                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
                     case BS_NONE:           // Not resizable; no visible border line
                     case BS_POPUP:
                     case BS_COMBO:
                         atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
+                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu
