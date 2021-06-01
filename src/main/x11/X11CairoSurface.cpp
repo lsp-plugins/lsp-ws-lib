@@ -398,6 +398,8 @@ namespace lsp
 
             void X11CairoSurface::drawRoundRect(float left, float top, float width, float height, float radius, size_t mask)
             {
+                radius = lsp_max(0.0f, radius);
+
                 if (mask & SURFMASK_LT_CORNER)
                 {
                     cairo_move_to(pCR, left, top + radius);
@@ -446,6 +448,34 @@ namespace lsp
                 cairo_set_line_width(pCR, line_width);
                 cg->apply(pCR);
                 drawRoundRect(left, top, width, height, radius, mask);
+                cairo_stroke(pCR);
+                cairo_set_line_width(pCR, w);
+            }
+
+            void X11CairoSurface::wire_round_rect_inside(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            {
+                if (pCR == NULL)
+                    return;
+                setSourceRGBA(color);
+                double w = cairo_get_line_width(pCR);
+                float lw2 = line_width * 0.5f;
+                cairo_set_line_width(pCR, line_width);
+                drawRoundRect(left + lw2, top + lw2, width - line_width, height - line_width, radius, mask);
+                cairo_stroke(pCR);
+                cairo_set_line_width(pCR, w);
+            }
+
+            void X11CairoSurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            {
+                if (pCR == NULL)
+                    return;
+                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+
+                double w = cairo_get_line_width(pCR);
+                float lw2 = line_width * 0.5f;
+                cairo_set_line_width(pCR, line_width);
+                cg->apply(pCR);
+                drawRoundRect(left + lw2, top + lw2, width - line_width, height - line_width, radius, mask);
                 cairo_stroke(pCR);
                 cairo_set_line_width(pCR, w);
             }

@@ -323,6 +323,68 @@ namespace lsp
                  */
                 virtual void wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
 
+                /** Wire rectangle with rounded corners that fits inside the specified area
+                 *
+                 * @param color rectangle color
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners that fits inside the specified area
+                 *
+                 * @param color rectangle color
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
+
+                /** Wire rectangle with rounded corners that fits inside the specified area
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                /** Wire rectangle with rounded corners that fits inside the specified area
+                 *
+                 * @param g gradient to use
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param radius the corner radius
+                 * @param rect rectangle parameters
+                 * @param line_width width of line
+                 */
+                virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
+
                 /** Fill rectangle with rounded corners
                  *
                  * @param color rectangle color
