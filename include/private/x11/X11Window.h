@@ -57,6 +57,7 @@ namespace lsp
                     X11Display         *pX11Display;
                     ::Window            hWindow;
                     ::Window            hParent;
+                    ::Window            hTransientFor;
                     X11CairoSurface    *pSurface;
                     border_style_t      enBorderStyle;
                     motif_hints_t       sMotif;

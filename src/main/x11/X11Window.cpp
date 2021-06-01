@@ -60,6 +60,7 @@ namespace lsp
                     hWindow                 = None;
                     hParent                 = wnd;
                 }
+                hTransientFor           = None;
                 nScreen                 = screen;
                 pSurface                = NULL;
                 enBorderStyle           = BS_SIZEABLE;
@@ -626,7 +627,8 @@ namespace lsp
                 {
                     case BS_DIALOG:         // Not resizable; no minimize/maximize menu
                         atoms[n_items++] = a.X11__NET_WM_STATE_MODAL;
-                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
+                        if (hTransientFor != None)
+                            atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
                     case BS_NONE:           // Not resizable; no visible border line
                     case BS_POPUP:
@@ -847,7 +849,8 @@ namespace lsp
 
             status_t X11Window::hide()
             {
-                bVisible    = false;
+                bVisible        = false;
+                hTransientFor   = None;
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
 
@@ -905,6 +908,7 @@ namespace lsp
                     if (wnd->hWindow > 0)
                         transient_for = wnd->hWindow;
                 }
+                hTransientFor   = transient_for;
 
                 lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
                 ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
