@@ -26,6 +26,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <private/x11/X11CairoGradient.h>
 #include <private/x11/X11CairoSurface.h>
+#include <private/x11/X11Display.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-xlib.h>
 
@@ -35,10 +36,12 @@ namespace lsp
     {
         namespace x11
         {
-            X11CairoSurface::X11CairoSurface(Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height):
+            X11CairoSurface::X11CairoSurface(X11Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height):
                 ISurface(width, height, ST_XLIB)
             {
-                pSurface        = ::cairo_xlib_surface_create(dpy, drawable, visual, width, height);
+                pDisplay        = dpy;
+
+                pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
                 if (pSurface == NULL)
                     return;
                 pCR             = ::cairo_create(pSurface);
@@ -54,9 +57,11 @@ namespace lsp
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
             }
 
-            X11CairoSurface::X11CairoSurface(size_t width, size_t height):
+            X11CairoSurface::X11CairoSurface(X11Display *dpy, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
+                pDisplay        = dpy;
+
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 if (pSurface == NULL)
                     return;
@@ -76,7 +81,7 @@ namespace lsp
 
             ISurface *X11CairoSurface::create(size_t width, size_t height)
             {
-                X11CairoSurface *s = new X11CairoSurface(width, height);
+                X11CairoSurface *s = new X11CairoSurface(pDisplay, width, height);
                 if (s == NULL)
                     return NULL;
                 if (s->pCR != NULL)
@@ -90,7 +95,7 @@ namespace lsp
 
             ISurface *X11CairoSurface::create_copy()
             {
-                X11CairoSurface *s = new X11CairoSurface(nWidth, nHeight);
+                X11CairoSurface *s = new X11CairoSurface(pDisplay, nWidth, nHeight);
                 if (s == NULL)
                     return NULL;
                 if (s->pCR == NULL)

@@ -42,6 +42,7 @@ ifeq ($(PLATFORM),Linux)
   DEPENDENCIES             += \
     LIBSNDFILE \
     LIBCAIRO \
+    LIBFREETYPE \
     LIBX11
 
   TEST_DEPENDENCIES        += \
@@ -54,6 +55,7 @@ ifeq ($(PLATFORM),BSD)
   DEPENDENCIES             += \
     LIBSNDFILE \
     LIBCAIRO \
+    LIBFREETYPE \
     LIBX11
 
   TEST_DEPENDENCIES        += \
@@ -74,6 +76,7 @@ ALL_DEPENDENCIES = \
   $(TEST_DEPENDENCIES) \
   LIBSNDFILE \
   LIBCAIRO \
+  LIBFREETYPE \
   LIBICONV \
   LIBX11 \
   LIBGL \

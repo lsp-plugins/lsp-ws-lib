@@ -421,7 +421,10 @@ namespace lsp
                         // Create surface
                         Display *dpy    = pX11Display->x11display();
                         Visual *v       = DefaultVisual(dpy, screen());
-                        pSurface        = new X11CairoSurface(dpy, hWindow, v, sSize.nWidth, sSize.nHeight);
+                        pSurface        = new X11CairoSurface(
+                                            static_cast<X11Display *>(pDisplay),
+                                            hWindow, v, sSize.nWidth, sSize.nHeight
+                                          );
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)

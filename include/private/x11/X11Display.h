@@ -30,12 +30,27 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/pphash.h>
 
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
 
 #include <time.h>
 #include <X11/Xlib.h>
+
+// Freetype headers
+#include <ft2build.h>
+#include FT_SFNT_NAMES_H
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+#include FT_BBOX_H
+#include FT_TYPE1_TABLES_H
+
+// Cairo headers
+#ifdef USE_LIBCAIRO
+    #include <cairo/cairo.h>
+#endif /* USE_LIBCAIRO */
 
 namespace lsp
 {
@@ -44,6 +59,16 @@ namespace lsp
         namespace x11
         {
             class X11Window;
+
+            typedef struct font_t
+            {
+                char               *alias;      // Font alias
+                uint8_t            *data;       // Font data
+                FT_Face             ft_face;     // Font face
+            #ifdef USE_LIBCAIRO
+                cairo_font_face_t  *cr_faces[4]; // None, Bold, Italic, Bold + Italic
+            #endif /* USE_LIBCAIRO */
+            } font_t;
 
             class X11Display: public IDisplay
             {
@@ -177,6 +202,7 @@ namespace lsp
                     Cursor                      vCursors[__MP_COUNT];
                     size_t                      nIOBufSize;
                     uint8_t                    *pIOBuf;
+                    FT_Library                  hFtLibrary;
                     IDataSource                *pCbOwner[_CBUF_TOTAL];
 
                     lltl::darray<dtask_t>       sPending;
@@ -187,12 +213,14 @@ namespace lsp
                     lltl::darray<wnd_lock_t>    sLocks;
                     lltl::darray<x11_async_t>   sAsync;
                     lltl::parray<char>          vDndMimeTypes;
+                    lltl::pphash<char, font_t>  vCustomFonts;
                     xtranslate_t                sTranslateReq;
 
                 protected:
                     void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);
+                    static void     destroy_font_object(font_t *font);
 
                     status_t        do_main_iteration(timestamp_t ts);
                     void            do_destroy();
@@ -242,6 +270,8 @@ namespace lsp
                     dnd_recv_t     *current_drag_task();
                     void            complete_async_tasks();
 
+                    status_t        init_freetype_library();
+
                     bool            translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return);
 
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
@@ -278,6 +308,12 @@ namespace lsp
                     void                        handle_error(XErrorEvent *ev);
 
                     virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
+
+                    virtual status_t            add_font(const char *name, const char *path);
+                    virtual status_t            add_font(const char *name, const io::Path *path);
+                    virtual status_t            add_font(const char *name, const LSPString *path);
+                    virtual status_t            add_font(const char *name, const io::IInStream *is);
+                    virtual status_t            add_font_alias(const char *name, const char *alias);
 
                 public:
                     bool                        add_window(X11Window *wnd);

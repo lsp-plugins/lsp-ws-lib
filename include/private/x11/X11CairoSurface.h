@@ -40,13 +40,16 @@ namespace lsp
     {
         namespace x11
         {
+            class X11Display;
+
             class X11CairoSurface: public ISurface
             {
                 protected:
-                    cairo_surface_t    *pSurface;
-                    cairo_t            *pCR;
+                    cairo_surface_t        *pSurface;
+                    cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
-                    bool                bBegin;
+                    X11Display             *pDisplay;
+                    bool                    bBegin;
 
                 protected:
                     void destroy_context();
@@ -64,14 +67,14 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
-                    X11CairoSurface(Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height);
+                    explicit X11CairoSurface(X11Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height);
 
                     /** Create image surface
                      *
                      * @param width surface width
                      * @param height surface height
                      */
-                    X11CairoSurface(size_t width, size_t height);
+                    explicit X11CairoSurface(X11Display *dpy, size_t width, size_t height);
 
                     /** Destructor
                      *

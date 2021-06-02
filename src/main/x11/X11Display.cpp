@@ -130,6 +130,7 @@ namespace lsp
                 nWhiteColor     = 0;
                 nIOBufSize      = X11IOBUF_SIZE;
                 pIOBuf          = NULL;
+                hFtLibrary      = NULL;
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                     pCbOwner[i]     = NULL;
@@ -280,7 +281,7 @@ namespace lsp
 
             ISurface *X11Display::create_surface(size_t width, size_t height)
             {
-                return new X11CairoSurface(width, height);
+                return new X11CairoSurface(this, width, height);
             }
 
             void X11Display::do_destroy()
@@ -349,7 +350,6 @@ namespace lsp
                     }
                 }
 
-
                 // Close display
                 Display *dpy = pDisplay;
                 if (dpy != NULL)
@@ -376,12 +376,69 @@ namespace lsp
                         break;
                     }
                 }
+
+                // Deallocate previously allocated fonts
+                lltl::parray<font_t> fonts;
+                vCustomFonts.values(&fonts);
+                vCustomFonts.flush();
+
+                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                    destroy_font_object(fonts.uget(i));
+
+                // Remove FT library
+                if (hFtLibrary != NULL)
+                {
+                    FT_Done_FreeType(hFtLibrary);
+                    hFtLibrary      = NULL;
+                }
             }
 
             void X11Display::destroy()
             {
                 do_destroy();
                 IDisplay::destroy();
+            }
+
+            void X11Display::destroy_font_object(font_t *f)
+            {
+                if (f == NULL)
+                    return;
+
+            #ifdef USE_LIBCAIRO
+                // Destroy libcairo font faces
+                for (size_t i=0; i<4; ++i)
+                {
+                    if (f->cr_faces[i] != NULL)
+                    {
+                        cairo_font_face_destroy(f->cr_faces[i]);
+                        f->cr_faces[i]  = NULL;
+                    }
+                }
+            #endif /* USE_LIBCAIRO */
+
+                // Destroy font face if present
+                if (f->ft_face != NULL)
+                {
+                    FT_Done_Face(f->ft_face);
+                    f->ft_face  = NULL;
+                }
+
+                // Deallocate font data
+                if (f->data != NULL)
+                {
+                    free(f->data);
+                    f->data     = NULL;
+                }
+
+                // Deallocate alias if present
+                if (f->alias != NULL)
+                {
+                    free(f->alias);
+                    f->alias    = NULL;
+                }
+
+                // Deallocate font object
+                free(f);
             }
 
             status_t X11Display::main()
@@ -3649,6 +3706,67 @@ namespace lsp
             #endif
 
                 return sTranslateReq.bSuccess;
+            }
+
+            status_t X11Display::init_freetype_library()
+            {
+                if (hFtLibrary != NULL)
+                    return STATUS_OK;
+
+                // Initialize FreeType handle
+                FT_Error status = FT_Init_FreeType (& hFtLibrary);
+                if (status != 0)
+                {
+                    lsp_error("Error %d opening library.\n", int(status));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::add_font(const char *name, const char *path)
+            {
+                if ((name == NULL) || (path == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                LSPString tmp;
+                if (!tmp.set_utf8(path))
+                    return STATUS_NO_MEM;
+
+                return add_font(name, &tmp);
+            }
+
+            status_t X11Display::add_font(const char *name, const io::Path *path)
+            {
+                if ((name == NULL) || (path == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+                return add_font(name, path->as_utf8());
+            }
+
+            status_t X11Display::add_font(const char *name, const LSPString *path)
+            {
+                if ((name == NULL) || (path == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                status_t res = init_freetype_library();
+                if (res != STATUS_OK)
+                    return res;
+
+                return STATUS_NOT_IMPLEMENTED;
+            }
+
+            status_t X11Display::add_font(const char *name, const io::IInStream *is)
+            {
+                status_t res = init_freetype_library();
+                if (res != STATUS_OK)
+                    return res;
+
+                return STATUS_NOT_IMPLEMENTED;
+            }
+
+            status_t X11Display::add_font_alias(const char *name, const char *alias)
+            {
+                return STATUS_NOT_IMPLEMENTED;
             }
         } /* namespace x11 */
     } /* namespace ws */

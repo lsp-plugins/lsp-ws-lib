@@ -690,6 +690,31 @@ namespace lsp
         {
             return STATUS_NOT_IMPLEMENTED;
         }
+
+        status_t IDisplay::add_font(const char *name, const char *path)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::add_font(const char *name, const io::Path *path)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::add_font(const char *name, const LSPString *path)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::add_font(const char *name, const io::IInStream *is)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::add_font_alias(const char *name, const char *alias)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
     }
 
 } /* namespace lsp */

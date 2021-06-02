@@ -64,7 +64,7 @@ namespace lsp
                 surface_type_t  nType;
 
             protected:
-                ISurface(size_t width, size_t height, surface_type_t type);
+                explicit ISurface(size_t width, size_t height, surface_type_t type);
 
             public:
                 explicit ISurface();
