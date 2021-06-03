@@ -27,6 +27,7 @@
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
 #include <private/x11/decode.h>
 #include <private/x11/X11Display.h>
 
@@ -378,12 +379,7 @@ namespace lsp
                 }
 
                 // Deallocate previously allocated fonts
-                lltl::parray<font_t> fonts;
-                vCustomFonts.values(&fonts);
-                vCustomFonts.flush();
-
-                for (size_t i=0, n=fonts.size(); i<n; ++i)
-                    destroy_font_object(fonts.uget(i));
+                drop_custom_fonts();
 
                 // Remove FT library
                 if (hFtLibrary != NULL)
@@ -391,6 +387,16 @@ namespace lsp
                     FT_Done_FreeType(hFtLibrary);
                     hFtLibrary      = NULL;
                 }
+            }
+
+            void X11Display::drop_custom_fonts()
+            {
+                lltl::parray<font_t> fonts;
+                vCustomFonts.values(&fonts);
+                vCustomFonts.flush();
+
+                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                    destroy_font_object(fonts.uget(i));
             }
 
             void X11Display::destroy()
@@ -3743,31 +3749,173 @@ namespace lsp
                 return add_font(name, path->as_utf8());
             }
 
+            X11Display::font_t *X11Display::alloc_font_object()
+            {
+                font_t *f       = static_cast<font_t *>(malloc(sizeof(font_t)));
+                if (f == NULL)
+                    return NULL;
+
+                f->alias        = NULL;
+                f->data         = NULL;
+                f->ft_face      = NULL;
+
+            #ifdef USE_LIBCAIRO
+                for (size_t i=0; i<4; ++i)
+                    f->cr_faces[i]      = NULL;
+            #endif /* USE_LIBCAIRO */
+
+                return f;
+            }
+
             status_t X11Display::add_font(const char *name, const LSPString *path)
             {
                 if ((name == NULL) || (path == NULL))
                     return STATUS_BAD_ARGUMENTS;
 
+                if (vCustomFonts.exists(name))
+                    return STATUS_ALREADY_EXISTS;
+
                 status_t res = init_freetype_library();
                 if (res != STATUS_OK)
                     return res;
 
-                return STATUS_NOT_IMPLEMENTED;
+                font_t *f = alloc_font_object();
+                if (f == NULL)
+                    return STATUS_NO_MEM;
+
+                // Create new font face
+                FT_Error status = FT_New_Face(hFtLibrary, path->get_native(), 0, &f->ft_face);
+                if (status != 0)
+                {
+                    destroy_font_object(f);
+                    lsp_error("Error %d opening %s.\n", int(status), path->get_native());
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                // Register font data
+                if (!vCustomFonts.create(name, f))
+                {
+                    destroy_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                lsp_trace("Loaded font '%s' from file '%s'", name, path->get_native());
+
+                return STATUS_OK;
             }
 
-            status_t X11Display::add_font(const char *name, const io::IInStream *is)
+            status_t X11Display::add_font(const char *name, io::IInStream *is)
             {
+                if ((name == NULL) || (is == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                if (vCustomFonts.exists(name))
+                    return STATUS_ALREADY_EXISTS;
+
                 status_t res = init_freetype_library();
                 if (res != STATUS_OK)
                     return res;
 
-                return STATUS_NOT_IMPLEMENTED;
+                // Read the contents of the font
+                io::OutMemoryStream os;
+                wssize_t bytes = is->sink(&os);
+                if (bytes < 0)
+                    return -bytes;
+
+                font_t *f = alloc_font_object();
+                if (f == NULL)
+                    return STATUS_NO_MEM;
+
+                // Create new font face
+                f->data = os.release();
+                FT_Error status = FT_New_Memory_Face(hFtLibrary, static_cast<const FT_Byte *>(f->data), bytes, 0, &f->ft_face);
+                if (status != 0)
+                {
+                    destroy_font_object(f);
+                    lsp_error("Error %d creating font face from memory.\n", int(status));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                // Register font data
+                if (!vCustomFonts.create(name, f))
+                {
+                    destroy_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                lsp_trace("Loaded font '%s' from input stream contents", name);
+
+                return STATUS_OK;
             }
 
             status_t X11Display::add_font_alias(const char *name, const char *alias)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if ((name == NULL) || (alias == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                if (vCustomFonts.exists(name))
+                    return STATUS_ALREADY_EXISTS;
+
+                font_t *f = alloc_font_object();
+                if (f == NULL)
+                    return STATUS_NO_MEM;
+                if ((f->alias = strdup(alias)) == NULL)
+                {
+                    destroy_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                // Register font data
+                if (!vCustomFonts.create(name, f))
+                {
+                    destroy_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                return STATUS_OK;
             }
+
+            status_t X11Display::remove_font(const char *name)
+            {
+                if (name == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                font_t *f = NULL;
+                if (!vCustomFonts.remove(name, &f))
+                    return STATUS_NOT_FOUND;
+
+                destroy_font_object(f);
+                return STATUS_OK;
+            }
+
+            void X11Display::remove_all_fonts()
+            {
+                // Deallocate previously allocated fonts
+                drop_custom_fonts();
+            }
+
+            X11Display::font_t *X11Display::get_font(const char *name)
+            {
+                lltl::pphash<char, font_t> path;
+
+                while (true)
+                {
+                    // Fetch the font record
+                    font_t *res = vCustomFonts.get(name);
+                    if (res == NULL)
+                        return NULL;
+                    else if (res->ft_face != NULL)
+                        return res;
+                    else if (res->alias == NULL)
+                        return NULL;
+
+                    // Font alias, need to follow it
+                    if (!path.create(name, res))
+                        return NULL;
+                    name        = res->alias;
+                }
+            }
+
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */

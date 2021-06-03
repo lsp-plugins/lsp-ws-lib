@@ -3,9 +3,10 @@
 *******************************************************************************
 
 === 0.5.4 ===
-* Added BadWindow error handling for the XTranslateCoordinates call that could cause
+- Added BadWindow error handling for the XTranslateCoordinates call that could cause
   the program to crash.
-* Added ISurface::wire_round_rect_inside() methods.
+- Added ISurface::wire_round_rect_inside() methods.
+- Added support of loading custom fonts using freetype library.
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.

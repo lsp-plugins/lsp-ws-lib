@@ -54,9 +54,10 @@ namespace lsp
                 protected:
                     void destroy_context();
 
-                    inline void setSourceRGB(const Color &col);
-                    inline void setSourceRGBA(const Color &col);
-                    void drawRoundRect(float left, float top, float width, float height, float radius, size_t mask);
+                    inline void         setSourceRGB(const Color &col);
+                    inline void         setSourceRGBA(const Color &col);
+                    void                drawRoundRect(float left, float top, float width, float height, float radius, size_t mask);
+                    void                set_current_font(const Font &f);
 
                 public:
                     /** Create XLib surface

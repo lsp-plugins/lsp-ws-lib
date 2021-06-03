@@ -60,16 +60,6 @@ namespace lsp
         {
             class X11Window;
 
-            typedef struct font_t
-            {
-                char               *alias;      // Font alias
-                uint8_t            *data;       // Font data
-                FT_Face             ft_face;     // Font face
-            #ifdef USE_LIBCAIRO
-                cairo_font_face_t  *cr_faces[4]; // None, Bold, Italic, Bold + Italic
-            #endif /* USE_LIBCAIRO */
-            } font_t;
-
             class X11Display: public IDisplay
             {
                 friend class X11Window;
@@ -183,6 +173,17 @@ namespace lsp
                         size_t              mm_height;      // Height of display in mm
                     } x11_screen_t;
 
+                public:
+                    typedef struct font_t
+                    {
+                        char               *alias;          // Font alias
+                        void               *data;           // Font data
+                        FT_Face             ft_face;        // Font face
+                    #ifdef USE_LIBCAIRO
+                        cairo_font_face_t  *cr_faces[4]; // None, Bold, Italic, Bold + Italic
+                    #endif /* USE_LIBCAIRO */
+                    } font_t;
+
                 private:
                     static volatile atomic_t    hLock;
                     static X11Display          *pHandlers;
@@ -221,9 +222,11 @@ namespace lsp
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);
                     static void     destroy_font_object(font_t *font);
+                    static font_t  *alloc_font_object();
 
                     status_t        do_main_iteration(timestamp_t ts);
                     void            do_destroy();
+                    void            drop_custom_fonts();
                     X11Window      *get_locked(X11Window *wnd);
                     X11Window      *get_redirect(X11Window *wnd);
                     static void     compress_long_data(void *data, size_t nitems);
@@ -312,8 +315,10 @@ namespace lsp
                     virtual status_t            add_font(const char *name, const char *path);
                     virtual status_t            add_font(const char *name, const io::Path *path);
                     virtual status_t            add_font(const char *name, const LSPString *path);
-                    virtual status_t            add_font(const char *name, const io::IInStream *is);
+                    virtual status_t            add_font(const char *name, io::IInStream *is);
                     virtual status_t            add_font_alias(const char *name, const char *alias);
+                    virtual status_t            remove_font(const char *name);
+                    virtual void                remove_all_fonts();
 
                 public:
                     bool                        add_window(X11Window *wnd);
@@ -331,6 +336,8 @@ namespace lsp
 
                     status_t                    lock_events(X11Window *wnd, X11Window *lock);
                     status_t                    unlock_events(X11Window *wnd);
+
+                    font_t                     *get_font(const char *name);
 
                     virtual void                sync();
                     void                        flush();

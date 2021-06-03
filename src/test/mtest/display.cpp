@@ -61,6 +61,21 @@ MTEST_BEGIN("ws", display)
                         if (s != NULL)
                             s->clear(&c);
 
+                        ws::Font f;
+                        ws::font_parameters_t fp;
+                        ws::text_parameters_t tp;
+                        f.set_name("example");
+                        f.set_size(64);
+                        c.set_rgb24(0xffff00);
+
+                        s->get_font_parameters(f, &fp);
+                        s->get_text_parameters(f, &tp, "A");
+
+                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width))  >> 1;
+                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
+
+                        s->out_text(f, &c, x + tp.XBearing, y + fp.Ascent, "A");
+
                         return STATUS_OK;
                     }
 
@@ -93,6 +108,10 @@ MTEST_BEGIN("ws", display)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
+
+        io::Path font;
+        MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
+        MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd->init() == STATUS_OK);

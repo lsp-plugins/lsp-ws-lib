@@ -346,7 +346,7 @@ namespace lsp
                  * @param path path to the file that contains the font data (UTF-8)
                  * @return status of operation
                  */
-                virtual status_t add_font(const char *name, const io::IInStream *is);
+                virtual status_t add_font(const char *name, io::IInStream *is);
 
                 /**
                  * Add an alias to the font name
@@ -355,6 +355,18 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t add_font_alias(const char *name, const char *alias);
+
+                /**
+                 * Remove font or font alias by identifier
+                 * @param name name font name or font alias
+                 * @return status of operation
+                 */
+                virtual status_t remove_font(const char *name);
+
+                /**
+                 * Remove all previously loaded custom fonts and aliases
+                 */
+                virtual void remove_all_fonts();
         };
 
     } /* namespace ws */

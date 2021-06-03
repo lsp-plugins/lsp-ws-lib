@@ -28,6 +28,7 @@
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11Display.h>
 #include <cairo/cairo.h>
+#include <cairo/cairo-ft.h>
 #include <cairo/cairo-xlib.h>
 
 namespace lsp
@@ -311,6 +312,47 @@ namespace lsp
                 ::cairo_surface_flush(pSurface);
             }
 
+            void X11CairoSurface::set_current_font(const Font &f)
+            {
+                X11Display::font_t *font = pDisplay->get_font(f.get_name());
+                if (font != NULL)
+                {
+                    size_t index = (f.is_bold())    ? 0x1 : 0;
+                    index       |= (f.is_italic())  ? 0x2 : 0;
+
+                    // Check if font face is already present
+                    cairo_font_face_t * ct = font->cr_faces[index];
+                    if (ct == NULL)
+                    {
+                        ct = cairo_ft_font_face_create_for_ft_face (font->ft_face, 0);
+                        if (ct != NULL)
+                        {
+                            // Need to synthesize new font
+                            size_t flags    = (f.is_bold()) ? CAIRO_FT_SYNTHESIZE_BOLD : 0;
+                            if (f.is_italic())
+                                flags          |= CAIRO_FT_SYNTHESIZE_OBLIQUE;
+                            cairo_ft_font_face_set_synthesize(ct, flags);
+                            font->cr_faces[index]   = ct;
+                        }
+                    }
+
+                    // Select custom font face
+                    if (ct != NULL)
+                    {
+                        cairo_set_font_face(pCR, ct);
+                        cairo_set_font_size(pCR, f.get_size());
+                        return;
+                    }
+                }
+
+                // Try to select fall-back font face
+                cairo_select_font_face(pCR, f.get_name(),
+                    (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
+                    (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
+                );
+                cairo_set_font_size(pCR, f.get_size());
+            }
+
             void X11CairoSurface::clear_rgb(uint32_t rgb)
             {
                 clear_rgba(rgb & 0xffffff);
@@ -584,11 +626,7 @@ namespace lsp
                 cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
-                cairo_select_font_face(pCR, f.get_name(),
-                    (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
-                    (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
-                );
-                cairo_set_font_size(pCR, f.get_size());
+                set_current_font(f);
                 cairo_set_font_options(pCR, fo);
 
                 // Get font parameters
@@ -621,11 +659,7 @@ namespace lsp
                 cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
-                cairo_select_font_face(pCR, f.get_name(),
-                    (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
-                    (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
-                );
-                cairo_set_font_size(pCR, f.get_size());
+                set_current_font(f);
                 cairo_set_font_options(pCR, fo);
 
                 // Get text parameters
@@ -666,11 +700,7 @@ namespace lsp
                 cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
                 // Configure font options
-                cairo_select_font_face(pCR, f.get_name(),
-                    (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
-                    (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
-                );
-                cairo_set_font_size(pCR, f.get_size());
+                set_current_font(f);
                 cairo_set_font_options(pCR, fo);
 
                 // Draw
@@ -716,11 +746,7 @@ namespace lsp
                 cairo_font_options_t *fo = cairo_font_options_copy(pFO);
                 cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
 
-                cairo_select_font_face(pCR, f.get_name(),
-                    (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
-                    (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
-                );
-                cairo_set_font_size(pCR, f.get_size());
+                set_current_font(f);
                 cairo_set_font_options(pCR, fo);
                 cairo_text_extents(pCR, text, &extents);
 
