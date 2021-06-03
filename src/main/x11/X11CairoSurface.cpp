@@ -623,20 +623,28 @@ namespace lsp
                 // Set current font
                 set_current_font(f);
 
-                // Apply antialiasing of font
-                bool aa = set_antialiasing(f.is_antialiasing());
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
-                cairo_set_font_options(pCR, fo);
+                // Apply antialiasing to the font
+                bool aa = false;
+                cairo_font_options_t *fo = NULL;
+                if (f.is_override_antialiasing())
+                {
+                    aa = set_antialiasing(f.is_antialiasing());
+                    fo = cairo_font_options_copy(pFO);
+                    cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+                    cairo_set_font_options(pCR, fo);
+                }
 
                 // Get font parameters
                 cairo_font_extents_t fe;
                 cairo_font_extents(pCR, &fe);
 
                 // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-                set_antialiasing(aa);
+                if (f.is_override_antialiasing())
+                {
+                    cairo_set_font_options(pCR, pFO);
+                    cairo_font_options_destroy(fo);
+                    set_antialiasing(aa);
+                }
 
                 // Return result
                 fp->Ascent          = fe.ascent;
@@ -656,20 +664,28 @@ namespace lsp
                 // Set current font
                 set_current_font(f);
 
-                // Set antialiasing
-                bool aa = set_antialiasing(f.is_antialiasing());
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
-                cairo_set_font_options(pCR, fo);
+                // Apply antialiasing to the font
+                bool aa = false;
+                cairo_font_options_t *fo = NULL;
+                if (f.is_override_antialiasing())
+                {
+                    aa = set_antialiasing(f.is_antialiasing());
+                    fo = cairo_font_options_copy(pFO);
+                    cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+                    cairo_set_font_options(pCR, fo);
+                }
 
                 // Get text parameters
                 cairo_text_extents_t te;
                 cairo_text_extents(pCR, text, &te);
 
                 // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-                set_antialiasing(aa);
+                if (f.is_override_antialiasing())
+                {
+                    cairo_set_font_options(pCR, pFO);
+                    cairo_font_options_destroy(fo);
+                    set_antialiasing(aa);
+                }
 
                 // Return result
                 tp->XBearing        = te.x_bearing;
@@ -697,11 +713,16 @@ namespace lsp
                 // Set current font
                 set_current_font(f);
 
-                // Set antialiasing
-                bool aa = set_antialiasing(f.is_antialiasing());
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
-                cairo_set_font_options(pCR, fo);
+                // Apply antialiasing to the font
+                bool aa = false;
+                cairo_font_options_t *fo = NULL;
+                if (f.is_override_antialiasing())
+                {
+                    aa = set_antialiasing(f.is_antialiasing());
+                    fo = cairo_font_options_copy(pFO);
+                    cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+                    cairo_set_font_options(pCR, fo);
+                }
 
                 // Draw
                 cairo_move_to(pCR, x, y);
@@ -722,9 +743,12 @@ namespace lsp
                 }
 
                 // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-                set_antialiasing(aa);
+                if (f.is_override_antialiasing())
+                {
+                    cairo_set_font_options(pCR, pFO);
+                    cairo_font_options_destroy(fo);
+                    set_antialiasing(aa);
+                }
             }
 
             void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
@@ -742,11 +766,16 @@ namespace lsp
                 // Set current font
                 set_current_font(f);
 
-                // Draw text border
-                bool aa = set_antialiasing(f.is_antialiasing());
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
-                cairo_set_font_options(pCR, fo);
+                // Apply antialiasing to the font
+                bool aa = false;
+                cairo_font_options_t *fo = NULL;
+                if (f.is_override_antialiasing())
+                {
+                    aa = set_antialiasing(f.is_antialiasing());
+                    fo = cairo_font_options_copy(pFO);
+                    cairo_font_options_set_antialias(fo, (f.is_antialiasing()) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
+                    cairo_set_font_options(pCR, fo);
+                }
 
                 // Output text
                 cairo_text_extents_t extents;
@@ -760,10 +789,13 @@ namespace lsp
                 cairo_move_to(pCR, fx, fy);
                 cairo_show_text(pCR, text);
 
-                // Restore font options
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-                set_antialiasing(aa);
+                // Reset font options and antialiasing
+                if (f.is_override_antialiasing())
+                {
+                    cairo_set_font_options(pCR, pFO);
+                    cairo_font_options_destroy(fo);
+                    set_antialiasing(aa);
+                }
             }
 
             void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)

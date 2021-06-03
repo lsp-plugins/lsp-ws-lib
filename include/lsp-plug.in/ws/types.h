@@ -250,13 +250,14 @@ namespace lsp
 
         enum font_flags_t
         {
-            FF_BOLD         = 1 << 0,
-            FF_ITALIC       = 1 << 1,
-            FF_UNDERLINE    = 1 << 2,
-            FF_ANTIALIASING = 1 << 3,
+            FF_BOLD                     = 1 << 0,   // Bold flag
+            FF_ITALIC                   = 1 << 1,   // Italic flag
+            FF_UNDERLINE                = 1 << 2,   // Underline flag
+            FF_ANTIALIASING             = 1 << 3,   // Enable/disable antialiasing, works only if FF_OVERRIDE_ANTIALIASING is set
+            FF_OVERRIDE_ANTIALIASING    = 1 << 4,   // Override system antialiasing settings
 
             FF_NONE         = 0,
-            FF_ALL          = FF_BOLD | FF_ITALIC | FF_UNDERLINE | FF_ANTIALIASING
+            FF_ALL          = FF_BOLD | FF_ITALIC | FF_UNDERLINE | FF_ANTIALIASING | FF_OVERRIDE_ANTIALIASING
         };
 
         typedef uint64_t    ui_timestamp_t;

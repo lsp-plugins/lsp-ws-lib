@@ -8,6 +8,8 @@
 - Added ISurface::wire_round_rect_inside() methods.
 - Added support of loading custom fonts using freetype library.
 - Fixed antialiasing problem which allows to force enable of font antialiasing.
+- Added override_antialiasing option to the ws::Font class which forces the antialiasing
+  settings to the font instead of default system settings.
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.
