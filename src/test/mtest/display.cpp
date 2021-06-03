@@ -66,6 +66,7 @@ MTEST_BEGIN("ws", display)
                         ws::text_parameters_t tp;
                         f.set_name("example");
                         f.set_size(64);
+                        f.set_antialiasing(true);
                         c.set_rgb24(0xffff00);
 
                         s->get_font_parameters(f, &fp);

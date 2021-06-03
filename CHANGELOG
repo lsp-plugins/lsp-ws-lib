@@ -7,6 +7,7 @@
   the program to crash.
 - Added ISurface::wire_round_rect_inside() methods.
 - Added support of loading custom fonts using freetype library.
+- Fixed antialiasing problem which allows to force enable of font antialiasing.
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.
