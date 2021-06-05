@@ -55,6 +55,7 @@ namespace lsp
         {
             private:
                 ISurface & operator = (const ISurface &);
+                ISurface(const ISurface &);
 
             protected:
                 size_t          nWidth;

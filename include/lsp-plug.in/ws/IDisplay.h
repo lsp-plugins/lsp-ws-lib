@@ -58,6 +58,10 @@ namespace lsp
          */
         class IDisplay
         {
+            private:
+                IDisplay & operator = (const IDisplay &);
+                IDisplay(const IDisplay &);
+
             protected:
                 typedef struct dtask_t
                 {

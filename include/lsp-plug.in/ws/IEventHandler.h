@@ -37,6 +37,7 @@ namespace lsp
         {
             private:
                 IEventHandler & operator = (const IEventHandler &);
+                IEventHandler(const IEventHandler &);
 
             public:
                 explicit IEventHandler();

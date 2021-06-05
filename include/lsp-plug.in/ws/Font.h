@@ -51,6 +51,7 @@ namespace lsp
                 explicit Font(const char *name, float size, size_t flags, ws::font_antialias_t antialias);
                 explicit Font(float size);
                 explicit Font(const Font *s);
+                explicit Font(const Font &s);
 
                 ~Font();
 
@@ -79,6 +80,7 @@ namespace lsp
 
                 void                    set_name(const char *name);
                 void                    set(const Font *s);
+                void                    set(const Font &s);
                 void                    set(const char *name, float size);
                 void                    set(const char *name, float size, size_t flags, ws::font_antialias_t antialias);
 
