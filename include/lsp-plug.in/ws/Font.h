@@ -48,7 +48,7 @@ namespace lsp
                 explicit Font();
                 explicit Font(const char *name);
                 explicit Font(const char *name, float size);
-                explicit Font(const char *name, float size, size_t flags);
+                explicit Font(const char *name, float size, size_t flags, ws::font_antialias_t antialias);
                 explicit Font(float size);
                 explicit Font(const Font *s);
 
@@ -67,7 +67,7 @@ namespace lsp
                 inline float            size() const                        { return fSize;                                 }
                 inline const char      *get_name() const                    { return sName;                                 }
                 inline const char      *name() const                        { return sName;                                 }
-                inline size_t           flags() const                       { return nFlags;                                }
+                inline size_t           flags() const                       { return nFlags & FF_ALL;                       }
 
                 inline void             set_bold(bool b)                    { if (b) nFlags |= FF_BOLD; else nFlags &= ~FF_BOLD;                            }
                 inline void             set_italic(bool i)                  { if (i) nFlags |= FF_ITALIC; else nFlags &= ~FF_ITALIC;                        }
@@ -79,7 +79,8 @@ namespace lsp
 
                 void                    set_name(const char *name);
                 void                    set(const Font *s);
-                void                    set(const char *name, float size, size_t flags = 0);
+                void                    set(const char *name, float size);
+                void                    set(const char *name, float size, size_t flags, ws::font_antialias_t antialias);
 
                 bool                    get_parameters(ISurface *s, font_parameters_t *fp);
                 bool                    get_text_parameters(ISurface *s, text_parameters_t *tp, const char *text);
