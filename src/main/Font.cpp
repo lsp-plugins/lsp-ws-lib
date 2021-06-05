@@ -92,7 +92,7 @@ namespace lsp
                 ::free(sName);
             sName       = (name != NULL) ? strdup(name) : NULL;
             fSize       = size;
-            nFlags      = flags & FF_ALL;
+            nFlags      = (flags & FF_ALL) | (nFlags & (~FF_ALL));
         }
 
         void Font::set_name(const char *name)
