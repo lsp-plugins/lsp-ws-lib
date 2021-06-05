@@ -66,16 +66,20 @@ MTEST_BEGIN("ws", display)
                         ws::text_parameters_t tp;
                         f.set_name("example");
                         f.set_size(64);
-                        f.set_antialiasing(true);
-                        f.set_override_antialiasing(true);
-                        c.set_rgb24(0xffff00);
 
                         s->get_font_parameters(f, &fp);
                         s->get_text_parameters(f, &tp, "A");
 
-                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width))  >> 1;
+                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
                         ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
 
+                        c.set_rgb24(0xffff00);
+                        f.set_antialiasing(ws::FA_ENABLED);
+                        s->out_text(f, &c, x + tp.XBearing, y + fp.Ascent, "A");
+                        x += tp.Width;
+
+                        c.set_rgb24(0x00ffff);
+                        f.set_antialiasing(ws::FA_DISABLED);
                         s->out_text(f, &c, x + tp.XBearing, y + fp.Ascent, "A");
 
                         return STATUS_OK;

@@ -248,16 +248,39 @@ namespace lsp
             WA_SIZABLE      = WA_ALL
         };
 
+        /**
+         * Font flags as a bit mask
+         */
         enum font_flags_t
         {
-            FF_BOLD                     = 1 << 0,   // Bold flag
-            FF_ITALIC                   = 1 << 1,   // Italic flag
-            FF_UNDERLINE                = 1 << 2,   // Underline flag
-            FF_ANTIALIASING             = 1 << 3,   // Enable/disable antialiasing, works only if FF_OVERRIDE_ANTIALIASING is set
-            FF_OVERRIDE_ANTIALIASING    = 1 << 4,   // Override system antialiasing settings
+            /** Enable the bold font */
+            FF_BOLD                     = 1 << 0,
+            /** Enable the italic font */
+            FF_ITALIC                   = 1 << 1,
+            /** Enable the underline font */
+            FF_UNDERLINE                = 1 << 2,
 
-            FF_NONE         = 0,
-            FF_ALL          = FF_BOLD | FF_ITALIC | FF_UNDERLINE | FF_ANTIALIASING | FF_OVERRIDE_ANTIALIASING
+            /** Overall number of bits used by flags */
+            FF_COUNT                    = 3,
+            /** No flags are set */
+            FF_NONE                     = 0,
+            /** All flags are set */
+            FF_ALL                      = FF_BOLD | FF_ITALIC | FF_UNDERLINE
+        };
+
+        /**
+         * Font antialiasing settings
+         */
+        enum font_antialias_t
+        {
+            /** Use system settings for antialiasing */
+            FA_DEFAULT,
+
+            /** Force antialiasing to be disabled */
+            FA_DISABLED,
+
+            /** Force the antialiasing to be enabled */
+            FA_ENABLED
         };
 
         typedef uint64_t    ui_timestamp_t;

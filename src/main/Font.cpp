@@ -31,35 +31,35 @@ namespace lsp
         {
             sName       = ::strdup("Sans");
             fSize       = 10.0f;
-            nFlags      = 0;
+            nFlags      = FA_DEFAULT << FF_COUNT;
         }
 
         Font::Font(const char *name)
         {
             sName       = ::strdup(name);
             fSize       = 10.0f;
-            nFlags      = 0;
+            nFlags      = FA_DEFAULT << FF_COUNT;
         }
 
         Font::Font(const char *name, float size)
         {
             sName       = ::strdup(name);
             fSize       = size;
-            nFlags      = 0;
+            nFlags      = FA_DEFAULT << FF_COUNT;
         }
 
         Font::Font(const char *name, float size, size_t flags)
         {
             sName       = ::strdup(name);
             fSize       = size;
-            nFlags      = flags & FF_ALL;
+            nFlags      = (flags & FF_ALL) | (FA_DEFAULT << FF_COUNT);
         }
 
         Font::Font(float size)
         {
             sName       = ::strdup("Sans");
             fSize       = size;
-            nFlags      = 0;
+            nFlags      = FA_DEFAULT << FF_COUNT;
         }
 
         Font::Font(const Font *s)
@@ -73,7 +73,7 @@ namespace lsp
             if (sName != NULL)
             {
                 ::free(sName);
-                sName = NULL;
+                sName       = NULL;
             }
         }
 
