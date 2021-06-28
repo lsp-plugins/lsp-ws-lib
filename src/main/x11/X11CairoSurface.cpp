@@ -454,32 +454,34 @@ namespace lsp
                 cairo_set_line_width(pCR, w);
             }
 
-            void X11CairoSurface::drawRoundRect(float left, float top, float width, float height, float radius, size_t mask)
+            void X11CairoSurface::drawRoundRect(float xmin, float ymin, float width, float height, float radius, size_t mask)
             {
                 radius = lsp_max(0.0f, radius);
+                const float xmax = xmin + width;
+                const float ymax = ymin + height;
 
                 if (mask & SURFMASK_LT_CORNER)
                 {
-                    cairo_move_to(pCR, left, top + radius);
-                    cairo_arc(pCR, left + radius, top + radius, radius, M_PI, 1.5f*M_PI);
+                    cairo_move_to(pCR, xmin, ymin + radius);
+                    cairo_arc(pCR, xmin + radius, ymin + radius, radius, M_PI, 1.5f*M_PI);
                 }
                 else
-                    cairo_move_to(pCR, left, top);
+                    cairo_move_to(pCR, xmin, ymin);
 
                 if (mask & SURFMASK_RT_CORNER)
-                    cairo_arc(pCR, left + width - radius, top + radius, radius, 1.5f * M_PI, 2.0f * M_PI);
+                    cairo_arc(pCR, xmax - radius, ymin + radius, radius, 1.5f * M_PI, 2.0f * M_PI);
                 else
-                    cairo_line_to(pCR, left + width, top);
+                    cairo_line_to(pCR, xmax, ymin);
 
                 if (mask & SURFMASK_RB_CORNER)
-                    cairo_arc(pCR, left + width - radius, top + height - radius, radius, 0.0f, 0.5f * M_PI);
+                    cairo_arc(pCR, xmax - radius, ymax - radius, radius, 0.0f, 0.5f * M_PI);
                 else
-                    cairo_line_to(pCR, left + width, top + height);
+                    cairo_line_to(pCR, xmax, ymax);
 
                 if (mask & SURFMASK_LB_CORNER)
-                    cairo_arc(pCR, left + radius, top + height - radius, radius, 0.5f * M_PI, M_PI);
+                    cairo_arc(pCR, xmin + radius, ymax - radius, radius, 0.5f * M_PI, M_PI);
                 else
-                    cairo_line_to(pCR, left, top + height);
+                    cairo_line_to(pCR, xmin, ymax);
 
                 cairo_close_path(pCR);
             }
