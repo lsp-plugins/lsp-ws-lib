@@ -193,7 +193,7 @@ namespace lsp
                         FT_Face             ft_face;        // Font face
 
                     #ifdef USE_LIBCAIRO
-                        cairo_font_face_t  *cr_face;        // Font face for cairo
+                        cairo_font_face_t  *cr_face[4];     // Font faces for cairo
                     #endif /* USE_LIBCAIRO */
                     } font_t;
 

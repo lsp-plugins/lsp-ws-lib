@@ -48,16 +48,14 @@ namespace lsp
                     cairo_surface_t        *pSurface;
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
-                    cairo_font_face_t      *pFF;
                     X11Display             *pDisplay;
-                    bool                    bBegin;
 
                 protected:
                     typedef struct font_context_t
                     {
                         X11Display::font_t     *font;       // Custom font (if present)
                         cairo_font_face_t      *face;       // Selected font face
-                        cairo_font_options_t   *opt;        // Font options
+                        cairo_antialias_t       aa;         // Antialias settings
                     } font_context_t;
 
                 protected:

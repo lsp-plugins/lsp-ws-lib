@@ -51,10 +51,6 @@ namespace lsp
     {
         namespace x11
         {
-        #ifdef USE_LIBCAIRO
-            static const cairo_user_data_key_t cairo_user_data_key = { 0 };
-        #endif /* USE_LIBCAIRO */
-
             static int cursor_shapes[] =
             {
                 -1,                         // MP_NONE
@@ -460,15 +456,16 @@ namespace lsp
 
             // Fist call nested libraries to release the resource
             #ifdef USE_LIBCAIRO
-                if (f->cr_face != NULL)
-                {
-                    lsp_trace(
-                        "FT_MANAGE call cairo_font_face_destroy references=%d",
-                        int(cairo_font_face_get_reference_count(f->cr_face))
-                    );
-                    cairo_font_face_destroy(f->cr_face);
-                    f->cr_face      = NULL;
-                }
+                for (size_t i=0; i<4; ++i)
+                    if (f->cr_face[i] != NULL)
+                    {
+                        lsp_trace(
+                            "FT_MANAGE call cairo_font_face_destroy[%d] references=%d",
+                            int(i), int(cairo_font_face_get_reference_count(f->cr_face[i]))
+                        );
+                        cairo_font_face_destroy(f->cr_face[i]);
+                        f->cr_face[i]   = NULL;
+                    }
             #endif /* USE_LIBCAIRO */
 
                 // Destroy font object
@@ -3797,7 +3794,8 @@ namespace lsp
                 f->refs         = 1;
 
             #ifdef USE_LIBCAIRO
-                f->cr_face      = NULL;
+                for (size_t i=0; i<4; ++i)
+                    f->cr_face[i]   = NULL;
             #endif /* USE_LIBCAIRO */
 
                 return f;
@@ -3851,27 +3849,6 @@ namespace lsp
                     lsp_error("FT_MANAGE Error creating freetype font face for font '%s', error=%d", f->name, int(ft_status));
                     return STATUS_UNKNOWN_ERR;
                 }
-
-                #ifdef USE_LIBCAIRO
-                f->cr_face = cairo_ft_font_face_create_for_ft_face (f->ft_face, 0);
-                if (f->cr_face)
-                {
-                    cairo_status_t cr_status = cairo_font_face_set_user_data (
-                            f->cr_face, &cairo_user_data_key,
-                            f, (cairo_destroy_func_t) destroy_font_object
-                        );
-
-                    if (cr_status)
-                    {
-                        lsp_error("FT_MANAGE Error creating cairo font face for font '%s', error=%d", f->name, int(cr_status));
-                        unload_font_object(f);
-                        return STATUS_UNKNOWN_ERR;
-                    }
-
-                    // Increment number of references (used by cairo)
-                    ++f->refs;
-                }
-                #endif /* USE_LIBCAIRO */
 
                 // Register font data
                 if (!vCustomFonts.create(name, f))
