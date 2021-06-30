@@ -39,13 +39,15 @@
 #include <X11/Xlib.h>
 
 // Freetype headers
-#include <ft2build.h>
-#include FT_SFNT_NAMES_H
-#include FT_FREETYPE_H
-#include FT_GLYPH_H
-#include FT_OUTLINE_H
-#include FT_BBOX_H
-#include FT_TYPE1_TABLES_H
+#ifdef USE_LIBFREETYPE
+    #include <ft2build.h>
+    #include FT_SFNT_NAMES_H
+    #include FT_FREETYPE_H
+    #include FT_GLYPH_H
+    #include FT_OUTLINE_H
+    #include FT_BBOX_H
+    #include FT_TYPE1_TABLES_H
+#endif /* USE_LIBFREETYPE */
 
 // Cairo headers
 #ifdef USE_LIBCAIRO
@@ -60,9 +62,17 @@ namespace lsp
         {
             class X11Window;
 
+        #ifdef USE_LIBCAIRO
+            class X11CairoSurface;
+        #endif /* USE_LIBCAIRO */
+
             class X11Display: public IDisplay
             {
                 friend class X11Window;
+
+            #ifdef USE_LIBCAIRO
+                friend class X11CairoSurface;
+            #endif /* USE_LIBCAIRO */
 
                 protected:
                     enum x11_async_types
@@ -176,11 +186,14 @@ namespace lsp
                 public:
                     typedef struct font_t
                     {
+                        char               *name;           // Name of the font
                         char               *alias;          // Font alias
                         void               *data;           // Font data
+                        ssize_t             refs;           // Number of references
                         FT_Face             ft_face;        // Font face
+
                     #ifdef USE_LIBCAIRO
-                        cairo_font_face_t  *cr_faces[4]; // None, Bold, Italic, Bold + Italic
+                        cairo_font_face_t  *cr_face;        // Font face for cairo
                     #endif /* USE_LIBCAIRO */
                     } font_t;
 
@@ -222,7 +235,8 @@ namespace lsp
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);
                     static void     destroy_font_object(font_t *font);
-                    static font_t  *alloc_font_object();
+                    static void     unload_font_object(font_t *font);
+                    static font_t  *alloc_font_object(const char *name);
 
                     status_t        do_main_iteration(timestamp_t ts);
                     void            do_destroy();

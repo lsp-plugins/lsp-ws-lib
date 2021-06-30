@@ -28,13 +28,20 @@
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
+#include <lsp-plug.in/io/InFileStream.h>
 #include <private/x11/decode.h>
 #include <private/x11/X11Display.h>
+#include <private/x11/X11CairoSurface.h>
 
 #include <sys/poll.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <X11/cursorfont.h>
+
+#ifdef USE_LIBCAIRO
+    #include <cairo.h>
+    #include <cairo/cairo-ft.h>
+#endif /* USE_LIBCAIRO */
 
 #define X11IOBUF_SIZE               0x100000
 
@@ -44,6 +51,10 @@ namespace lsp
     {
         namespace x11
         {
+        #ifdef USE_LIBCAIRO
+            static const cairo_user_data_key_t cairo_user_data_key = { 0 };
+        #endif /* USE_LIBCAIRO */
+
             static int cursor_shapes[] =
             {
                 -1,                         // MP_NONE
@@ -395,8 +406,9 @@ namespace lsp
                 vCustomFonts.values(&fonts);
                 vCustomFonts.flush();
 
+                // Destroy all font objects
                 for (size_t i=0, n=fonts.size(); i<n; ++i)
-                    destroy_font_object(fonts.uget(i));
+                    unload_font_object(fonts.uget(i));
             }
 
             void X11Display::destroy()
@@ -410,17 +422,11 @@ namespace lsp
                 if (f == NULL)
                     return;
 
-            #ifdef USE_LIBCAIRO
-                // Destroy libcairo font faces
-                for (size_t i=0; i<4; ++i)
-                {
-                    if (f->cr_faces[i] != NULL)
-                    {
-                        cairo_font_face_destroy(f->cr_faces[i]);
-                        f->cr_faces[i]  = NULL;
-                    }
-                }
-            #endif /* USE_LIBCAIRO */
+                lsp_trace("FT_MANAGE this=%p, name='%s', refs=%d", f, f->name, int(f->refs));
+                if ((--f->refs) > 0)
+                    return;
+
+                lsp_trace("FT_MANAGE   destroying font this=%p, name='%s'", f, f->name);
 
                 // Destroy font face if present
                 if (f->ft_face != NULL)
@@ -445,6 +451,29 @@ namespace lsp
 
                 // Deallocate font object
                 free(f);
+            }
+
+            void X11Display::unload_font_object(font_t *f)
+            {
+                if (f == NULL)
+                    return;
+
+            // Fist call nested libraries to release the resource
+            #ifdef USE_LIBCAIRO
+                if (f->cr_face != NULL)
+                {
+                    lsp_trace(
+                        "FT_MANAGE call cairo_font_face_destroy references=%d",
+                        int(cairo_font_face_get_reference_count(f->cr_face))
+                    );
+                    cairo_font_face_destroy(f->cr_face);
+                    f->cr_face      = NULL;
+                }
+            #endif /* USE_LIBCAIRO */
+
+                // Destroy font object
+                lsp_trace("FT_MANAGE call destroy_font_object");
+                destroy_font_object(f);
             }
 
             status_t X11Display::main()
@@ -3749,19 +3778,26 @@ namespace lsp
                 return add_font(name, path->as_utf8());
             }
 
-            X11Display::font_t *X11Display::alloc_font_object()
+            X11Display::font_t *X11Display::alloc_font_object(const char *name)
             {
                 font_t *f       = static_cast<font_t *>(malloc(sizeof(font_t)));
                 if (f == NULL)
                     return NULL;
 
+                // Copy font name
+                if (!(f->name = strdup(name)))
+                {
+                    free(f);
+                    return NULL;
+                }
+
                 f->alias        = NULL;
                 f->data         = NULL;
                 f->ft_face      = NULL;
+                f->refs         = 1;
 
             #ifdef USE_LIBCAIRO
-                for (size_t i=0; i<4; ++i)
-                    f->cr_faces[i]      = NULL;
+                f->cr_face      = NULL;
             #endif /* USE_LIBCAIRO */
 
                 return f;
@@ -3769,39 +3805,19 @@ namespace lsp
 
             status_t X11Display::add_font(const char *name, const LSPString *path)
             {
-                if ((name == NULL) || (path == NULL))
+                if (name == NULL)
                     return STATUS_BAD_ARGUMENTS;
 
-                if (vCustomFonts.exists(name))
-                    return STATUS_ALREADY_EXISTS;
-
-                status_t res = init_freetype_library();
+                io::InFileStream ifs;
+                status_t res = ifs.open(path);
                 if (res != STATUS_OK)
                     return res;
 
-                font_t *f = alloc_font_object();
-                if (f == NULL)
-                    return STATUS_NO_MEM;
+                lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
+                res = add_font(name, &ifs);
+                status_t res2 = ifs.close();
 
-                // Create new font face
-                FT_Error status = FT_New_Face(hFtLibrary, path->get_native(), 0, &f->ft_face);
-                if (status != 0)
-                {
-                    destroy_font_object(f);
-                    lsp_error("Error %d opening %s.\n", int(status), path->get_native());
-                    return STATUS_UNKNOWN_ERR;
-                }
-
-                // Register font data
-                if (!vCustomFonts.create(name, f))
-                {
-                    destroy_font_object(f);
-                    return STATUS_NO_MEM;
-                }
-
-                lsp_trace("Loaded font '%s' from file '%s'", name, path->get_native());
-
-                return STATUS_OK;
+                return (res == STATUS_OK) ? res2 : res;
             }
 
             status_t X11Display::add_font(const char *name, io::IInStream *is)
@@ -3822,28 +3838,49 @@ namespace lsp
                 if (bytes < 0)
                     return -bytes;
 
-                font_t *f = alloc_font_object();
+                font_t *f = alloc_font_object(name);
                 if (f == NULL)
                     return STATUS_NO_MEM;
 
                 // Create new font face
                 f->data = os.release();
-                FT_Error status = FT_New_Memory_Face(hFtLibrary, static_cast<const FT_Byte *>(f->data), bytes, 0, &f->ft_face);
-                if (status != 0)
+                FT_Error ft_status = FT_New_Memory_Face(hFtLibrary, static_cast<const FT_Byte *>(f->data), bytes, 0, &f->ft_face);
+                if (ft_status != 0)
                 {
-                    destroy_font_object(f);
-                    lsp_error("Error %d creating font face from memory.\n", int(status));
+                    unload_font_object(f);
+                    lsp_error("FT_MANAGE Error creating freetype font face for font '%s', error=%d", f->name, int(ft_status));
                     return STATUS_UNKNOWN_ERR;
                 }
+
+                #ifdef USE_LIBCAIRO
+                f->cr_face = cairo_ft_font_face_create_for_ft_face (f->ft_face, 0);
+                if (f->cr_face)
+                {
+                    cairo_status_t cr_status = cairo_font_face_set_user_data (
+                            f->cr_face, &cairo_user_data_key,
+                            f, (cairo_destroy_func_t) destroy_font_object
+                        );
+
+                    if (cr_status)
+                    {
+                        lsp_error("FT_MANAGE Error creating cairo font face for font '%s', error=%d", f->name, int(cr_status));
+                        unload_font_object(f);
+                        return STATUS_UNKNOWN_ERR;
+                    }
+
+                    // Increment number of references (used by cairo)
+                    ++f->refs;
+                }
+                #endif /* USE_LIBCAIRO */
 
                 // Register font data
                 if (!vCustomFonts.create(name, f))
                 {
-                    destroy_font_object(f);
+                    unload_font_object(f);
                     return STATUS_NO_MEM;
                 }
 
-                lsp_trace("Loaded font '%s' from input stream contents", name);
+                lsp_trace("FT_MANAGE loaded font this=%p, font='%s', refs=%d, bytes=%ld", f, f->name, int(f->refs), long(bytes));
 
                 return STATUS_OK;
             }
@@ -3856,19 +3893,19 @@ namespace lsp
                 if (vCustomFonts.exists(name))
                     return STATUS_ALREADY_EXISTS;
 
-                font_t *f = alloc_font_object();
+                font_t *f = alloc_font_object(name);
                 if (f == NULL)
                     return STATUS_NO_MEM;
                 if ((f->alias = strdup(alias)) == NULL)
                 {
-                    destroy_font_object(f);
+                    unload_font_object(f);
                     return STATUS_NO_MEM;
                 }
 
                 // Register font data
                 if (!vCustomFonts.create(name, f))
                 {
-                    destroy_font_object(f);
+                    unload_font_object(f);
                     return STATUS_NO_MEM;
                 }
 
@@ -3884,13 +3921,14 @@ namespace lsp
                 if (!vCustomFonts.remove(name, &f))
                     return STATUS_NOT_FOUND;
 
-                destroy_font_object(f);
+                unload_font_object(f);
                 return STATUS_OK;
             }
 
             void X11Display::remove_all_fonts()
             {
                 // Deallocate previously allocated fonts
+                lsp_trace("FT_MANAGE removing all previously loaded fonts");
                 drop_custom_fonts();
             }
 

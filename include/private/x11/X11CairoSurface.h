@@ -25,6 +25,8 @@
 #include <lsp-plug.in/ws/version.h>
 #include <lsp-plug.in/common/types.h>
 
+#include <private/x11/X11Display.h>
+
 #ifdef USE_LIBCAIRO
 
 #include <lsp-plug.in/runtime/Color.h>
@@ -40,24 +42,32 @@ namespace lsp
     {
         namespace x11
         {
-            class X11Display;
-
             class X11CairoSurface: public ISurface
             {
                 protected:
                     cairo_surface_t        *pSurface;
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
+                    cairo_font_face_t      *pFF;
                     X11Display             *pDisplay;
                     bool                    bBegin;
 
                 protected:
-                    void destroy_context();
+                    typedef struct font_context_t
+                    {
+                        X11Display::font_t     *font;       // Custom font (if present)
+                        cairo_font_face_t      *face;       // Selected font face
+                        cairo_font_options_t   *opt;        // Font options
+                    } font_context_t;
+
+                protected:
+                    void                destroy_context();
 
                     inline void         setSourceRGB(const Color &col);
                     inline void         setSourceRGBA(const Color &col);
                     void                drawRoundRect(float left, float top, float width, float height, float radius, size_t mask);
-                    void                set_current_font(const Font &f);
+                    void                set_current_font(font_context_t *ctx, const Font &f);
+                    void                unset_current_font(font_context_t *ctx);
 
                 public:
                     /** Create XLib surface

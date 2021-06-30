@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/debug.h>
 
 #if defined(USE_LIBX11) && defined (USE_LIBCAIRO)
 
@@ -62,6 +63,7 @@ namespace lsp
                 pFO             = ::cairo_font_options_create();
                 if (pFO == NULL)
                     return;
+                pFF             = ::cairo_font_face_reference(::cairo_get_font_face(pCR));
 
                 bBegin          = false;
 
@@ -83,6 +85,7 @@ namespace lsp
                 pFO             = ::cairo_font_options_create();
                 if (pFO == NULL)
                     return;
+                pFF             = ::cairo_font_face_reference(::cairo_get_font_face(pCR));
 
                 bBegin          = false;
 
@@ -140,6 +143,11 @@ namespace lsp
 
             void X11CairoSurface::destroy_context()
             {
+                if (pFF != NULL)
+                {
+                    cairo_font_face_destroy(pFF);
+                    pFF        = NULL;
+                }
                 if (pFO != NULL)
                 {
                     cairo_font_options_destroy(pFO);
@@ -323,37 +331,27 @@ namespace lsp
                 ::cairo_surface_flush(pSurface);
             }
 
-            void X11CairoSurface::set_current_font(const Font &f)
+            void X11CairoSurface::set_current_font(font_context_t *ctx, const Font &f)
             {
+                // Apply antialiasint to the font
+                ctx->opt    = cairo_font_options_copy(pFO);
+                cairo_font_options_set_antialias(ctx->opt, decode_antialiasing(f));
+                cairo_set_font_options(pCR, ctx->opt);
+
+                // Try to select custom font face
                 X11Display::font_t *font = pDisplay->get_font(f.get_name());
-                if (font != NULL)
+                if ((font != NULL) && (font->cr_face != NULL))
                 {
-                    size_t index = (f.is_bold())    ? 0x1 : 0;
-                    index       |= (f.is_italic())  ? 0x2 : 0;
+                    cairo_set_font_face(pCR, font->cr_face);
+                    cairo_set_font_size(pCR, f.get_size());
+                    if (f.is_bold())
+                        cairo_ft_font_face_set_synthesize(font->cr_face, CAIRO_FT_SYNTHESIZE_BOLD);
+                    if (f.is_italic())
+                        cairo_ft_font_face_set_synthesize(font->cr_face, CAIRO_FT_SYNTHESIZE_OBLIQUE);
 
-                    // Check if font face is already present
-                    cairo_font_face_t * ct = font->cr_faces[index];
-                    if (ct == NULL)
-                    {
-                        ct = cairo_ft_font_face_create_for_ft_face (font->ft_face, 0);
-                        if (ct != NULL)
-                        {
-                            // Need to synthesize new font
-                            size_t flags    = (f.is_bold()) ? CAIRO_FT_SYNTHESIZE_BOLD : 0;
-                            if (f.is_italic())
-                                flags          |= CAIRO_FT_SYNTHESIZE_OBLIQUE;
-                            cairo_ft_font_face_set_synthesize(ct, flags);
-                            font->cr_faces[index]   = ct;
-                        }
-                    }
-
-                    // Select custom font face
-                    if (ct != NULL)
-                    {
-                        cairo_set_font_face(pCR, ct);
-                        cairo_set_font_size(pCR, f.get_size());
-                        return;
-                    }
+                    ctx->font   = font;
+                    ctx->face   = font->cr_face;
+                    return;
                 }
 
                 // Try to select fall-back font face
@@ -362,6 +360,26 @@ namespace lsp
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
                 );
                 cairo_set_font_size(pCR, f.get_size());
+
+                ctx->font   = NULL;
+                ctx->face   = cairo_get_font_face(pCR);
+
+                return;
+            }
+
+            void X11CairoSurface::unset_current_font(font_context_t *ctx)
+            {
+                if (ctx->font != NULL)
+                    cairo_ft_font_face_unset_synthesize(ctx->face, CAIRO_FT_SYNTHESIZE_BOLD | CAIRO_FT_SYNTHESIZE_OBLIQUE);
+
+                // Reset font settings
+                cairo_set_font_face(pCR, pFF);
+                cairo_set_font_options(pCR, pFO);
+                cairo_font_options_destroy(ctx->opt);
+
+                ctx->face   = NULL;
+                ctx->font   = NULL;
+                ctx->opt    = NULL;
             }
 
             void X11CairoSurface::clear_rgb(uint32_t rgb)
@@ -634,27 +652,21 @@ namespace lsp
                     return false;
 
                 // Set current font
-                set_current_font(f);
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                {
+                    // Get font parameters
+                    cairo_font_extents_t fe;
+                    cairo_font_extents(pCR, &fe);
 
-                // Apply antialiasing to the font
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, decode_antialiasing(f));
-                cairo_set_font_options(pCR, fo);
-
-                // Get font parameters
-                cairo_font_extents_t fe;
-                cairo_font_extents(pCR, &fe);
-
-                // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-
-                // Return result
-                fp->Ascent          = fe.ascent;
-                fp->Descent         = fe.descent;
-                fp->Height          = fe.height;
-                fp->MaxXAdvance     = fe.max_x_advance;
-                fp->MaxYAdvance     = fe.max_y_advance;
+                    // Return result
+                    fp->Ascent          = fe.ascent;
+                    fp->Descent         = fe.descent;
+                    fp->Height          = fe.height;
+                    fp->MaxXAdvance     = fe.max_x_advance;
+                    fp->MaxYAdvance     = fe.max_y_advance;
+                }
+                unset_current_font(&ctx);
 
                 return true;
             }
@@ -665,28 +677,39 @@ namespace lsp
                     return false;
 
                 // Set current font
-                set_current_font(f);
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                {
+                    // Initialize data structure
+                    cairo_text_extents_t te;
+                    te.x_bearing        = 0.0;
+                    te.y_bearing        = 0.0;
+                    te.width            = 0.0;
+                    te.height           = 0.0;
+                    te.x_advance        = 0.0;
+                    te.y_advance        = 0.0;
 
-                // Apply antialiasing to the font
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, decode_antialiasing(f));
-                cairo_set_font_options(pCR, fo);
+                    // Get text parameters
+                    cairo_glyph_t *glyphs = NULL;
+                    int num_glyphs = 0;
 
-                // Get text parameters
-                cairo_text_extents_t te;
-                cairo_text_extents(pCR, text, &te);
+                    cairo_scaled_font_t *scaled_font = cairo_get_scaled_font(pCR);
+                    cairo_scaled_font_text_to_glyphs(scaled_font, 0.0, 0.0,
+                                               text, -1,
+                                               &glyphs, &num_glyphs,
+                                               NULL, NULL, NULL);
+                    cairo_glyph_extents (pCR, glyphs, num_glyphs, &te);
+                    cairo_glyph_free(glyphs);
 
-                // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
-
-                // Return result
-                tp->XBearing        = te.x_bearing;
-                tp->YBearing        = te.y_bearing;
-                tp->Width           = te.width;
-                tp->Height          = te.height;
-                tp->XAdvance        = te.x_advance;
-                tp->YAdvance        = te.y_advance;
+                    // Return result
+                    tp->XBearing        = te.x_bearing;
+                    tp->YBearing        = te.y_bearing;
+                    tp->Width           = te.width;
+                    tp->Height          = te.height;
+                    tp->XAdvance        = te.x_advance;
+                    tp->YAdvance        = te.y_advance;
+                }
+                unset_current_font(&ctx);
 
                 return true;
             }
@@ -704,34 +727,28 @@ namespace lsp
                     return;
 
                 // Set current font
-                set_current_font(f);
-
-                // Apply antialiasing to the font
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, decode_antialiasing(f));
-                cairo_set_font_options(pCR, fo);
-
-                // Draw
-                cairo_move_to(pCR, x, y);
-                setSourceRGBA(color);
-                cairo_show_text(pCR, text);
-
-                if (f.is_underline())
+                font_context_t ctx;
+                set_current_font(&ctx, f);
                 {
-                    cairo_text_extents_t te;
-                    cairo_text_extents(pCR, text, &te);
-                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                    // Draw
+                    cairo_move_to(pCR, x, y);
+                    setSourceRGBA(color);
+                    cairo_show_text(pCR, text);
 
-                    cairo_set_line_width(pCR, width);
+                    if (f.is_underline())
+                    {
+                        cairo_text_extents_t te;
+                        cairo_text_extents(pCR, text, &te);
+                        float width = lsp_max(1.0f, f.get_size() / 12.0f);
 
-                    cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
-                    cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
-                    cairo_stroke(pCR);
+                        cairo_set_line_width(pCR, width);
+
+                        cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
+                        cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
+                        cairo_stroke(pCR);
+                    }
                 }
-
-                // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
+                unset_current_font(&ctx);
             }
 
             void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
@@ -747,28 +764,22 @@ namespace lsp
                     return;
 
                 // Set current font
-                set_current_font(f);
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                {
+                    // Output text
+                    cairo_text_extents_t extents;
+                    cairo_text_extents(pCR, text, &extents);
 
-                // Apply antialiasing to the font
-                cairo_font_options_t *fo = cairo_font_options_copy(pFO);
-                cairo_font_options_set_antialias(fo, decode_antialiasing(f));
-                cairo_set_font_options(pCR, fo);
+                    float r_w   = extents.x_advance - extents.x_bearing;
+                    float r_h   = extents.y_advance - extents.y_bearing;
+                    float fx    = x - extents.x_bearing + (r_w + 4) * 0.5f * dx - r_w * 0.5f;
+                    float fy    = y - extents.y_advance + (r_h + 4) * 0.5f * (1.0f - dy) - r_h * 0.5f + 1.0f;
 
-                // Output text
-                cairo_text_extents_t extents;
-                cairo_text_extents(pCR, text, &extents);
-
-                float r_w   = extents.x_advance - extents.x_bearing;
-                float r_h   = extents.y_advance - extents.y_bearing;
-                float fx    = x - extents.x_bearing + (r_w + 4) * 0.5f * dx - r_w * 0.5f;
-                float fy    = y - extents.y_advance + (r_h + 4) * 0.5f * (1.0f - dy) - r_h * 0.5f + 1.0f;
-
-                cairo_move_to(pCR, fx, fy);
-                cairo_show_text(pCR, text);
-
-                // Reset font options and antialiasing
-                cairo_set_font_options(pCR, pFO);
-                cairo_font_options_destroy(fo);
+                    cairo_move_to(pCR, fx, fy);
+                    cairo_show_text(pCR, text);
+                }
+                unset_current_font(&ctx);
             }
 
             void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
