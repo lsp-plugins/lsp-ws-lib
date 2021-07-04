@@ -59,7 +59,7 @@ MTEST_BEGIN("ws", display)
                         Color c(0.0f, 0.5f, 0.75f);
                         ws::ISurface *s = pWnd->get_surface();
                         if (s != NULL)
-                            s->clear(&c);
+                            s->clear(c);
 
                         ws::Font f;
                         ws::font_parameters_t fp;
@@ -75,12 +75,12 @@ MTEST_BEGIN("ws", display)
 
                         c.set_rgb24(0xffff00);
                         f.set_antialiasing(ws::FA_ENABLED);
-                        s->out_text(f, &c, x + tp.XBearing, y + fp.Ascent, "A");
+                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
                         x += tp.Width;
 
                         c.set_rgb24(0x00ffff);
                         f.set_antialiasing(ws::FA_DISABLED);
-                        s->out_text(f, &c, x + tp.XBearing, y + fp.Ascent, "A");
+                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
 
                         return STATUS_OK;
                     }
