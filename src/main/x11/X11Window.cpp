@@ -47,7 +47,7 @@ namespace lsp
         {
             X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): IWindow(core, handler)
             {
-                lsp_trace("hwindow = %x", int(wnd));
+//                lsp_trace("hwindow = %x", int(wnd));
                 pX11Display             = core;
                 bWrapper                = wrapper;
                 bVisible                = false;
@@ -110,7 +110,7 @@ namespace lsp
                         return STATUS_NO_MEM;
 
                     // Now select input for the handle
-                    lsp_trace("Issuing XSelectInput");
+//                    lsp_trace("Issuing XSelectInput");
                     ::XSelectInput(dpy, hWindow,
                         KeyPressMask |
                         KeyReleaseMask |
@@ -187,13 +187,13 @@ namespace lsp
                             0, 0, CopyFromParent, CopyFromParent, 0, NULL);
                     }
 
-                    lsp_trace("wnd=%x, external=%d, external_id=%x", int(wnd), int(hParent > 0), int(hParent));
+//                    lsp_trace("wnd=%x, external=%d, external_id=%x", int(wnd), int(hParent > 0), int(hParent));
                     if (wnd <= 0)
                         return STATUS_UNKNOWN_ERR;
                     pX11Display->flush();
 
                     // Get protocols
-                    lsp_trace("Issuing XSetWMProtocols");
+//                    lsp_trace("Issuing XSetWMProtocols");
                     Atom atom_close     = pX11Display->atoms().X11_WM_DELETE_WINDOW;
                     ::XSetWMProtocols(dpy, wnd, &atom_close, 1);
 
@@ -225,7 +225,7 @@ namespace lsp
                     }
 
                     // Now select input for new handle
-                    lsp_trace("Issuing XSelectInput");
+//                    lsp_trace("Issuing XSelectInput");
                     ::XSelectInput(dpy, wnd,
                         KeyPressMask |
                         KeyReleaseMask |
@@ -277,7 +277,7 @@ namespace lsp
                     set_mouse_pointer(MP_DEFAULT);
                 }
 
-                lsp_trace("init ok");
+                lsp_trace("init ok, hwindow = %x", int(hWindow));
 
                 return STATUS_OK;
             }
@@ -366,9 +366,9 @@ namespace lsp
                     sz.max_height   = sSize.nHeight;
                 }
 
-                lsp_trace("Window constraints: min_width=%d, min_height=%d, max_width=%d, max_height=%d",
-                        int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
-                    );
+//                lsp_trace("Window constraints: min_width=%d, min_height=%d, max_width=%d, max_height=%d",
+//                        int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
+//                    );
 
                 XSetWMNormalHints(pX11Display->x11display(), hWindow, &sz);
 //                pX11Display->sync();
@@ -454,7 +454,7 @@ namespace lsp
 
                     case UIE_SIZE_REQUEST:
                     {
-                        lsp_trace("size request = %d x %d", int(ev->nWidth), int(ev->nHeight));
+//                        lsp_trace("size request = %d x %d", int(ev->nWidth), int(ev->nHeight));
     //                    XResizeWindow(pCore->x11display(), hWindow, ev->nWidth, ev->nHeight);
     //                    pCore->x11sync();
                         break;
@@ -465,9 +465,9 @@ namespace lsp
                         if (bWrapper)
                             break;
 
-                        lsp_trace("new window location = %d x %d, size = %d x %d",
-                                int(ev->nLeft), int(ev->nTop),
-                                int(ev->nWidth), int(ev->nHeight));
+//                        lsp_trace("new window location = %d x %d, size = %d x %d",
+//                                int(ev->nLeft), int(ev->nTop),
+//                                int(ev->nWidth), int(ev->nHeight));
                         sSize.nLeft         = ev->nLeft;
                         sSize.nTop          = ev->nTop;
                         sSize.nWidth        = ev->nWidth;
@@ -519,7 +519,7 @@ namespace lsp
 
                     case UIE_CLOSE:
                     {
-                        lsp_trace("close request on window");
+//                        lsp_trace("close request on window");
                         if (handler == NULL)
                         {
                             this->destroy();
@@ -616,7 +616,7 @@ namespace lsp
                         break;
                 }
 
-                lsp_trace("Setting _NET_WM_WINDOW_TYPE...");
+//                lsp_trace("Setting _NET_WM_WINDOW_TYPE...");
                 XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -649,7 +649,7 @@ namespace lsp
                         break;
                 }
 
-                lsp_trace("Setting _NET_WM_STATE...");
+//                lsp_trace("Setting _NET_WM_STATE...");
                 XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -663,7 +663,7 @@ namespace lsp
 
 
                 // Set MOTIF hints
-                lsp_trace("Setting _MOTIF_WM_HINTS...");
+//                lsp_trace("Setting _MOTIF_WM_HINTS...");
                 XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -676,7 +676,7 @@ namespace lsp
                 );
 
 
-                lsp_trace("All seems to be OK");
+//                lsp_trace("All seems to be OK");
 
                 status_t result = do_update_constraints();
                 pX11Display->flush();
@@ -735,7 +735,7 @@ namespace lsp
                 sSize.nLeft     = left;
                 sSize.nTop      = top;
 
-                lsp_trace("left=%d, top=%d", int(left), int(top));
+//                lsp_trace("left=%d, top=%d", int(left), int(top));
 
 //                if (hParent > 0)
 //                    XMoveWindow(pX11Display->x11display(), hParent, sSize.nLeft, sSize.nTop);
@@ -763,7 +763,7 @@ namespace lsp
                 if (hWindow == 0)
                     return STATUS_OK;
 
-                lsp_trace("width=%d, height=%d", int(width), int(height));
+//                lsp_trace("width=%d, height=%d", int(width), int(height));
 
                 status_t result = do_update_constraints();
                 ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
@@ -790,7 +790,7 @@ namespace lsp
                     (old.nHeight == sSize.nHeight))
                     return STATUS_OK;
 
-                lsp_trace("left=%d, top=%d, width=%d, height=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+//                lsp_trace("left=%d, top=%d, width=%d, height=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 status_t result = do_update_constraints();
                 if (hParent > 0)
@@ -917,7 +917,7 @@ namespace lsp
                 }
                 hTransientFor   = transient_for;
 
-                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
+//                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
                 ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
                 ::XRaiseWindow(pX11Display->x11display(), hWindow);
                 ::XMapWindow(pX11Display->x11display(), hWindow);
@@ -988,7 +988,7 @@ namespace lsp
 
                 calc_constraints(&sSize, &sSize);
 
-                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
+//                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
                 if (hWindow == None)
                     return STATUS_OK;
 
@@ -1018,7 +1018,7 @@ namespace lsp
                 if ((rs.nWidth == sSize.nWidth) && (rs.nHeight == sSize.nHeight))
                     return STATUS_OK;
 
-                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
+//                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
 
                 XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
 //                if (hParent > 0)
@@ -1059,7 +1059,7 @@ namespace lsp
                     return STATUS_OK;
                 }
 
-                lsp_trace("focusing window: focus=%s", (focus) ? "true" : "false");
+//                lsp_trace("focusing window: focus=%s", (focus) ? "true" : "false");
                 if (pX11Display->pFocusWindow == this)
                     pX11Display->pFocusWindow   = NULL;
 
@@ -1287,7 +1287,7 @@ namespace lsp
 
                 #undef TR_ACTION
 
-                lsp_trace("Setting _NET_WM_ALLOWED_ACTIONS...");
+//                lsp_trace("Setting _NET_WM_ALLOWED_ACTIONS...");
                 XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -1301,7 +1301,7 @@ namespace lsp
 
 
                 // Send _MOTIF_WM_HINTS
-                lsp_trace("Setting _MOTIF_WM_HINTS...");
+//                lsp_trace("Setting _MOTIF_WM_HINTS...");
                 XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
