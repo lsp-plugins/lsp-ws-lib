@@ -33,7 +33,7 @@
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
 
-#include <sys/poll.h>
+#include <poll.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <X11/cursorfont.h>
