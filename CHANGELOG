@@ -11,6 +11,7 @@
 - Incompatible change: changed binary font antialiasing option to enumeration. 
 - Added dependency on the freetype2 library for Unix-based systems.
 - More strict interface classes.
+- Updated build system.
 
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.
