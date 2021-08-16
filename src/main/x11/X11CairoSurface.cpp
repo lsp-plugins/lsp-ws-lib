@@ -171,7 +171,13 @@ namespace lsp
 
                     // Update context
                     pSurface            = s;
-                    pCR                 = cr;
+                    if (pCR != NULL)
+                    {
+                        ::cairo_destroy(pCR);
+                        pCR                 = cr;
+                    }
+                    else
+                        ::cairo_destroy(cr);
                 }
 
                 return false;

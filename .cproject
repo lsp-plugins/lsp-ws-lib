@@ -35,6 +35,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.preprocessor.def.1538000506" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_LIBX11"/>
+									<listOptionValue builtIn="false" value="USE_LIBFREETYPE"/>
 									<listOptionValue builtIn="false" value="LSP_TRACE"/>
 									<listOptionValue builtIn="false" value="USE_LIBSNDFILE"/>
 									<listOptionValue builtIn="false" value="USE_LIBCAIRO"/>

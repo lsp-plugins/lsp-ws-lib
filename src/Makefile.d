@@ -255,5 +255,16 @@ $(LSP_WS_LIB_BIN)/test/mtest/display.o: test/mtest/display.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSink.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IWindow.h \
- $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h
-$(LSP_WS_LIB_BIN)/test/main.o: test/main.cpp
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/mtest.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/version.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/test.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/env.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main/config.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/types.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main/dynarray.h
+$(LSP_WS_LIB_BIN)/test/main.o: test/main.cpp \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/version.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h

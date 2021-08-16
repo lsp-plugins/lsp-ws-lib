@@ -59,28 +59,33 @@ MTEST_BEGIN("ws", display)
                         Color c(0.0f, 0.5f, 0.75f);
                         ws::ISurface *s = pWnd->get_surface();
                         if (s != NULL)
+                        {
+                            s->begin();
                             s->clear(c);
 
-                        ws::Font f;
-                        ws::font_parameters_t fp;
-                        ws::text_parameters_t tp;
-                        f.set_name("example");
-                        f.set_size(64);
+                            ws::Font f;
+                            ws::font_parameters_t fp;
+                            ws::text_parameters_t tp;
+                            f.set_name("example");
+                            f.set_size(64);
 
-                        s->get_font_parameters(f, &fp);
-                        s->get_text_parameters(f, &tp, "A");
+                            s->get_font_parameters(f, &fp);
+                            s->get_text_parameters(f, &tp, "A");
 
-                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
-                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
+                            ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
+                            ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
 
-                        c.set_rgb24(0xffff00);
-                        f.set_antialiasing(ws::FA_ENABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-                        x += tp.Width;
+                            c.set_rgb24(0xffff00);
+                            f.set_antialiasing(ws::FA_ENABLED);
+                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                            x += tp.Width;
 
-                        c.set_rgb24(0x00ffff);
-                        f.set_antialiasing(ws::FA_DISABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                            c.set_rgb24(0x00ffff);
+                            f.set_antialiasing(ws::FA_DISABLED);
+                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+
+                            s->end();
+                        }
 
                         return STATUS_OK;
                     }
