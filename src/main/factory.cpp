@@ -21,9 +21,9 @@
 
 #include <lsp-plug.in/ws/factory.h>
 
-#ifdef USE_XLIB
+#ifdef USE_LIBX11
     #include <private/x11/X11Display.h>
-#endif /* USE_XLIB */
+#endif /* USE_LIBX11 */
 
 namespace lsp
 {
@@ -32,7 +32,7 @@ namespace lsp
         LSP_WS_LIB_CEXPORT
         IDisplay *lsp_ws_create_display(int argc, const char **argv)
         {
-        #ifdef USE_XLIB
+        #ifdef USE_LIBX11
             // Create X11 display
             {
                 x11::X11Display *dpy = new x11::X11Display();
@@ -44,7 +44,7 @@ namespace lsp
                     lsp_ws_free_display(dpy);
                 }
             }
-        #endif /* USE_XLIB */
+        #endif /* USE_LIBX11 */
             return NULL;
         }
 

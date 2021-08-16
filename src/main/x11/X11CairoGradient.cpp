@@ -21,7 +21,7 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#if defined(USE_XLIB) && defined(USE_CAIRO)
+#if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
 
 #include <private/x11/X11CairoGradient.h>
 
@@ -71,4 +71,4 @@ namespace lsp
     }
 } /* namespace lsp */
 
-#endif /* USE_XLIB && USE_CAIRO */
+#endif /* USE_LIBX11 && USE_LIBCAIRO */

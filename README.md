@@ -33,6 +33,7 @@ The following packages need to be installed for building:
 * make >= 4.0 (All OS)
 * cairo >= 1.14 (Linux, BSD)
 * sndfile >= 1.0.25 (Linux, BSD)
+* freetype (Linux, BSD)
 * xlib (Linux, BSD)
 
 Building

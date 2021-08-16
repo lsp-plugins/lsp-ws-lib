@@ -42,6 +42,10 @@ namespace lsp
          */
         class IDataSource
         {
+            private:
+                IDataSource & operator = (const IDataSource &);
+                IDataSource(const IDataSource &);
+
             protected:
                 ssize_t     nReferences;
                 char      **vMimes;

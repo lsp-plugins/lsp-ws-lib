@@ -43,6 +43,7 @@ namespace lsp
 
             private:
                 IWindow & operator = (const IWindow);
+                IWindow(const IWindow &);
 
             public:
                 explicit IWindow(IDisplay *dpy, IEventHandler *handler = NULL);

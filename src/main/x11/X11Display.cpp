@@ -21,19 +21,27 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_XLIB
+#ifdef USE_LIBX11
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
+#include <lsp-plug.in/io/InFileStream.h>
 #include <private/x11/decode.h>
 #include <private/x11/X11Display.h>
+#include <private/x11/X11CairoSurface.h>
 
-#include <sys/poll.h>
+#include <poll.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <X11/cursorfont.h>
+
+#ifdef USE_LIBCAIRO
+    #include <cairo.h>
+    #include <cairo/cairo-ft.h>
+#endif /* USE_LIBCAIRO */
 
 #define X11IOBUF_SIZE               0x100000
 
@@ -130,12 +138,17 @@ namespace lsp
                 nWhiteColor     = 0;
                 nIOBufSize      = X11IOBUF_SIZE;
                 pIOBuf          = NULL;
+                hFtLibrary      = NULL;
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                     pCbOwner[i]     = NULL;
 
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = None;
+
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+                sTranslateReq.bSuccess  = false;
             }
 
             X11Display::~X11Display()
@@ -245,7 +258,7 @@ namespace lsp
                 while (!atomic_cas(&hLock, 0, 1)) { /* Wait */ }
 
                 // Dispatch errors between Displays
-                for (X11Display *dp = pHandlers; dp != NULL; ++dp)
+                for (X11Display *dp = pHandlers; dp != NULL; dp = dp->pNextHandler)
                     if (dp->pDisplay == dpy)
                         dp->handle_error(ev);
 
@@ -276,7 +289,7 @@ namespace lsp
 
             ISurface *X11Display::create_surface(size_t width, size_t height)
             {
-                return new X11CairoSurface(width, height);
+                return new X11CairoSurface(this, width, height);
             }
 
             void X11Display::do_destroy()
@@ -284,7 +297,7 @@ namespace lsp
                 // Cancel async tasks
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
-                    x11_async_t *task           = sAsync.get(i);
+                    x11_async_t *task           = sAsync.uget(i);
                     if (!task->cb_common.bComplete)
                     {
                         task->result                = STATUS_CANCELLED;
@@ -345,7 +358,6 @@ namespace lsp
                     }
                 }
 
-
                 // Close display
                 Display *dpy = pDisplay;
                 if (dpy != NULL)
@@ -372,12 +384,93 @@ namespace lsp
                         break;
                     }
                 }
+
+                // Deallocate previously allocated fonts
+                drop_custom_fonts();
+
+                // Remove FT library
+                if (hFtLibrary != NULL)
+                {
+                    FT_Done_FreeType(hFtLibrary);
+                    hFtLibrary      = NULL;
+                }
+            }
+
+            void X11Display::drop_custom_fonts()
+            {
+                lltl::parray<font_t> fonts;
+                vCustomFonts.values(&fonts);
+                vCustomFonts.flush();
+
+                // Destroy all font objects
+                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                    unload_font_object(fonts.uget(i));
             }
 
             void X11Display::destroy()
             {
                 do_destroy();
                 IDisplay::destroy();
+            }
+
+            void X11Display::destroy_font_object(font_t *f)
+            {
+                if (f == NULL)
+                    return;
+
+                lsp_trace("FT_MANAGE this=%p, name='%s', refs=%d", f, f->name, int(f->refs));
+                if ((--f->refs) > 0)
+                    return;
+
+                lsp_trace("FT_MANAGE   destroying font this=%p, name='%s'", f, f->name);
+
+                // Destroy font face if present
+                if (f->ft_face != NULL)
+                {
+                    FT_Done_Face(f->ft_face);
+                    f->ft_face  = NULL;
+                }
+
+                // Deallocate font data
+                if (f->data != NULL)
+                {
+                    free(f->data);
+                    f->data     = NULL;
+                }
+
+                // Deallocate alias if present
+                if (f->alias != NULL)
+                {
+                    free(f->alias);
+                    f->alias    = NULL;
+                }
+
+                // Deallocate font object
+                free(f);
+            }
+
+            void X11Display::unload_font_object(font_t *f)
+            {
+                if (f == NULL)
+                    return;
+
+            // Fist call nested libraries to release the resource
+            #ifdef USE_LIBCAIRO
+                for (size_t i=0; i<4; ++i)
+                    if (f->cr_face[i] != NULL)
+                    {
+                        lsp_trace(
+                            "FT_MANAGE call cairo_font_face_destroy[%d] references=%d",
+                            int(i), int(cairo_font_face_get_reference_count(f->cr_face[i]))
+                        );
+                        cairo_font_face_destroy(f->cr_face[i]);
+                        f->cr_face[i]   = NULL;
+                    }
+            #endif /* USE_LIBCAIRO */
+
+                // Destroy font object
+                lsp_trace("FT_MANAGE call destroy_font_object");
+                destroy_font_object(f);
             }
 
             status_t X11Display::main()
@@ -869,7 +962,7 @@ namespace lsp
                 for (size_t i=0; i<sAsync.size(); )
                 {
                     // Skip non-complete tasks
-                    x11_async_t *task = sAsync.get(i);
+                    x11_async_t *task = sAsync.uget(i);
                     if (!task->cb_common.bComplete)
                     {
                         ++i;
@@ -1802,10 +1895,12 @@ namespace lsp
 
                         // Translate coordinates if originating and target window differs
                         int x, y;
-                        ::XTranslateCoordinates(pDisplay,
+                        if (!translate_coordinates(
                             ev->xany.window, wnd->x11handle(),
                             ue.nLeft, ue.nTop,
-                            &x, &y, &child);
+                            &x, &y, &child))
+                            break;
+
                         se.nLeft    = x;
                         se.nTop     = y;
 
@@ -2020,7 +2115,11 @@ namespace lsp
                 while (true)
                 {
                     // Translate coordinates
-                    ::XTranslateCoordinates(pDisplay, root, parent, x, y, &cx, &cy, &child);
+                    if (!translate_coordinates(root, parent, x, y, &cx, &cy, &child))
+                    {
+                        child   = None;
+                        break;
+                    }
                     lsp_trace(" found child %lx pointer location: x=%d, y=%d -> cx=%d, cy=%d",
                             long(child), x, y, cx, cy
                     );
@@ -2544,9 +2643,8 @@ namespace lsp
                 }
 
                 Window child        = None;
-                ::XSync(pDisplay, False);
-                ::XTranslateCoordinates(pDisplay, hRootWnd, task->hTarget, x, y, &x, &y, &child);
-                ::XSync(pDisplay, False);
+                if (!translate_coordinates(hRootWnd, task->hTarget, x, y, &x, &y, &child))
+                    return STATUS_NOT_FOUND;
                 task->enState       = DND_RECV_POSITION; // Allow specific state changes
 
                 // Form the notification event
@@ -3304,7 +3402,7 @@ namespace lsp
 
             void X11Display::handle_error(XErrorEvent *ev)
             {
-#ifdef LSP_TRACE
+            #ifdef LSP_TRACE
                 const char *error = "Unknown";
 
                 switch (ev->error_code)
@@ -3329,9 +3427,10 @@ namespace lsp
                     default: break;
                 #undef DE
                 }
-                lsp_trace("error: code=%d (%s), serial=%ld, request=%d, minor=%d",
-                        int(ev->error_code), error, ev->serial, int(ev->request_code), int(ev->minor_code));
-#endif
+                lsp_trace("this=%p, error: code=%d (%s), serial=%ld, request=%d, minor=%d",
+                        this, int(ev->error_code), error, ev->serial, int(ev->request_code), int(ev->minor_code)
+                );
+                #endif
                 if (ev->error_code == BadWindow)
                 {
                     for (size_t i=0, n=sAsync.size(); i<n; ++i)
@@ -3354,6 +3453,11 @@ namespace lsp
                                 break;
                         }
                     }
+
+                    // Failed XTranslateCoordinates request?
+                    if ((sTranslateReq.hSrcW == ev->resourceid) ||
+                        (sTranslateReq.hDstW == ev->resourceid))
+                        sTranslateReq.bSuccess = false;
                 }
 
             }
@@ -3405,12 +3509,6 @@ namespace lsp
                 Window target = (task->hProxy != None) ? task->hProxy : task->hTarget;
                 lsp_trace("Sending XdndStatus (reject) from %lx to %lx", long(target), long(task->hSource));
                 
-//                XWindowAttributes xwa;
-//                Window child = None;
-//                int x = 0, y = 0;
-//                ::XGetWindowAttributes(pDisplay, task->hTarget, &xwa);
-//                ::XTranslateCoordinates(pDisplay, task->hTarget, hRootWnd, 0, 0, &x, &y, &child);
-
                 XEvent xev;
                 XClientMessageEvent *ev = &xev.xclient;
                 ev->type            = ClientMessage;
@@ -3522,8 +3620,8 @@ namespace lsp
                     Window child = None;
                     if ((r->nWidth < 0) || (r->nWidth >= 0x10000) || (r->nHeight < 0) || (r->nHeight > 0x10000))
                         return STATUS_INVALID_VALUE;
-                    ::XTranslateCoordinates(pDisplay, task->hTarget, hRootWnd, r->nLeft, r->nTop, &x, &y, &child);
-                    ::XSync(pDisplay, False);
+                    if (!translate_coordinates(task->hTarget, hRootWnd, r->nLeft, r->nTop, &x, &y, &child))
+                        return STATUS_INVALID_VALUE;
                     if ((x < 0) || (x >= 0x10000) || (y < 0) || (y >= 0x10000))
                         return STATUS_INVALID_VALUE;
                 }
@@ -3608,9 +3706,234 @@ namespace lsp
                     return true;
                 return IDisplay::r3d_backend_supported(meta);
             }
+
+            bool X11Display::translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return)
+            {
+                // Create the request
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+                sTranslateReq.bSuccess  = true;
+
+                // Override error handler
+                ::XSync(pDisplay, False);
+                XErrorHandler old = ::XSetErrorHandler(x11_error_handler);
+
+                // Run the query
+                ::XTranslateCoordinates(pDisplay, src_w, dest_w, src_x, src_y, dest_x, dest_y, child_return);
+
+                // Reset to previous handler
+                ::XSync(pDisplay, False);
+                ::XSetErrorHandler(old);
+
+                // Reset state of request
+                sTranslateReq.hSrcW     = None;
+                sTranslateReq.hDstW     = None;
+
+            #ifdef LSP_TRACE
+                if (!sTranslateReq.bSuccess)
+                    lsp_trace("this=%p: failed to translate coorinates (%d, %d) for windows 0x%lx -> 0x%lx",
+                            this,
+                            src_x, src_y, long(src_w), long(dest_w)
+                    );
+            #endif
+
+                return sTranslateReq.bSuccess;
+            }
+
+            status_t X11Display::init_freetype_library()
+            {
+                if (hFtLibrary != NULL)
+                    return STATUS_OK;
+
+                // Initialize FreeType handle
+                FT_Error status = FT_Init_FreeType (& hFtLibrary);
+                if (status != 0)
+                {
+                    lsp_error("Error %d opening library.\n", int(status));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::add_font(const char *name, const char *path)
+            {
+                if ((name == NULL) || (path == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                LSPString tmp;
+                if (!tmp.set_utf8(path))
+                    return STATUS_NO_MEM;
+
+                return add_font(name, &tmp);
+            }
+
+            status_t X11Display::add_font(const char *name, const io::Path *path)
+            {
+                if ((name == NULL) || (path == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+                return add_font(name, path->as_utf8());
+            }
+
+            X11Display::font_t *X11Display::alloc_font_object(const char *name)
+            {
+                font_t *f       = static_cast<font_t *>(malloc(sizeof(font_t)));
+                if (f == NULL)
+                    return NULL;
+
+                // Copy font name
+                if (!(f->name = strdup(name)))
+                {
+                    free(f);
+                    return NULL;
+                }
+
+                f->alias        = NULL;
+                f->data         = NULL;
+                f->ft_face      = NULL;
+                f->refs         = 1;
+
+            #ifdef USE_LIBCAIRO
+                for (size_t i=0; i<4; ++i)
+                    f->cr_face[i]   = NULL;
+            #endif /* USE_LIBCAIRO */
+
+                return f;
+            }
+
+            status_t X11Display::add_font(const char *name, const LSPString *path)
+            {
+                if (name == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                io::InFileStream ifs;
+                status_t res = ifs.open(path);
+                if (res != STATUS_OK)
+                    return res;
+
+                lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
+                res = add_font(name, &ifs);
+                status_t res2 = ifs.close();
+
+                return (res == STATUS_OK) ? res2 : res;
+            }
+
+            status_t X11Display::add_font(const char *name, io::IInStream *is)
+            {
+                if ((name == NULL) || (is == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                if (vCustomFonts.exists(name))
+                    return STATUS_ALREADY_EXISTS;
+
+                status_t res = init_freetype_library();
+                if (res != STATUS_OK)
+                    return res;
+
+                // Read the contents of the font
+                io::OutMemoryStream os;
+                wssize_t bytes = is->sink(&os);
+                if (bytes < 0)
+                    return -bytes;
+
+                font_t *f = alloc_font_object(name);
+                if (f == NULL)
+                    return STATUS_NO_MEM;
+
+                // Create new font face
+                f->data = os.release();
+                FT_Error ft_status = FT_New_Memory_Face(hFtLibrary, static_cast<const FT_Byte *>(f->data), bytes, 0, &f->ft_face);
+                if (ft_status != 0)
+                {
+                    unload_font_object(f);
+                    lsp_error("FT_MANAGE Error creating freetype font face for font '%s', error=%d", f->name, int(ft_status));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                // Register font data
+                if (!vCustomFonts.create(name, f))
+                {
+                    unload_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                lsp_trace("FT_MANAGE loaded font this=%p, font='%s', refs=%d, bytes=%ld", f, f->name, int(f->refs), long(bytes));
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::add_font_alias(const char *name, const char *alias)
+            {
+                if ((name == NULL) || (alias == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                if (vCustomFonts.exists(name))
+                    return STATUS_ALREADY_EXISTS;
+
+                font_t *f = alloc_font_object(name);
+                if (f == NULL)
+                    return STATUS_NO_MEM;
+                if ((f->alias = strdup(alias)) == NULL)
+                {
+                    unload_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                // Register font data
+                if (!vCustomFonts.create(name, f))
+                {
+                    unload_font_object(f);
+                    return STATUS_NO_MEM;
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::remove_font(const char *name)
+            {
+                if (name == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                font_t *f = NULL;
+                if (!vCustomFonts.remove(name, &f))
+                    return STATUS_NOT_FOUND;
+
+                unload_font_object(f);
+                return STATUS_OK;
+            }
+
+            void X11Display::remove_all_fonts()
+            {
+                // Deallocate previously allocated fonts
+                lsp_trace("FT_MANAGE removing all previously loaded fonts");
+                drop_custom_fonts();
+            }
+
+            X11Display::font_t *X11Display::get_font(const char *name)
+            {
+                lltl::pphash<char, font_t> path;
+
+                while (true)
+                {
+                    // Fetch the font record
+                    font_t *res = vCustomFonts.get(name);
+                    if (res == NULL)
+                        return NULL;
+                    else if (res->ft_face != NULL)
+                        return res;
+                    else if (res->alias == NULL)
+                        return NULL;
+
+                    // Font alias, need to follow it
+                    if (!path.create(name, res))
+                        return NULL;
+                    name        = res->alias;
+                }
+            }
+
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* USE_XLIB */
+#endif /* USE_LIBX11 */
 

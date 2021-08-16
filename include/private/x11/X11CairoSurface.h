@@ -25,7 +25,9 @@
 #include <lsp-plug.in/ws/version.h>
 #include <lsp-plug.in/common/types.h>
 
-#ifdef USE_CAIRO
+#include <private/x11/X11Display.h>
+
+#ifdef USE_LIBCAIRO
 
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/ws/IGradient.h>
@@ -43,17 +45,27 @@ namespace lsp
             class X11CairoSurface: public ISurface
             {
                 protected:
-                    cairo_surface_t    *pSurface;
-                    cairo_t            *pCR;
+                    cairo_surface_t        *pSurface;
+                    cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
-                    bool                bBegin;
+                    X11Display             *pDisplay;
 
                 protected:
-                    void destroy_context();
+                    typedef struct font_context_t
+                    {
+                        X11Display::font_t     *font;       // Custom font (if present)
+                        cairo_font_face_t      *face;       // Selected font face
+                        cairo_antialias_t       aa;         // Antialias settings
+                    } font_context_t;
 
-                    inline void setSourceRGB(const Color &col);
-                    inline void setSourceRGBA(const Color &col);
-                    void drawRoundRect(float left, float top, float width, float height, float radius, size_t mask);
+                protected:
+                    void                destroy_context();
+
+                    inline void         setSourceRGB(const Color &col);
+                    inline void         setSourceRGBA(const Color &col);
+                    void                drawRoundRect(float left, float top, float width, float height, float radius, size_t mask);
+                    void                set_current_font(font_context_t *ctx, const Font &f);
+                    void                unset_current_font(font_context_t *ctx);
 
                 public:
                     /** Create XLib surface
@@ -64,14 +76,14 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
-                    X11CairoSurface(Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height);
+                    explicit X11CairoSurface(X11Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height);
 
                     /** Create image surface
                      *
                      * @param width surface width
                      * @param height surface height
                      */
-                    X11CairoSurface(size_t width, size_t height);
+                    explicit X11CairoSurface(X11Display *dpy, size_t width, size_t height);
 
                     /** Destructor
                      *
@@ -132,6 +144,10 @@ namespace lsp
                     virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                     virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                    virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+
+                    virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                     virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
 
@@ -227,6 +243,6 @@ namespace lsp
     }
 
 } /* namespace lsp */
-#endif /* USE_CAIRO */
+#endif /* USE_LIBCAIRO */
 
 #endif /* UI_X11_X11CAIROSURFACE_H_ */

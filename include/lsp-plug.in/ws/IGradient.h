@@ -33,6 +33,7 @@ namespace lsp
         {
             private:
                 IGradient & operator = (const IGradient &);
+                IGradient(const IGradient &);
 
             public:
                 explicit IGradient();

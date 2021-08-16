@@ -35,6 +35,10 @@ namespace lsp
          */
         class IDataSink
         {
+            private:
+                IDataSink & operator = (const IDataSink &);
+                IDataSink(const IDataSink &);
+
             protected:
                 ssize_t     nReferences;
 

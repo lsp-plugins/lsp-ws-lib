@@ -2,6 +2,17 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 0.5.4 ===
+* Added BadWindow error handling for the XTranslateCoordinates call that could cause
+  the program to crash.
+* Added ISurface::wire_round_rect_inside() methods.
+* Added support of loading custom fonts using freetype library.
+* Fixed antialiasing problem which allows to force enable of font antialiasing.
+* Incompatible change: changed binary font antialiasing option to enumeration. 
+* Added dependency on the freetype2 library for Unix-based systems.
+* More strict interface classes.
+* Updated build system.
+
 === 0.5.3 ===
 * Changed signature of ISurface::fill_poly, ISurface::wire_poly and ISurface::draw_poly methods.
 * Added ISurface::draw method that uses ws::rectangle_t as an argument.

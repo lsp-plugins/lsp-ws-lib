@@ -7,7 +7,8 @@ $(LSP_WS_LIB_BIN)/main/x11/X11Display.o: main/x11/X11Display.cpp \
 $(LSP_WS_LIB_BIN)/main/x11/X11CairoSurface.o: \
  main/x11/X11CairoSurface.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
- $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/debug.h
 $(LSP_WS_LIB_BIN)/main/x11/X11CairoGradient.o: \
  main/x11/X11CairoGradient.cpp \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \

@@ -27,7 +27,6 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/ws/IWindow.h>
-#include <private/x11/X11CairoSurface.h>
 
 namespace lsp
 {
@@ -57,7 +56,8 @@ namespace lsp
                     X11Display         *pX11Display;
                     ::Window            hWindow;
                     ::Window            hParent;
-                    X11CairoSurface    *pSurface;
+                    ::Window            hTransientFor;
+                    ISurface           *pSurface;
                     border_style_t      enBorderStyle;
                     motif_hints_t       sMotif;
                     size_t              nActions;
