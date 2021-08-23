@@ -297,10 +297,10 @@ namespace lsp
                     explicit X11Display();
                     virtual ~X11Display();
 
-                public:
                     virtual status_t            init(int argc, const char **argv);
                     virtual void                destroy();
 
+                public:
                     virtual IWindow            *create_window();
                     virtual IWindow            *create_window(size_t screen);
                     virtual IWindow            *create_window(void *handle);
@@ -310,6 +310,7 @@ namespace lsp
                     virtual status_t            main();
                     virtual status_t            main_iteration();
                     virtual void                quit_main();
+                    virtual status_t            wait_events(wssize_t millis);
 
                     virtual size_t              screens();
                     virtual size_t              default_screen();

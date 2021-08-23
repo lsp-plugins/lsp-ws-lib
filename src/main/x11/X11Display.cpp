@@ -29,6 +29,7 @@
 #include <lsp-plug.in/ws/keycodes.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/io/InFileStream.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <private/x11/decode.h>
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
@@ -477,7 +478,7 @@ namespace lsp
             {
                 // Make a pause
                 struct pollfd x11_poll;
-                struct timespec ts;
+                system::time_t ts;
 
                 int x11_fd          = ConnectionNumber(pDisplay);
                 lsp_trace("x11fd = %d(int)", x11_fd);
@@ -486,8 +487,8 @@ namespace lsp
                 while (!bExit)
                 {
                     // Get current time
-                    ::clock_gettime(CLOCK_REALTIME, &ts);
-                    timestamp_t xts     = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+                    system::get_time(&ts);
+                    timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
                     int wtime           = 50; // How many milliseconds to wait
 
                     if (sTasks.size() > 0)
@@ -502,7 +503,7 @@ namespace lsp
                     else if (::XPending(pDisplay) > 0)
                         wtime               = 0;
 
-                    // Try to poll input data for a 100 msec period
+                    // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
                     x11_poll.events     = POLLIN | POLLPRI | POLLHUP;
                     x11_poll.revents    = 0;
@@ -526,6 +527,62 @@ namespace lsp
                             return result;
                     }
                 }
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::wait_events(wssize_t millis)
+            {
+                if (bExit)
+                    return STATUS_OK;
+
+                system::time_t ts;
+                struct pollfd x11_poll;
+
+                // Get current time
+                system::get_time(&ts);
+
+                timestamp_t xts         = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                timestamp_t deadline    = xts + millis;
+                int x11_fd              = ConnectionNumber(pDisplay);
+
+                do
+                {
+                    wssize_t wtime      = deadline - xts; // How many milliseconds to wait
+
+                    if (sTasks.size() > 0)
+                    {
+                        dtask_t *t          = sTasks.first();
+                        ssize_t delta       = t->nTime - xts;
+                        if (delta <= 0)
+                            wtime               = -1;
+                        else if (delta <= wtime)
+                            wtime               = delta;
+                    }
+                    else if (::XPending(pDisplay) > 0)
+                        wtime               = 0;
+
+                    // Try to poll input data for a specified period
+                    x11_poll.fd         = x11_fd;
+                    x11_poll.events     = POLLIN | POLLPRI | POLLHUP;
+                    x11_poll.revents    = 0;
+
+                    errno               = 0;
+                    int poll_res        = (wtime > 0) ? poll(&x11_poll, 1, wtime) : 0;
+                    if (poll_res < 0)
+                    {
+                        int err_code = errno;
+                        lsp_trace("Poll returned error: %d, code=%d", poll_res, err_code);
+                        if (err_code != EINTR)
+                            return STATUS_IO_ERROR;
+                    }
+                    else if ((wtime <= 0) || ((poll_res > 0) && (x11_poll.events > 0)))
+                        break;
+
+                    // Get current time
+                    system::get_time(&ts);
+                    xts         = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                } while (!bExit);
 
                 return STATUS_OK;
             }
@@ -624,9 +681,9 @@ namespace lsp
                     return result;
 
                 // Get current time to determine if need perform a rendering
-                struct timespec ts;
-                clock_gettime(CLOCK_REALTIME, &ts);
-                timestamp_t xts = (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
+                system::time_t ts;
+                system::get_time(&ts);
+                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
 
                 // Do iteration
                 return do_main_iteration(xts);

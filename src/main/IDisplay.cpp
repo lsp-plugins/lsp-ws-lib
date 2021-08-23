@@ -26,6 +26,7 @@
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
 namespace lsp
@@ -532,6 +533,13 @@ namespace lsp
 
         void IDisplay::quit_main()
         {
+        }
+
+        status_t IDisplay::wait_events(wssize_t millis)
+        {
+            if (millis > 0)
+                ipc::Thread::sleep(millis);
+            return STATUS_OK;
         }
 
         size_t IDisplay::screens()

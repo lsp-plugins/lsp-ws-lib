@@ -104,19 +104,71 @@ namespace lsp
                 explicit IDisplay();
                 virtual ~IDisplay();
 
-            public:
+                /**
+                 * Initialize display
+                 * @param argc number of additional arguments
+                 * @param argv array of additional arguments
+                 * @return status of operation
+                 */
                 virtual status_t    init(int argc, const char **argv);
+
+                /**
+                 * Destroy display
+                 */
                 virtual void        destroy();
 
+            public:
+                /**
+                 * Enter the main loop. The main loop can be interrupted by calling
+                 * the quit_main() function.
+                 *
+                 * @return status of execution
+                 */
                 virtual status_t    main();
+
+                /**
+                 * Perform a single iteration for the main loop.
+                 *
+                 * @return status of iteration completion.
+                 */
                 virtual status_t    main_iteration();
+
+                /**
+                 * Leave the main loop.
+                 */
                 virtual void        quit_main();
 
+                /**
+                 * Wait for new events
+                 *
+                 * @param millis maximum amount of time to wait for new event
+                 */
+                virtual status_t    wait_events(wssize_t millis);
+
+                /**
+                 * Return number of available screens.
+                 * @return number of available screens.
+                 */
                 virtual size_t      screens();
+
+                /**
+                 * Get number of default screen
+                 * @return number of default screen
+                 */
                 virtual size_t      default_screen();
 
+                /**
+                 * Perform the underlying protocol transfer synchronization
+                 */
                 virtual void        sync();
 
+                /**
+                 * Get size of the screen
+                 * @param screen sreen number
+                 * @param w pointer to store width
+                 * @param h pointer to store height
+                 * @return status of operation
+                 */
                 virtual status_t    screen_size(size_t screen, ssize_t *w, ssize_t *h);
 
             public:
