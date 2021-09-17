@@ -934,13 +934,13 @@ namespace lsp
 
                 if (fabs(a) > fabs(b))
                 {
-                    cairo_move_to(pCR, ssize_t(-(c + b*top)/a), ssize_t(top));
-                    cairo_line_to(pCR, ssize_t(-(c + b*bottom)/a), ssize_t(bottom));
+                    cairo_move_to(pCR, roundf(-(c + b*top)/a), roundf(top));
+                    cairo_line_to(pCR, roundf(-(c + b*bottom)/a), roundf(bottom));
                 }
                 else
                 {
-                    cairo_move_to(pCR, ssize_t(left), ssize_t(-(c + a*left)/b));
-                    cairo_line_to(pCR, ssize_t(right), ssize_t(-(c + a*right)/b));
+                    cairo_move_to(pCR, roundf(left), roundf(-(c + a*left)/b));
+                    cairo_line_to(pCR, roundf(right), roundf(-(c + a*right)/b));
                 }
 
                 cairo_stroke(pCR);
