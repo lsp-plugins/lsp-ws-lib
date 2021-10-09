@@ -1726,9 +1726,9 @@ namespace lsp
 
                     case ButtonPress:
                     case ButtonRelease:
-                        lsp_trace("button time = %ld, x=%d, y=%d up=%s", long(ev->xbutton.time),
-                            int(ev->xbutton.x), int(ev->xbutton.y),
-                            (ev->type == ButtonRelease) ? "true" : "false");
+//                        lsp_trace("button time = %ld, x=%d, y=%d up=%s", long(ev->xbutton.time),
+//                            int(ev->xbutton.x), int(ev->xbutton.y),
+//                            (ev->type == ButtonRelease) ? "true" : "false");
 
                         // Check that it is a scrolling
                         ue.nCode        = decode_mcd(ev->xbutton.button);
@@ -1812,7 +1812,7 @@ namespace lsp
                         break;
 
                     case KeymapNotify:
-                        lsp_trace("The keyboard state was changed!");
+                        //lsp_trace("The keyboard state was changed!");
                         break;
 
                     case MappingNotify:
