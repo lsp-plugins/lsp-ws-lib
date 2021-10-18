@@ -40,25 +40,25 @@ LSP_TEST_FW_URL_RW         := git@github.com:lsp-plugins/$(LSP_TEST_FW_NAME).git
 LSP_RUNTIME_LIB_VERSION    := 0.5.10
 LSP_RUNTIME_LIB_NAME       := lsp-runtime-lib
 LSP_RUNTIME_LIB_TYPE       := src
-LSP_RUNTIME_LIB_URL_RO     := git@github.com:lsp-plugins/$(LSP_RUNTIME_LIB_NAME).git
+LSP_RUNTIME_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_RUNTIME_LIB_NAME).git
 LSP_RUNTIME_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_RUNTIME_LIB_NAME).git
 
 LSP_R3D_IFACE_VERSION      := 0.5.2
 LSP_R3D_IFACE_NAME         := lsp-r3d-iface
 LSP_R3D_IFACE_TYPE         := src
-LSP_R3D_IFACE_URL_RO       := git@github.com:lsp-plugins/$(LSP_R3D_IFACE_NAME).git
+LSP_R3D_IFACE_URL_RO       := https://github.com/lsp-plugins/$(LSP_R3D_IFACE_NAME).git
 LSP_R3D_IFACE_URL_RW       := git@github.com:lsp-plugins/$(LSP_R3D_IFACE_NAME).git
 
 LSP_R3D_BASE_LIB_VERSION   := 0.5.5
 LSP_R3D_BASE_LIB_NAME      := lsp-r3d-base-lib
 LSP_R3D_BASE_LIB_TYPE      := src
-LSP_R3D_BASE_LIB_URL_RO    := git@github.com:lsp-plugins/$(LSP_R3D_BASE_LIB_NAME).git
+LSP_R3D_BASE_LIB_URL_RO    := https://github.com/lsp-plugins/$(LSP_R3D_BASE_LIB_NAME).git
 LSP_R3D_BASE_LIB_URL_RW    := git@github.com:lsp-plugins/$(LSP_R3D_BASE_LIB_NAME).git
 
 LSP_R3D_GLX_LIB_VERSION    := 0.5.4
 LSP_R3D_GLX_LIB_NAME       := lsp-r3d-glx-lib
 LSP_R3D_GLX_LIB_TYPE       := src
-LSP_R3D_GLX_LIB_URL_RO     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
+LSP_R3D_GLX_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 LSP_R3D_GLX_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 
 LIBPTHREAD_VERSION         := system
