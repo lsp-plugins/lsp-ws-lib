@@ -82,7 +82,7 @@ namespace lsp
 
                     void                calc_constraints(rectangle_t *dst, const rectangle_t *req);
 
-                    status_t            do_update_constraints();
+                    status_t            do_update_constraints(bool disable=false);
 
                 public:
                     explicit X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper);
