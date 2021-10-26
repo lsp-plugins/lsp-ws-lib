@@ -295,6 +295,7 @@ namespace lsp
             void X11Window::destroy()
             {
                 // Drop surface
+                hide();
                 drop_surface();
 
                 if (!bWrapper)
