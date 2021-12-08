@@ -583,11 +583,8 @@ namespace lsp
                         break;
                 }
 
-                if (hWindow == 0)
-                {
-                    nFlags |= F_SYNC_WM;
+                if (hWindow == None)
                     return STATUS_OK;
-                }
 
                 // Send changes to X11
                 const x11_atoms_t &a = pX11Display->atoms();
@@ -601,20 +598,23 @@ namespace lsp
                     case BS_DIALOG:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DIALOG;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NOTIFICATION;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_NONE:
+                        atoms[0]         = 0;
                         break;
 
                     case BS_POPUP:
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_POPUP_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_COMBO:
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_POPUP_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_COMBO;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_SINGLE:
@@ -946,12 +946,8 @@ namespace lsp
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
 //                lsp_trace("window x=%d, y=%d", atts.x, atts.y);
 
-                if (nFlags & F_SYNC_WM)
-                {
-                    nFlags      &= ~F_SYNC_WM;
-                    set_border_style(enBorderStyle);
-                    set_window_actions(nActions);
-                };
+                set_border_style(enBorderStyle);
+                set_window_actions(nActions);
 
                 switch (enBorderStyle)
                 {
@@ -1289,11 +1285,8 @@ namespace lsp
                 if (actions & WA_CLOSE)
                     sMotif.functions       |= MWM_FUNC_CLOSE;
 
-                if (hWindow == 0)
-                {
-                    nFlags |= F_SYNC_WM;
+                if (hWindow == None)
                     return STATUS_OK;
-                }
 
                 // Set window actions
                 Atom atoms[10];

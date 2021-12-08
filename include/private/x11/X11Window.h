@@ -42,8 +42,7 @@ namespace lsp
                     enum flags_t
                     {
                         F_GRABBING      = 1 << 0,
-                        F_LOCKING       = 1 << 1,
-                        F_SYNC_WM       = 1 << 2
+                        F_LOCKING       = 1 << 1
                     };
 
                     typedef struct btn_event_t
