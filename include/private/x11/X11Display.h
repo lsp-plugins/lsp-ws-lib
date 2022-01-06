@@ -187,10 +187,10 @@ namespace lsp
                     typedef struct font_t
                     {
                         char               *name;           // Name of the font
-                        char               *alias;          // Font alias
-                        void               *data;           // Font data
+                        char               *alias;          // Font alias (the symbolic name of the font)
+                        void               *data;           // Font data (font file contents loaded to memory)
                         ssize_t             refs;           // Number of references
-                        FT_Face             ft_face;        // Font face
+                        FT_Face             ft_face;        // Font face handle for freetype
 
                     #ifdef USE_LIBCAIRO
                         cairo_font_face_t  *cr_face[4];     // Font faces for cairo
@@ -218,6 +218,9 @@ namespace lsp
                     uint8_t                    *pIOBuf;
                     FT_Library                  hFtLibrary;
                     IDataSource                *pCbOwner[_CBUF_TOTAL];
+                #ifdef USE_LIBCAIRO
+                    cairo_user_data_key_t       sCairoUserDataKey;
+                #endif /* USE_LIBCAIRO */
 
                     lltl::darray<dtask_t>       sPending;
                     lltl::darray<x11_screen_t>  vScreens;

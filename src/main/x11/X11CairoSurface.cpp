@@ -49,10 +49,6 @@ namespace lsp
     {
         namespace x11
         {
-            #ifdef USE_LIBCAIRO
-                static const cairo_user_data_key_t cairo_user_data_key = { 0 };
-            #endif /* USE_LIBCAIRO */
-
             static inline cairo_antialias_t decode_antialiasing(const Font &f)
             {
                 switch (f.antialiasing())
@@ -345,7 +341,7 @@ namespace lsp
                         if (ff != NULL)
                         {
                             cairo_status_t cr_status = cairo_font_face_set_user_data (
-                                ff, &cairo_user_data_key,
+                                ff, &pDisplay->sCairoUserDataKey,
                                 font, (cairo_destroy_func_t) X11Display::destroy_font_object
                             );
 

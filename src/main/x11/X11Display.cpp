@@ -150,6 +150,8 @@ namespace lsp
                 sTranslateReq.hSrcW     = None;
                 sTranslateReq.hDstW     = None;
                 sTranslateReq.bSuccess  = false;
+
+                bzero(&sCairoUserDataKey, sizeof(sCairoUserDataKey));
             }
 
             X11Display::~X11Display()
