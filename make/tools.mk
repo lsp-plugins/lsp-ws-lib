@@ -113,7 +113,7 @@ CFLAGS             := \
   -pipe \
   -Wall
 
-CDEFS              += -DLSP_INSTALL_PREFIX=\"$(PREFIX)\"
+CDEFS              += -DLSP_INSTALL_PREFIX=\\\"$(PREFIX)\\\"
   
 CXXFLAGS           := \
   $(CXXFLAGS_EXT) \
@@ -126,7 +126,7 @@ CXXFLAGS           := \
   -pipe \
   -Wall
 
-CXXDEFS            += -DLSP_INSTALL_PREFIX=\"$(PREFIX)\"
+CXXDEFS            += -DLSP_INSTALL_PREFIX=\\\"$(PREFIX)\\\"
 
 INCLUDE            :=
 LDFLAGS            := $(LDFLAGS_EXT) -r
