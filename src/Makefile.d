@@ -161,7 +161,9 @@ $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IR3DBackend.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Dir.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/File.h \
- $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/stdio.h
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/stdio.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h
 $(LSP_WS_LIB_BIN)/main/IDataSource.o: main/IDataSource.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
