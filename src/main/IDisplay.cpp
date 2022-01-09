@@ -29,11 +29,65 @@
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
+#define R3D_LIBRARY_FILE_PART       "lsp-r3d"
+
 namespace lsp
 {
     namespace ws
     {
+    #ifdef PLATFORM_POSIX
+        #ifdef ARCH_32BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib"
+                LSP_INSTALL_PREFIX "/lib64"
+                LSP_INSTALL_PREFIX "/bin"
+                LSP_INSTALL_PREFIX "/sbin"
+            #endif /* LSP_INSTALL_PREFIX */
 
+                "/usr/local/lib32",
+                "/usr/lib32",
+                "/lib32",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif
+
+        #ifdef ARCH_64BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib"
+                LSP_INSTALL_PREFIX "/lib64"
+                LSP_INSTALL_PREFIX "/bin"
+                LSP_INSTALL_PREFIX "/sbin"
+            #endif /* LSP_INSTALL_PREFIX */
+
+                "/usr/local/lib64",
+                "/usr/lib64",
+                "/lib64",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif /* ARCH_64_BIT */
+    #endif /* PLATFORM_POSIX */
 
         IDisplay::IDisplay()
         {
@@ -92,7 +146,7 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IDisplay::lookup_r3d_backends(const io::Path *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const io::Path *path, const char *part)
         {
             io::Dir dir;
 
@@ -101,14 +155,14 @@ namespace lsp
                 return;
 
             io::Path child;
-            LSPString item, pref, postfix;
-            if (!pref.set_utf8(prefix))
+            LSPString item, substring;
+            if (!substring.set_utf8(part))
                 return;
 
             io::fattr_t fattr;
             while ((res = dir.read(&item, false)) == STATUS_OK)
             {
-                if (!item.starts_with(&pref))
+                if (item.index_of(&substring) < 0)
                     continue;
                 if (!ipc::Library::valid_library_name(&item))
                     continue;
@@ -131,20 +185,20 @@ namespace lsp
             }
         }
 
-        void IDisplay::lookup_r3d_backends(const char *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const char *path, const char *part)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup_r3d_backends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, part);
         }
 
-        void IDisplay::lookup_r3d_backends(const LSPString *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const LSPString *path, const char *part)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup_r3d_backends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, part);
         }
 
         status_t IDisplay::register_r3d_backend(const io::Path *path)
@@ -286,7 +340,13 @@ namespace lsp
             if (res == STATUS_OK)
                 res     = path.parent();
             if (res == STATUS_OK)
-                lookup_r3d_backends(&path, "");
+                lookup_r3d_backends(&path, R3D_LIBRARY_FILE_PART);
+
+            // Scan for standard paths
+        #ifdef PLATFORM_POSIX
+            for (const char **paths = library_paths; *paths != NULL; ++paths)
+                lookup_r3d_backends(*paths, R3D_LIBRARY_FILE_PART);
+        #endif /* PLATFORM_POSIX */
 
             return STATUS_OK;
         }

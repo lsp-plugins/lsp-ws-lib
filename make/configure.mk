@@ -165,6 +165,7 @@ define vardef =
   $(if $(findstring src,$($(name)_TYPE)), $(eval $(call srcconfig, $(name))))
   $(if $(findstring hdr,$($(name)_TYPE)), $(eval $(call hdrconfig, $(name))))
   $(if $(findstring lib,$($(name)_TYPE)), $(eval $(call libconfig, $(name))))
+  $(if $(findstring bin,$($(name)_TYPE)), $(eval $(call srcconfig, $(name))))
   $(if $(findstring opt,$($(name)_TYPE)), $(eval $(call optconfig, $(name))))
 endef
 
@@ -196,19 +197,35 @@ CONFIG_VARS = \
     $(name)_DESC \
     $(name)_VERSION \
     $(name)_TYPE \
+    $(name)_URL \
     $(name)_BRANCH \
+    \
     $(name)_PATH \
     $(name)_INC \
     $(name)_SRC \
     $(name)_TEST \
     $(name)_TESTING \
-    $(name)_URL \
     $(name)_BIN \
     $(name)_CFLAGS \
     $(name)_MFLAGS \
     $(name)_LDFLAGS \
     $(name)_OBJ \
     $(name)_OBJ_TEST \
+    \
+    HOST_$(name)_PATH \
+    HOST_$(name)_INC \
+    HOST_$(name)_SRC \
+    HOST_$(name)_TEST \
+    HOST_$(name)_TESTING \
+    HOST_$(name)_BIN \
+    HOST_$(name)_CFLAGS \
+    HOST_$(name)_MFLAGS \
+    HOST_$(name)_LDFLAGS \
+    HOST_$(name)_OBJ \
+    HOST_$(name)_OBJ_META \
+    HOST_$(name)_OBJ_DSP \
+    HOST_$(name)_OBJ_UI \
+    HOST_$(name)_OBJ_TEST \
   )
 
 .DEFAULT_GOAL      := config
@@ -241,11 +258,12 @@ help: | toolvars sysvars
 	echo "  <ARTIFACT>_SRC            path to source code files of the artifact"
 	echo "  <ARTIFACT>_TEST           location of test files of the artifact"
 	echo "  <ARTIFACT>_TYPE           artifact usage type"
-	echo "                            - src - use sources and headers from git"
-	echo "                            - hdr - use headers only from git"
-	echo "                            - pkg - use pkgconfig for configuration"
-	echo "                            - lib - use system headers and -l<libname> flags"
-	echo "                            - opt - use optional configuration"
+	echo "                            - bin  - binaries build from source code"
+	echo "                            - hdr  - use headers only from git"
+	echo "                            - lib  - use system headers and -l<libname> flags"
+	echo "                            - opt  - use optional configuration"
+	echo "                            - pkg  - use pkgconfig for configuration"
+	echo "                            - src  - use sources and headers from git"
 	echo "  <ARTIFACT>_URL            location of the artifact git repoisitory"
 	echo "  <ARTIFACT>_VERSION        version of the artifact used for building"
 	echo ""

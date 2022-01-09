@@ -107,7 +107,7 @@ dep_clean:
 $(DEP_CXX): dep_clean
 	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
 	mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS)
+	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(CXXDEFS) $(INCLUDE) $(ARTIFACT_CFLAGS)
 
 depend: $(DEP_CXX)
 	$(foreach dep,$(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID),\
@@ -130,7 +130,7 @@ compile: $(ARTIFACT_OBJ)
 $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT) $(CXX_OBJ_TEST) $(CXX_OBJ_NOTEST):
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(CXX_FILE)"
 	mkdir -p $(dir $@)
-	$($(HOST)CXX) -o $(@) -c $(CXX_FILE) -fPIC $($(HOST)CXXFLAGS) $(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS)
+	$($(HOST)CXX) -o $(@) -c $(CXX_FILE) -fPIC $($(HOST)CXXFLAGS) $($(HOST)CXXDEFS )$(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS)
 	
 # Producing large object files
 $(ARTIFACT_OBJ): $(CXX_OBJ)
