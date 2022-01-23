@@ -281,7 +281,7 @@ namespace lsp
 
                 r3dlib->builtin         = (path != NULL) ? NULL : factory;
                 r3dlib->local_id        = id;
-                r3dlib->info.offscreen   = meta->wnd_type == r3d::WND_HANDLE_NONE;
+                r3dlib->info.offscreen  = meta->wnd_type == r3d::WND_HANDLE_NONE;
                 version_copy(&r3dlib->info.version, mversion);
                 if (path != NULL)
                 {
