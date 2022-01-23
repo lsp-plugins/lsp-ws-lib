@@ -4,6 +4,7 @@
 
 === 0.5.5 ===
 - Added new IDisplay::wait_events() method for polling display for incoming events.
+- Added R3D backend deduplication support.
 
 === 0.5.4 ===
 * Added BadWindow error handling for the XTranslateCoordinates call that could cause

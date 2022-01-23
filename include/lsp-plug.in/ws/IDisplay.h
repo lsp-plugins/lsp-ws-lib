@@ -50,7 +50,8 @@ namespace lsp
             LSPString   uid;
             LSPString   display;
             LSPString   lc_key;
-            bool        offscren;       // Off-screen rendering engine
+            version_t   version;        // Module version
+            bool        offscreen;      // Off-screen rendering engine
         } R3DBackendInfo;
 
         /** Display
@@ -71,8 +72,9 @@ namespace lsp
                     void           *pArg;
                 } dtask_t;
 
-                typedef struct r3d_lib_t: public R3DBackendInfo
+                typedef struct r3d_lib_t
                 {
+                    R3DBackendInfo  info;           // Information
                     r3d::factory_t *builtin;        // Built-in factory
                     size_t          local_id;       // Local identifier
                 } r3d_lib_t;
@@ -95,10 +97,12 @@ namespace lsp
                 bool                taskid_exists(taskid_t id);
                 void                deregister_backend(IR3DBackend *lib);
                 status_t            switch_r3d_backend(r3d_lib_t *backend);
-                status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory);
+                status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
                 virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
+                static void         drop_r3d_lib(r3d_lib_t *lib);
+                bool                check_duplicate(const r3d_lib_t *lib);
 
             public:
                 explicit IDisplay();
