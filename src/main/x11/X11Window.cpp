@@ -602,11 +602,10 @@ namespace lsp
                         break;
 
                     case BS_NONE:
-                        atoms[0]         = 0;
                         break;
 
                     case BS_POPUP:
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_POPUP_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
@@ -649,7 +648,6 @@ namespace lsp
                     case BS_POPUP:
                     case BS_COMBO:
                         atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
-                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu
