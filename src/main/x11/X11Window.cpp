@@ -567,6 +567,7 @@ namespace lsp
                     case BS_NONE:
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
                         sMotif.decorations  = 0;
                         sMotif.input_mode   = MWM_INPUT_FULL_APPLICATION_MODAL;
                         sMotif.status       = 0;
@@ -597,7 +598,6 @@ namespace lsp
                 {
                     case BS_DIALOG:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DIALOG;
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NOTIFICATION;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
@@ -610,8 +610,14 @@ namespace lsp
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
-                    case BS_COMBO:
+                    case BS_DROPDOWN:
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
+                        break;
+
+                    case BS_COMBO:
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_COMBO;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
@@ -647,6 +653,7 @@ namespace lsp
                     case BS_NONE:           // Not resizable; no visible border line
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
                         atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
                         break;
 
@@ -951,6 +958,7 @@ namespace lsp
                 {
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
 //                        pX11Display->grab_events(this);
 //                        nFlags |= F_GRABBING;
                         break;
@@ -1064,7 +1072,7 @@ namespace lsp
                 ev.xclient.window       = pX11Display->hRootWnd;
                 ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
                 ev.xclient.format       = 32;
-                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO)) ? 2 : 1;
+                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO) || (enBorderStyle == BS_DROPDOWN)) ? 2 : 1;
                 ev.xclient.data.l[1]    = CurrentTime;
                 ev.xclient.data.l[2]    = hWindow;
                 ev.xclient.data.l[3]    = 0;
