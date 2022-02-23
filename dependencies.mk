@@ -46,6 +46,7 @@ endif
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES             += \
     LIBSNDFILE \
+    LIBICONV \
     LIBCAIRO \
     LIBFREETYPE \
     LIBX11
