@@ -222,9 +222,10 @@ namespace lsp
             BS_DIALOG,              // Not sizable; no minimize/maximize menu
             BS_SINGLE,              // Not sizable; minimize/maximize menu
             BS_NONE,                // Not sizable; no visible border line
-            BS_POPUP,               // Popup window
+            BS_POPUP,               // Popup menu window
             BS_COMBO,               // Combo box window
-            BS_SIZEABLE             // Sizeable window
+            BS_SIZEABLE,            // Sizeable window
+            BS_DROPDOWN             // Dropdown menu window
         };
 
         enum window_action_t
@@ -245,6 +246,7 @@ namespace lsp
             WA_DIALOG       = WA_MOVE | WA_STICK | WA_SHADE,
             WA_POPUP        = WA_NONE,
             WA_COMBO        = WA_NONE,
+            WA_DROPDOWN     = WA_NONE,
             WA_SIZABLE      = WA_ALL
         };
 

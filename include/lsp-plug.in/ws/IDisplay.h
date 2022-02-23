@@ -50,7 +50,8 @@ namespace lsp
             LSPString   uid;
             LSPString   display;
             LSPString   lc_key;
-            bool        offscren;       // Off-screen rendering engine
+            version_t   version;        // Module version
+            bool        offscreen;      // Off-screen rendering engine
         } R3DBackendInfo;
 
         /** Display
@@ -71,8 +72,9 @@ namespace lsp
                     void           *pArg;
                 } dtask_t;
 
-                typedef struct r3d_lib_t: public R3DBackendInfo
+                typedef struct r3d_lib_t
                 {
+                    R3DBackendInfo  info;           // Information
                     r3d::factory_t *builtin;        // Built-in factory
                     size_t          local_id;       // Local identifier
                 } r3d_lib_t;
@@ -95,28 +97,82 @@ namespace lsp
                 bool                taskid_exists(taskid_t id);
                 void                deregister_backend(IR3DBackend *lib);
                 status_t            switch_r3d_backend(r3d_lib_t *backend);
-                status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory);
+                status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
                 virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
+                static void         drop_r3d_lib(r3d_lib_t *lib);
+                bool                check_duplicate(const r3d_lib_t *lib);
 
             public:
                 explicit IDisplay();
                 virtual ~IDisplay();
 
-            public:
+                /**
+                 * Initialize display
+                 * @param argc number of additional arguments
+                 * @param argv array of additional arguments
+                 * @return status of operation
+                 */
                 virtual status_t    init(int argc, const char **argv);
+
+                /**
+                 * Destroy display
+                 */
                 virtual void        destroy();
 
+            public:
+                /**
+                 * Enter the main loop. The main loop can be interrupted by calling
+                 * the quit_main() function.
+                 *
+                 * @return status of execution
+                 */
                 virtual status_t    main();
+
+                /**
+                 * Perform a single iteration for the main loop.
+                 *
+                 * @return status of iteration completion.
+                 */
                 virtual status_t    main_iteration();
+
+                /**
+                 * Leave the main loop.
+                 */
                 virtual void        quit_main();
 
+                /**
+                 * Wait for new events
+                 *
+                 * @param millis maximum amount of time to wait for new event
+                 */
+                virtual status_t    wait_events(wssize_t millis);
+
+                /**
+                 * Return number of available screens.
+                 * @return number of available screens.
+                 */
                 virtual size_t      screens();
+
+                /**
+                 * Get number of default screen
+                 * @return number of default screen
+                 */
                 virtual size_t      default_screen();
 
+                /**
+                 * Perform the underlying protocol transfer synchronization
+                 */
                 virtual void        sync();
 
+                /**
+                 * Get size of the screen
+                 * @param screen sreen number
+                 * @param w pointer to store width
+                 * @param h pointer to store height
+                 * @return status of operation
+                 */
                 virtual status_t    screen_size(size_t screen, ssize_t *w, ssize_t *h);
 
             public:
@@ -162,21 +218,23 @@ namespace lsp
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
-                 * @param prefix the prefix of the library name to lookup
+                 * @param part the substring that should be contained in the library file name
                  */
-                void lookup_r3d_backends(const io::Path *path, const char *prefix);
+                void lookup_r3d_backends(const io::Path *path, const char *part);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
+                 * @param part the substring that should be contained in the library file name
                  */
-                void lookup_r3d_backends(const char *path, const char *prefix);
+                void lookup_r3d_backends(const char *path, const char *part);
 
                 /**
                  * Lookup the specified directory for existing 3D backends
                  * @param path the directory to perform lookup
+                 * @param part the substring that should be contained in the library file name
                  */
-                void lookup_r3d_backends(const LSPString *path, const char *prefix);
+                void lookup_r3d_backends(const LSPString *path, const char *part);
 
                 /**
                  * Try to register the library as a 3D backend

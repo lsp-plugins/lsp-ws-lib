@@ -128,12 +128,13 @@ $(LSP_WS_LIB_BIN)/main/IEventHandler.o: main/IEventHandler.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/version.h
 $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/debug.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
  $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
  $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
  $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
  $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
- $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
- $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/builtin.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDisplay.h \
@@ -161,7 +162,9 @@ $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IR3DBackend.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Dir.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/File.h \
- $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/stdio.h
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/stdio.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h
 $(LSP_WS_LIB_BIN)/main/IDataSource.o: main/IDataSource.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \

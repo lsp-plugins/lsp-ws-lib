@@ -19,6 +19,7 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/r3d/iface/version.h>
 #include <lsp-plug.in/r3d/iface/factory.h>
 #include <lsp-plug.in/r3d/iface/builtin.h>
@@ -26,13 +27,71 @@
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
 #include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/IWindow.h>
+
+#define R3D_LIBRARY_FILE_PART       "lsp-r3d"
 
 namespace lsp
 {
     namespace ws
     {
+    #ifdef PLATFORM_POSIX
+        #ifdef ARCH_32BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib"
+                LSP_INSTALL_PREFIX "/lib64"
+                LSP_INSTALL_PREFIX "/bin"
+                LSP_INSTALL_PREFIX "/sbin"
+            #endif /* LSP_INSTALL_PREFIX */
 
+                "/usr/local/lib32",
+                "/usr/lib32",
+                "/lib32",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif
+
+        #ifdef ARCH_64BIT
+            static const char *library_paths[] =
+            {
+            #ifdef LSP_INSTALL_PREFIX
+                LSP_INSTALL_PREFIX "/lib"
+                LSP_INSTALL_PREFIX "/lib64"
+                LSP_INSTALL_PREFIX "/bin"
+                LSP_INSTALL_PREFIX "/sbin"
+            #endif /* LSP_INSTALL_PREFIX */
+
+                "/usr/local/lib64",
+                "/usr/lib64",
+                "/lib64",
+                "/usr/local/lib",
+                "/usr/lib",
+                "/lib",
+                "/usr/local/bin",
+                "/usr/bin",
+                "/bin",
+                "/usr/local/sbin",
+                "/usr/sbin",
+                "/sbin",
+                NULL
+            };
+        #endif /* ARCH_64_BIT */
+    #endif /* PLATFORM_POSIX */
+
+        static const ::lsp::version_t ws_lib_version=LSP_DEFINE_VERSION(LSP_WS_LIB);
+        static const ::lsp::version_t r3d_iface_version=LSP_DEFINE_VERSION(LSP_R3D_IFACE);
 
         IDisplay::IDisplay()
         {
@@ -53,12 +112,14 @@ namespace lsp
 
         const R3DBackendInfo *IDisplay::enum_backend(size_t id) const
         {
-            return s3DLibs.get(id);
+            const r3d_lib_t *lib = s3DLibs.get(id);
+            return (lib != NULL) ? &lib->info : NULL;
         };
 
         const R3DBackendInfo *IDisplay::current_backend() const
         {
-            return s3DLibs.get(nCurrent3D);
+            const r3d_lib_t *lib = s3DLibs.get(nCurrent3D);
+            return (lib != NULL) ? &lib->info : NULL;
         }
 
         ssize_t IDisplay::current_backend_id() const
@@ -71,12 +132,16 @@ namespace lsp
             if (backend == NULL)
                 return STATUS_BAD_ARGUMENTS;
 
-            const r3d_lib_t *lib = static_cast<const r3d_lib_t *>(backend);
-            ssize_t index   = s3DLibs.index_of(lib);
-            if (index < 0)
-                return STATUS_NOT_FOUND;
-
-            nPending3D      = index;
+            // Lookup the corresponding backend
+            for (size_t i=0, n=s3DLibs.size(); i<n; ++i)
+            {
+                const r3d_lib_t *lib = s3DLibs.uget(i);
+                if (backend == &lib->info)
+                {
+                    nPending3D      = i;
+                    break;
+                }
+            }
 
             return STATUS_OK;
         }
@@ -91,23 +156,25 @@ namespace lsp
             return STATUS_OK;
         }
 
-        void IDisplay::lookup_r3d_backends(const io::Path *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const io::Path *path, const char *part)
         {
             io::Dir dir;
+
+            lsp_trace("Lookup R3D in directory:%s", path->as_native());
 
             status_t res = dir.open(path);
             if (res != STATUS_OK)
                 return;
 
             io::Path child;
-            LSPString item, pref, postfix;
-            if (!pref.set_utf8(prefix))
+            LSPString item, substring;
+            if (!substring.set_utf8(part))
                 return;
 
             io::fattr_t fattr;
             while ((res = dir.read(&item, false)) == STATUS_OK)
             {
-                if (!item.starts_with(&pref))
+                if (item.index_of(&substring) < 0)
                     continue;
                 if (!ipc::Library::valid_library_name(&item))
                     continue;
@@ -130,20 +197,20 @@ namespace lsp
             }
         }
 
-        void IDisplay::lookup_r3d_backends(const char *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const char *path, const char *part)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup_r3d_backends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, part);
         }
 
-        void IDisplay::lookup_r3d_backends(const LSPString *path, const char *prefix)
+        void IDisplay::lookup_r3d_backends(const LSPString *path, const char *part)
         {
             io::Path tmp;
             if (tmp.set(path) != STATUS_OK)
                 return;
-            lookup_r3d_backends(&tmp, prefix);
+            lookup_r3d_backends(&tmp, part);
         }
 
         status_t IDisplay::register_r3d_backend(const io::Path *path)
@@ -170,7 +237,33 @@ namespace lsp
             return false;
         }
 
-        status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory)
+        void IDisplay::drop_r3d_lib(r3d_lib_t *lib)
+        {
+            if (lib == NULL)
+                return;
+
+            version_destroy(&lib->info.version);
+            delete lib;
+        }
+
+        bool IDisplay::check_duplicate(const r3d_lib_t *lib)
+        {
+            for (size_t i=0, n=s3DLibs.size(); i<n; ++i)
+            {
+                const r3d_lib_t *src = s3DLibs.uget(i);
+
+                if ((src->info.uid.equals(&lib->info.uid))
+                    && (src->info.display.equals(&lib->info.display))
+                    && (src->info.lc_key.equals(&lib->info.lc_key))
+                    && (src->info.offscreen == lib->info.offscreen)
+                    && (version_cmp(src->info.version, lib->info.version) == 0))
+                    return true;
+            }
+
+            return false;
+        }
+
+        status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion)
         {
             for (size_t id=0; ; ++id)
             {
@@ -186,31 +279,43 @@ namespace lsp
                 if (r3dlib == NULL)
                     return STATUS_NO_MEM;
 
-                r3dlib->builtin     = (path != NULL) ? NULL : factory;
-                r3dlib->local_id    = id;
-                r3dlib->offscren    = meta->wnd_type == r3d::WND_HANDLE_NONE;
+                r3dlib->builtin         = (path != NULL) ? NULL : factory;
+                r3dlib->local_id        = id;
+                r3dlib->info.offscreen  = meta->wnd_type == r3d::WND_HANDLE_NONE;
+                version_copy(&r3dlib->info.version, mversion);
                 if (path != NULL)
                 {
-                    if (!r3dlib->library.set(path))
+                    if (!r3dlib->info.library.set(path))
                     {
-                        delete r3dlib;
+                        drop_r3d_lib(r3dlib);
                         return STATUS_NO_MEM;
                     }
                 }
 
-                if ((!r3dlib->uid.set_utf8(meta->id)) ||
-                    (!r3dlib->display.set_utf8((meta->display != NULL) ? meta->display : meta->id)) ||
-                    (!r3dlib->lc_key.set_utf8((meta->lc_key != NULL) ? meta->lc_key : meta->id))
+                if ((!r3dlib->info.uid.set_utf8(meta->id)) ||
+                    (!r3dlib->info.display.set_utf8((meta->display != NULL) ? meta->display : meta->id)) ||
+                    (!r3dlib->info.lc_key.set_utf8((meta->lc_key != NULL) ? meta->lc_key : meta->id))
                     )
                 {
-                    delete r3dlib;
+                    drop_r3d_lib(r3dlib);
                     return STATUS_NO_MEM;
+                }
+
+                // Check for duplicates
+                if (check_duplicate(r3dlib))
+                {
+                    lsp_trace("    library %s provides duplicated backend %s (%s)",
+                            r3dlib->info.library.get_native(),
+                            r3dlib->info.uid.get_native(),
+                            r3dlib->info.display.get_native());
+                    drop_r3d_lib(r3dlib);
+                    return STATUS_DUPLICATED;
                 }
 
                 // Add library descriptor to the list
                 if (!s3DLibs.add(r3dlib))
                 {
-                    delete r3dlib;
+                    drop_r3d_lib(r3dlib);
                     return STATUS_NO_MEM;
                 }
             }
@@ -222,17 +327,31 @@ namespace lsp
         {
             ipc::Library lib;
 
+            lsp_trace("  probing library %s", path->get_native());
+
             // Open library
             status_t res = lib.open(path);
             if (res != STATUS_OK)
                 return res;
 
-            // Perform module version control
-            static const ::lsp::version_t r3d_version=LSP_DEFINE_VERSION(LSP_R3D_IFACE); // The required version of R3D interface
-            module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
+            // Perform R3D interface version control
+            module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_R3D_IFACE_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
-            if ((mversion == NULL) || (version_cmp(&r3d_version, mversion) != 0))
+            if ((mversion == NULL) || (version_cmp(&r3d_iface_version, mversion) != 0))
             {
+                lsp_trace("    mismatched R3D interface version: %d.%d.%d-%s vs %d.%d.%d-%s",
+                            r3d_iface_version.major, r3d_iface_version.minor, r3d_iface_version.micro, r3d_iface_version.branch,
+                            mversion->major, mversion->minor, mversion->micro, mversion->branch);
+                lib.close();
+                return STATUS_INCOMPATIBLE;
+            }
+
+            // Get the module version
+            vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_VERSION_FUNC_NAME));
+            mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
+            if (mversion == NULL)
+            {
+                lsp_trace("    missing module version function");
                 lib.close();
                 return STATUS_INCOMPATIBLE;
             }
@@ -241,6 +360,7 @@ namespace lsp
             r3d::factory_function_t func = reinterpret_cast<r3d::factory_function_t>(lib.import(LSP_R3D_FACTORY_FUNCTION_NAME));
             if (func == NULL)
             {
+                lsp_trace("    missing factory function %s", LSP_R3D_FACTORY_FUNCTION_NAME);
                 lib.close();
                 return STATUS_NOT_FOUND;
             }
@@ -254,7 +374,7 @@ namespace lsp
                     break;
 
                 // Fetch metadata and store
-                res = commit_r3d_factory(path, factory);
+                res = commit_r3d_factory(path, factory, mversion);
                 ++found;
             }
 
@@ -275,7 +395,7 @@ namespace lsp
                     break;
 
                 // Commit factory to the list of backends
-                if ((res = commit_r3d_factory(NULL, factory)) != STATUS_OK)
+                if ((res = commit_r3d_factory(NULL, factory, &ws_lib_version)) != STATUS_OK)
                     return res;
             }
 
@@ -285,7 +405,13 @@ namespace lsp
             if (res == STATUS_OK)
                 res     = path.parent();
             if (res == STATUS_OK)
-                lookup_r3d_backends(&path, "");
+                lookup_r3d_backends(&path, R3D_LIBRARY_FILE_PART);
+
+            // Scan for standard paths
+        #ifdef PLATFORM_POSIX
+            for (const char **paths = library_paths; *paths != NULL; ++paths)
+                lookup_r3d_backends(*paths, R3D_LIBRARY_FILE_PART);
+        #endif /* PLATFORM_POSIX */
 
             return STATUS_OK;
         }
@@ -317,7 +443,7 @@ namespace lsp
             for (size_t j=0, m=s3DLibs.size(); j<m; ++j)
             {
                 r3d_lib_t *r3dlib = s3DLibs.uget(j);
-                delete r3dlib;
+                drop_r3d_lib(r3dlib);
             }
 
             // Flush list of backends and close library
@@ -436,7 +562,7 @@ namespace lsp
             if (!lib->builtin)
             {
                 // Load the library
-                res = dlib.open(&lib->library);
+                res = dlib.open(&lib->info.library);
                 if (res != STATUS_OK)
                     return res;
 
@@ -456,7 +582,7 @@ namespace lsp
                         // Get metadata
                         const r3d::backend_metadata_t *meta = factory->metadata(factory, lib->local_id);
                         if ((meta != NULL) &&
-                            (strcmp(meta->id, lib->uid.get_utf8()) == 0))
+                            (strcmp(meta->id, lib->info.uid.get_utf8()) == 0))
                             break;
                     }
                 }
@@ -532,6 +658,13 @@ namespace lsp
 
         void IDisplay::quit_main()
         {
+        }
+
+        status_t IDisplay::wait_events(wssize_t millis)
+        {
+            if (millis > 0)
+                ipc::Thread::sleep(millis);
+            return STATUS_OK;
         }
 
         size_t IDisplay::screens()

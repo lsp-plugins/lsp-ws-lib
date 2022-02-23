@@ -295,6 +295,7 @@ namespace lsp
             void X11Window::destroy()
             {
                 // Drop surface
+                hide();
                 drop_surface();
 
                 if (!bWrapper)
@@ -339,7 +340,7 @@ namespace lsp
                 return pSurface;
             }
 
-            status_t X11Window::do_update_constraints()
+            status_t X11Window::do_update_constraints(bool disable)
             {
                 if (hWindow == 0)
                     return STATUS_BAD_STATE;
@@ -351,10 +352,17 @@ namespace lsp
                 sz.width        = sSize.nWidth;
                 sz.height       = sSize.nHeight;
 
-                if (nActions & WA_RESIZE)
+                if (disable)
                 {
-                    sz.min_width    = (sConstraints.nMinWidth > 0) ? sConstraints.nMinWidth : 0;
-                    sz.min_height   = (sConstraints.nMinHeight > 0) ? sConstraints.nMinHeight : 0;
+                    sz.min_width    = 1;
+                    sz.min_height   = 1;
+                    sz.max_width    = INT_MAX;
+                    sz.max_height   = INT_MAX;
+                }
+                else if (nActions & WA_RESIZE)
+                {
+                    sz.min_width    = (sConstraints.nMinWidth > 0) ? sConstraints.nMinWidth : 1;
+                    sz.min_height   = (sConstraints.nMinHeight > 0) ? sConstraints.nMinHeight : 1;
                     sz.max_width    = (sConstraints.nMaxWidth > 0) ? sConstraints.nMaxWidth : INT_MAX;
                     sz.max_height   = (sConstraints.nMaxHeight > 0) ? sConstraints.nMaxHeight : INT_MAX;
                 }
@@ -559,6 +567,7 @@ namespace lsp
                     case BS_NONE:
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
                         sMotif.decorations  = 0;
                         sMotif.input_mode   = MWM_INPUT_FULL_APPLICATION_MODAL;
                         sMotif.status       = 0;
@@ -575,11 +584,8 @@ namespace lsp
                         break;
                 }
 
-                if (hWindow == 0)
-                {
-                    nFlags |= F_SYNC_WM;
+                if (hWindow == None)
                     return STATUS_OK;
-                }
 
                 // Send changes to X11
                 const x11_atoms_t &a = pX11Display->atoms();
@@ -592,7 +598,7 @@ namespace lsp
                 {
                     case BS_DIALOG:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DIALOG;
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NOTIFICATION;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_NONE:
@@ -601,12 +607,19 @@ namespace lsp
                     case BS_POPUP:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_POPUP_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
+                        break;
+
+                    case BS_DROPDOWN:
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_COMBO:
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_MENU;
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_POPUP_MENU;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_COMBO;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
 
                     case BS_SINGLE:
@@ -640,8 +653,8 @@ namespace lsp
                     case BS_NONE:           // Not resizable; no visible border line
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
                         atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
-                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu
@@ -740,9 +753,11 @@ namespace lsp
 //                if (hParent > 0)
 //                    XMoveWindow(pX11Display->x11display(), hParent, sSize.nLeft, sSize.nTop);
 //                else
-                status_t result = do_update_constraints();
+                status_t result = do_update_constraints(true);
                 if (hParent <= 0)
                     ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
+                if (result == STATUS_OK)
+                    result = do_update_constraints();
                 if (result != STATUS_OK)
                     return result;
                 pX11Display->flush();
@@ -765,8 +780,15 @@ namespace lsp
 
 //                lsp_trace("width=%d, height=%d", int(width), int(height));
 
-                status_t result = do_update_constraints();
-                ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+                status_t result = do_update_constraints(true);
+
+                XWindowAttributes xwa;
+                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+                if ((sSize.nWidth != xwa.width) || (sSize.nHeight != xwa.height))
+                    ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+
+                if (result == STATUS_OK)
+                    result = do_update_constraints();
 //                if (hParent > 0)
 //                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
                 if (result != STATUS_OK)
@@ -792,7 +814,7 @@ namespace lsp
 
 //                lsp_trace("left=%d, top=%d, width=%d, height=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
-                status_t result = do_update_constraints();
+                status_t result = do_update_constraints(true);
                 if (hParent > 0)
                 {
                     if ((old.nWidth == sSize.nWidth) &&
@@ -811,6 +833,9 @@ namespace lsp
 
                     ::XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
                 }
+                if (result == STATUS_OK)
+                    result = do_update_constraints();
+
                 if (result != STATUS_OK)
                     return result;
 
@@ -926,17 +951,14 @@ namespace lsp
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
 //                lsp_trace("window x=%d, y=%d", atts.x, atts.y);
 
-                if (nFlags & F_SYNC_WM)
-                {
-                    nFlags      &= ~F_SYNC_WM;
-                    set_border_style(enBorderStyle);
-                    set_window_actions(nActions);
-                };
+                set_border_style(enBorderStyle);
+                set_window_actions(nActions);
 
                 switch (enBorderStyle)
                 {
                     case BS_POPUP:
                     case BS_COMBO:
+                    case BS_DROPDOWN:
 //                        pX11Display->grab_events(this);
 //                        nFlags |= F_GRABBING;
                         break;
@@ -992,11 +1014,22 @@ namespace lsp
                 if (hWindow == None)
                     return STATUS_OK;
 
-                XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+                // Temporarily drop constraints
+                status_t result = do_update_constraints(true);
+                if (result != STATUS_OK)
+                    return result;
+
+                // Resize window if needed
+                XWindowAttributes xwa;
+                XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+                if ((xwa.width != sSize.nWidth) && (xwa.height != sSize.nHeight))
+                    XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
 //                if (hParent > 0)
 //                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
 
-                status_t result = do_update_constraints();
+                // Update constraints
+                if (result == STATUS_OK)
+                    result = do_update_constraints();
                 if (result != STATUS_OK)
                     return result;
                 pX11Display->flush();
@@ -1039,7 +1072,7 @@ namespace lsp
                 ev.xclient.window       = pX11Display->hRootWnd;
                 ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
                 ev.xclient.format       = 32;
-                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO)) ? 2 : 1;
+                ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO) || (enBorderStyle == BS_DROPDOWN)) ? 2 : 1;
                 ev.xclient.data.l[1]    = CurrentTime;
                 ev.xclient.data.l[2]    = hWindow;
                 ev.xclient.data.l[3]    = 0;
@@ -1258,11 +1291,8 @@ namespace lsp
                 if (actions & WA_CLOSE)
                     sMotif.functions       |= MWM_FUNC_CLOSE;
 
-                if (hWindow == 0)
-                {
-                    nFlags |= F_SYNC_WM;
+                if (hWindow == None)
                     return STATUS_OK;
-                }
 
                 // Set window actions
                 Atom atoms[10];
