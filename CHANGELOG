@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.1 ===
+* Updated build scripts.
 
 === 1.0.0 ===
 * Added new IDisplay::wait_events() method for polling display for incoming events.
