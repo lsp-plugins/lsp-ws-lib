@@ -30,14 +30,17 @@
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/runtime/system.h>
-#include <private/x11/decode.h>
+#include <lsp-plug.in/ws/x11/decode.h>
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
 
 #include <poll.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/cursorfont.h>
+
 
 #ifdef USE_LIBCAIRO
     #include <cairo.h>
@@ -2191,7 +2194,7 @@ namespace lsp
                     Atom xtype          = None;
 
                     // Test for support of XDnD protocol
-                    status_t res    = read_property(child, sAtoms.X11_XdndAware, XA_ATOM, &data, &size, &xtype);
+                    status_t res    = read_property(child, sAtoms.X11_XdndAware, sAtoms.X11_XA_ATOM, &data, &size, &xtype);
                     lsp_trace("xDndAware res=%d, xtype=%d, size=%d", int(res), int(xtype), int(size));
                     if ((res != STATUS_OK) || (xtype == None) || (size < 1) || (data[0] < 1))
                     {
