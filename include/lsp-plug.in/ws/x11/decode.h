@@ -23,15 +23,9 @@
 #define LSP_PLUG_IN_WS_X11_DECODE_H_
 
 #include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/ws/types.h>
 
 #ifdef USE_LIBX11
-
-#include <lsp-plug.in/ws/types.h>
-#include <X11/Xlib.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
 
 namespace lsp
 {
@@ -45,7 +39,7 @@ namespace lsp
 
             size_t      decode_state(size_t code);
 
-            code_t   decode_keycode(KeySym code);
+            code_t      decode_keycode(unsigned long code);
         }
     }
 }

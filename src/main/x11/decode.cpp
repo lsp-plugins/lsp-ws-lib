@@ -23,9 +23,9 @@
 
 #ifdef USE_LIBX11
 
-#include <private/x11/decode.h>
 #include <lsp-plug.in/ws/keycodes.h>
-#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/ws/x11/decode.h>
+#include <X11/Xlib.h>
 
 namespace lsp
 {
@@ -995,7 +995,7 @@ namespace lsp
                 return result;
             }
 
-            code_t decode_keycode(KeySym code)
+            code_t decode_keycode(unsigned long code)
             {
                 /* FROM <x11/keysymdef.h>:
                  *
@@ -1017,7 +1017,6 @@ namespace lsp
                  * non-hexadecimal mnemonic name is needed, or where the new keysym
                  * does not represent any existing Unicode character.
                  */
-                lsp_trace("code = %x", int(code));
                 if (code <= 0xff)
                 {
                     if ((code >= 0x20) && (code <= 0x7e))
