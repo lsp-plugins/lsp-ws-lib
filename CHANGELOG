@@ -4,6 +4,7 @@
 
 === 1.0.2 ===
 - Fixed bugs related to usage of custom installation prefix.
+- Fixed bug that caused improper window sizing when applying window constraints.
 - Moved X11 event decoding to public interface.
 - Updated headers.
 

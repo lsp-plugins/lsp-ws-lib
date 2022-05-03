@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/ws/IWindow.h>
+#include <lsp-plug.in/common/debug.h>
 
 namespace lsp
 {
@@ -109,10 +110,15 @@ namespace lsp
 
         status_t IWindow::resize(ssize_t width, ssize_t height)
         {
+//            lsp_trace("w=%d, h=%d", int(width), int(height));
+
             rectangle_t r;
             status_t result = get_geometry(&r);
             if (result != STATUS_OK)
+            {
+//                lsp_trace("get_geometry falied: err=%d", int(result));
                 return result;
+            }
 
             r.nWidth        = width;
             r.nHeight       = height;
@@ -133,41 +139,49 @@ namespace lsp
 
         status_t IWindow::set_geometry(const rectangle_t *realize)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::set_border_style(border_style_t style)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::get_border_style(border_style_t *style)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::get_geometry(rectangle_t *realize)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::get_absolute_geometry(rectangle_t *realize)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::hide()
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::show()
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::show(IWindow *over)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
@@ -311,11 +325,13 @@ namespace lsp
 
         status_t IWindow::set_focus(bool focus)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
         status_t IWindow::toggle_focus()
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
@@ -334,6 +350,7 @@ namespace lsp
 
         status_t IWindow::set_icon(const void *bgra, size_t width, size_t height)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
@@ -361,6 +378,7 @@ namespace lsp
 
         status_t IWindow::grab_events(grab_t grab)
         {
+            lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
