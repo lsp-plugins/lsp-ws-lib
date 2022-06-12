@@ -396,5 +396,10 @@ namespace lsp
         {
             return STATUS_OK;
         }
+
+        bool IWindow::has_parent() const
+        {
+            return false;
+        }
     } /* namespace ws */
 } /* namespace lsp */

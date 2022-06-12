@@ -410,6 +410,12 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t set_role(const char *wrole);
+
+                /**
+                 * Check that window is embedded into some another window (has parents).
+                 * @return true if window is embedded into some another window.
+                 */
+                virtual bool has_parent() const;
         };
     } /* namespace ws */
 } /* namespace lsp */

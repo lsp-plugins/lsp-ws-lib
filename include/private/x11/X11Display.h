@@ -233,6 +233,8 @@ namespace lsp
                     lltl::pphash<char, font_t>  vCustomFonts;
                     xtranslate_t                sTranslateReq;
 
+                    lltl::darray<MonitorInfo>   vMonitors;
+
                 protected:
                     void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
@@ -296,6 +298,8 @@ namespace lsp
 
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
 
+                    static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
+
                 public:
                     explicit X11Display();
                     virtual ~X11Display();
@@ -337,6 +341,8 @@ namespace lsp
                     virtual status_t            add_font_alias(const char *name, const char *alias);
                     virtual status_t            remove_font(const char *name);
                     virtual void                remove_all_fonts();
+
+                    virtual const MonitorInfo  *enum_monitors(size_t *count);
 
                 public:
                     bool                        add_window(X11Window *wnd);

@@ -40,6 +40,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xrandr.h>
 
 
 #ifdef USE_LIBCAIRO
@@ -48,6 +49,12 @@
 #endif /* USE_LIBCAIRO */
 
 #define X11IOBUF_SIZE               0x100000
+
+// Define the placement-new for our construction/destruction tricks
+inline void *operator new (size_t size, void *ptr)
+{
+    return ptr;
+}
 
 namespace lsp
 {
@@ -390,6 +397,9 @@ namespace lsp
                         break;
                     }
                 }
+
+                // Drop allocated information about monitors
+                drop_monitors(&vMonitors);
 
                 // Deallocate previously allocated fonts
                 drop_custom_fonts();
@@ -3991,6 +4001,62 @@ namespace lsp
                         return NULL;
                     name        = res->alias;
                 }
+            }
+
+            void X11Display::drop_monitors(lltl::darray<MonitorInfo> *list)
+            {
+                for (size_t i=0, n=list->size(); i<n; ++i)
+                {
+                    MonitorInfo *mi = list->uget(i);
+                    mi->name.~LSPString();
+                }
+                list->flush();
+            }
+
+            const MonitorInfo *X11Display::enum_monitors(size_t *count)
+            {
+            #ifdef USE_LIBXRANDR
+                lltl::darray<MonitorInfo> result;
+
+                // Form the result
+                int nmonitors = 0;
+                XRRMonitorInfo *info = XRRGetMonitors(pDisplay, hRootWnd, True, &nmonitors);
+                if (info != NULL)
+                {
+                    MonitorInfo *items = result.add_n(nmonitors);
+                    for (int i=0; i<nmonitors; ++i)
+                    {
+                        const XRRMonitorInfo *si = &info[i];
+                        MonitorInfo *di          = &items[i];
+
+                        // Save the name of monitor
+                        new (static_cast<void *>(&di->name)) LSPString;
+                        char *a_name    = ::XGetAtomName(pDisplay, si->name);
+                        if (a_name != NULL)
+                        {
+                            di->name.set_utf8(a_name);
+                            XFree(a_name);
+                        }
+
+                        // Other flags
+                        di->primary     = si->primary;
+                        di->rect.nLeft  = si->x;
+                        di->rect.nTop   = si->y;
+                        di->rect.nWidth = si->width;
+                        di->rect.nHeight= si->height;
+                    }
+
+                    XRRFreeMonitors(info);
+                }
+
+                // Update state, drop previous state and return result
+                vMonitors.swap(result);
+                drop_monitors(&result);
+            #endif /* USE_LIBXRANDR */
+
+                if (count != NULL)
+                    *count = vMonitors.size();
+                return vMonitors.array();
             }
 
         } /* namespace x11 */

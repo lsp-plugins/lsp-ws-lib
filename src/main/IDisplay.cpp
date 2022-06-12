@@ -857,6 +857,13 @@ namespace lsp
         void IDisplay::remove_all_fonts()
         {
         }
+
+        const MonitorInfo *IDisplay::enum_monitors(size_t *count)
+        {
+            if (count != NULL)
+                *count = 0;
+            return NULL;
+        }
     }
 
 } /* namespace lsp */

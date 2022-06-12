@@ -50,9 +50,16 @@ namespace lsp
             LSPString   uid;
             LSPString   display;
             LSPString   lc_key;
-            version_t   version;        // Module version
-            bool        offscreen;      // Off-screen rendering engine
+            version_t   version;            // Module version
+            bool        offscreen;          // Off-screen rendering engine
         } R3DBackendInfo;
+
+        typedef struct MonitorInfo
+        {
+            LSPString           name;       // The name of monitor
+            bool                primary;    // The monitor is primary
+            ws::rectangle_t     rect;       // The position and size of monitor
+        } MonitorInfo;
 
         /** Display
          *
@@ -429,6 +436,15 @@ namespace lsp
                  * Remove all previously loaded custom fonts and aliases
                  */
                 virtual void remove_all_fonts();
+
+                /**
+                 * Enumerate list of mointors and return the pointer to the list of monitors.
+                 * The list of monitors is valid until the next enum_monitors() call.
+                 *
+                 * @param count number of actual monitors enumerated
+                 * @return pointer to enumerated monitors or error.
+                 */
+                virtual const MonitorInfo       *enum_monitors(size_t *count);
         };
 
     } /* namespace ws */
