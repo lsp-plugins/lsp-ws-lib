@@ -75,10 +75,11 @@ namespace lsp
                 XC_xterm,                   // MP_IBEAM
                 XC_pencil,                  // MP_DRAW
                 XC_plus,                    // MP_PLUS
-                XC_bottom_right_corner,     // MP_SIZE_NESW
+                XC_sizing,                  // MP_SIZE
+                XC_bottom_left_corner,      // MP_SIZE_NESW
                 XC_sb_v_double_arrow,       // MP_SIZE_NS
                 XC_sb_h_double_arrow,       // MP_SIZE_WE
-                XC_bottom_left_corner,      // MP_SIZE_NWSE
+                XC_bottom_right_corner,     // MP_SIZE_NWSE
                 XC_center_ptr,              // MP_UP_ARROW
                 XC_watch,                   // MP_HOURGLASS
                 XC_fleur,                   // MP_DRAG

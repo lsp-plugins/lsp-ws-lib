@@ -151,6 +151,7 @@ namespace lsp
             MP_IBEAM,           // Text-editing I-beam
             MP_DRAW,            // Drawing tool (pencil)
             MP_PLUS,            // Plus
+            MP_SIZE,            // Size
             MP_SIZE_NESW,       // Sizing cursor oriented diagonally from northeast to southwest
             MP_SIZE_NS,         // Sizing cursor oriented vertically
             MP_SIZE_WE,         // Sizing cursor oriented horizontally
@@ -171,7 +172,6 @@ namespace lsp
             __MP_COUNT      = __MP_LAST + 1,
 
             // Aliases
-            MP_SIZE         = MP_ARROW,
             MP_TEXT         = MP_IBEAM,
             MP_VSIZE        = MP_SIZE_NS,
             MP_HSIZE        = MP_SIZE_WE,
