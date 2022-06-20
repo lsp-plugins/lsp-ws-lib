@@ -56,7 +56,8 @@ $(LSP_WS_LIB_BIN)/main/IWindow.o: main/IWindow.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/Color.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSink.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
- $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/debug.h
 $(LSP_WS_LIB_BIN)/main/ISurface.o: main/ISurface.cpp \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \

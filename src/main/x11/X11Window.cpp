@@ -1414,7 +1414,26 @@ namespace lsp
 
                 return STATUS_OK;
             }
-        }
+
+            bool X11Window::has_parent() const
+            {
+                Window root = None, parent = None, *children = NULL;
+                unsigned int num_children;
+
+                XQueryTree(
+                    pX11Display->x11display(),
+                    hWindow, &root, &parent,
+                    &children, &num_children);
+
+                bool embedded = parent != root;
+
+                if (children != NULL)
+                    XFree(children);
+
+                return embedded;
+            }
+
+        } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */
 

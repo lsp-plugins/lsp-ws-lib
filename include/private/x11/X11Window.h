@@ -367,6 +367,8 @@ namespace lsp
                      * @return status of operation
                      */
                     virtual status_t set_role(const char *wrole);
+
+                    virtual bool has_parent() const;
             };
         }
     
