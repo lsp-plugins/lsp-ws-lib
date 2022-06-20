@@ -3,9 +3,9 @@
 *******************************************************************************
 
 === 1.0.3 ===
-- Added IWindow::has_parent() method to check that window is embedded into another window.
-- Added IDisplay::enum_monitors() method to query current state of connected monitors.
-- Added xrandr library dependency for the X.11-compatible systems.
+* Added IWindow::has_parent() method to check that window is embedded into another window.
+* Added IDisplay::enum_monitors() method to query current state of connected monitors.
+* Added xrandr library dependency for the X.11-compatible systems.
 * Updated build scripts.
 
 === 1.0.2 ===
