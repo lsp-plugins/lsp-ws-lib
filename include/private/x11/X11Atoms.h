@@ -23,6 +23,9 @@
 #define UI_X11_X11ATOMS_H_
 
 #include <lsp-plug.in/ws/version.h>
+
+#ifdef USE_LIBX11
+
 #include <lsp-plug.in/common/status.h>
 #include <X11/Xlib.h>
 
@@ -155,5 +158,6 @@ namespace lsp
     }
 }
 
+#endif /* USE_LIBX11 */
 
 #endif /* UI_X11_X11ATOMS_H_ */

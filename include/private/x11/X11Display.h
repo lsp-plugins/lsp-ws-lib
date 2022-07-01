@@ -23,14 +23,15 @@
 #define UI_X11_X11DISPLAY_H_
 
 #include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/ws/IDisplay.h>
+
+#ifdef USE_LIBX11
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/ws/IDisplay.h>
 
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
@@ -369,8 +370,10 @@ namespace lsp
                 public:
                     static const char          *event_name(int xev_code);
             };
-        }
-    }
-}
+        } /* namespace x11 */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* USE_LIBX11 */
 
 #endif /* UI_X11_X11DISPLAY_H_ */

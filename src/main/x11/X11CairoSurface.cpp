@@ -19,15 +19,17 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
+
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
-
-#if defined(USE_LIBX11) && defined (USE_LIBCAIRO)
-
 #include <lsp-plug.in/stdlib/math.h>
+
+
 #include <private/x11/X11CairoGradient.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11Display.h>
+
 #include <cairo/cairo.h>
 #include <cairo/cairo-ft.h>
 #include <cairo/cairo-xlib.h>
@@ -1352,4 +1354,4 @@ namespace lsp
 
 } /* namespace lsp */
 
-#endif /* USE_LIBX11 && USE_LIBCAIRO */
+#endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */

@@ -19,9 +19,9 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/common/types.h>
-
 #if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
+
+#include <lsp-plug.in/common/types.h>
 
 #include <private/x11/X11CairoGradient.h>
 
@@ -71,4 +71,4 @@ namespace lsp
     }
 } /* namespace lsp */
 
-#endif /* USE_LIBX11 && USE_LIBCAIRO */
+#endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */

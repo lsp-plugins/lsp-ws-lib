@@ -23,11 +23,12 @@
 #define UI_X11_X11CAIROGRADIENT_H_
 
 #include <lsp-plug.in/ws/version.h>
+
+#if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
+
 #include <lsp-plug.in/common/types.h>
-
-#ifdef USE_LIBCAIRO
-
 #include <lsp-plug.in/ws/IGradient.h>
+
 #include <cairo/cairo.h>
 
 namespace lsp
@@ -77,6 +78,6 @@ namespace lsp
     }
 } /* namespace lsp */
 
-#endif /* USE_LIBCAIRO */
+#endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
 
 #endif /* UI_X11_X11CAIROGRADIENT_H_ */

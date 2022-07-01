@@ -23,6 +23,9 @@
 #define UI_X11_WINDOW_H_
 
 #include <lsp-plug.in/ws/version.h>
+
+#ifdef USE_LIBX11
+
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
@@ -100,12 +103,6 @@ namespace lsp
                     virtual void        destroy();
 
                 public:
-                    /** Get event handler
-                     *
-                     * @return event handler
-                     */
-                    inline IEventHandler *get_handler() { return pHandler; }
-
                     /** Get surface for drawing
                      *
                      * @return surface for drawing
@@ -166,15 +163,6 @@ namespace lsp
                      * @return status of operation
                      */
                     virtual status_t handle_event(const event_t *ev);
-
-                    /** Set event handler
-                     *
-                     * @param handler event handler
-                     */
-                    inline void set_handler(IEventHandler *handler)
-                    {
-                        pHandler = handler;
-                    }
 
                     /** Move window
                      *
@@ -370,9 +358,10 @@ namespace lsp
 
                     virtual bool has_parent() const;
             };
-        }
-    
-    } /* namespace x11ui */
+        } /* namespace x11 */
+    } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* USE_LIBX11 */
 
 #endif /* UI_X11_WINDOW_H_ */

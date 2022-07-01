@@ -23,11 +23,12 @@
 #define UI_X11_X11CAIROSURFACE_H_
 
 #include <lsp-plug.in/ws/version.h>
+
+#if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
+
 #include <lsp-plug.in/common/types.h>
 
 #include <private/x11/X11Display.h>
-
-#ifdef USE_LIBCAIRO
 
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/ws/IGradient.h>
@@ -243,6 +244,7 @@ namespace lsp
     }
 
 } /* namespace lsp */
-#endif /* USE_LIBCAIRO */
+
+#endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
 
 #endif /* UI_X11_X11CAIROSURFACE_H_ */

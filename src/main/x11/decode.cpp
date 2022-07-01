@@ -19,12 +19,12 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/common/types.h>
-
 #ifdef USE_LIBX11
 
+#include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
 #include <lsp-plug.in/ws/x11/decode.h>
+
 #include <X11/Xlib.h>
 
 namespace lsp
