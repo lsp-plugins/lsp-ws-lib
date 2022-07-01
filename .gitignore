@@ -11,3 +11,6 @@
 **/*.gmon
 *.core
 /.config.mk
+/Debug Windows/
+/Debug Win/
+/DebugWin/
