@@ -21,7 +21,6 @@
 # List of dependencies
 DEPENDENCIES = \
   LIBPTHREAD \
-  LIBDL \
   LSP_COMMON_LIB \
   LSP_LLTL_LIB \
   LSP_R3D_IFACE \
@@ -32,6 +31,7 @@ TEST_DEPENDENCIES = \
 
 ifeq ($(PLATFORM),Linux)
   DEPENDENCIES             += \
+    LIBDL \
     LIBSNDFILE \
     LIBCAIRO \
     LIBFREETYPE \
@@ -46,6 +46,7 @@ endif
 
 ifeq ($(PLATFORM),BSD)
   DEPENDENCIES             += \
+    LIBDL \
     LIBSNDFILE \
     LIBICONV \
     LIBCAIRO \
