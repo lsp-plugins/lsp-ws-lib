@@ -263,6 +263,21 @@ namespace lsp
             return false;
         }
 
+        int IDisplay::compute_poll_delay(timestamp_t ts, int poll_delay)
+        {
+            if (sTasks.size() <= 0)
+                return poll_delay;
+
+            dtask_t *t          = sTasks.first();
+            ssize_t delta       = t->nTime - ts;
+            if (delta <= 0)
+                return 0;
+            else if (delta <= poll_delay)
+                return delta;
+
+            return poll_delay;
+        }
+
         status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion)
         {
             for (size_t id=0; ; ++id)
@@ -469,6 +484,33 @@ namespace lsp
         {
             if (sMainTask.pHandler != NULL)
                 sMainTask.pHandler(time, time, sMainTask.pArg);
+        }
+
+        status_t IDisplay::process_pending_tasks(timestamp_t time)
+        {
+            status_t result = STATUS_OK;
+
+            while (true)
+            {
+                // Get next task
+                dtask_t *t  = sTasks.first();
+                if ((t == NULL) || (t->nTime > time))
+                    break;
+
+                // Process the task
+                status_t hresult    = t->pHandler(t->nTime, time, t->pArg);
+                if (hresult != STATUS_OK)
+                    result      = hresult;
+
+                // Remove the task from the queue
+                if (!sTasks.shift())
+                {
+                    result = STATUS_UNKNOWN_ERR;
+                    break;
+                }
+            }
+
+            return result;
         }
 
         status_t IDisplay::main()

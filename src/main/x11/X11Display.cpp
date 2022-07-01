@@ -350,7 +350,6 @@ namespace lsp
                 }
 
                 vWindows.flush();
-                sPending.flush();
                 for (size_t i=0; i<__GRAB_TOTAL; ++i)
                     vGrab[i].clear();
                 sTargets.clear();
@@ -505,19 +504,9 @@ namespace lsp
                     // Get current time
                     system::get_time(&ts);
                     timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
-                    int wtime           = 50; // How many milliseconds to wait
 
-                    if (sTasks.size() > 0)
-                    {
-                        dtask_t *t          = sTasks.first();
-                        ssize_t delta       = t->nTime - xts;
-                        if (delta <= 0)
-                            wtime               = -1;
-                        else if (delta <= wtime)
-                            wtime               = delta;
-                    }
-                    else if (::XPending(pDisplay) > 0)
-                        wtime               = 0;
+                    // Compute how many milliseconds to wait for the event
+                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, 50);
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
@@ -621,47 +610,8 @@ namespace lsp
                     handle_event(&event);
                 }
 
-                // Generate list of tasks for processing
-                sPending.clear();
-
-                while (true)
-                {
-                    // Get next task
-                    dtask_t *t  = sTasks.first();
-                    if (t == NULL)
-                        break;
-
-                    // Do we need to process this task ?
-                    if (t->nTime > ts)
-                        break;
-
-                    // Allocate task in pending queue
-                    t   = sPending.append();
-                    if (t == NULL)
-                        return STATUS_NO_MEM;
-
-                    // Remove the task from the queue
-                    if (!sTasks.remove(0, t))
-                    {
-                        result = STATUS_UNKNOWN_ERR;
-                        break;
-                    }
-                }
-
                 // Process pending tasks
-                if (result == STATUS_OK)
-                {
-                    // Execute all tasks in pending queue
-                    for (size_t i=0; i<sPending.size(); ++i)
-                    {
-                        dtask_t *t  = sPending.uget(i);
-
-                        // Process task
-                        result  = t->pHandler(t->nTime, ts, t->pArg);
-                        if (result != STATUS_OK)
-                            break;
-                    }
-                }
+                result  = process_pending_tasks(ts);
 
                 // Flush & sync display
                 ::XFlush(pDisplay);

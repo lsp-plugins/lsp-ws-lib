@@ -107,9 +107,19 @@ namespace lsp
                 status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
+                status_t            process_pending_tasks(timestamp_t time);
                 virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
                 static void         drop_r3d_lib(r3d_lib_t *lib);
                 bool                check_duplicate(const r3d_lib_t *lib);
+
+                /**
+                 * Estimate the delay for the first scheduled task and reduce the passed polling delay
+                 * if there is pending scheduled task
+                 * @param ts current timestamp
+                 * @param poll_delay the estimated polling delay
+                 * @return the updated polling delay
+                 */
+                int                 compute_poll_delay(timestamp_t ts, int poll_delay);
 
             public:
                 explicit IDisplay();

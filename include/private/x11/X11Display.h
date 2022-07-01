@@ -223,7 +223,6 @@ namespace lsp
                     cairo_user_data_key_t       sCairoUserDataKey;
                 #endif /* USE_LIBCAIRO */
 
-                    lltl::darray<dtask_t>       sPending;
                     lltl::darray<x11_screen_t>  vScreens;
                     lltl::parray<X11Window>     vWindows;
                     lltl::parray<X11Window>     vGrab[__GRAB_TOTAL];
