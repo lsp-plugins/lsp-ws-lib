@@ -95,268 +95,74 @@ namespace lsp
                      *
                      * @return status of operation
                      */
-                    virtual status_t    init();
+                    virtual status_t    init() override;
 
                     /** Window finalization routine
                      *
                      */
-                    virtual void        destroy();
+                    virtual void        destroy() override;
 
                 public:
-                    /** Get surface for drawing
-                     *
-                     * @return surface for drawing
-                     */
-                    virtual ISurface *get_surface();
-
-                    /** Get left coordinate of window
-                     *
-                     * @return value
-                     */
-                    virtual ssize_t left();
-
-                    /** Get top coordinate of window
-                     *
-                     * @return value
-                     */
-                    virtual ssize_t top();
-
-                    /** Get width of the window
-                     *
-                     * @return value
-                     */
-                    virtual ssize_t width();
-
-                    /** Get height of the window
-                     *
-                     * @return value
-                     */
-                    virtual ssize_t height();
-
-                    /** Get window visibility
-                     *
-                     * @return true if window is visible
-                     */
-                    virtual bool is_visible();
-
-                    /** Get native handle
-                     *
-                     */
-                    virtual void *handle();
-
-                    /** Get window's screen
-                     *
-                     * @return window's screen
-                     */
-                    virtual size_t screen();
-
-                    virtual status_t set_caption(const char *ascii, const char *utf8);
-
                     inline ::Window x11handle() const { return hWindow; }
-
                     inline ::Window x11parent() const { return hParent; }
 
                 public:
-                    /** Handle X11 event
-                     *
-                     * @param ev event to handle
-                     * @return status of operation
-                     */
-                    virtual status_t handle_event(const event_t *ev);
+                    virtual ISurface   *get_surface() override;
 
-                    /** Move window
-                     *
-                     * @param left left coordinate
-                     * @param top top coordinate
-                     * @return status of operation
-                     */
-                    virtual status_t move(ssize_t left, ssize_t top);
+                    virtual ssize_t     left() override;
+                    virtual ssize_t     top() override;
+                    virtual ssize_t     width() override;
+                    virtual ssize_t     height() override;
+                    virtual status_t    set_left(ssize_t left) override;
+                    virtual status_t    set_top(ssize_t top) override;
+                    virtual ssize_t     set_width(ssize_t width) override;
+                    virtual ssize_t     set_height(ssize_t height) override;
+                    virtual status_t    set_geometry(const rectangle_t *realize) override;
+                    virtual status_t    get_geometry(rectangle_t *realize) override;
+                    virtual status_t    get_absolute_geometry(rectangle_t *realize) override;
 
-                    /** Resize window
-                     *
-                     * @param width window width
-                     * @param height window height
-                     * @return status of operation
-                     */
-                    virtual status_t resize(ssize_t width, ssize_t height);
+                    virtual void       *handle() override;
 
-                    /** Set window geometry
-                     *
-                     * @param realize window realization structure
-                     * @return status of operation
-                     */
-                    virtual status_t set_geometry(const rectangle_t *realize);
+                    virtual size_t      screen() override;
 
-                    /** Set window's border style
-                     *
-                     * @param style window's border style
-                     * @return status of operation
-                     */
-                    virtual status_t set_border_style(border_style_t style);
+                    virtual status_t    move(ssize_t left, ssize_t top) override;
+                    virtual status_t    resize(ssize_t width, ssize_t height) override;
+                    virtual status_t    set_border_style(border_style_t style) override;
+                    virtual status_t    get_border_style(border_style_t *style) override;
 
-                    /** Get window's border style
-                     *
-                     * @param style window's border style
-                     * @return status of operation
-                     */
-                    virtual status_t get_border_style(border_style_t *style);
+                    virtual bool        is_visible() override;
+                    virtual status_t    hide() override;
+                    virtual status_t    show() override;
+                    virtual status_t    show(IWindow *over) override;
 
-                    /** Get window geometry
-                     *
-                     * @return window geometry
-                     */
-                    virtual status_t get_geometry(rectangle_t *realize);
+                    virtual status_t    grab_events(grab_t group) override;
+                    virtual status_t    ungrab_events() override;
 
-                    virtual status_t get_absolute_geometry(rectangle_t *realize);
+                    virtual status_t    set_size_constraints(const size_limit_t *c) override;
+                    virtual status_t    get_size_constraints(size_limit_t *c) override;
+                    virtual status_t    check_constraints() override;
 
-                    /** Hide window
-                     *
-                     * @return status of operation
-                     */
-                    virtual status_t hide();
+                    virtual status_t    set_focus(bool focus) override;
+                    virtual status_t    toggle_focus() override;
 
-                    /** Show window
-                     *
-                     * @return status of operation
-                     */
-                    virtual status_t show();
+                    virtual status_t    set_caption(const char *ascii, const char *utf8) override;
+                    virtual status_t    get_caption(char *text, size_t len) override;
 
-                    virtual status_t show(IWindow *over);
+                    virtual status_t    set_icon(const void *bgra, size_t width, size_t height) override;
 
-                    /**
-                     * Grab events from the screen
-                     * @param group grab group
-                     * @return status of operation
-                     */
-                    virtual status_t grab_events(grab_t group);
+                    virtual status_t    get_window_actions(size_t *actions) override;
+                    virtual status_t    set_window_actions(size_t actions) override;
 
-                    /**
-                     * Ungrab currently selected group of events
-                     * @return status of operation
-                     */
-                    virtual status_t ungrab_events();
+                    virtual status_t    set_mouse_pointer(mouse_pointer_t ponter) override;
+                    virtual mouse_pointer_t get_mouse_pointer() override;
 
-                    /** Set left coordinate of the window
-                     *
-                     * @param left left coordinate of the window
-                     * @return status of operation
-                     */
-                    virtual status_t set_left(ssize_t left);
+                    virtual status_t    set_class(const char *instance, const char *wclass) override;
+                    virtual status_t    set_role(const char *wrole) override;
 
-                    /** Set top coordinate of the window
-                     *
-                     * @param top top coordinate of the window
-                     * @return status of operation
-                     */
-                    virtual status_t set_top(ssize_t top);
+                    virtual bool        has_parent() const override;
 
-                    /** Set width of the window
-                     *
-                     * @param width width of the window
-                     * @return status of operation
-                     */
-                    virtual ssize_t set_width(ssize_t width);
-
-                    /** Set height of the window
-                     *
-                     * @param height height of the window
-                     * @return status of operation
-                     */
-                    virtual ssize_t set_height(ssize_t height);
-
-                    /** Set size constraints
-                     *
-                     * @param c size constraints
-                     * @return status of operations
-                     */
-                    virtual status_t set_size_constraints(const size_limit_t *c);
-
-                    /** Get size constraints
-                     *
-                     * @param c size constraints
-                     * @return status of operation
-                     */
-                    virtual status_t get_size_constraints(size_limit_t *c);
-
-                    /** Check constraints
-                     *
-                     * @return status of operation
-                     */
-                    virtual status_t check_constraints();
-
-                    /** Set focus
-                     *
-                     * @param focus set/unset focus flag
-                     * @return status of operation
-                     */
-                    virtual status_t set_focus(bool focus);
-
-                    /** Toggle focus state
-                     *
-                     * @return status of operation
-                     */
-                    virtual status_t toggle_focus();
-
-                    /** Get caption of the window
-                     *
-                     * @param text buffer to store data
-                     * @param len length of bufer
-                     * @return status of operation
-                     */
-                    virtual status_t get_caption(char *text, size_t len);
-
-                    /** Set window icon
-                     *
-                     * @param bgra picture data in BGRA format
-                     * @param width picture width
-                     * @param height picture height
-                     * @return status of operation
-                     */
-                    virtual status_t set_icon(const void *bgra, size_t width, size_t height);
-
-                    /** Get bitmask of allowed window actions
-                     *
-                     * @param actions pointer to store action mask
-                     * @return status of operation
-                     */
-                    virtual status_t get_window_actions(size_t *actions);
-
-                    /** Set bitmask of allowed window actions
-                     *
-                     * @param actions action mask
-                     * @return status of operation
-                     */
-                    virtual status_t set_window_actions(size_t actions);
-
-                    /** Set mouse pointer
-                     *
-                     * @param ponter mouse pointer
-                     * @return status of operation
-                     */
-                    virtual status_t set_mouse_pointer(mouse_pointer_t ponter);
-
-                    /** Get mouse pointer
-                     *
-                     * @return mouse pointer
-                     */
-                    virtual mouse_pointer_t get_mouse_pointer();
-
-                    /**
-                     * Set window class
-                     * @param instance window instance, ASCII-string
-                     * @param wclass window class, ASCII-string
-                     * @return status of operation
-                     */
-                    virtual status_t set_class(const char *instance, const char *wclass);
-
-                    /**
-                     * Set window role
-                     * @param wrole window role, ASCII-string
-                     * @return status of operation
-                     */
-                    virtual status_t set_role(const char *wrole);
-
-                    virtual bool has_parent() const;
+                public:
+                    virtual status_t handle_event(const event_t *ev) override;
             };
         } /* namespace x11 */
     } /* namespace ws */

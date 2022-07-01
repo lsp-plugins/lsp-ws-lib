@@ -297,55 +297,58 @@ namespace lsp
 
                     bool            translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return);
 
-                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
-
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
+
+                protected:
+                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
 
                 public:
                     explicit X11Display();
                     virtual ~X11Display();
 
-                    virtual status_t            init(int argc, const char **argv);
-                    virtual void                destroy();
+                    virtual status_t            init(int argc, const char **argv) override;
+                    virtual void                destroy() override;
 
                 public:
-                    virtual IWindow            *create_window();
-                    virtual IWindow            *create_window(size_t screen);
-                    virtual IWindow            *create_window(void *handle);
-                    virtual IWindow            *wrap_window(void *handle);
-                    virtual ISurface           *create_surface(size_t width, size_t height);
+                    virtual IWindow            *create_window() override;
+                    virtual IWindow            *create_window(size_t screen) override;
+                    virtual IWindow            *create_window(void *handle) override;
+                    virtual IWindow            *wrap_window(void *handle) override;
+                    virtual ISurface           *create_surface(size_t width, size_t height) override;
 
-                    virtual status_t            main();
-                    virtual status_t            main_iteration();
-                    virtual void                quit_main();
-                    virtual status_t            wait_events(wssize_t millis);
+                    virtual status_t            main() override;
+                    virtual status_t            main_iteration() override;
+                    virtual void                quit_main() override;
+                    virtual status_t            wait_events(wssize_t millis) override;
 
-                    virtual size_t              screens();
-                    virtual size_t              default_screen();
-                    virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h);
+                    virtual size_t              screens() override;
+                    virtual size_t              default_screen() override;
+                    virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h) override;
 
-                    virtual status_t            set_clipboard(size_t id, IDataSource *ds);
-                    virtual status_t            get_clipboard(size_t id, IDataSink *dst);
-                    virtual const char * const *get_drag_ctypes();
+                    virtual status_t            set_clipboard(size_t id, IDataSource *ds) override;
+                    virtual status_t            get_clipboard(size_t id, IDataSink *dst) override;
+                    virtual const char * const *get_drag_ctypes() override;
 
-                    virtual status_t            reject_drag();
-                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                    virtual status_t            reject_drag() override;
+                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r) override;
 
+                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
+
+                    virtual status_t            add_font(const char *name, const char *path) override;
+                    virtual status_t            add_font(const char *name, const io::Path *path) override;
+                    virtual status_t            add_font(const char *name, const LSPString *path) override;
+                    virtual status_t            add_font(const char *name, io::IInStream *is) override;
+                    virtual status_t            add_font_alias(const char *name, const char *alias) override;
+                    virtual status_t            remove_font(const char *name) override;
+                    virtual void                remove_all_fonts() override;
+
+                    virtual const MonitorInfo  *enum_monitors(size_t *count) override;
+
+                    virtual void                sync() override;
+
+                public:
                     void                        handle_error(XErrorEvent *ev);
 
-                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
-
-                    virtual status_t            add_font(const char *name, const char *path);
-                    virtual status_t            add_font(const char *name, const io::Path *path);
-                    virtual status_t            add_font(const char *name, const LSPString *path);
-                    virtual status_t            add_font(const char *name, io::IInStream *is);
-                    virtual status_t            add_font_alias(const char *name, const char *alias);
-                    virtual status_t            remove_font(const char *name);
-                    virtual void                remove_all_fonts();
-
-                    virtual const MonitorInfo  *enum_monitors(size_t *count);
-
-                public:
                     bool                        add_window(X11Window *wnd);
                     bool                        remove_window(X11Window *wnd);
 
@@ -364,7 +367,6 @@ namespace lsp
 
                     font_t                     *get_font(const char *name);
 
-                    virtual void                sync();
                     void                        flush();
 
                 public:
