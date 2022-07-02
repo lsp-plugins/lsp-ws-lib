@@ -31,6 +31,8 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
+#include <windows.h>
+
 namespace lsp
 {
     namespace ws
@@ -39,10 +41,29 @@ namespace lsp
         {
             class WinDisplay;
 
+            constexpr const HWND INVALID_HWND       = HWND(nullptr);
+
             class WinWindow: public IWindow, public IEventHandler
             {
+                private:
+                    friend class WinDisplay;
+
+                protected:
+                    WinDisplay         *pDisplay;       // Pointer to the display
+                    HWND                hWindow;        // The identifier of the wrapped window
+                    HWND                hParent;        // The identifier of parent window
+                    LONG_PTR            pOldUserData;   // Old user data
+                    WNDPROC             pOldProc;       // Old window procedure (if present)
+                    bool                bWrapper;       // Indicates that window is a wrapper
+                    rectangle_t         sSize;          // Size of the window
+                    size_limit_t        sConstraints;   // Window constraints
+
+                protected:
+                    LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
+                    void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
+
                 public:
-                    explicit WinWindow(WinDisplay *core, IEventHandler *handler, bool wrapper);
+                    explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
                     virtual ~WinWindow();
 
                     virtual status_t    init() override;
@@ -77,19 +98,17 @@ namespace lsp
                     virtual status_t    get_border_style(border_style_t *style) override;
                     virtual status_t    get_geometry(rectangle_t *realize) override;
                     virtual status_t    get_absolute_geometry(rectangle_t *realize) override;
+
                     virtual status_t    set_size_constraints(const size_limit_t *c) override;
                     virtual status_t    get_size_constraints(size_limit_t *c) override;
-                    virtual status_t    check_constraints() override;
+
                     virtual status_t    get_window_actions(size_t *actions) override;
                     virtual status_t    set_window_actions(size_t actions) override;
-
-                    virtual status_t    handle_event(const event_t *ev) override;
 
                     virtual status_t    grab_events(grab_t group) override;
                     virtual status_t    ungrab_events() override;
 
-                    virtual status_t    set_focus(bool focus) override;
-                    virtual status_t    toggle_focus() override;
+                    virtual status_t    take_focus() override;
 
                     virtual status_t    set_icon(const void *bgra, size_t width, size_t height) override;
 
@@ -100,6 +119,9 @@ namespace lsp
                     virtual status_t    set_role(const char *wrole) override;
 
                     virtual bool        has_parent() const override;
+
+                public:
+                    virtual status_t    handle_event(const event_t *ev) override;
             };
         } /* namespace win */
     } /* namespace ws */

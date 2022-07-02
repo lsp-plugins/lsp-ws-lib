@@ -119,34 +119,45 @@ MTEST_BEGIN("ws", display)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
+        lsp_finally( ws::lsp_ws_free_display(dpy); );
 
+    #ifndef PLATFORM_WINDOWS
+        // TODO: implement all this stuff for Windows
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
         MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
+    #endif /* PLATFORM_WINDOWS */
 
         ws::IWindow *wnd = dpy->create_window();
+        MTEST_ASSERT(wnd != NULL);
+        lsp_finally(
+            wnd->destroy();
+            delete wnd;
+        );
         MTEST_ASSERT(wnd->init() == STATUS_OK);
+    #ifndef PLATFORM_WINDOWS
         MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
+    #endif /* PLATFORM_WINDOWS */
+
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);
 
+    #ifndef PLATFORM_WINDOWS
         size_t screen = wnd->screen();
         ssize_t sw, sh;
         MTEST_ASSERT(dpy->screen_size(screen, &sw, &sh) == STATUS_OK);
         wnd->move((sw - wnd->width()) >> 1, (sh - wnd->height()) >> 1);
 
-        MTEST_ASSERT(wnd->show() == STATUS_OK);
+    #endif /* PLATFORM_WINDOWS */
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
-        MTEST_ASSERT(dpy->main() == STATUS_OK);
+        MTEST_ASSERT(wnd->show() == STATUS_OK);
 
-        wnd->destroy();
-        delete wnd;
-        ws::lsp_ws_free_display(dpy);
+        MTEST_ASSERT(dpy->main() == STATUS_OK);
     }
 
 MTEST_END

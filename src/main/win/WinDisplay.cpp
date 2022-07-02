@@ -23,7 +23,14 @@
 
 #ifdef PLATFORM_WINDOWS
 
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/runtime/system.h>
+
 #include <private/win/WinDisplay.h>
+#include <private/win/WinWindow.h>
+
+#include <windows.h>
 
 namespace lsp
 {
@@ -31,8 +38,15 @@ namespace lsp
     {
         namespace win
         {
-            WinDisplay::WinDisplay()
+            const WCHAR *WinDisplay::WINDOW_CLASS_NAME = L"lsp-ws-lib window";
+
+            WinDisplay::WinDisplay():
+                IDisplay()
             {
+                bExit   = false;
+
+                bzero(&sPendingMessage, sizeof(sPendingMessage));
+                sPendingMessage.message     = WM_NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -41,50 +55,188 @@ namespace lsp
 
             status_t WinDisplay::init(int argc, const char **argv)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                bExit   = false;
+
+                WNDCLASSW wc;
+                bzero(&wc, sizeof(wc));
+
+                wc.lpfnWndProc   = window_proc;
+                wc.hInstance     = GetModuleHandleW(NULL);
+                wc.lpszClassName = WINDOW_CLASS_NAME;
+
+                if (!RegisterClassW(&wc))
+                {
+                    lsp_error("Error registering window class: %ld", long(GetLastError));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                return STATUS_OK;
             }
 
             void WinDisplay::destroy()
             {
+                UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
+            }
+
+            LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+            {
+                if (uMsg == WM_CREATE)
+                {
+                    CREATESTRUCTW *create = reinterpret_cast<CREATESTRUCTW *>(lParam);
+                    WinWindow *wnd = reinterpret_cast<WinWindow *>(create->lpCreateParams);
+                    if (wnd != NULL)
+                        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(wnd));
+                    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+                }
+
+                // Obtain the "this" pointer
+                WinWindow *_this = reinterpret_cast<WinWindow *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+
+                lsp_trace("Received event: this=%p, hwnd=%p, uMsg=%d(0x%x), wParam=%d(0x%x), lParam=%p",
+                    _this, hwnd, int(uMsg), int(uMsg), int(wParam), int(wParam), lParam);
+
+                if (_this == NULL)
+                    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+
+                return _this->process_event(uMsg, wParam, lParam);
             }
 
             status_t WinDisplay::main()
             {
-                return STATUS_NOT_IMPLEMENTED;
+                system::time_t ts;
+
+                while (!bExit)
+                {
+                    // Get current time
+                    system::get_time(&ts);
+                    timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                    int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
+
+                    // Poll for the new message
+                    if (wtime > 0)
+                    {
+                        // Here we perform a check that there is some message in the queue
+                        if (!PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE))
+                        {
+                            UINT_PTR timerId    = SetTimer(NULL, 0, wtime, NULL);
+                            BOOL res            = GetMessageW(&sPendingMessage, NULL, 0, 0);
+                            KillTimer(NULL, timerId);
+
+                            // Received WM_QUIT message?
+                            if (!res)
+                            {
+                                bExit = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Do main iteration
+                    status_t result = do_main_iteration(xts);
+                    if (result != STATUS_OK)
+                        return result;
+                }
+
+                return STATUS_OK;
+            }
+
+            status_t WinDisplay::do_main_iteration(timestamp_t ts)
+            {
+                // Process all pending messages.
+                do
+                {
+                    if (sPendingMessage.message == WM_QUIT)
+                    {
+                        bExit = true;
+                        return STATUS_OK;
+                    }
+                    else if (sPendingMessage.message != WM_NULL)
+                    {
+                        TranslateMessage(&sPendingMessage);
+                        DispatchMessageW(&sPendingMessage);
+                    }
+                } while (PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE));
+
+                // At this moment, we don't have any pending messages for processing
+                sPendingMessage.message     = WM_NULL;
+
+                // Do main iteration
+                status_t result = IDisplay::main_iteration();
+                if (result == STATUS_OK)
+                    result = process_pending_tasks(ts);
+
+                // Call for main task
+                call_main_task(ts);
+
+                // Return number of processed events
+                return result;
             }
 
             status_t WinDisplay::main_iteration()
             {
-                return STATUS_NOT_IMPLEMENTED;
+                // Get current time to determine if need perform a rendering
+                system::time_t ts;
+                system::get_time(&ts);
+                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+
+                // Do iteration
+                return do_main_iteration(xts);
             }
 
             void WinDisplay::quit_main()
             {
+                bExit = true;
             }
 
             status_t WinDisplay::wait_events(wssize_t millis)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (bExit)
+                    return STATUS_OK;
+
+                MSG message;
+                system::time_t ts;
+                system::get_time(&ts);
+                timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
+
+                // Poll for the new message
+                if (wtime <= 0)
+                    return STATUS_OK;
+
+                // Try to peek message without setting up timer
+                if (PeekMessageW(&message, NULL, 0, 0, PM_NOREMOVE))
+                    return STATUS_OK;
+
+                // Wait for the specific period of time for the message
+                UINT_PTR timerId    = SetTimer(NULL, 0, wtime, NULL);
+                BOOL res            = GetMessageW(&sPendingMessage, NULL, 0, 0);
+                KillTimer(NULL, timerId);
+
+                // Received WM_QUIT message?
+                if (!res)
+                    return STATUS_OK;
+
+                return STATUS_OK;
             }
 
             IWindow *WinDisplay::create_window()
             {
-                return NULL;
+                return new WinWindow(this, NULL, NULL, false);
             }
 
             IWindow *WinDisplay::create_window(size_t screen)
             {
-                return NULL;
+                return new WinWindow(this, NULL, NULL, false);
             }
 
             IWindow *WinDisplay::create_window(void *handle)
             {
-                return NULL;
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
             }
 
             IWindow *WinDisplay::wrap_window(void *handle)
             {
-                return NULL;
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, false);
             }
 
             ISurface *WinDisplay::create_surface(size_t width, size_t height)
@@ -112,7 +264,6 @@ namespace lsp
                 return NULL;
             }
 
-            // Clipboard management
             status_t WinDisplay::set_clipboard(size_t id, IDataSource *ds)
             {
                 return STATUS_NOT_IMPLEMENTED;
@@ -123,7 +274,6 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            // Drag & Drop management
             const char * const *WinDisplay::get_drag_ctypes()
             {
                 return NULL;
@@ -139,13 +289,11 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            // Mouse pointer management
             status_t WinDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
             {
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            // Font management
             status_t WinDisplay::add_font(const char *name, const char *path)
             {
                 return STATUS_NOT_IMPLEMENTED;

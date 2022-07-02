@@ -30,6 +30,8 @@
 
 #include <lsp-plug.in/ws/IDisplay.h>
 
+#include <windows.h>
+
 namespace lsp
 {
     namespace ws
@@ -40,6 +42,22 @@ namespace lsp
 
             class WinDisplay: public IDisplay
             {
+                private:
+                    friend class WinWindow;
+
+                public:
+                    static const WCHAR         *WINDOW_CLASS_NAME;
+
+                protected:
+                    volatile bool               bExit;              // Indicator that forces to leave the main loop
+                    MSG                         sPendingMessage;    // Currently pending message
+
+                protected:
+                    status_t                    do_main_iteration(timestamp_t ts);
+
+                protected:
+                    static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
                 public:
                     explicit WinDisplay();
                     virtual ~WinDisplay();
@@ -87,6 +105,7 @@ namespace lsp
                     virtual status_t            add_font_alias(const char *name, const char *alias) override;
                     virtual status_t            remove_font(const char *name) override;
                     virtual void                remove_all_fonts() override;
+
             };
         } /* namespace win */
     } /* namespace ws */
