@@ -525,9 +525,7 @@ namespace lsp
                     else if ((wtime <= 0) || ((poll_res > 0) && (x11_poll.events > 0)))
                     {
                         // Do iteration
-                        status_t result = IDisplay::main_iteration();
-                        if (result == STATUS_OK)
-                            result = do_main_iteration(xts);
+                        status_t result = do_main_iteration(xts);
                         if (result != STATUS_OK)
                             return result;
                     }
@@ -554,18 +552,10 @@ namespace lsp
                 do
                 {
                     wssize_t wtime      = deadline - xts; // How many milliseconds to wait
-
-                    if (sTasks.size() > 0)
-                    {
-                        dtask_t *t          = sTasks.first();
-                        ssize_t delta       = t->nTime - xts;
-                        if (delta <= 0)
-                            wtime               = -1;
-                        else if (delta <= wtime)
-                            wtime               = delta;
-                    }
-                    else if (::XPending(pDisplay) > 0)
+                    if (::XPending(pDisplay) > 0)
                         wtime               = 0;
+                    else
+                        wtime               = compute_poll_delay(xts, wtime);
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
@@ -596,7 +586,6 @@ namespace lsp
             {
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
-                status_t result = STATUS_OK;
 
                 // Process pending x11 events
                 for (int i=0; i<pending; i++)
@@ -609,6 +598,11 @@ namespace lsp
 
                     handle_event(&event);
                 }
+
+                // Call parent class for iteration
+                status_t result = IDisplay::main_iteration();
+                if (result != STATUS_OK)
+                    return result;
 
                 // Process pending tasks
                 result  = process_pending_tasks(ts);
@@ -641,11 +635,6 @@ namespace lsp
 
             status_t X11Display::main_iteration()
             {
-                // Call parent class for iteration
-                status_t result = IDisplay::main_iteration();
-                if (result != STATUS_OK)
-                    return result;
-
                 // Get current time to determine if need perform a rendering
                 system::time_t ts;
                 system::get_time(&ts);
