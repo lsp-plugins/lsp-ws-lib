@@ -1040,23 +1040,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::check_constraints()
-            {
-                rectangle_t rs;
-
-                calc_constraints(&rs, &sSize);
-                if ((rs.nWidth == sSize.nWidth) && (rs.nHeight == sSize.nHeight))
-                    return STATUS_OK;
-
-//                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
-
-                XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
-//                if (hParent > 0)
-//                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
-                pX11Display->flush();
-                return STATUS_OK;
-            }
-
             void X11Window::send_focus_event()
             {
                 Display *dpy = pX11Display->x11display();

@@ -281,12 +281,6 @@ namespace lsp
                  */
                 virtual status_t set_size_constraints(ssize_t min_width, ssize_t min_height, ssize_t max_width, ssize_t max_height);
 
-                /** Check constraints
-                 *
-                 * @return status of operation
-                 */
-                virtual status_t check_constraints();
-
                 /** Set minimum width
                  *
                  * @param value minimum width

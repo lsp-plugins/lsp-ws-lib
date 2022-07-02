@@ -140,7 +140,6 @@ namespace lsp
 
                     virtual status_t    set_size_constraints(const size_limit_t *c) override;
                     virtual status_t    get_size_constraints(size_limit_t *c) override;
-                    virtual status_t    check_constraints() override;
 
                     virtual status_t    take_focus() override;
 

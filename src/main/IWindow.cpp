@@ -250,11 +250,6 @@ namespace lsp
             return set_size_constraints(&sr);
         }
 
-        status_t IWindow::check_constraints()
-        {
-            return STATUS_OK;
-        }
-
         status_t IWindow::get_size_constraints(size_limit_t *c)
         {
             return STATUS_NOT_IMPLEMENTED;
