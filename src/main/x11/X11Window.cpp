@@ -437,7 +437,7 @@ namespace lsp
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)
-                            set_focus(true);
+                            take_focus();
                         break;
                     }
 
@@ -1078,14 +1078,11 @@ namespace lsp
                 ::XSendEvent(dpy, pX11Display->hRootWnd, True, NoEventMask, &ev);
             }
 
-            status_t X11Window::set_focus(bool focus)
+            status_t X11Window::take_focus()
             {
                 if ((hWindow == 0) || (!bVisible))
                 {
-                    if (focus)
-                        pX11Display->pFocusWindow   = this;
-                    else if (pX11Display->pFocusWindow == this)
-                        pX11Display->pFocusWindow   = NULL;
+                    pX11Display->pFocusWindow   = this;
                     return STATUS_OK;
                 }
 
@@ -1094,46 +1091,12 @@ namespace lsp
                     pX11Display->pFocusWindow   = NULL;
 
                 pX11Display->sync();
-                if (focus)
-                {
-                    XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
-                    send_focus_event();
-                }
-                else
-                    XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
+                XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                send_focus_event();
 
                 pX11Display->sync();
                 return STATUS_OK;
             }
-
-            status_t X11Window::toggle_focus()
-            {
-                if ((pSurface == NULL) || (!bVisible))
-                {
-                    pX11Display->pFocusWindow   = (pX11Display->pFocusWindow != this) ? this : NULL;
-                    return STATUS_OK;
-                }
-
-                Window wnd;
-                int ret;
-
-                pX11Display->sync();
-                if (pX11Display->pFocusWindow == this)
-                    pX11Display->pFocusWindow   = NULL;
-                XGetInputFocus(pX11Display->x11display(), &wnd, &ret);
-
-                if (wnd != hWindow)
-                {
-                    XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
-                    send_focus_event();
-                }
-                else
-                    XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-
-                pX11Display->sync();
-                return STATUS_OK;
-            }
-
 
             status_t X11Window::set_caption(const char *ascii, const char *utf8)
             {

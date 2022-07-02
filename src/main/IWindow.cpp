@@ -323,13 +323,7 @@ namespace lsp
         }
 
 
-        status_t IWindow::set_focus(bool focus)
-        {
-            lsp_error("not implemented");
-            return STATUS_NOT_IMPLEMENTED;
-        }
-
-        status_t IWindow::toggle_focus()
+        status_t IWindow::take_focus()
         {
             lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;

@@ -331,18 +331,10 @@ namespace lsp
                  */
                 virtual status_t set_max_size(ssize_t width, ssize_t height);
 
-                /** Set focus
-                 *
-                 * @param focus set/unset focus flag
+                /** Take the focus by window
                  * @return status of operation
                  */
-                virtual status_t set_focus(bool focus);
-
-                /** Toggle focus state
-                 *
-                 * @return status of operation
-                 */
-                virtual status_t toggle_focus();
+                virtual status_t take_focus();
 
                 /** Set window icon
                  *

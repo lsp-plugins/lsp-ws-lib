@@ -142,8 +142,7 @@ namespace lsp
                     virtual status_t    get_size_constraints(size_limit_t *c) override;
                     virtual status_t    check_constraints() override;
 
-                    virtual status_t    set_focus(bool focus) override;
-                    virtual status_t    toggle_focus() override;
+                    virtual status_t    take_focus() override;
 
                     virtual status_t    set_caption(const char *ascii, const char *utf8) override;
                     virtual status_t    get_caption(char *text, size_t len) override;

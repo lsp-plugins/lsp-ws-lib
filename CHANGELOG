@@ -4,6 +4,8 @@
 
 === 1.0.4 ===
 * Added support of modern C++ starting with C++ 11.
+* Method ws::IWindow::set_focus() replaced by ws::IWindow::take_focus().
+* Removed method ws::IWindow::toggle_focus().
 * Updated build scripts.
 
 === 1.0.3 ===
