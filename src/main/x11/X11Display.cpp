@@ -64,6 +64,7 @@ namespace lsp
         {
             static int cursor_shapes[] =
             {
+                XC_left_ptr,                // MP_DEFAULT
                 -1,                         // MP_NONE
                 XC_left_ptr,                // MP_ARROW
                 XC_sb_left_arrow,           // MP_ARROW_LEFT
@@ -3204,9 +3205,7 @@ namespace lsp
 
             Cursor X11Display::get_cursor(mouse_pointer_t pointer)
             {
-                if (pointer == MP_DEFAULT)
-                    pointer = MP_ARROW;
-                else if ((pointer < 0) || (pointer > __MP_COUNT))
+                if ((pointer < 0) || (pointer >= __MP_COUNT))
                     pointer = MP_NONE;
 
                 return vCursors[pointer];

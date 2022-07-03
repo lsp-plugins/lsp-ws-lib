@@ -140,6 +140,7 @@ namespace lsp
 
         enum mouse_pointer_t
         {
+            MP_DEFAULT,         // Default cursor
             MP_NONE,            // No cursor
             MP_ARROW,           // Standard arrow
             MP_ARROW_LEFT,      // Arrow left
@@ -179,8 +180,7 @@ namespace lsp
             MP_ARROW_WAIT   = MP_APP_START,
             MP_HYPERLINK    = MP_HAND,
             MP_PENCIL       = MP_DRAW,
-            MP_TABLE_CELL   = MP_PLUS,
-            MP_DEFAULT      = -1
+            MP_TABLE_CELL   = MP_PLUS
         };
 
         enum ui_event_type_t
