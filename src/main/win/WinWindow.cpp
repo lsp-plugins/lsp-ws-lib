@@ -26,9 +26,18 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/ws/win/decode.h>
 
 #include <private/win/WinDisplay.h>
 #include <private/win/WinWindow.h>
+
+#include <windows.h>
+#include <windowsx.h>
+
+#ifndef WM_MOUSEHWHEEL
+    #define WM_MOUSEHWHEEL 0x020e
+#endif /* WM_MOUSEHWHEEL */
 
 namespace lsp
 {
@@ -53,6 +62,7 @@ namespace lsp
                 pOldUserData            = reinterpret_cast<LONG_PTR>(reinterpret_cast<void *>(NULL));
                 pOldProc                = reinterpret_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
+                bMouseInside            = false;
 
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
@@ -131,15 +141,40 @@ namespace lsp
                 pDisplay    = NULL;
             }
 
+            void WinWindow::generate_enter_event(timestamp_t ts, const ws::event_t *ev)
+            {
+                if (bMouseInside)
+                    return;
+                bMouseInside        = true;
+
+                TRACKMOUSEEVENT track;
+                track.cbSize        = sizeof(track);
+                track.dwFlags       = TME_LEAVE;
+                track.hwndTrack     = hWindow;
+                track.dwHoverTime   = 0;
+
+                TrackMouseEvent(&track);
+
+                ws::event_t xev = *ev;
+                xev.nCode       = UIE_MOUSE_IN;
+                handle_event(&xev);
+            }
+
             LRESULT WinWindow::process_event(UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 // TODO: Translate the event and pass to handler
                 event_t ue;
                 init_event(&ue);
 
-                // TODO: translate the event
+                system::time_t ts;
+                system::get_time(&ts);
+                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                ue.nTime = xts;
+
+                // Translate the event
                 switch (uMsg)
                 {
+                    // Obtaining size constraints
                     case WM_GETMINMAXINFO:
                     {
                         // Contains information about a window's maximized size and position and
@@ -177,21 +212,118 @@ namespace lsp
                         return 0;
                     }
 
-                    case WM_DESTROY:
+                    // Sizing, moving, showing
+                    case WM_SIZE:
+                    {
+                        ue.nType        = UIE_RESIZE;
+                        ue.nLeft        = sSize.nLeft;
+                        ue.nTop         = sSize.nTop;
+                        ue.nWidth       = LOWORD(lParam);
+                        ue.nHeight      = HIWORD(lParam);
+
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_MOVE:
+                    {
+                        ue.nType        = UIE_RESIZE;
+                        ue.nLeft        = LOWORD(lParam);
+                        ue.nTop         = HIWORD(lParam);
+                        ue.nWidth       = sSize.nWidth;
+                        ue.nHeight      = sSize.nHeight;
+
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_SHOWWINDOW:
+                    {
+                        ue.nType        = (wParam == TRUE) ? UIE_SHOW : UIE_HIDE;
+                        bMouseInside    = false;
+                        handle_event(&ue);
+                        return 0;
+                    }
+
+                    // Closing the window
+                    case WM_CLOSE:
                     {
                         ue.nType        = UIE_CLOSE;
-                        break;
+                        handle_event(&ue);
+                        return 0;
+                    }
+
+                    // Mouse events
+                    case WM_MOUSEMOVE:
+                    {
+                        ue.nType        = UIE_MOUSE_MOVE;
+                        ue.nLeft        = GET_X_LPARAM(lParam);
+                        ue.nTop         = GET_Y_LPARAM(lParam);
+                        ue.nState       = decode_mouse_keystate(wParam);
+
+                        generate_enter_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_LBUTTONDOWN:
+                    case WM_RBUTTONDOWN:
+                    case WM_MBUTTONDOWN:
+                    {
+                        ue.nType        = UIE_MOUSE_DOWN;
+                        ue.nCode        = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
+                                          (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
+                                          MCB_MIDDLE;
+                        ue.nLeft        = GET_X_LPARAM(lParam);
+                        ue.nTop         = GET_Y_LPARAM(lParam);
+                        ue.nState       = decode_mouse_keystate(wParam);
+
+                        generate_enter_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_LBUTTONUP:
+                    case WM_RBUTTONUP:
+                    case WM_MBUTTONUP:
+                    {
+                        ue.nType        = UIE_MOUSE_UP;
+                        ue.nCode        = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
+                                          (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
+                                          MCB_MIDDLE;
+                        ue.nLeft        = GET_X_LPARAM(lParam);
+                        ue.nTop         = GET_Y_LPARAM(lParam);
+                        ue.nState       = decode_mouse_keystate(wParam);
+
+                        generate_enter_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_MOUSEWHEEL:
+                    case WM_MOUSEHWHEEL:
+                    {
+                        ssize_t delta   = GET_WHEEL_DELTA_WPARAM(wParam);
+
+                        ue.nType        = UIE_MOUSE_SCROLL;
+                        if (uMsg == WM_MOUSEHWHEEL)
+                            ue.nCode        = (delta > 0) ? MCD_RIGHT : MCD_LEFT;
+                        else // uMsg == WM_MOUSEWHEEL
+                            ue.nCode        = (delta > 0) ? MCD_UP : MCD_DOWN;
+
+                        ue.nLeft        = GET_X_LPARAM(lParam);
+                        ue.nTop         = GET_Y_LPARAM(lParam);
+                        ue.nState       = decode_mouse_keystate(GET_KEYSTATE_WPARAM(wParam));
+
+                        generate_enter_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_MOUSELEAVE:
+                    {
+                        ue.nType        = UIE_MOUSE_OUT;
+                        bMouseInside    = false;
+                        handle_event(&ue);
+                        return 0;
                     }
 
                     default:
                         break;
-                }
-
-                // If we have to deliver something to the window handler, then do it
-                if (ue.nType != ws::UIE_UNKNOWN)
-                {
-                    handle_event(&ue);
-                    return 0;
                 }
 
                 if (!bWrapper)
@@ -209,6 +341,54 @@ namespace lsp
 
                 return res;
             }
+
+
+            status_t WinWindow::handle_event(const event_t *ev)
+            {
+                IEventHandler *handler = pHandler;
+
+                switch (ev->nType)
+                {
+                    // Received window close event
+                    case UIE_CLOSE:
+                    {
+                        if (handler == NULL)
+                        {
+                            this->destroy();
+                            delete this;
+                        }
+                        break;
+                    }
+
+                    case UIE_RESIZE:
+                    {
+                        if (bWrapper)
+                            break;
+
+                        sSize.nLeft         = ev->nLeft;
+                        sSize.nTop          = ev->nTop;
+                        sSize.nWidth        = ev->nWidth;
+                        sSize.nHeight       = ev->nHeight;
+                        // TODO
+//                        if (pSurface != NULL)
+//                        {
+//                            WinGdiSurface *surface = static_cast<WinGdiSurface *>(pSurface);
+//                            surface->resize(sSize.nWidth, sSize.nHeight);
+//                        }
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+
+                // Pass event to event handler
+                if (handler != NULL)
+                    handler->handle_event(ev);
+
+                return STATUS_OK;
+            }
+
 
             ISurface *WinWindow::get_surface()
             {
@@ -442,34 +622,6 @@ namespace lsp
             status_t WinWindow::set_window_actions(size_t actions)
             {
                 return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t WinWindow::handle_event(const event_t *ev)
-            {
-                IEventHandler *handler = pHandler;
-
-                switch (ev->nType)
-                {
-                    // Received window close event
-                    case UIE_CLOSE:
-                    {
-                        if (handler == NULL)
-                        {
-                            this->destroy();
-                            delete this;
-                        }
-                        break;
-                    }
-
-                    default:
-                        break;
-                }
-
-                // Pass event to event handler
-                if (handler != NULL)
-                    handler->handle_event(ev);
-
-                return STATUS_OK;
             }
 
             status_t WinWindow::grab_events(grab_t group)

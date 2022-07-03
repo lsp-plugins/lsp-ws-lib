@@ -291,7 +291,18 @@ namespace lsp
 
             status_t WinDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                POINT p;
+                if (!GetCursorPos(&p))
+                    return STATUS_UNKNOWN_ERR;
+
+                if (screen != NULL)
+                    *screen     = 0;
+                if (left != NULL)
+                    *left       = p.x;
+                if (top != NULL)
+                    *top        = p.y;
+
+                return STATUS_OK;
             }
 
             status_t WinDisplay::add_font(const char *name, const char *path)

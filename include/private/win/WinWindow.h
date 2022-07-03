@@ -55,12 +55,14 @@ namespace lsp
                     LONG_PTR            pOldUserData;   // Old user data
                     WNDPROC             pOldProc;       // Old window procedure (if present)
                     bool                bWrapper;       // Indicates that window is a wrapper
+                    bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints
 
                 protected:
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
                     void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
+                    void                generate_enter_event(timestamp_t ts, const ws::event_t *ev);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
