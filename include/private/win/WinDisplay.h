@@ -49,8 +49,9 @@ namespace lsp
                     static const WCHAR         *WINDOW_CLASS_NAME;
 
                 protected:
-                    volatile bool               bExit;              // Indicator that forces to leave the main loop
-                    MSG                         sPendingMessage;    // Currently pending message
+                    volatile bool               bExit;                  // Indicator that forces to leave the main loop
+                    MSG                         sPendingMessage;        // Currently pending message
+                    HCURSOR                     vCursors[__MP_COUNT];   // Cursor handles (cached)
 
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
@@ -106,6 +107,8 @@ namespace lsp
                     virtual status_t            remove_font(const char *name) override;
                     virtual void                remove_all_fonts() override;
 
+                public:
+                    HCURSOR                     translate_cursor(mouse_pointer_t cursor);
             };
         } /* namespace win */
     } /* namespace ws */

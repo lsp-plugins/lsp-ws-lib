@@ -96,7 +96,8 @@ MTEST_BEGIN("ws", display)
                         ssize_t left, top;
 
                         if (pWnd->display()->get_pointer_location(&screen, &left, &top) == STATUS_OK)
-                            pTest->printf("Pointer location: screen=%d, left=%d, top=%d\n", int(screen), int(left), int(top));
+                            pTest->printf("Pointer location: local=(%d, %d), screen=(%d, %d, %d)\n",
+                                int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen));
                         return STATUS_OK;
                     };
 
@@ -135,6 +136,8 @@ MTEST_BEGIN("ws", display)
             delete wnd;
         );
         MTEST_ASSERT(wnd->init() == STATUS_OK);
+        MTEST_ASSERT(wnd->set_mouse_pointer(ws::MP_HAND) == STATUS_OK);
+        MTEST_ASSERT(wnd->get_mouse_pointer() == ws::MP_HAND);
     #ifndef PLATFORM_WINDOWS
         MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);

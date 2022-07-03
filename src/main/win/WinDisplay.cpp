@@ -40,6 +40,9 @@ namespace lsp
         {
             const WCHAR *WinDisplay::WINDOW_CLASS_NAME = L"lsp-ws-lib window";
 
+            static const BYTE none_cursor_and[] = { 0xff };
+            static const BYTE none_cursor_xor[] = { 0 };
+
             WinDisplay::WinDisplay():
                 IDisplay()
             {
@@ -47,6 +50,9 @@ namespace lsp
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
+
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                    vCursors[i]     = NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -70,12 +76,22 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
                 }
 
+                // Initialize cursors
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                    translate_cursor(mouse_pointer_t(i));
+
                 return STATUS_OK;
             }
 
             void WinDisplay::destroy()
             {
                 UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
+
+                // Destroy cursors
+                if (vCursors[MP_NONE] != NULL)
+                    DestroyCursor(vCursors[MP_NONE]);
+                for (size_t i=0; i<__MP_COUNT; ++i)
+                    vCursors[i]     = NULL;
             }
 
             LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -338,6 +354,68 @@ namespace lsp
             void WinDisplay::remove_all_fonts()
             {
                 // TODO
+            }
+
+            HCURSOR WinDisplay::translate_cursor(mouse_pointer_t pointer)
+            {
+                HCURSOR res = vCursors[pointer];
+                if (res != NULL)
+                    return res;
+
+            #define TRC(mp, idc) \
+                case mp: res = LoadCursor(NULL, idc); break;
+
+                switch (pointer)
+                {
+                    // Special case: empty cursor
+                    case MP_NONE:
+                        res = CreateCursor(
+                            GetModuleHandleW(NULL),     // hInst
+                            0,                          // xHotSpot
+                            0,                          // yHotSpot
+                            1,                          // nWidth
+                            1,                          // nHeight
+                            none_cursor_and,            // pvANDPlane
+                            none_cursor_xor             // pvXORPlane
+                        );
+                        break;
+
+                    // Supported built-in cursors
+                    TRC(MP_ARROW, IDC_ARROW)
+                    TRC(MP_HAND, IDC_HAND)
+                    TRC(MP_CROSS, IDC_CROSS)
+                    TRC(MP_IBEAM, IDC_IBEAM)
+                    TRC(MP_SIZE, IDC_SIZE)
+                    TRC(MP_SIZE_NESW, IDC_SIZENESW)
+                    TRC(MP_SIZE_NS, IDC_SIZENS)
+                    TRC(MP_SIZE_WE, IDC_SIZEWE)
+                    TRC(MP_SIZE_NWSE, IDC_SIZENWSE)
+                    TRC(MP_UP_ARROW, IDC_UPARROW)
+                    TRC(MP_HOURGLASS, IDC_WAIT)
+                    TRC(MP_NO_DROP, IDC_NO)
+                    TRC(MP_APP_START, IDC_APPSTARTING)
+                    TRC(MP_HELP, IDC_HELP)
+
+                    // Not matching icons
+                    TRC(MP_ARROW_LEFT, IDC_UPARROW)
+                    TRC(MP_ARROW_RIGHT, IDC_UPARROW)
+                    TRC(MP_ARROW_UP, IDC_UPARROW)
+                    TRC(MP_ARROW_DOWN, IDC_UPARROW)
+                    TRC(MP_DRAG, IDC_ARROW)
+                    TRC(MP_DRAW, IDC_ARROW)
+                    TRC(MP_PLUS, IDC_ARROW)
+                    TRC(MP_DANGER, IDC_NO)
+                    TRC(MP_HSPLIT, IDC_NO)
+                    TRC(MP_VSPLIT, IDC_NO)
+                    TRC(MP_MULTIDRAG, IDC_NO)
+
+                    default:
+                        res     = LoadCursor(NULL, IDC_ARROW);
+                        break;
+                }
+            #undef TRC
+
+                return vCursors[pointer] = res;
             }
 
         } /* namespace win */

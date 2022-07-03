@@ -27,6 +27,8 @@
 
 #ifdef PLATFORM_WINDOWS
 
+#include <windows.h>
+
 namespace lsp
 {
     namespace ws

@@ -58,6 +58,8 @@ namespace lsp
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints
+                    mouse_pointer_t     enPointer;      // Mouse pointer
+                    CURSORINFO          sSavedCursor;   // The saved cursor before the mouse has entered the window
 
                 protected:
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -114,7 +116,7 @@ namespace lsp
 
                     virtual status_t    set_icon(const void *bgra, size_t width, size_t height) override;
 
-                    virtual status_t    set_mouse_pointer(mouse_pointer_t ponter) override;
+                    virtual status_t    set_mouse_pointer(mouse_pointer_t pointer) override;
                     virtual mouse_pointer_t get_mouse_pointer() override;
 
                     virtual status_t    set_class(const char *instance, const char *wclass) override;

@@ -75,6 +75,10 @@ namespace lsp
                 sConstraints.nMaxHeight = -1;
                 sConstraints.nPreWidth  = -1;
                 sConstraints.nPreHeight = -1;
+
+                enPointer               = MP_DEFAULT;
+
+                bzero(&sSavedCursor, sizeof(sSavedCursor));
             }
 
             WinWindow::~WinWindow()
@@ -145,18 +149,47 @@ namespace lsp
             {
                 if (bMouseInside)
                     return;
+
+                ws::event_t xev     = *ev;
+                xev.nCode           = UIE_MOUSE_IN;
                 bMouseInside        = true;
 
+                // Set mouse tracking
                 TRACKMOUSEEVENT track;
                 track.cbSize        = sizeof(track);
                 track.dwFlags       = TME_LEAVE;
                 track.hwndTrack     = hWindow;
                 track.dwHoverTime   = 0;
-
                 TrackMouseEvent(&track);
 
-                ws::event_t xev = *ev;
-                xev.nCode       = UIE_MOUSE_IN;
+                // Update cursor to the current value and save the previous one
+                sSavedCursor.cbSize = sizeof(sSavedCursor);
+                if (GetCursorInfo(&sSavedCursor))
+                {
+                    HCURSOR cursor = pDisplay->translate_cursor(enPointer);
+                    if (cursor != NULL)
+                        SetCursor(cursor);
+
+                    POINT coord = sSavedCursor.ptScreenPos;
+                    if (ScreenToClient(hWindow, &coord))
+                    {
+                        xev.nLeft               = coord.x;
+                        xev.nTop                = coord.y;
+                    }
+                    else
+                    {
+                        xev.nLeft               = 0;
+                        xev.nTop                = 0;
+                    }
+                }
+                else
+                {
+                    sSavedCursor.cbSize         = 0;
+                    xev.nLeft                   = 0;
+                    xev.nTop                    = 0;
+                }
+
+                // Notify the handler about mouse enter event
                 handle_event(&xev);
             }
 
@@ -179,14 +212,32 @@ namespace lsp
                     {
                         // Contains information about a window's maximized size and position and
                         // it's minimum and maximum tracking size.
-                        MINMAXINFO *info    = reinterpret_cast<MINMAXINFO *>(lParam);
+                        MINMAXINFO *info        = reinterpret_cast<MINMAXINFO *>(lParam);
 
-                        info->ptMinTrackSize.x  = lsp_max(sConstraints.nMinWidth, 1);
-                        info->ptMinTrackSize.y  = lsp_max(sConstraints.nMinHeight, 1);
+                        // Get extra padding
+                        ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
+                        ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
+                        ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
 
-                        if (sConstraints.nMaxWidth >= 0)
+                        // Add padding to constraints
+                        // TODO: handle windows with NONE border style
+                        size_limit_t sl         = sConstraints;
+                        if (sl.nMinWidth >= 0)
+                            sl.nMinWidth           += hborder * 2;
+                        if (sl.nMaxWidth >= 0)
+                            sl.nMaxWidth           += hborder * 2;
+                        if (sl.nMinHeight >= 0)
+                            sl.nMinHeight          += vcaption + vborder * 2;
+                        if (sl.nMaxHeight >= 0)
+                            sl.nMaxHeight          += vcaption + vborder * 2;
+
+                        // Compute window constraints regarding to the computed contraints
+                        info->ptMinTrackSize.x  = lsp_max(sl.nMinWidth, 1);
+                        info->ptMinTrackSize.y  = lsp_max(sl.nMinHeight, 1);
+
+                        if (sl.nMaxWidth >= 0)
                         {
-                            ssize_t max_size        = lsp_max(sConstraints.nMaxWidth, info->ptMinTrackSize.x);
+                            ssize_t max_size        = lsp_max(sl.nMaxWidth, info->ptMinTrackSize.x);
                             info->ptMaxSize.x       = max_size;
                             info->ptMaxTrackSize.x  = max_size;
                         }
@@ -196,9 +247,9 @@ namespace lsp
                             info->ptMaxTrackSize.x  = lsp_max(info->ptMaxTrackSize.x, info->ptMinTrackSize.x);
                         }
 
-                        if (sConstraints.nMaxHeight >= 0)
+                        if (sl.nMaxHeight >= 0)
                         {
-                            ssize_t max_size        = lsp_max(sConstraints.nMaxHeight, info->ptMinTrackSize.y);
+                            ssize_t max_size        = lsp_max(sl.nMaxHeight, info->ptMinTrackSize.y);
                             info->ptMaxSize.y       = max_size;
                             info->ptMaxTrackSize.y  = max_size;
                         }
@@ -215,30 +266,34 @@ namespace lsp
                     // Sizing, moving, showing
                     case WM_SIZE:
                     {
-                        ue.nType        = UIE_RESIZE;
-                        ue.nLeft        = sSize.nLeft;
-                        ue.nTop         = sSize.nTop;
-                        ue.nWidth       = LOWORD(lParam);
-                        ue.nHeight      = HIWORD(lParam);
+                        ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
+                        ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
+                        ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
+
+                        ue.nType                = UIE_RESIZE;
+                        ue.nLeft                = sSize.nLeft;
+                        ue.nTop                 = sSize.nTop;
+                        ue.nWidth               = LOWORD(lParam) - hborder * 2;
+                        ue.nHeight              = HIWORD(lParam) - vborder * 2 - vcaption;
 
                         handle_event(&ue);
                         return 0;
                     }
                     case WM_MOVE:
                     {
-                        ue.nType        = UIE_RESIZE;
-                        ue.nLeft        = LOWORD(lParam);
-                        ue.nTop         = HIWORD(lParam);
-                        ue.nWidth       = sSize.nWidth;
-                        ue.nHeight      = sSize.nHeight;
+                        ue.nType                = UIE_RESIZE;
+                        ue.nLeft                = LOWORD(lParam);
+                        ue.nTop                 = HIWORD(lParam);
+                        ue.nWidth               = sSize.nWidth;
+                        ue.nHeight              = sSize.nHeight;
 
                         handle_event(&ue);
                         return 0;
                     }
                     case WM_SHOWWINDOW:
                     {
-                        ue.nType        = (wParam == TRUE) ? UIE_SHOW : UIE_HIDE;
-                        bMouseInside    = false;
+                        ue.nType                = (wParam == TRUE) ? UIE_SHOW : UIE_HIDE;
+                        bMouseInside            = false;
                         handle_event(&ue);
                         return 0;
                     }
@@ -246,7 +301,7 @@ namespace lsp
                     // Closing the window
                     case WM_CLOSE:
                     {
-                        ue.nType        = UIE_CLOSE;
+                        ue.nType                = UIE_CLOSE;
                         handle_event(&ue);
                         return 0;
                     }
@@ -254,10 +309,10 @@ namespace lsp
                     // Mouse events
                     case WM_MOUSEMOVE:
                     {
-                        ue.nType        = UIE_MOUSE_MOVE;
-                        ue.nLeft        = GET_X_LPARAM(lParam);
-                        ue.nTop         = GET_Y_LPARAM(lParam);
-                        ue.nState       = decode_mouse_keystate(wParam);
+                        ue.nType                = UIE_MOUSE_MOVE;
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nState               = decode_mouse_keystate(wParam);
 
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
@@ -267,13 +322,13 @@ namespace lsp
                     case WM_RBUTTONDOWN:
                     case WM_MBUTTONDOWN:
                     {
-                        ue.nType        = UIE_MOUSE_DOWN;
-                        ue.nCode        = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
-                                          (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
-                                          MCB_MIDDLE;
-                        ue.nLeft        = GET_X_LPARAM(lParam);
-                        ue.nTop         = GET_Y_LPARAM(lParam);
-                        ue.nState       = decode_mouse_keystate(wParam);
+                        ue.nType                = UIE_MOUSE_DOWN;
+                        ue.nCode                = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
+                                                  (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
+                                                  MCB_MIDDLE;
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nState               = decode_mouse_keystate(wParam);
 
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
@@ -283,13 +338,13 @@ namespace lsp
                     case WM_RBUTTONUP:
                     case WM_MBUTTONUP:
                     {
-                        ue.nType        = UIE_MOUSE_UP;
-                        ue.nCode        = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
-                                          (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
-                                          MCB_MIDDLE;
-                        ue.nLeft        = GET_X_LPARAM(lParam);
-                        ue.nTop         = GET_Y_LPARAM(lParam);
-                        ue.nState       = decode_mouse_keystate(wParam);
+                        ue.nType                = UIE_MOUSE_UP;
+                        ue.nCode                = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
+                                                  (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
+                                                  MCB_MIDDLE;
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nState               = decode_mouse_keystate(wParam);
 
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
@@ -298,17 +353,17 @@ namespace lsp
                     case WM_MOUSEWHEEL:
                     case WM_MOUSEHWHEEL:
                     {
-                        ssize_t delta   = GET_WHEEL_DELTA_WPARAM(wParam);
+                        ssize_t delta           = GET_WHEEL_DELTA_WPARAM(wParam);
 
-                        ue.nType        = UIE_MOUSE_SCROLL;
+                        ue.nType                = UIE_MOUSE_SCROLL;
                         if (uMsg == WM_MOUSEHWHEEL)
-                            ue.nCode        = (delta > 0) ? MCD_RIGHT : MCD_LEFT;
+                            ue.nCode                = (delta > 0) ? MCD_RIGHT : MCD_LEFT;
                         else // uMsg == WM_MOUSEWHEEL
-                            ue.nCode        = (delta > 0) ? MCD_UP : MCD_DOWN;
+                            ue.nCode                = (delta > 0) ? MCD_UP : MCD_DOWN;
 
-                        ue.nLeft        = GET_X_LPARAM(lParam);
-                        ue.nTop         = GET_Y_LPARAM(lParam);
-                        ue.nState       = decode_mouse_keystate(GET_KEYSTATE_WPARAM(wParam));
+                        ue.nState               = decode_mouse_keystate(GET_KEYSTATE_WPARAM(wParam));
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
 
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
@@ -316,8 +371,17 @@ namespace lsp
                     }
                     case WM_MOUSELEAVE:
                     {
-                        ue.nType        = UIE_MOUSE_OUT;
-                        bMouseInside    = false;
+                        bMouseInside            = false;
+
+                        // Restore the previous cursor if it was saved
+                        if (sSavedCursor.cbSize == sizeof(sSavedCursor))
+                        {
+                            HCURSOR cursor = pDisplay->translate_cursor(enPointer);
+                            if (cursor != NULL)
+                                SetCursor(sSavedCursor.hCursor);
+                        }
+
+                        ue.nType                = UIE_MOUSE_OUT;
                         handle_event(&ue);
                         return 0;
                     }
@@ -341,7 +405,6 @@ namespace lsp
 
                 return res;
             }
-
 
             status_t WinWindow::handle_event(const event_t *ev)
             {
@@ -561,13 +624,18 @@ namespace lsp
                     (old.nHeight == sSize.nHeight))
                     return STATUS_OK;
 
+                // These system metrics affect the actual client size of the window
+                ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
+                ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
+                ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
+
                 BOOL res = MoveWindow(
-                    hWindow,        // hWnd
-                    sSize.nLeft,    // X
-                    sSize.nTop,     // Y
-                    sSize.nWidth,   // nWidth
-                    sSize.nHeight,  // nHeight
-                    TRUE);          // bRepaint
+                    hWindow,                                // hWnd
+                    sSize.nLeft,                            // X
+                    sSize.nTop,                             // Y
+                    sSize.nWidth + hborder * 2,             // nWidth
+                    sSize.nHeight + vcaption + vborder * 2, // nHeight
+                    TRUE);                                  // bRepaint
 
                 if (res)
                     return STATUS_OK;
@@ -639,14 +707,36 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            status_t WinWindow::set_mouse_pointer(mouse_pointer_t ponter)
+            status_t WinWindow::set_mouse_pointer(mouse_pointer_t pointer)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+                if (enPointer == pointer)
+                    return STATUS_OK;
+
+                if ((bMouseInside) && (is_visible()))
+                {
+                    HCURSOR new_c = pDisplay->translate_cursor(pointer);
+                    if (new_c == NULL)
+                        return STATUS_UNKNOWN_ERR;
+
+                    HCURSOR old_c = pDisplay->translate_cursor(enPointer);
+                    if (old_c != new_c)
+                    {
+                        if (!SetCursor(new_c))
+                            return STATUS_UNKNOWN_ERR;
+                    }
+                }
+
+                // Commit the cursor value
+                enPointer       = pointer;
+
+                return STATUS_OK;
             }
 
             mouse_pointer_t WinWindow::get_mouse_pointer()
             {
-                return MP_NONE;
+                return enPointer;
             }
 
             status_t WinWindow::set_class(const char *instance, const char *wclass)
