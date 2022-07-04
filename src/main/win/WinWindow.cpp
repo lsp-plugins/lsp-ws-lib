@@ -63,6 +63,7 @@ namespace lsp
                 pOldProc                = reinterpret_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
                 bMouseInside            = false;
+                nMouseCapture           = 0;
 
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
@@ -77,6 +78,8 @@ namespace lsp
                 sConstraints.nPreHeight = -1;
 
                 enPointer               = MP_DEFAULT;
+                enBorderStyle           = BS_SIZEABLE;
+                nActions                = WA_ALL;
 
                 bzero(&sSavedCursor, sizeof(sSavedCursor));
             }
@@ -115,6 +118,8 @@ namespace lsp
                         lsp_error("Error creating window: %ld", long(GetLastError()));
                         return STATUS_UNKNOWN_ERR;
                     }
+
+                    commit_border_style(enBorderStyle, nActions);
                 }
                 else
                 {
@@ -195,7 +200,7 @@ namespace lsp
 
             LRESULT WinWindow::process_event(UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
-                // TODO: Translate the event and pass to handler
+                // Translate the event and pass to handler
                 event_t ue;
                 init_event(&ue);
 
@@ -307,6 +312,12 @@ namespace lsp
                     }
 
                     // Mouse events
+                    case WM_CAPTURECHANGED:
+                    {
+                        nMouseCapture           = 0;
+                        ReleaseCapture();
+                        return 0;
+                    }
                     case WM_MOUSEMOVE:
                     {
                         ue.nType                = UIE_MOUSE_MOVE;
@@ -330,6 +341,12 @@ namespace lsp
                         ue.nTop                 = GET_Y_LPARAM(lParam);
                         ue.nState               = decode_mouse_keystate(wParam);
 
+                        // Set mouse capture
+                        if (!nMouseCapture)
+                            SetCapture(hWindow);
+                        nMouseCapture          |= 1 << ue.nCode;
+
+                        lsp_trace("button down: %d", int(ue.nCode));
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
@@ -339,13 +356,19 @@ namespace lsp
                     case WM_MBUTTONUP:
                     {
                         ue.nType                = UIE_MOUSE_UP;
-                        ue.nCode                = (uMsg == WM_LBUTTONDOWN) ? MCB_LEFT :
-                                                  (uMsg == WM_RBUTTONDOWN) ? MCB_RIGHT :
+                        ue.nCode                = (uMsg == WM_LBUTTONUP) ? MCB_LEFT :
+                                                  (uMsg == WM_RBUTTONUP) ? MCB_RIGHT :
                                                   MCB_MIDDLE;
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
                         ue.nState               = decode_mouse_keystate(wParam);
 
+                        nMouseCapture          &= ~(1 << ue.nCode);
+                        if (nMouseCapture == 0)
+                            ReleaseCapture();
+
+
+                        lsp_trace("button up: %d", int(ue.nCode));
                         generate_enter_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
@@ -557,12 +580,12 @@ namespace lsp
 
             bool WinWindow::is_visible()
             {
-                return IsWindowVisible(hWindow);
+                return (hWindow != NULL) ? IsWindowVisible(hWindow) : false;
             }
 
             size_t WinWindow::screen()
             {
-                return 0;
+                return (pDisplay != NULL) ? pDisplay->default_screen() : 0;
             }
 
             status_t WinWindow::set_caption(const LSPString *caption)
@@ -711,12 +734,95 @@ namespace lsp
 
             status_t WinWindow::set_border_style(border_style_t style)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                return (enBorderStyle != style) ? commit_border_style(style, nActions) : STATUS_OK;
             }
 
             status_t WinWindow::get_border_style(border_style_t *style)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (style == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                *style      = enBorderStyle;
+                return STATUS_OK;
+            }
+
+            status_t WinWindow::set_window_actions(size_t actions)
+            {
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                return (nActions != actions) ? commit_border_style(enBorderStyle, actions) : STATUS_OK;
+            }
+
+            status_t WinWindow::get_window_actions(size_t *actions)
+            {
+                if (actions == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                *actions    = nActions;
+                return STATUS_OK;
+            }
+
+            status_t WinWindow::commit_border_style(border_style_t bs, size_t wa)
+            {
+                border_style_t xbs  = (hParent != NULL) ? BS_NONE : bs;
+                size_t style        = 0;
+                size_t ex_style     = 0;
+
+                switch (xbs)
+                {
+                    case BS_DIALOG:
+                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                        ex_style    = WS_EX_ACCEPTFILES;
+                        break;
+                    case BS_SINGLE:
+                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+                        ex_style    = WS_EX_ACCEPTFILES;
+                        break;
+                    case BS_SIZEABLE:
+                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+                        ex_style    = WS_EX_ACCEPTFILES;
+                        break;
+                    case BS_POPUP:
+                    case BS_COMBO:
+                    case BS_DROPDOWN:
+                        ex_style    = WS_EX_TOPMOST;
+                        break;
+                    case BS_NONE:
+                    default:
+                        style       = WS_OVERLAPPED;
+                        ex_style    = WS_EX_ACCEPTFILES;
+                        break;
+                }
+
+                SetWindowLongW(hWindow, GWL_STYLE, LONG(style));
+                SetWindowLongW(hWindow, GWL_EXSTYLE, LONG(ex_style));
+
+                HMENU sysmenu = (hParent == NULL) ? GetSystemMenu(hWindow, FALSE) : NULL;
+                if (sysmenu != NULL)
+                {
+                    #define COMMIT(id, flag) \
+                        EnableMenuItem(sysmenu, id, (wa & flag) ? MF_BYCOMMAND | MF_ENABLED : MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+                    COMMIT(SC_MOVE, WA_MOVE);
+                    COMMIT(SC_SIZE, WA_RESIZE);
+                    COMMIT(SC_MINIMIZE, WA_MINIMIZE);
+                    COMMIT(SC_MAXIMIZE, WA_MAXIMIZE);
+                    COMMIT(SC_CLOSE, WA_CLOSE);
+                    #undef COMMIT
+                }
+
+                // Finally, update the value for fields
+                enBorderStyle       = bs;
+                nActions            = wa;
+
+                return STATUS_OK;
             }
 
             status_t WinWindow::get_geometry(rectangle_t *realize)
@@ -744,16 +850,6 @@ namespace lsp
             {
                 *c = sConstraints;
                 return STATUS_OK;
-            }
-
-            status_t WinWindow::get_window_actions(size_t *actions)
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t WinWindow::set_window_actions(size_t actions)
-            {
-                return STATUS_NOT_IMPLEMENTED;
             }
 
             status_t WinWindow::grab_events(grab_t group)

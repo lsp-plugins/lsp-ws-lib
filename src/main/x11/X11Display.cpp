@@ -3964,14 +3964,23 @@ namespace lsp
                 XRRMonitorInfo *info = XRRGetMonitors(pDisplay, hRootWnd, True, &nmonitors);
                 if (info != NULL)
                 {
+                    // Create records
                     MonitorInfo *items = result.add_n(nmonitors);
+                    if (items == NULL)
+                        return NULL;
+                    for (int i=0; i<nmonitors; ++i)
+                    {
+                        MonitorInfo *di = &items[i];
+                        new (static_cast<void *>(&di->name)) LSPString;
+                    }
+
+                    // Translate records
                     for (int i=0; i<nmonitors; ++i)
                     {
                         const XRRMonitorInfo *si = &info[i];
                         MonitorInfo *di          = &items[i];
 
                         // Save the name of monitor
-                        new (static_cast<void *>(&di->name)) LSPString;
                         char *a_name    = ::XGetAtomName(pDisplay, si->name);
                         if (a_name != NULL)
                         {

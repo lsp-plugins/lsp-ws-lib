@@ -52,12 +52,15 @@ namespace lsp
                     volatile bool               bExit;                  // Indicator that forces to leave the main loop
                     MSG                         sPendingMessage;        // Currently pending message
                     HCURSOR                     vCursors[__MP_COUNT];   // Cursor handles (cached)
+                    lltl::darray<MonitorInfo>   vMonitors;              // Monitor information
 
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
+                    static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
 
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+                    static WINBOOL CALLBACK     enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam);
 
                 public:
                     explicit WinDisplay();

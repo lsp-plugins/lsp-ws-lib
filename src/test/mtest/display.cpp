@@ -122,6 +122,23 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(dpy != NULL);
         lsp_finally( ws::lsp_ws_free_display(dpy); );
 
+        // Enumerate list of displays
+        printf("List of attached displays:\n");
+        printf("%2s %10s %10s %s %s\n", "id", "coord", "size", "p", "name");
+        size_t count;
+        const ws::MonitorInfo *mi = dpy->enum_monitors(&count);
+        MTEST_ASSERT(count > 0);
+        MTEST_ASSERT(mi != NULL);
+        for (size_t i=0; i < count; ++i, ++mi)
+        {
+            char pos[32], size[32];
+            snprintf(pos, sizeof(pos), "%d,%d", int(mi->rect.nLeft), int(mi->rect.nTop));
+            snprintf(size, sizeof(size), "%dx%d", int(mi->rect.nWidth), int(mi->rect.nHeight));
+            printf("%2d %10s %10s %c %s\n",
+                int(i), pos, size, (mi->primary) ? '*' : ' ', mi->name.get_native());
+        }
+        printf("\n");
+
     #ifndef PLATFORM_WINDOWS
         // TODO: implement all this stuff for Windows
         io::Path font;
@@ -143,10 +160,8 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(wnd->set_caption("Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->get_caption(&dst) == STATUS_OK);
         MTEST_ASSERT(dst.equals_ascii("Test window"));
-    #ifndef PLATFORM_WINDOWS
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
-    #endif /* PLATFORM_WINDOWS */
 
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);

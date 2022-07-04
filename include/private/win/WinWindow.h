@@ -56,15 +56,19 @@ namespace lsp
                     WNDPROC             pOldProc;       // Old window procedure (if present)
                     bool                bWrapper;       // Indicates that window is a wrapper
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
+                    size_t              nMouseCapture;  // Flag for capturing mouse
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints
                     mouse_pointer_t     enPointer;      // Mouse pointer
+                    border_style_t      enBorderStyle;  // Border style of the window
+                    size_t              nActions;       // Allowed window actions
                     CURSORINFO          sSavedCursor;   // The saved cursor before the mouse has entered the window
 
                 protected:
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
                     void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
                     void                generate_enter_event(timestamp_t ts, const ws::event_t *ev);
+                    status_t            commit_border_style(border_style_t bs, size_t wa);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);

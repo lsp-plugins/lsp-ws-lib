@@ -32,6 +32,12 @@
 
 #include <windows.h>
 
+// Define the placement-new for our construction/destruction tricks
+inline void *operator new (size_t size, void *ptr)
+{
+    return ptr;
+}
+
 namespace lsp
 {
     namespace ws
@@ -92,6 +98,9 @@ namespace lsp
                     DestroyCursor(vCursors[MP_NONE]);
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = NULL;
+
+                // Destroy monitors
+                drop_monitors(&vMonitors);
             }
 
             LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -108,8 +117,8 @@ namespace lsp
                 // Obtain the "this" pointer
                 WinWindow *_this = reinterpret_cast<WinWindow *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
-                lsp_trace("Received event: this=%p, hwnd=%p, uMsg=%d(0x%x), wParam=%d(0x%x), lParam=%p",
-                    _this, hwnd, int(uMsg), int(uMsg), int(wParam), int(wParam), lParam);
+//                lsp_trace("Received event: this=%p, hwnd=%p, uMsg=%d(0x%x), wParam=%d(0x%x), lParam=%p",
+//                    _this, hwnd, int(uMsg), int(uMsg), int(wParam), int(wParam), lParam);
 
                 if (_this == NULL)
                     return DefWindowProcW(hwnd, uMsg, wParam, lParam);
@@ -272,12 +281,89 @@ namespace lsp
 
             status_t WinDisplay::screen_size(size_t screen, ssize_t *w, ssize_t *h)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (screen != default_screen())
+                    return STATUS_BAD_ARGUMENTS;
+
+                ssize_t width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                if (width == 0)
+                {
+                    if (GetLastError() != ERROR_SUCCESS)
+                        return STATUS_UNKNOWN_ERR;
+                }
+                else if (width < 0)
+                    return STATUS_UNKNOWN_ERR;
+
+                ssize_t height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                if (height == 0)
+                {
+                    if (GetLastError() != ERROR_SUCCESS)
+                        return STATUS_UNKNOWN_ERR;
+                }
+                else if (height)
+                    return STATUS_UNKNOWN_ERR;
+
+                if (w != NULL)
+                    *w      = width;
+                if (h != NULL)
+                    *h      = height;
+
+                return STATUS_OK;
+            }
+
+            void WinDisplay::drop_monitors(lltl::darray<MonitorInfo> *list)
+            {
+                for (size_t i=0, n=list->size(); i<n; ++i)
+                {
+                    MonitorInfo *mi = list->uget(i);
+                    mi->name.~LSPString();
+                }
+                list->flush();
+            }
+
+            WINBOOL CALLBACK WinDisplay::enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam)
+            {
+                lltl::darray<MonitorInfo> *result = reinterpret_cast<lltl::darray<MonitorInfo> *>(dwParam);
+                MonitorInfo *di     = result->add();
+                if (di == NULL)
+                    return TRUE;
+                new (static_cast<void *>(&di->name)) LSPString;
+
+                MONITORINFOEXW xmi;
+                xmi.cbSize       = sizeof(xmi);
+
+                if (GetMonitorInfoW(monitor, &xmi))
+                {
+                    di->primary         = xmi.dwFlags & MONITORINFOF_PRIMARY;
+                    di->name.set_utf16(xmi.szDevice);
+                }
+                else
+                    di->primary         = false;
+
+                di->rect.nLeft      = rect->left;
+                di->rect.nTop       = rect->top;
+                di->rect.nWidth     = rect->right - rect->left;
+                di->rect.nHeight    = rect->bottom - rect->top;
+
+                return TRUE;
             }
 
             const MonitorInfo *WinDisplay::enum_monitors(size_t *count)
             {
-                return NULL;
+                lltl::darray<MonitorInfo> result;
+
+                EnumDisplayMonitors(
+                    NULL,                                   // hdc
+                    NULL,                                   // lprcClip
+                    enum_monitor_proc,                      // lpfnEnum
+                    reinterpret_cast<LPARAM>(&result)       // dwData
+                );
+
+                vMonitors.swap(result);
+                drop_monitors(&result);
+                if (count != NULL)
+                    *count      = vMonitors.size();
+
+                return vMonitors.array();
             }
 
             status_t WinDisplay::set_clipboard(size_t id, IDataSource *ds)
