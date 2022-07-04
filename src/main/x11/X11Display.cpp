@@ -40,8 +40,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
-#include <X11/extensions/Xrandr.h>
 
+#ifdef USE_LIBXRANDR
+    #include <X11/extensions/Xrandr.h>
+#endif /* USE_LIBXRANDR */
 
 #ifdef USE_LIBCAIRO
     #include <cairo.h>
