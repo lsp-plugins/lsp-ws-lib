@@ -58,34 +58,35 @@ MTEST_BEGIN("ws", display)
                     {
                         Color c(0.0f, 0.5f, 0.75f);
                         ws::ISurface *s = pWnd->get_surface();
-                        if (s != NULL)
-                        {
-                            s->begin();
-                            s->clear(c);
+                        if (s == NULL)
+                            return STATUS_OK;
 
-                            ws::Font f;
-                            ws::font_parameters_t fp;
-                            ws::text_parameters_t tp;
-                            f.set_name("example");
-                            f.set_size(64);
+                        // Perform drawing
+                        s->begin();
+                        s->clear(c);
 
-                            s->get_font_parameters(f, &fp);
-                            s->get_text_parameters(f, &tp, "A");
+                        ws::Font f;
+                        ws::font_parameters_t fp;
+                        ws::text_parameters_t tp;
+                        f.set_name("example");
+                        f.set_size(64);
 
-                            ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
-                            ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
+                        s->get_font_parameters(f, &fp);
+                        s->get_text_parameters(f, &tp, "A");
 
-                            c.set_rgb24(0xffff00);
-                            f.set_antialiasing(ws::FA_ENABLED);
-                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-                            x += tp.Width;
+                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
+                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
 
-                            c.set_rgb24(0x00ffff);
-                            f.set_antialiasing(ws::FA_DISABLED);
-                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                        c.set_rgb24(0xffff00);
+                        f.set_antialiasing(ws::FA_ENABLED);
+                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                        x += tp.Width;
 
-                            s->end();
-                        }
+                        c.set_rgb24(0x00ffff);
+                        f.set_antialiasing(ws::FA_DISABLED);
+                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+
+                        s->end();
 
                         return STATUS_OK;
                     }
@@ -166,18 +167,18 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);
 
-    #ifndef PLATFORM_WINDOWS
         size_t screen = wnd->screen();
         ssize_t sw, sh;
+        ws::rectangle_t wr;
         MTEST_ASSERT(dpy->screen_size(screen, &sw, &sh) == STATUS_OK);
-        wnd->move((sw - wnd->width()) >> 1, (sh - wnd->height()) >> 1);
-
-    #endif /* PLATFORM_WINDOWS */
+        MTEST_ASSERT(wnd->get_absolute_geometry(&wr) == STATUS_OK);
+        wnd->move((sw - wr.nWidth) / 2, (sh - wr.nHeight) / 2);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
+        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

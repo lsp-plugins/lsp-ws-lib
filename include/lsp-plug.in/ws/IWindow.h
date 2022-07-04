@@ -184,13 +184,15 @@ namespace lsp
                  */
                 virtual status_t get_border_style(border_style_t *style);
 
-                /** Get window geometry
+                /** Get window geometry. Obtains the size of the client area
+                 * of the window and it's location relative to the parent window.
                  *
                  * @return window geometry
                  */
                 virtual status_t get_geometry(rectangle_t *size);
 
-                /** Get absolute window's geometry
+                /** Get absolute window's geometry. Obtains the size of the whole window
+                 * and it's location relative to the screen.
                  *
                  * @param size pointer to structure to store data
                  * @return status of operation

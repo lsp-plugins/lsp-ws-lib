@@ -219,22 +219,25 @@ namespace lsp
                         // it's minimum and maximum tracking size.
                         MINMAXINFO *info        = reinterpret_cast<MINMAXINFO *>(lParam);
 
-                        // Get extra padding
-                        ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
-                        ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
-                        ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
-
-                        // Add padding to constraints
-                        // TODO: handle windows with NONE border style
                         size_limit_t sl         = sConstraints;
-                        if (sl.nMinWidth >= 0)
-                            sl.nMinWidth           += hborder * 2;
-                        if (sl.nMaxWidth >= 0)
-                            sl.nMaxWidth           += hborder * 2;
-                        if (sl.nMinHeight >= 0)
-                            sl.nMinHeight          += vcaption + vborder * 2;
-                        if (sl.nMaxHeight >= 0)
-                            sl.nMaxHeight          += vcaption + vborder * 2;
+                        if (has_border())
+                        {
+                            // Get extra padding
+                            ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
+                            ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
+                            ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
+
+                            // Add padding to constraints
+                            // TODO: handle windows with NONE border style
+                            if (sl.nMinWidth >= 0)
+                                sl.nMinWidth           += hborder * 2;
+                            if (sl.nMaxWidth >= 0)
+                                sl.nMaxWidth           += hborder * 2;
+                            if (sl.nMinHeight >= 0)
+                                sl.nMinHeight          += vcaption + vborder * 2;
+                            if (sl.nMaxHeight >= 0)
+                                sl.nMaxHeight          += vcaption + vborder * 2;
+                        }
 
                         // Compute window constraints regarding to the computed contraints
                         info->ptMinTrackSize.x  = lsp_max(sl.nMinWidth, 1);
@@ -271,15 +274,21 @@ namespace lsp
                     // Sizing, moving, showing
                     case WM_SIZE:
                     {
-                        ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
-                        ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
-                        ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
-
                         ue.nType                = UIE_RESIZE;
                         ue.nLeft                = sSize.nLeft;
                         ue.nTop                 = sSize.nTop;
-                        ue.nWidth               = LOWORD(lParam) - hborder * 2;
-                        ue.nHeight              = HIWORD(lParam) - vborder * 2 - vcaption;
+                        ue.nWidth               = LOWORD(lParam);
+                        ue.nHeight              = HIWORD(lParam);
+
+                        if (has_border())
+                        {
+                            ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
+                            ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
+                            ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
+
+                            ue.nWidth              -= hborder * 2;
+                            ue.nHeight             -= vborder * 2 - vcaption;
+                        }
 
                         handle_event(&ue);
                         return 0;
@@ -772,7 +781,7 @@ namespace lsp
 
             status_t WinWindow::commit_border_style(border_style_t bs, size_t wa)
             {
-                border_style_t xbs  = (hParent != NULL) ? BS_NONE : bs;
+                border_style_t xbs  = (has_parent()) ? BS_NONE : bs;
                 size_t style        = 0;
                 size_t ex_style     = 0;
 
@@ -783,11 +792,19 @@ namespace lsp
                         ex_style    = WS_EX_ACCEPTFILES;
                         break;
                     case BS_SINGLE:
-                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                        if (wa & WA_MINIMIZE)
+                            style       |= WS_MINIMIZEBOX;
+                        if (wa & WA_MAXIMIZE)
+                            style       |= WS_MAXIMIZEBOX;
                         ex_style    = WS_EX_ACCEPTFILES;
                         break;
                     case BS_SIZEABLE:
-                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                        if (wa & WA_MINIMIZE)
+                            style       |= WS_MINIMIZEBOX;
+                        if (wa & WA_MAXIMIZE)
+                            style       |= WS_MAXIMIZEBOX;
                         ex_style    = WS_EX_ACCEPTFILES;
                         break;
                     case BS_POPUP:
@@ -825,14 +842,52 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            bool WinWindow::has_border() const
+            {
+                if (has_parent())
+                    return false;
+                switch (enBorderStyle)
+                {
+                    case BS_DIALOG:
+                    case BS_SINGLE:
+                    case BS_SIZEABLE:
+                        return true;
+                    default:
+                        break;
+                }
+                return false;
+            }
+
             status_t WinWindow::get_geometry(rectangle_t *realize)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (realize == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                *realize            = sSize;
+
+                return STATUS_OK;
             }
 
             status_t WinWindow::get_absolute_geometry(rectangle_t *realize)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (realize == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                POINT p;
+                p.x                 = 0;
+                p.y                 = 0;
+
+                if (!ClientToScreen(hWindow, &p))
+                    return STATUS_UNKNOWN_ERR;
+
+                realize->nLeft      = p.x;
+                realize->nTop       = p.y;
+                realize->nWidth     = sSize.nWidth;
+                realize->nHeight    = sSize.nHeight;
+
+                return STATUS_OK;
             }
 
             status_t WinWindow::set_size_constraints(const size_limit_t *c)
@@ -911,7 +966,11 @@ namespace lsp
 
             bool WinWindow::has_parent() const
             {
-                return false;
+                if (hWindow == NULL)
+                    return false;
+                HWND wnd = GetParent(hWindow);
+
+                return wnd != NULL;
             }
         } /* namespace win */
     } /* namespace ws */

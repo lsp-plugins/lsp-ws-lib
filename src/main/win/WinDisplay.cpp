@@ -299,7 +299,7 @@ namespace lsp
                     if (GetLastError() != ERROR_SUCCESS)
                         return STATUS_UNKNOWN_ERR;
                 }
-                else if (height)
+                else if (height < 0)
                     return STATUS_UNKNOWN_ERR;
 
                 if (w != NULL)

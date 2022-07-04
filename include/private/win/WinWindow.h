@@ -69,6 +69,7 @@ namespace lsp
                     void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
                     void                generate_enter_event(timestamp_t ts, const ws::event_t *ev);
                     status_t            commit_border_style(border_style_t bs, size_t wa);
+                    bool                has_border() const;
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
