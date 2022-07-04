@@ -1081,18 +1081,69 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::set_caption(const char *ascii, const char *utf8)
+            status_t X11Window::set_caption(const char *caption)
             {
-                if (ascii == NULL)
+                if (caption == NULL)
                     return STATUS_BAD_ARGUMENTS;
                 if (hWindow == None)
-                    return STATUS_OK;
+                    return STATUS_BAD_STATE;
 
-                if (utf8 == NULL)
-                    utf8 = ascii;
+                // Set legacy property
+                const x11_atoms_t &a = pX11Display->atoms();
+                LSPString text;
+                if (text.set_utf8(caption))
+                {
+                    const char *ascii = text.get_ascii();
+                    ::XChangeProperty(
+                        pX11Display->x11display(),
+                        hWindow,
+                        a.X11_XA_WM_NAME,
+                        a.X11_XA_STRING,
+                        8,
+                        PropModeReplace,
+                        reinterpret_cast<const unsigned char *>(ascii),
+                        ::strlen(ascii)
+                    );
+                }
+
+                // Set modern property for window manager
+                ::XChangeProperty(
+                    pX11Display->x11display(),
+                    hWindow,
+                    a.X11__NET_WM_NAME,
+                    a.X11_UTF8_STRING,
+                    8,
+                    PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(caption),
+                    ::strlen(caption)
+                );
+                ::XChangeProperty(
+                    pX11Display->x11display(),
+                    hWindow,
+                    a.X11__NET_WM_ICON_NAME,
+                    a.X11_UTF8_STRING,
+                    8,
+                    PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(caption),
+                    ::strlen(caption)
+                );
+
+                pX11Display->flush();
+
+                return STATUS_OK;
+            }
+
+            status_t X11Window::set_caption(const LSPString *caption)
+            {
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
+                // Set legacy property
+                const char *ascii = caption->get_ascii();
                 ::XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -1103,6 +1154,9 @@ namespace lsp
                     reinterpret_cast<const unsigned char *>(ascii),
                     ::strlen(ascii)
                 );
+
+                // Set modern property for window manager
+                const char *utf8 = caption->get_utf8();
                 ::XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -1131,8 +1185,12 @@ namespace lsp
 
             status_t X11Window::get_caption(char *text, size_t len)
             {
+                if (text == NULL)
+                    return STATUS_BAD_ARGUMENTS;
                 if (len < 1)
                     return STATUS_TOO_BIG;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
                 unsigned long count = 0, left = 0;
                 Atom ret;
@@ -1174,6 +1232,51 @@ namespace lsp
                 memcpy(text, data, count);
                 text[count] = '\0';
                 return STATUS_OK;
+            }
+
+            status_t X11Window::get_caption(LSPString *caption)
+            {
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
+
+                unsigned long count = 0, left = 0;
+                Atom ret;
+                int fmt;
+                unsigned char* data;
+
+                const x11_atoms_t &a = pX11Display->atoms();
+
+                int result = XGetWindowProperty(
+                    pX11Display->x11display() /* display */,
+                    hWindow /* window */,
+                    a.X11__NET_WM_NAME /* property */,
+                    0           /* long_offset */,
+                    ~0L         /* long_length */,
+                    False       /* delete */,
+                    a.X11_UTF8_STRING  /* req_type */,
+                    &ret        /* actual_type_return */,
+                    &fmt        /* actual_format_return */,
+                    &count      /* nitems_return */,
+                    &left       /* bytes_after_return */,
+                    &data       /* prop_return */
+                );
+
+                if (result != Success)
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally(
+                    if (data != NULL)
+                        XFree(data);
+                );
+
+                if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
+                {
+                    caption->clear();
+                    return STATUS_OK;
+                }
+
+                return (caption->set_utf8(reinterpret_cast<char *>(data), count)) ? STATUS_OK : STATUS_NO_MEM;
             }
 
             status_t X11Window::set_icon(const void *bgra, size_t width, size_t height)

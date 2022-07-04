@@ -138,8 +138,12 @@ MTEST_BEGIN("ws", display)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_mouse_pointer(ws::MP_HAND) == STATUS_OK);
         MTEST_ASSERT(wnd->get_mouse_pointer() == ws::MP_HAND);
+
+        LSPString dst;
+        MTEST_ASSERT(wnd->set_caption("Test window") == STATUS_OK);
+        MTEST_ASSERT(wnd->get_caption(&dst) == STATUS_OK);
+        MTEST_ASSERT(dst.equals_ascii("Test window"));
     #ifndef PLATFORM_WINDOWS
-        MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
     #endif /* PLATFORM_WINDOWS */

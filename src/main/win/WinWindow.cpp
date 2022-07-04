@@ -565,14 +565,78 @@ namespace lsp
                 return 0;
             }
 
-            status_t WinWindow::set_caption(const char *ascii, const char *utf8)
+            status_t WinWindow::set_caption(const LSPString *caption)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+                const WCHAR *utf16 = caption->get_utf16();
+                return (SetWindowTextW(hWindow, utf16)) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+            }
+
+            status_t WinWindow::set_caption(const char *caption)
+            {
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                LSPString tmp;
+                return (tmp.set_utf8(caption)) ? set_caption(&tmp) : STATUS_NO_MEM;
             }
 
             status_t WinWindow::get_caption(char *text, size_t len)
             {
+                if (text == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (len < 1)
+                    return STATUS_TOO_BIG;
+
+                LSPString tmp;
+                status_t res = get_caption(&tmp);
+                if (res != STATUS_OK)
+                    return res;
+
+                const char *utf8 = tmp.get_utf8();
+                size_t count = strlen(utf8) + 1;
+                if (len < count)
+                    return STATUS_TOO_BIG;
+
+                memcpy(text, utf8, count);
                 return STATUS_NOT_IMPLEMENTED;
+            }
+
+            status_t WinWindow::get_caption(LSPString *text)
+            {
+                if (text == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Obtain the length of the window text
+                int length = GetWindowTextLengthW(hWindow);
+                if (length == 0)
+                {
+                    if (GetLastError() != ERROR_SUCCESS)
+                        return STATUS_UNKNOWN_ERR;
+                    text->clear();
+                    return STATUS_OK;
+                }
+                else if (length < 0)
+                    return STATUS_UNKNOWN_ERR;
+
+                // Obtain the text of the window
+                WCHAR *tmp = static_cast<WCHAR *>(malloc((length + 1) * sizeof(WCHAR)));
+                if (tmp == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally( free(tmp); );
+
+                if (GetWindowTextW(hWindow, tmp, length + 1) <= 0)
+                {
+                    if (GetLastError() != ERROR_SUCCESS)
+                        return STATUS_UNKNOWN_ERR;
+                }
+
+                return (text->set_utf16(tmp, length)) ? STATUS_OK : STATUS_NO_MEM;
             }
 
             status_t WinWindow::move(ssize_t left, ssize_t top)

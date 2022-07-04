@@ -7,6 +7,7 @@
 * Method ws::IWindow::set_focus() replaced by ws::IWindow::take_focus().
 * Removed method ws::IWindow::toggle_focus().
 * Removed method ws::IWindow::check_constraints().
+* Changed the ws::IWindow::set_caption() method signature.
 * Changed the values for ws::MP_DEFAULT mouse cursor constant.
 * Updated build scripts.
 

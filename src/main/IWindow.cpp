@@ -324,7 +324,12 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IWindow::set_caption(const char *ascii, const char *utf8)
+        status_t IWindow::set_caption(const LSPString *caption)
+        {
+            return set_caption(caption->get_utf8());
+        }
+
+        status_t IWindow::set_caption(const char *caption)
         {
             return STATUS_OK;
         }
@@ -334,6 +339,12 @@ namespace lsp
             if (len < 1)
                 return STATUS_TOO_BIG;
             text[0] = '\0';
+            return STATUS_OK;
+        }
+
+        status_t IWindow::get_caption(LSPString *text)
+        {
+            text->clear();
             return STATUS_OK;
         }
 

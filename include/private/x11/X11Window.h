@@ -143,8 +143,10 @@ namespace lsp
 
                     virtual status_t    take_focus() override;
 
-                    virtual status_t    set_caption(const char *ascii, const char *utf8) override;
+                    virtual status_t    set_caption(const char *caption) override;
+                    virtual status_t    set_caption(const LSPString *caption) override;
                     virtual status_t    get_caption(char *text, size_t len) override;
+                    virtual status_t    get_caption(LSPString *text) override;
 
                     virtual status_t    set_icon(const void *bgra, size_t width, size_t height) override;
 

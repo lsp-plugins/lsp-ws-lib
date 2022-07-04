@@ -92,8 +92,11 @@ namespace lsp
                     virtual bool        is_visible() override;
 
                     virtual size_t      screen() override;
-                    virtual status_t    set_caption(const char *ascii, const char *utf8) override;
+
+                    virtual status_t    set_caption(const char *caption) override;
+                    virtual status_t    set_caption(const LSPString *caption) override;
                     virtual status_t    get_caption(char *text, size_t len) override;
+                    virtual status_t    get_caption(LSPString *text) override;
 
                     virtual status_t    move(ssize_t left, ssize_t top) override;
                     virtual status_t    resize(ssize_t width, ssize_t height) override;

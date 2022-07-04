@@ -26,6 +26,8 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 
+#include <lsp-plug.in/runtime/LSPString.h>
+
 namespace lsp
 {
     namespace ws
@@ -117,11 +119,11 @@ namespace lsp
 
                 /** Set caption of the window
                  *
-                 * @param ascii ASCII-encoded caption
-                 * @param utf8 UTF-8-encoded caption
+                 * @param caption UTF-8-encoded NULL-terminated caption string
                  * @return status of operation
                  */
-                virtual status_t set_caption(const char *ascii, const char *utf8);
+                virtual status_t set_caption(const char *caption);
+                virtual status_t set_caption(const LSPString *caption);
 
             public:
                 /** Get native handle of the window
@@ -197,11 +199,18 @@ namespace lsp
 
                 /** Get caption
                  *
-                 * @param text pointer to store data
+                 * @param text pointer to store data (buffer for UTF-8 string)
                  * @param len number of characters
                  * @return status of operation
                  */
                 virtual status_t get_caption(char *text, size_t len);
+
+                /** Get caption
+                 *
+                 * @param text pointer to store data (buffer for UTF-8 string)
+                 * @return status of operation
+                 */
+                virtual status_t get_caption(LSPString *text);
 
                 /** Hide window
                  *
