@@ -31,6 +31,7 @@
 #include <private/win/WinWindow.h>
 
 #include <windows.h>
+#include <d2d1.h>
 
 // Define the placement-new for our construction/destruction tricks
 inline void *operator new (size_t size, void *ptr)
@@ -52,7 +53,8 @@ namespace lsp
             WinDisplay::WinDisplay():
                 IDisplay()
             {
-                bExit   = false;
+                bExit           = false;
+                pD2D1Factroy    = NULL;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -85,6 +87,13 @@ namespace lsp
                 // Initialize cursors
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     translate_cursor(mouse_pointer_t(i));
+
+                // Create D2D1 factory
+                if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2D1Factroy)))
+                {
+                    lsp_error("Error creating D2D1 factory: %ld", long(GetLastError()));
+                    return STATUS_UNKNOWN_ERR;
+                }
 
                 return STATUS_OK;
             }

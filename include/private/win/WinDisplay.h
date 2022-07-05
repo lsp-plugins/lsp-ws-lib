@@ -31,6 +31,7 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 
 #include <windows.h>
+#include <d2d1.h>
 
 namespace lsp
 {
@@ -50,6 +51,7 @@ namespace lsp
 
                 protected:
                     volatile bool               bExit;                  // Indicator that forces to leave the main loop
+                    ID2D1Factory               *pD2D1Factroy;           // Direct2D factory
                     MSG                         sPendingMessage;        // Currently pending message
                     HCURSOR                     vCursors[__MP_COUNT];   // Cursor handles (cached)
                     lltl::darray<MonitorInfo>   vMonitors;              // Monitor information
@@ -112,6 +114,7 @@ namespace lsp
 
                 public:
                     HCURSOR                     translate_cursor(mouse_pointer_t cursor);
+                    inline ID2D1Factory        *d2d_factory()           { return pD2D1Factroy;     }
             };
         } /* namespace win */
     } /* namespace ws */

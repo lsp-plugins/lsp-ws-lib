@@ -30,6 +30,7 @@
 #include <lsp-plug.in/ws/win/decode.h>
 
 #include <private/win/WinDisplay.h>
+#include <private/win/WinDDSurface.h>
 #include <private/win/WinWindow.h>
 
 #include <windows.h>
@@ -59,6 +60,7 @@ namespace lsp
                     hWindow                 = INVALID_HWND;
                     hParent                 = wnd;
                 }
+                pSurface                = NULL;
                 pOldUserData            = reinterpret_cast<LONG_PTR>(reinterpret_cast<void *>(NULL));
                 pOldProc                = reinterpret_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
@@ -128,6 +130,11 @@ namespace lsp
                         SetWindowLongPtrW(hWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WinDisplay::window_proc)));
                     pOldUserData    = SetWindowLongPtrW(hWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
                 }
+
+                // Create surface
+                pSurface        = new WinDDSurface(pDisplay, hWindow, sSize.nWidth, sSize.nHeight);
+                if (pSurface == NULL)
+                    return STATUS_NO_MEM;
 
                 // Enable all keyboard and mouse input for the window
                 EnableWindow(hWindow, TRUE);
@@ -291,6 +298,8 @@ namespace lsp
                         }
 
                         handle_event(&ue);
+
+                        InvalidateRect(hWindow, NULL, FALSE);
                         return 0;
                     }
                     case WM_MOVE:
@@ -317,6 +326,25 @@ namespace lsp
                     {
                         ue.nType                = UIE_CLOSE;
                         handle_event(&ue);
+                        return 0;
+                    }
+
+                    // Painting the window
+                    case WM_PAINT:
+                    {
+                        PAINTSTRUCT ps;
+                        BeginPaint(hWindow, &ps);
+
+                        ue.nType                = UIE_REDRAW;
+                        ue.nLeft                = ps.rcPaint.left;
+                        ue.nTop                 = ps.rcPaint.top;
+                        ue.nWidth               = ps.rcPaint.right - ps.rcPaint.left;
+                        ue.nHeight              = ps.rcPaint.bottom - ps.rcPaint.top;
+
+                        handle_event(&ue);
+
+                        EndPaint(hWindow, &ps);
+
                         return 0;
                     }
 
@@ -375,7 +403,6 @@ namespace lsp
                         nMouseCapture          &= ~(1 << ue.nCode);
                         if (nMouseCapture == 0)
                             ReleaseCapture();
-
 
                         lsp_trace("button up: %d", int(ue.nCode));
                         generate_enter_event(xts, &ue);
@@ -464,12 +491,9 @@ namespace lsp
                         sSize.nTop          = ev->nTop;
                         sSize.nWidth        = ev->nWidth;
                         sSize.nHeight       = ev->nHeight;
-                        // TODO
-//                        if (pSurface != NULL)
-//                        {
-//                            WinGdiSurface *surface = static_cast<WinGdiSurface *>(pSurface);
-//                            surface->resize(sSize.nWidth, sSize.nHeight);
-//                        }
+
+                        if (pSurface != NULL)
+                            pSurface->sync_size();
                         break;
                     }
 
@@ -487,7 +511,7 @@ namespace lsp
 
             ISurface *WinWindow::get_surface()
             {
-                return NULL;
+                return pSurface;
             }
 
             void *WinWindow::handle()

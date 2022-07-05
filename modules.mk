@@ -61,20 +61,47 @@ LSP_R3D_GLX_LIB_TYPE       := src
 LSP_R3D_GLX_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 LSP_R3D_GLX_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 
-LIBPTHREAD_VERSION         := system
-LIBPTHREAD_NAME            := libpthread
-LIBPTHREAD_TYPE            := opt
-LIBPTHREAD_LDFLAGS         := -lpthread
+# System libraries
+LIBCAIRO_VERSION           := system
+LIBCAIRO_NAME              := cairo
+LIBCAIRO_TYPE              := pkg
 
 LIBDL_VERSION              := system
 LIBDL_NAME                 := libdl
 LIBDL_TYPE                 := opt
 LIBDL_LDFLAGS              := -ldl
 
+LIBD2D1_VERSION            := system
+LIBD2D1_NAME               := libd2d1
+LIBD2D1_TYPE               := opt
+LIBD2D1_LDFLAGS            := -ld2d1
+
+LIBFREETYPE_VERSION        := system
+LIBFREETYPE_NAME           := freetype2
+LIBFREETYPE_TYPE           := pkg
+
+LIBGL_VERSION              := system
+LIBGL_NAME                 := gl
+LIBGL_TYPE                 := pkg
+
 LIBICONV_VERSION           := system
 LIBICONV_NAME              := libiconv
 LIBICONV_TYPE              := opt
 LIBICONV_LDFLAGS           := -liconv
+
+LIBMSACM_VERSION           := system
+LIBMSACM_NAME              := libmsacm
+LIBMSACM_TYPE              := opt
+LIBMSACM_LDFLAGS           := -lmsacm32
+
+LIBPTHREAD_VERSION         := system
+LIBPTHREAD_NAME            := libpthread
+LIBPTHREAD_TYPE            := opt
+LIBPTHREAD_LDFLAGS         := -lpthread
+
+LIBSNDFILE_VERSION         := system
+LIBSNDFILE_NAME            := sndfile
+LIBSNDFILE_TYPE            := pkg
 
 LIBSHLWAPI_VERSION         := system
 LIBSHLWAPI_NAME            := libshlwapi
@@ -86,15 +113,6 @@ LIBWINMM_NAME              := libwinmm
 LIBWINMM_TYPE              := opt
 LIBWINMM_LDFLAGS           := -lwinmm
 
-LIBMSACM_VERSION           := system
-LIBMSACM_NAME              := libmsacm
-LIBMSACM_TYPE              := opt
-LIBMSACM_LDFLAGS           := -lmsacm32
-
-LIBSNDFILE_VERSION         := system
-LIBSNDFILE_NAME            := sndfile
-LIBSNDFILE_TYPE            := pkg
-
 LIBX11_VERSION             := system
 LIBX11_NAME                := x11
 LIBX11_TYPE                := pkg
@@ -102,18 +120,5 @@ LIBX11_TYPE                := pkg
 LIBXRANDR_VERSION          := system
 LIBXRANDR_NAME             := xrandr
 LIBXRANDR_TYPE             := pkg
-
-LIBGL_VERSION              := system
-LIBGL_NAME                 := gl
-LIBGL_TYPE                 := pkg
-
-LIBCAIRO_VERSION           := system
-LIBCAIRO_NAME              := cairo
-LIBCAIRO_TYPE              := pkg
-
-LIBFREETYPE_VERSION        := system
-LIBFREETYPE_NAME           := freetype2
-LIBFREETYPE_TYPE           := pkg
-
 
 

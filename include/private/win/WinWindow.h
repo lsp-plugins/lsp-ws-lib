@@ -31,6 +31,8 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
+#include <private/win/WinDDSurface.h>
+
 #include <windows.h>
 
 namespace lsp
@@ -52,6 +54,7 @@ namespace lsp
                     WinDisplay         *pDisplay;       // Pointer to the display
                     HWND                hWindow;        // The identifier of the wrapped window
                     HWND                hParent;        // The identifier of parent window
+                    WinDDSurface       *pSurface;       // Drawing surface
                     LONG_PTR            pOldUserData;   // Old user data
                     WNDPROC             pOldProc;       // Old window procedure (if present)
                     bool                bWrapper;       // Indicates that window is a wrapper

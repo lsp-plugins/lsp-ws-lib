@@ -320,10 +320,11 @@ namespace lsp
 
         enum surface_type_t
         {
-            ST_UNKNOWN,
-            ST_IMAGE,
-            ST_XLIB,
-            ST_PROXY
+            ST_UNKNOWN,         // Unknown surface type
+            ST_IMAGE,           // Image surface
+            ST_XLIB,            // Surface created by XLIB extension
+            ST_DDRAW,           // Surface created by DirectDraw factory
+            ST_PROXY            // Proxy surface
         };
 
         typedef struct font_parameters_t
