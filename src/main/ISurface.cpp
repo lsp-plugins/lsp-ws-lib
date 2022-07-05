@@ -106,84 +106,40 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_rect(const Color &color, float left, float top, float width, float height)
+        void ISurface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::fill_rect(const Color &color, const ws::rectangle_t *r)
+        void ISurface::wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
         {
-            fill_rect(color, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+            wire_rect(c, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
         }
 
-        void ISurface::fill_rect(IGradient *g, float left, float top, float width, float height)
-        {
-        }
-
-        void ISurface::fill_rect(IGradient *g, const ws::rectangle_t *r)
-        {
-            fill_rect(g, r->nLeft, r->nTop, r->nWidth, r->nHeight);
-        }
-
-        void ISurface::wire_rect(const Color &color, float left, float top, float width, float height, float line_width)
+        void ISurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }
 
-        void ISurface::wire_rect(IGradient *g, float left, float top, float width, float height, float line_width)
+        void ISurface::wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
+        {
+            wire_rect(g, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
+        }
+
+        void ISurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+        void ISurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_rect(color, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
+        void ISurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
         {
         }
 
-        void ISurface::wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
+        void ISurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
         {
-            wire_round_rect(c, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
-        }
-
-        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-        {
-        }
-
-        void ISurface::wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
-        {
-            wire_round_rect(g, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
-        }
-
-        void ISurface::wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-        {
-        }
-
-        void ISurface::wire_round_rect_inside(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
-        {
-            wire_round_rect_inside(c, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
-        }
-
-        void ISurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-        {
-        }
-
-        void ISurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
-        {
-            wire_round_rect_inside(g, mask, radius, rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight, line_width);
-        }
-
-        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
-        {
-        }
-
-        void ISurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
-        {
-            fill_round_rect(color, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
-        }
-
-        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
-        {
-        }
-
-        void ISurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
-        {
-            fill_round_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+            fill_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
         void ISurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)

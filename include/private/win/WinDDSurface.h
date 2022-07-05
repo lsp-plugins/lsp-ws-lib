@@ -82,18 +82,10 @@ namespace lsp
                     virtual void fill_rect(IGradient *g, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, const ws::rectangle_t *r) override;
 
-                    virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width) override;
-                    virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width) override;
-
-                    virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
-                    virtual void wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
-                    virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
-                    virtual void wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
-
-                    virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
-                    virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
-                    virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
-                    virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
+                    virtual void wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
+                    virtual void wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
+                    virtual void wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
+                    virtual void wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
 
                     virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;

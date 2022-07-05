@@ -39,11 +39,29 @@ namespace lsp
     {
         namespace win
         {
+            static inline D2D_COLOR_F d2d_color(const Color &color)
+            {
+                D2D_COLOR_F c;
+                color.get_rgbo(c.r, c.g, c.b, c.a);
+                return c;
+            }
+
+            template <class T>
+                static inline void safe_release(T * &obj)
+                {
+                    if (obj != NULL)
+                    {
+                        obj->Release();
+                        obj = NULL;
+                    }
+                }
+
             WinDDSurface::WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height)
             {
                 pDisplay    = dpy;
                 hWindow     = hwnd;
                 pDC         = NULL;
+
                 nWidth      = width;
                 nHeight     = height;
                 nType       = ST_DDRAW;
@@ -63,6 +81,7 @@ namespace lsp
 
             void WinDDSurface::destroy()
             {
+                safe_release(pDC);
             }
 
             void WinDDSurface::begin()
@@ -115,10 +134,7 @@ namespace lsp
 
                 HRESULT hr = pDC->EndDraw();
                 if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
-                {
-                    pDC->Release();
-                    pDC     = NULL;
-                }
+                    safe_release(pDC);
             }
 
             void WinDDSurface::sync_size()
@@ -193,57 +209,86 @@ namespace lsp
 
             void WinDDSurface::fill_rect(const Color &color, float left, float top, float width, float height)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                rect.left   = left;
+                rect.top    = top;
+                rect.right  = left + width;
+                rect.bottom = top  + height;
+
+                pDC->FillRectangle(&rect, brush);
             }
 
             void WinDDSurface::fill_rect(const Color &color, const ws::rectangle_t *r)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                rect.left   = r->nLeft;
+                rect.top    = r->nTop;
+                rect.right  = r->nLeft + r->nWidth;
+                rect.bottom = r->nTop  + r->nHeight;
+
+                pDC->FillRectangle(&rect, brush);
             }
 
             void WinDDSurface::fill_rect(IGradient *g, float left, float top, float width, float height)
             {
+                if (pDC == NULL)
+                    return;
             }
 
             void WinDDSurface::fill_rect(IGradient *g, const ws::rectangle_t *r)
             {
             }
 
-            void WinDDSurface::wire_rect(const Color &color, float left, float top, float width, float height, float line_width)
+            void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                float hw    = line_width * 0.5f;
+                rect.left   = left + hw;
+                rect.top    = top + hw;
+                rect.right  = left + width - line_width;
+                rect.bottom = top  + height - line_width;
+
+                if ((mask == 0) || (radius <= 0.0f))
+                    pDC->DrawRectangle(&rect, brush, line_width, NULL);
+                else
+                {
+                    // TODO
+                }
+            }
+
+            void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
             {
             }
 
-            void WinDDSurface::wire_rect(IGradient *g, float left, float top, float width, float height, float line_width)
+            void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
             }
 
-            void WinDDSurface::wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect_inside(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-            }
-
-            void WinDDSurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
+            void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
             {
             }
 
@@ -306,14 +351,35 @@ namespace lsp
 
             void WinDDSurface::clear(const Color &color)
             {
+                if (pDC == NULL)
+                    return;
+
+                D2D_COLOR_F c;
+                color.get_rgba(c.r, c.g, c.b, c.a);
+                pDC->Clear(&c);
             }
 
             void WinDDSurface::clear_rgb(uint32_t color)
             {
+                if (pDC == NULL)
+                    return;
+
+                D2D_COLOR_F c;
+                c.r     = ((color >> 16) & 0xff) / 255.0f;
+                c.g     = ((color >> 8) & 0xff) / 255.0f;
+                c.b     = (color & 0xff) / 255.0f;
+                c.a     = ((color >> 24) & 0xff) / 255.0f;
+                pDC->Clear(&c);
             }
 
             void WinDDSurface::clear_rgba(uint32_t color)
             {
+                D2D_COLOR_F c;
+                c.r     = ((color >> 16) & 0xff) / 255.0f;
+                c.g     = ((color >> 8) & 0xff) / 255.0f;
+                c.b     = (color & 0xff) / 255.0f;
+                c.a     = 0.0f;
+                pDC->Clear(&c);
             }
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)

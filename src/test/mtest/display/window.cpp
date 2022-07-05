@@ -23,7 +23,7 @@
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/test-fw/mtest.h>
 
-MTEST_BEGIN("ws", display)
+MTEST_BEGIN("ws.display", window)
 
     class Handler: public ws::IEventHandler
     {
@@ -64,28 +64,6 @@ MTEST_BEGIN("ws", display)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
-
-                        ws::Font f;
-                        ws::font_parameters_t fp;
-                        ws::text_parameters_t tp;
-                        f.set_name("example");
-                        f.set_size(64);
-
-                        s->get_font_parameters(f, &fp);
-                        s->get_text_parameters(f, &tp, "A");
-
-                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
-                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
-
-                        c.set_rgb24(0xffff00);
-                        f.set_antialiasing(ws::FA_ENABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-                        x += tp.Width;
-
-                        c.set_rgb24(0x00ffff);
-                        f.set_antialiasing(ws::FA_DISABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-
                         s->end();
 
                         return STATUS_OK;
@@ -139,13 +117,6 @@ MTEST_BEGIN("ws", display)
                 int(i), pos, size, (mi->primary) ? '*' : ' ', mi->name.get_native());
         }
         printf("\n");
-
-    #ifndef PLATFORM_WINDOWS
-        // TODO: implement all this stuff for Windows
-        io::Path font;
-        MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
-        MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
-    #endif /* PLATFORM_WINDOWS */
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);

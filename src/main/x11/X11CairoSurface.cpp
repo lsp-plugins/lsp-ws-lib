@@ -404,7 +404,19 @@ namespace lsp
 
             void X11CairoSurface::clear_rgb(uint32_t rgb)
             {
-                clear_rgba(rgb & 0xffffff);
+                if (pCR == NULL)
+                    return;
+
+                cairo_operator_t op = cairo_get_operator(pCR);
+                ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
+                ::cairo_set_source_rgba(pCR,
+                    float((rgb >> 16) & 0xff)/255.0f,
+                    float((rgb >> 8) & 0xff)/255.0f,
+                    float(rgb & 0xff)/255.0f,
+                    0.0f
+                );
+                ::cairo_paint(pCR);
+                ::cairo_set_operator (pCR, op);
             }
 
             void X11CairoSurface::clear_rgba(uint32_t rgba)
@@ -428,14 +440,18 @@ namespace lsp
             {
                 if (pCR == NULL)
                     return;
-                ::cairo_set_source_rgb(pCR, col.red(), col.green(), col.blue());
+                float r, g, b;
+                col.get_rgb(r, g, b);
+                ::cairo_set_source_rgb(pCR, r, g, b);
             }
 
             inline void X11CairoSurface::setSourceRGBA(const Color &col)
             {
                 if (pCR == NULL)
                     return;
-                ::cairo_set_source_rgba(pCR, col.red(), col.green(), col.blue(), 1.0f - col.alpha());
+                float r, g, b, o;
+                col.get_rgbo(r, g, b, o);
+                ::cairo_set_source_rgba(pCR, r, g, b, o);
             }
 
             void X11CairoSurface::clear(const Color &color)
@@ -450,59 +466,13 @@ namespace lsp
                 ::cairo_set_operator (pCR, op);
             }
 
-            void X11CairoSurface::fill_rect(const Color &color, float left, float top, float width, float height)
-            {
-                if (pCR == NULL)
-                    return;
-
-                setSourceRGBA(color);
-                ::cairo_rectangle(pCR, left, top, width, height);
-                ::cairo_fill(pCR);
-            }
-
-            void X11CairoSurface::fill_rect(IGradient *g, float left, float top, float width, float height)
-            {
-                if (pCR == NULL)
-                    return;
-
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
-                cg->apply(pCR);
-                cairo_rectangle(pCR, left, top, width, height);
-                cairo_fill(pCR);
-            }
-
-            void X11CairoSurface::wire_rect(const Color &color, float left, float top, float width, float height, float line_width)
-            {
-                if (pCR == NULL)
-                    return;
-
-                setSourceRGBA(color);
-                double w = cairo_get_line_width(pCR);
-                cairo_set_line_width(pCR, line_width);
-                cairo_rectangle(pCR, left + 0.5f, top + 0.5f, width, height);
-                cairo_stroke(pCR);
-                cairo_set_line_width(pCR, w);
-            }
-
-            void X11CairoSurface::wire_rect(IGradient *g, float left, float top, float width, float height, float line_width)
-            {
-                if (pCR == NULL)
-                    return;
-
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
-                cg->apply(pCR);
-
-                double w = cairo_get_line_width(pCR);
-                cairo_set_line_width(pCR, line_width);
-                cairo_rectangle(pCR, left + 0.5f, top + 0.5f, width, height);
-                cairo_stroke(pCR);
-                cairo_set_line_width(pCR, w);
-            }
-
             void X11CairoSurface::drawRoundRect(float xmin, float ymin, float width, float height, float radius, size_t mask)
             {
-                if (pCR == NULL)
+                if ((mask == 0) || (radius <= 0.0f))
+                {
+                    cairo_rectangle(pCR, xmin, ymin, width, height);
                     return;
+                }
 
                 radius = lsp_max(0.0f, radius);
                 const float xmax = xmin + width;
@@ -534,20 +504,65 @@ namespace lsp
                 cairo_close_path(pCR);
             }
 
-            void X11CairoSurface::wire_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            void X11CairoSurface::wire_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;
 
                 setSourceRGBA(color);
                 double w = cairo_get_line_width(pCR);
+                cairo_line_join_t j = cairo_get_line_join(pCR);
+                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_MITER);
+
+                float lw2 = line_width * 0.5f;
                 cairo_set_line_width(pCR, line_width);
-                drawRoundRect(left, top, width, height, radius, mask);
+                drawRoundRect(left + lw2, top + lw2, width - line_width, height - line_width, radius, mask);
+
                 cairo_stroke(pCR);
                 cairo_set_line_width(pCR, w);
+                cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            void X11CairoSurface::wire_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
+            {
+                if (pCR == NULL)
+                    return;
+
+                setSourceRGBA(color);
+                double w = cairo_get_line_width(pCR);
+                cairo_line_join_t j = cairo_get_line_join(pCR);
+                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_MITER);
+
+                float lw2 = line_width * 0.5f;
+                cairo_set_line_width(pCR, line_width);
+                drawRoundRect(r->nLeft+ lw2, r->nTop + lw2, r->nWidth - line_width, r->nHeight - line_width, radius, mask);
+
+                cairo_stroke(pCR);
+                cairo_set_line_width(pCR, w);
+                cairo_set_line_join(pCR, j);
+            }
+
+            void X11CairoSurface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
+            {
+                if (pCR == NULL)
+                    return;
+
+                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                double w = cairo_get_line_width(pCR);
+                cairo_line_join_t j = cairo_get_line_join(pCR);
+                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_MITER);
+
+                float lw2 = line_width * 0.5f;
+                cairo_set_line_width(pCR, line_width);
+                cg->apply(pCR);
+                drawRoundRect(r->nLeft + lw2, r->nTop + lw2, r->nWidth - line_width, r->nHeight - line_width, radius, mask);
+
+                cairo_stroke(pCR);
+                cairo_set_line_width(pCR, w);
+                cairo_set_line_join(pCR, j);
+            }
+
+            void X11CairoSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;
@@ -555,44 +570,20 @@ namespace lsp
                 X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
 
                 double w = cairo_get_line_width(pCR);
-                cairo_set_line_width(pCR, line_width);
-                cg->apply(pCR);
-                drawRoundRect(left, top, width, height, radius, mask);
-                cairo_stroke(pCR);
-                cairo_set_line_width(pCR, w);
-            }
+                cairo_line_join_t j = cairo_get_line_join(pCR);
+                cairo_set_line_join(pCR, CAIRO_LINE_JOIN_MITER);
 
-            void X11CairoSurface::wire_round_rect_inside(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-                if (pCR == NULL)
-                    return;
-
-                setSourceRGBA(color);
-                double w = cairo_get_line_width(pCR);
-                float lw2 = line_width * 0.5f;
-                cairo_set_line_width(pCR, line_width);
-                drawRoundRect(left + lw2, top + lw2, width - line_width, height - line_width, radius, mask);
-                cairo_stroke(pCR);
-                cairo_set_line_width(pCR, w);
-            }
-
-            void X11CairoSurface::wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
-            {
-                if (pCR == NULL)
-                    return;
-
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
-
-                double w = cairo_get_line_width(pCR);
                 float lw2 = line_width * 0.5f;
                 cairo_set_line_width(pCR, line_width);
                 cg->apply(pCR);
                 drawRoundRect(left + lw2, top + lw2, width - line_width, height - line_width, radius, mask);
+
                 cairo_stroke(pCR);
                 cairo_set_line_width(pCR, w);
+                cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
+            void X11CairoSurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
@@ -602,7 +593,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+            void X11CairoSurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 if (pCR == NULL)
                     return;
@@ -611,7 +602,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
+            void X11CairoSurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
@@ -622,7 +613,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+            void X11CairoSurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 if (pCR == NULL)
                     return;

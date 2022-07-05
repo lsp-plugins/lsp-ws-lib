@@ -91,6 +91,9 @@ namespace lsp
                      */
                     virtual ~X11CairoSurface();
 
+
+                    virtual void destroy() override;
+
                 public:
                     /** resize cairo surface if possible
                      *
@@ -100,145 +103,104 @@ namespace lsp
                      */
                     bool resize(size_t width, size_t height);
 
-                    virtual ISurface *create(size_t width, size_t height);
+                    virtual ISurface *create(size_t width, size_t height) override;
 
-                    virtual ISurface *create_copy();
+                    virtual ISurface *create_copy() override;
 
-                    virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1);
+                    virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
 
                     virtual IGradient *radial_gradient
                     (
                         float cx0, float cy0, float r0,
                         float cx1, float cy1, float r1
-                    );
-
-                    virtual void destroy();
+                    ) override;
 
                 public:
                     // Drawing methods
-                    virtual void draw(ISurface *s, float x, float y);
+                    virtual void draw(ISurface *s, float x, float y) override;
+                    virtual void draw(ISurface *s, float x, float y, float sx, float sy) override;
+                    virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a) override;
+                    virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
+                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh) override;
 
-                    virtual void draw(ISurface *s, float x, float y, float sx, float sy);
+                    virtual void begin() override;
+                    virtual void end() override;
 
-                    virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a);
+                    virtual void clear(const Color &color) override;
+                    virtual void clear_rgb(uint32_t color) override;
+                    virtual void clear_rgba(uint32_t color) override;
 
-                    virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
+                    virtual void wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
+                    virtual void wire_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r, float line_width) override;
+                    virtual void wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
+                    virtual void wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width) override;
 
-                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh);
+                    virtual void fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
 
-                    virtual void begin();
+                    virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color) override;
 
-                    virtual void end();
+                    virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color) override;
+                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g) override;
+                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color) override;
 
-                    virtual void clear_rgb(uint32_t color);
+                    virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
+                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
+                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
 
-                    virtual void clear_rgba(uint32_t color);
+                    virtual void square_dot(float x, float y, float width, const Color &color) override;
+                    virtual void square_dot(float x, float y, float width, float r, float g, float b, float a) override;
 
-                    virtual void fill_rect(const Color &color, float left, float top, float width, float height);
+                    virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color) override;
+                    virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g) override;
 
-                    virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
-
-                    virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
-
-                    virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
-
-                    virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                    virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                    virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                    virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
-
-                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
-
-                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
-
-                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
-
-                    virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color);
-
-                    virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color);
-
-                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g);
-
-                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color);
-
-                    virtual void clear(const Color &color);
-
-                    virtual bool get_font_parameters(const Font &f, font_parameters_t *fp);
-
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
-
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
-
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text);
-
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last);
-
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text);
-
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
-
-                    virtual void square_dot(float x, float y, float width, const Color &color);
-
-                    virtual void square_dot(float x, float y, float width, float r, float g, float b, float a);
-
-                    virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color);
-
-                    virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g);
-
-                    virtual void parametric_line(float a, float b, float c, float width, const Color &color);
-
-                    virtual void parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color);
+                    virtual void parametric_line(float a, float b, float c, float width, const Color &color) override;
+                    virtual void parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color) override;
 
                     virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                            float left, float right, float top, float bottom, IGradient *gr);
+                            float left, float right, float top, float bottom, IGradient *gr) override;
 
-                    virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
+                    virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color) override;
 
-                    virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n);
+                    virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n) override;
+                    virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n) override;
 
-                    virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n);
+                    virtual void wire_poly(const Color & color, float width, const float *x, const float *y, size_t n) override;
 
-                    virtual void wire_poly(const Color & color, float width, const float *x, const float *y, size_t n);
+                    virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n) override;
 
-                    virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n);
+                    virtual void fill_circle(float x, float y, float r, const Color & color) override;
+                    virtual void fill_circle(float x, float y, float r, IGradient *g) override;
 
-                    virtual void fill_circle(float x, float y, float r, const Color & color);
+                    virtual void clip_begin(float x, float y, float w, float h) override;
 
-                    virtual void fill_circle(float x, float y, float r, IGradient *g);
-
-                    virtual void clip_begin(float x, float y, float w, float h);
-
-                    void clip_end();
+                    void clip_end() override;
 
                     virtual void fill_frame(
                         const Color &color,
                         float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                    );
+                        float ix, float iy, float iw, float ih) override;
 
                     virtual void fill_round_frame(
-                            const Color &color,
-                            float radius, size_t flags,
-                            float fx, float fy, float fw, float fh,
-                            float ix, float iy, float iw, float ih
-                            );
+                        const Color &color,
+                        float radius, size_t flags,
+                        float fx, float fy, float fw, float fh,
+                        float ix, float iy, float iw, float ih) override;
 
-                    virtual bool get_antialiasing();
+                    virtual bool get_antialiasing() override;
+                    virtual bool set_antialiasing(bool set) override;
 
-                    virtual bool set_antialiasing(bool set);
+                    virtual surf_line_cap_t get_line_cap() override;
+                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
 
-                    virtual surf_line_cap_t get_line_cap();
-
-                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
-
-                    virtual void *start_direct();
-
-                    virtual void end_direct();
+                    virtual void *start_direct() override;
+                    virtual void end_direct() override;
             };
         }
     }

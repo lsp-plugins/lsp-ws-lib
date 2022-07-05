@@ -9,6 +9,7 @@
 * Removed method ws::IWindow::check_constraints().
 * Changed the ws::IWindow::set_caption() method signature.
 * Changed the values for ws::MP_DEFAULT mouse cursor constant.
+* Changed set of methods and signature of methods for the ws::ISurface.
 * Updated build scripts.
 
 === 1.0.3 ===
