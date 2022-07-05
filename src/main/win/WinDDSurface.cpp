@@ -26,7 +26,9 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/stdlib/math.h>
 
+#include <private/win/WinDDGradient.h>
 #include <private/win/WinDDSurface.h>
 #include <private/win/WinDisplay.h>
 
@@ -171,16 +173,31 @@ namespace lsp
 
             IGradient *WinDDSurface::linear_gradient(float x0, float y0, float x1, float y1)
             {
-                return NULL;
+                if (pDC == NULL)
+                    return NULL;
+                return new WinDDGradient(
+                    pDC,
+                    D2D1::LinearGradientBrushProperties(
+                        D2D1::Point2F(x0, y0),
+                        D2D1::Point2F(x1, y1)));
             }
 
             IGradient *WinDDSurface::radial_gradient
             (
-                float cx0, float cy0, float r0,
-                float cx1, float cy1, float r1
+                float cx0, float cy0,
+                float cx1, float cy1,
+                float r
             )
             {
-                return NULL;
+                if (pDC == NULL)
+                    return NULL;
+                return new WinDDGradient(
+                    pDC,
+                    D2D1::RadialGradientBrushProperties(
+                        D2D1::Point2F(cx1, cy1),
+                        D2D1::Point2F(cx0 - cx1, cy0 - cy1),
+                        r, r
+                    ));
             }
 
             void WinDDSurface::draw(ISurface *s, float x, float y)
@@ -207,52 +224,87 @@ namespace lsp
             {
             }
 
-            void WinDDSurface::fill_rect(const Color &color, float left, float top, float width, float height)
+            void WinDDSurface::draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush)
             {
-                if (pDC == NULL)
+                // Simple geometry?
+                if ((!(mask & SURFMASK_ALL_CORNER)) || (radius <= 0.0f))
+                {
+                    if (line_width < 0.0f)
+                        pDC->FillRectangle(&rect, brush);
+                    else
+                        pDC->DrawRectangle(&rect, brush, line_width, NULL);
+                }
+
+                // Create geometry object
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
+                lsp_finally( safe_release(g); );
 
-                ID2D1SolidColorBrush *brush = NULL;
-                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
-                D2D_RECT_F rect;
-                rect.left   = left;
-                rect.top    = top;
-                rect.right  = left + width;
-                rect.bottom = top  + height;
+                // Generate geometry for the rounded rectangle
+                D2D1_ARC_SEGMENT arc = D2D1::ArcSegment(
+                    D2D1::Point2F(0.0f, 0.0f),
+                    D2D1::SizeF(radius, radius),
+                    0.0f,
+                    D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                    D2D1_ARC_SIZE_SMALL);
 
-                pDC->FillRectangle(&rect, brush);
-            }
+                D2D1_FIGURE_BEGIN mode = (line_width < 0.0f) ? D2D1_FIGURE_BEGIN_FILLED : D2D1_FIGURE_BEGIN_HOLLOW;
+                if (mask & SURFMASK_LT_CORNER)
+                {
+                    s->BeginFigure(
+                        D2D1::Point2F(rect.left, rect.top + radius),
+                        mode);
+                    arc.point   = D2D1::Point2F(rect.left + radius, rect.top);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->BeginFigure(
+                        D2D1::Point2F(rect.left, rect.top),
+                        mode);
 
-            void WinDDSurface::fill_rect(const Color &color, const ws::rectangle_t *r)
-            {
-                if (pDC == NULL)
-                    return;
+                if (mask & SURFMASK_RT_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.right - radius, rect.top));
+                    arc.point   = D2D1::Point2F(rect.right, rect.top + radius);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.right, rect.top));
 
-                ID2D1SolidColorBrush *brush = NULL;
-                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
-                    return;
-                lsp_finally( safe_release(brush); );
+                if (mask & SURFMASK_RB_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.right, rect.bottom - radius));
+                    arc.point   = D2D1::Point2F(rect.right - radius, rect.bottom);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.right, rect.bottom));
 
-                D2D_RECT_F rect;
-                rect.left   = r->nLeft;
-                rect.top    = r->nTop;
-                rect.right  = r->nLeft + r->nWidth;
-                rect.bottom = r->nTop  + r->nHeight;
+                if (mask & SURFMASK_LB_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.left + radius, rect.bottom));
+                    arc.point   = D2D1::Point2F(rect.left, rect.bottom - radius);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.left, rect.bottom));
 
-                pDC->FillRectangle(&rect, brush);
-            }
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
 
-            void WinDDSurface::fill_rect(IGradient *g, float left, float top, float width, float height)
-            {
-                if (pDC == NULL)
-                    return;
-            }
-
-            void WinDDSurface::fill_rect(IGradient *g, const ws::rectangle_t *r)
-            {
+                // Draw the geometry
+                if (line_width < 0.0f)
+                    pDC->FillGeometry(g, brush, NULL);
+                else
+                    pDC->DrawGeometry(g, brush, line_width, NULL);
             }
 
             void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
@@ -268,44 +320,147 @@ namespace lsp
                 D2D_RECT_F rect;
                 float hw    = line_width * 0.5f;
                 rect.left   = left + hw;
-                rect.top    = top + hw;
-                rect.right  = left + width - line_width;
-                rect.bottom = top  + height - line_width;
+                rect.top    = top  + hw;
+                rect.right  = left + width  - hw;
+                rect.bottom = top  + height - hw;
+                radius     -= hw;
 
-                if ((mask == 0) || (radius <= 0.0f))
-                    pDC->DrawRectangle(&rect, brush, line_width, NULL);
-                else
-                {
-                    // TODO
-                }
+                draw_rounded_rectangle(rect, mask, radius, line_width, brush);
             }
 
-            void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width)
+            void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *r, float line_width)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                float hw    = line_width * 0.5f;
+                rect.left   = r->nLeft + hw;
+                rect.top    = r->nTop  + hw;
+                rect.right  = r->nLeft + r->nWidth  - hw;
+                rect.bottom = r->nTop  + r->nHeight - hw;
+                radius     -= hw;
+
+                draw_rounded_rectangle(rect, mask, radius, line_width, brush);
             }
 
             void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                D2D_RECT_F rect;
+                float hw    = line_width * 0.5f;
+                rect.left   = left + hw;
+                rect.top    = top  + hw;
+                rect.right  = left + width  - hw;
+                rect.bottom = top  + height - hw;
+                radius     -= hw;
+
+                draw_rounded_rectangle(rect, mask, radius, line_width, brush);
             }
 
-            void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width)
+            void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *r, float line_width)
             {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                D2D_RECT_F rect;
+                float hw    = line_width * 0.5f;
+                rect.left   = r->nLeft + hw;
+                rect.top    = r->nTop  + hw;
+                rect.right  = r->nLeft + r->nWidth  - hw;
+                rect.bottom = r->nTop  + r->nHeight - hw;
+                radius     -= hw;
+
+                draw_rounded_rectangle(rect, mask, radius, line_width, brush);
             }
 
-            void WinDDSurface::fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
+            void WinDDSurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                rect.left   = left;
+                rect.top    = top;
+                rect.right  = left + width;
+                rect.bottom = top  + height;
+
+                draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
-            void WinDDSurface::fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+            void WinDDSurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                D2D_RECT_F rect;
+                rect.left   = r->nLeft;
+                rect.top    = r->nTop;
+                rect.right  = r->nLeft + r->nWidth;
+                rect.bottom = r->nTop  + r->nHeight;
+
+                draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
-            void WinDDSurface::fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
+            void WinDDSurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                D2D_RECT_F rect;
+                rect.left   = left;
+                rect.top    = top;
+                rect.right  = left + width;
+                rect.bottom = top  + height;
+
+                draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
-            void WinDDSurface::fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+            void WinDDSurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                D2D_RECT_F rect;
+                rect.left   = r->nLeft;
+                rect.top    = r->nTop;
+                rect.right  = r->nLeft + r->nWidth;
+                rect.bottom = r->nTop  + r->nHeight;
+
+                draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
             void WinDDSurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)

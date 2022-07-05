@@ -27,6 +27,8 @@
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/IGradient.h>
 
+#define SURFMASK_NONE           0x00
+#define SURFMASK_NO_CORNER      0x00
 #define SURFMASK_LT_CORNER      0x01
 #define SURFMASK_RT_CORNER      0x02
 #define SURFMASK_RB_CORNER      0x04
@@ -106,28 +108,28 @@ namespace lsp
 
                 /** Create linear gradient
                  *
-                 * @param x0
-                 * @param y0
-                 * @param x1
-                 * @param y1
-                 * @return
+                 * @param x0 x coordinate of the first point
+                 * @param y0 y coordinate of the first point
+                 * @param x1 x coordinate of the second point
+                 * @param y1 y coordinate of the second point
+                 * @return pointer to the gradient object or NULL on error
                  */
                 virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1);
 
                 /** Create radial gradient
                  *
-                 * @param cx0
-                 * @param cy0
-                 * @param r0
-                 * @param cx1
-                 * @param cy1
-                 * @param r1
-                 * @return
+                 * @param cx0 x coordinate of the center of the blink
+                 * @param cy0 y coordinate of the center of the blink
+                 * @param cx1 x coordinate of the center of the radial gradient
+                 * @param cy1 y coordinate of the center of the radial gradient
+                 * @param r
+                 * @return pointer to the gradient object or NULL on error
                  */
                 virtual IGradient *radial_gradient
                 (
-                    float cx0, float cy0, float r0,
-                    float cx1, float cy1, float r1
+                    float cx0, float cy0,
+                    float cx1, float cy1,
+                    float r
                 );
 
                 /** Destroy surface

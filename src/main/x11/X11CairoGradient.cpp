@@ -31,9 +31,9 @@ namespace lsp
     {
         namespace x11
         {
-            X11CairoGradient::X11CairoGradient()
+            X11CairoGradient::X11CairoGradient(cairo_pattern_t *cp)
             {
-                pCP = NULL;
+                pCP = cp;
             }
 
             X11CairoGradient::~X11CairoGradient()
@@ -58,14 +58,6 @@ namespace lsp
                 if (pCP == NULL)
                     return;
                 cairo_set_source(cr, pCP);
-            }
-
-            X11CairoLinearGradient::~X11CairoLinearGradient()
-            {
-            }
-
-            X11CairoRadialGradient::~X11CairoRadialGradient()
-            {
             }
         }
     }

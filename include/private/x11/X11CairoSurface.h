@@ -111,8 +111,9 @@ namespace lsp
 
                     virtual IGradient *radial_gradient
                     (
-                        float cx0, float cy0, float r0,
-                        float cx1, float cy1, float r1
+                        float cx0, float cy0,
+                        float cx1, float cy1,
+                        float r
                     ) override;
 
                 public:

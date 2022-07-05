@@ -72,7 +72,7 @@ namespace lsp
             return new IGradient();
         }
 
-        IGradient *ISurface::radial_gradient(float cx0, float cy0, float r0, float cx1, float cy1, float r1)
+        IGradient *ISurface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
         {
             return new IGradient();
         }

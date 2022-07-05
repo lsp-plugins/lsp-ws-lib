@@ -103,12 +103,14 @@ namespace lsp
 
             IGradient *X11CairoSurface::linear_gradient(float x0, float y0, float x1, float y1)
             {
-                return new X11CairoLinearGradient(x0, y0, x1, y1);
+                return new X11CairoGradient(
+                    ::cairo_pattern_create_linear(x0, y0, x1, y1));
             }
 
-            IGradient *X11CairoSurface::radial_gradient(float cx0, float cy0, float r0, float cx1, float cy1, float r1)
+            IGradient *X11CairoSurface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
             {
-                return new X11CairoRadialGradient(cx0, cy0, r0, cx1, cy1, r1);
+                return new X11CairoGradient(
+                    ::cairo_pattern_create_radial(cx0, cy0, 0, cx1, cy1, r));
             }
 
             X11CairoSurface::~X11CairoSurface()
@@ -468,13 +470,12 @@ namespace lsp
 
             void X11CairoSurface::drawRoundRect(float xmin, float ymin, float width, float height, float radius, size_t mask)
             {
-                if ((mask == 0) || (radius <= 0.0f))
+                if ((!(mask & SURFMASK_ALL_CORNER)) || (radius <= 0.0f))
                 {
                     cairo_rectangle(pCR, xmin, ymin, width, height);
                     return;
                 }
 
-                radius = lsp_max(0.0f, radius);
                 const float xmax = xmin + width;
                 const float ymax = ymin + height;
 

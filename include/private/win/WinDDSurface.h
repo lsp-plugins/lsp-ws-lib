@@ -55,6 +55,9 @@ namespace lsp
 
                     virtual void destroy() override;
 
+                protected:
+                    void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
+
                 public:
                     virtual ISurface *create(size_t width, size_t height) override;
                     virtual ISurface *create_copy() override;
@@ -62,8 +65,9 @@ namespace lsp
                     virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
                     virtual IGradient *radial_gradient
                     (
-                        float cx0, float cy0, float r0,
-                        float cx1, float cy1, float r1
+                        float cx0, float cy0,
+                        float cx1, float cy1,
+                        float r
                     ) override;
 
                     virtual void begin() override;
@@ -77,20 +81,15 @@ namespace lsp
                     virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
                     virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh) override;
 
-                    virtual void fill_rect(const Color &color, float left, float top, float width, float height) override;
-                    virtual void fill_rect(const Color &color, const ws::rectangle_t *r) override;
-                    virtual void fill_rect(IGradient *g, float left, float top, float width, float height) override;
-                    virtual void fill_rect(IGradient *g, const ws::rectangle_t *r) override;
-
                     virtual void wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
                     virtual void wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
                     virtual void wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width) override;
                     virtual void wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width) override;
 
-                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height) override;
-                    virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
-                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
-                    virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
 
                     virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color) override;
 

@@ -83,6 +83,8 @@ MTEST_BEGIN("ws.display", rectangles)
                         for (size_t i=0; i<16; ++i)
                         {
                             ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
+                            if (g == NULL)
+                                continue;
                             lsp_finally( delete g; );
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
@@ -98,7 +100,9 @@ MTEST_BEGIN("ws.display", rectangles)
                         // Method 4: radial gradient rectangles
                         for (size_t i=0; i<16; ++i)
                         {
-                            ws::IGradient *g = s->radial_gradient(8 + 40*i + 16, y + 20, 4.0f, 8 + 40*i + 16, y + 20, 20);
+                            ws::IGradient *g = s->radial_gradient(8 + 40*i + 16, y + 20, 8 + 40*i + 16, y + 20, 20);
+                            if (g == NULL)
+                                continue;
                             lsp_finally( delete g; );
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
@@ -144,6 +148,8 @@ MTEST_BEGIN("ws.display", rectangles)
                         for (size_t i=0; i<16; ++i)
                         {
                             ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
+                            if (g == NULL)
+                                continue;
                             lsp_finally( delete g; );
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
@@ -159,7 +165,9 @@ MTEST_BEGIN("ws.display", rectangles)
                         // Method 4: radial gradient rectangles
                         for (size_t i=0; i<16; ++i)
                         {
-                            ws::IGradient *g = s->radial_gradient(8 + 40*i, y, 8.0f, 8 + 40*i, y, 48);
+                            ws::IGradient *g = s->radial_gradient(8 + 40*i, y, 8 + 40*i, y, 48);
+                            if (g == NULL)
+                                continue;
                             lsp_finally( delete g; );
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);

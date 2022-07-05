@@ -43,7 +43,7 @@ namespace lsp
                     cairo_pattern_t *pCP;
 
                 public:
-                    explicit X11CairoGradient();
+                    explicit X11CairoGradient(cairo_pattern_t *cp);
                     virtual ~X11CairoGradient();
 
                 public:
@@ -51,28 +51,6 @@ namespace lsp
 
                 public:
                     virtual void add_color(float offset, float r, float g, float b, float a);
-            };
-
-            class X11CairoLinearGradient: public X11CairoGradient
-            {
-                public:
-                    explicit inline X11CairoLinearGradient(float x0, float y0, float x1, float y1)
-                    {
-                        pCP = ::cairo_pattern_create_linear(x0, y0, x1, y1);
-                    };
-
-                    virtual ~X11CairoLinearGradient();
-            };
-
-            class X11CairoRadialGradient: public X11CairoGradient
-            {
-                public:
-                    explicit inline X11CairoRadialGradient(float cx0, float cy0, float r0, float cx1, float cy1, float r1)
-                    {
-                        pCP = ::cairo_pattern_create_radial(cx0, cy0, r0, cx1, cy1, r1);
-                    };
-
-                    virtual ~X11CairoRadialGradient();
             };
         }
     }
