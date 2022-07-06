@@ -142,10 +142,6 @@ namespace lsp
             fill_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
-        void ISurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)
-        {
-        }
-
         void ISurface::fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color)
         {
         }

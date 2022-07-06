@@ -625,18 +625,6 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)
-            {
-                if (pCR == NULL)
-                    return;
-
-                setSourceRGBA(color);
-                cairo_set_line_width(pCR, line_width);
-                cairo_rectangle(pCR, left, top, width, height);
-                cairo_stroke_preserve(pCR);
-                cairo_fill(pCR);
-            }
-
             void X11CairoSurface::fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color)
             {
                 if (pCR == NULL)

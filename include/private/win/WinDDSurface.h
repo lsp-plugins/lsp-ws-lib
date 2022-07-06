@@ -91,8 +91,6 @@ namespace lsp
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
 
-                    virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color) override;
-
                     virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color) override;
 
                     virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g) override;

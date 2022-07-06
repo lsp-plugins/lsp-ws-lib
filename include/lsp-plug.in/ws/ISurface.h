@@ -328,17 +328,6 @@ namespace lsp
                  */
                 virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
-                /** Draw full rectangle
-                 *
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 * @param color color of rectangle
-                 */
-                virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color);
-
                 /** Fill sector of the round
                  *
                  * @param cx center of the round x coordinate

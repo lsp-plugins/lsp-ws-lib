@@ -463,10 +463,6 @@ namespace lsp
                 draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
-            void WinDDSurface::full_rect(float left, float top, float width, float height, float line_width, const Color &color)
-            {
-            }
-
             void WinDDSurface::fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color)
             {
             }
