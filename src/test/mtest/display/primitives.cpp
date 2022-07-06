@@ -133,7 +133,7 @@ MTEST_BEGIN("ws.display", primitives)
                             c.alpha(i * 0.0625f);
                             g->add_color(1.0f, c);
 
-                            float r = 12 + 4 * cosf(M_PI * i / 8.0f);
+                            float r = 12 + 4 * sinf(M_PI * i / 8.0f);
                             s->fill_circle(g, 24.0f + 40 * i, y + 16, r);
                         }
                         y += 40;

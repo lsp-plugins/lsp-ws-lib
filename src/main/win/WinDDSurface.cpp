@@ -465,26 +465,170 @@ namespace lsp
 
             void WinDDSurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                // Create geometry object for the sector
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the sector
+                s->BeginFigure(
+                    D2D1::Point2F(cx, cy),
+                    D2D1_FIGURE_BEGIN_FILLED);
+                s->AddLine(D2D1::Point2F(cx + radius * cosf(angle1), cy + radius * sinf(angle1)));
+                s->AddArc(
+                    D2D1::ArcSegment(
+                        D2D1::Point2F(cx + radius * cosf(angle2), cy + radius * sinf(angle2)),
+                        D2D1::SizeF(radius, radius),
+                        0.0f,
+                        D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                        (fabs(angle2 - angle1) >= M_PI) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL)
+                    );
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
+
+                // Draw the geometry
+                pDC->FillGeometry(g, brush, NULL);
             }
 
-            void WinDDSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
+            void WinDDSurface::draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2)
             {
+                // Create geometry object for the sector
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the sector
+                s->BeginFigure(
+                    D2D1::Point2F(x0, y0),
+                    D2D1_FIGURE_BEGIN_FILLED);
+                s->AddLine(D2D1::Point2F(x1, y1));
+                s->AddLine(D2D1::Point2F(x2, y2));
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
+
+                // Draw the geometry
+                pDC->FillGeometry(g, brush, NULL);
             }
 
             void WinDDSurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                draw_triangle(brush, x0, y0, x1, y1, x2, y2);
+            }
+
+            void WinDDSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
+            {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                draw_triangle(brush, x0, y0, x1, y1, x2, y2);
             }
 
             void WinDDSurface::fill_circle(const Color & c, float x, float y, float r)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                pDC->FillEllipse(
+                    D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
+                    brush);
             }
 
             void WinDDSurface::fill_circle(IGradient *g, float x, float y, float r)
             {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                pDC->FillEllipse(
+                    D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
+                    brush);
             }
 
             void WinDDSurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                // Create geometry object for the sector
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the arc
+                r = lsp_max(0.0f, r - width * 0.5f);
+                s->BeginFigure(
+                    D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
+                    D2D1_FIGURE_BEGIN_HOLLOW);
+                s->AddArc(
+                    D2D1::ArcSegment(
+                        D2D1::Point2F(x + r * cosf(a2), y + r * sinf(a2)),
+                        D2D1::SizeF(r, r),
+                        0.0f,
+                        D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                        (fabs(a2 - a1) >= M_PI) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL)
+                    );
+                s->EndFigure(D2D1_FIGURE_END_OPEN);
+                s->Close();
+
+                // Draw the geometry
+                pDC->DrawGeometry(g, brush, width);
             }
 
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)

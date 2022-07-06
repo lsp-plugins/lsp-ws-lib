@@ -932,6 +932,7 @@ namespace lsp
                     return;
 
                 double ow = cairo_get_line_width(pCR);
+                r = lsp_max(0.0f, r - width * 0.5f);
                 setSourceRGBA(c);
                 cairo_set_line_width(pCR, width);
                 cairo_arc(pCR, x, y, r, a1, a2);

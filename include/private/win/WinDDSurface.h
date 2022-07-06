@@ -57,6 +57,7 @@ namespace lsp
 
                 protected:
                     void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
+                    void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
 
                 public:
                     virtual ISurface *create(size_t width, size_t height) override;
