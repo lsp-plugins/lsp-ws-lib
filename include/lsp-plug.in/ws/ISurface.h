@@ -330,38 +330,68 @@ namespace lsp
 
                 /** Fill sector of the round
                  *
+                 * @param c color
                  * @param cx center of the round x coordinate
                  * @param cy center of the round y coordinate
                  * @param radius the radius of the round
                  * @param angle1 starting angle of the sector
                  * @param angle2 end angle of the sector
-                 * @param color color
                  */
-                virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color);
+                virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2);
 
-                /** Fill rectangle
+                /** Draw arc line
                  *
-                 * @param x0 vertex 0 x-coordinate
-                 * @param y0 vertex 0 y-coordinate
-                 * @param x1 vertex 1 x-coordinate
-                 * @param y1 vertex 1 y-coordinate
-                 * @param x2 vertex 2 x-coordinate
-                 * @param y2 vertex 2 y-coordinate
+                 * @param c line color
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 * @param a1 angle 1
+                 * @param a2 angle 2
+                 * @param width line width
+                 */
+                virtual void wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width);
+
+                /** Fill triangle
+                 *
                  * @param g gradient
-                 */
-                virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g);
-
-                /** Fill rectangle
-                 *
                  * @param x0 vertex 0 x-coordinate
                  * @param y0 vertex 0 y-coordinate
                  * @param x1 vertex 1 x-coordinate
                  * @param y1 vertex 1 y-coordinate
                  * @param x2 vertex 2 x-coordinate
                  * @param y2 vertex 2 y-coordinate
-                 * @param c color
                  */
-                virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color);
+                virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2);
+
+                /** Fill triangle
+                 *
+                 * @param c color
+                 * @param x0 vertex 0 x-coordinate
+                 * @param y0 vertex 0 y-coordinate
+                 * @param x1 vertex 1 x-coordinate
+                 * @param y1 vertex 1 y-coordinate
+                 * @param x2 vertex 2 x-coordinate
+                 * @param y2 vertex 2 y-coordinate
+                 */
+                virtual void fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2);
+
+                /** Fill circle
+                 *
+                 * @param c color
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 */
+                virtual void fill_circle(const Color &c, float x, float y, float r);
+
+                /** Fill circle
+                 *
+                 * @param g gradient
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 */
+                virtual void fill_circle(IGradient *g, float x, float y, float r);
 
                 /** Get font parameters
                  *
@@ -585,18 +615,6 @@ namespace lsp
                 virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
                         float left, float right, float top, float bottom, IGradient *gr);
 
-                /** Draw arc
-                 *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param a1 angle 1
-                 * @param a2 angle 2
-                 * @param width line width
-                 * @param color line color
-                 */
-                virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
-
                 virtual void fill_frame(const Color &color,
                     float fx, float fy, float fw, float fh,
                     float ix, float iy, float iw, float ih);
@@ -651,24 +669,6 @@ namespace lsp
                  * @param width line width
                  */
                 virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n);
-
-                /** Fill circle
-                 *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param color color
-                 */
-                virtual void fill_circle(float x, float y, float r, const Color & color);
-
-                /** Fill circle
-                 *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param g gradient
-                 */
-                virtual void fill_circle(float x, float y, float r, IGradient *g);
 
                 /**
                  * Begin clipping of the rectangle area

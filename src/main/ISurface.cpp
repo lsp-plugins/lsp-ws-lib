@@ -142,15 +142,15 @@ namespace lsp
             fill_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
-        void ISurface::fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color)
+        void ISurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
         {
         }
 
-        void ISurface::fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g)
+        void ISurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
         {
         }
 
-        void ISurface::fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color)
+        void ISurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
         {
         }
 
@@ -268,14 +268,13 @@ namespace lsp
         {
         }
 
-        void ISurface::wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color)
+        void ISurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
         {
         }
 
         void ISurface::fill_frame(const Color &color,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                    )
+            float fx, float fy, float fw, float fh,
+            float ix, float iy, float iw, float ih)
         {
         }
 
@@ -288,11 +287,10 @@ namespace lsp
         }
 
         void ISurface::fill_round_frame(
-                const Color &color,
-                float radius, size_t flags,
-                float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih
-            )
+            const Color &color,
+            float radius, size_t flags,
+            float fx, float fy, float fw, float fh,
+            float ix, float iy, float iw, float ih)
         {
         }
 
@@ -323,11 +321,11 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_circle(float x, float y, float r, const Color & color)
+        void ISurface::fill_circle(const Color & c, float x, float y, float r)
         {
         }
 
-        void ISurface::fill_circle(float x, float y, float r, IGradient *g)
+        void ISurface::fill_circle(IGradient *g, float x, float y, float r)
         {
         }
 

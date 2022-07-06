@@ -141,9 +141,12 @@ namespace lsp
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
 
-                    virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color) override;
-                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g) override;
-                    virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color) override;
+                    virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2) override;
+                    virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2) override;
+                    virtual void fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2) override;
+                    virtual void fill_circle(const Color &c, float x, float y, float r) override;
+                    virtual void fill_circle(IGradient *g, float x, float y, float r) override;
+                    virtual void wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width) override;
 
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
@@ -162,17 +165,10 @@ namespace lsp
                     virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
                             float left, float right, float top, float bottom, IGradient *gr) override;
 
-                    virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color) override;
-
                     virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n) override;
                     virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n) override;
-
                     virtual void wire_poly(const Color & color, float width, const float *x, const float *y, size_t n) override;
-
                     virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n) override;
-
-                    virtual void fill_circle(float x, float y, float r, const Color & color) override;
-                    virtual void fill_circle(float x, float y, float r, IGradient *g) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
 

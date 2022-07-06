@@ -625,19 +625,19 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color)
+            void X11CairoSurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
             {
                 if (pCR == NULL)
                     return;
 
-                setSourceRGBA(color);
+                setSourceRGBA(c);
                 cairo_move_to(pCR, cx, cy);
                 cairo_arc(pCR, cx, cy, radius, angle1, angle2);
                 cairo_close_path(pCR);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g)
+            void X11CairoSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 if (pCR == NULL)
                     return;
@@ -651,12 +651,12 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color)
+            void X11CairoSurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 if (pCR == NULL)
                     return;
 
-                setSourceRGBA(color);
+                setSourceRGBA(c);
                 cairo_move_to(pCR, x0, y0);
                 cairo_line_to(pCR, x1, y1);
                 cairo_line_to(pCR, x2, y2);
@@ -926,13 +926,13 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color)
+            void X11CairoSurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
                 if (pCR == NULL)
                     return;
 
                 double ow = cairo_get_line_width(pCR);
-                setSourceRGBA(color);
+                setSourceRGBA(c);
                 cairo_set_line_width(pCR, width);
                 cairo_arc(pCR, x, y, r, a1, a2);
                 cairo_stroke(pCR);
@@ -1005,17 +1005,17 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::fill_circle(float x, float y, float r, const Color & color)
+            void X11CairoSurface::fill_circle(const Color &c, float x, float y, float r)
             {
                 if (pCR == NULL)
                     return;
 
-                setSourceRGBA(color);
+                setSourceRGBA(c);
                 cairo_arc(pCR, x, y, r, 0.0f, M_PI * 2.0f);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_circle(float x, float y, float r, IGradient *g)
+            void X11CairoSurface::fill_circle(IGradient *g, float x, float y, float r)
             {
                 if (pCR == NULL)
                     return;
