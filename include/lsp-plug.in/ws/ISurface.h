@@ -522,27 +522,6 @@ namespace lsp
                  */
                 virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
-                /**
-                 * Draw square dot
-                 * @param x dot location X
-                 * @param y dot location Y
-                 * @param width dot width
-                 * @param color dot color
-                 */
-                virtual void square_dot(float x, float y, float width, const Color &color);
-
-                /**
-                 * Draw square dot
-                 * @param x dot location X
-                 * @param y dot location Y
-                 * @param width dot width
-                 * @param r red
-                 * @param g green
-                 * @param b blue
-                 * @param a alpha
-                 */
-                virtual void square_dot(float x, float y, float width, float r, float g, float b, float a);
-
                 /** Draw line
                  *
                  * @param x0 first point x coordinate
@@ -619,23 +598,20 @@ namespace lsp
                 virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
 
                 virtual void fill_frame(const Color &color,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                        );
+                    float fx, float fy, float fw, float fh,
+                    float ix, float iy, float iw, float ih);
 
                 virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 virtual void fill_round_frame(
-                        const Color &color,
-                        float radius, size_t flags,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                    );
+                    const Color &color,
+                    float radius, size_t flags,
+                    float fx, float fy, float fw, float fh,
+                    float ix, float iy, float iw, float ih);
 
                 virtual void fill_round_frame(
-                        const Color &color, float radius, size_t flags,
-                        const ws::rectangle_t *out, const ws::rectangle_t *in
-                    );
+                    const Color &color, float radius, size_t flags,
+                    const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 /** Draw polygon
                  *

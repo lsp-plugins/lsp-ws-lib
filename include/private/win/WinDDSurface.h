@@ -117,9 +117,6 @@ namespace lsp
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first) override;
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
 
-                    virtual void square_dot(float x, float y, float width, const Color &color) override;
-                    virtual void square_dot(float x, float y, float width, float r, float g, float b, float a) override;
-
                     virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color) override;
                     virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g) override;
 
