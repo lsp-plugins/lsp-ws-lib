@@ -247,24 +247,26 @@ namespace lsp
         {
         }
 
-        void ISurface::line(float x0, float y0, float x1, float y1, float width, const Color &color)
+        void ISurface::line(const Color &c, float x0, float y0, float x1, float y1, float width)
         {
         }
 
-        void ISurface::line(float x0, float y0, float x1, float y1, float width, IGradient *g)
+        void ISurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
         {
         }
 
-        void ISurface::parametric_line(float a, float b, float c, float width, const Color &color)
+        void ISurface::parametric_line(const Color &color, float a, float b, float c, float width)
         {
         }
 
-        void ISurface::parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color)
+        void ISurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
         {
         }
 
-        void ISurface::parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                float left, float right, float top, float bottom, IGradient *gr)
+        void ISurface::parametric_bar(
+            IGradient *g,
+            float a1, float b1, float c1, float a2, float b2, float c2,
+            float left, float right, float top, float bottom)
         {
         }
 

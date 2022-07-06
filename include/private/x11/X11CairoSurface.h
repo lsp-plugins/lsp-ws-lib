@@ -156,14 +156,16 @@ namespace lsp
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
 
-                    virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color) override;
-                    virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g) override;
+                    virtual void line(const Color &c, float x0, float y0, float x1, float y1, float width) override;
+                    virtual void line(IGradient *g, float x0, float y0, float x1, float y1, float width) override;
 
-                    virtual void parametric_line(float a, float b, float c, float width, const Color &color) override;
-                    virtual void parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color) override;
+                    virtual void parametric_line(const Color &color, float a, float b, float c, float width) override;
+                    virtual void parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width) override;
 
-                    virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                            float left, float right, float top, float bottom, IGradient *gr) override;
+                    virtual void parametric_bar(
+                        IGradient *g,
+                        float a1, float b1, float c1, float a2, float b2, float c2,
+                        float left, float right, float top, float bottom) override;
 
                     virtual void fill_poly(const Color & color, const float *x, const float *y, size_t n) override;
                     virtual void fill_poly(IGradient *gr, const float *x, const float *y, size_t n) override;

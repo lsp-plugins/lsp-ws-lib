@@ -554,38 +554,40 @@ namespace lsp
 
                 /** Draw line
                  *
+                 * @param c line color
                  * @param x0 first point x coordinate
                  * @param y0 first point y coordinate
                  * @param x1 second point x coordinate
                  * @param y1 second point y coordinate
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color);
+                virtual void line(const Color &c, float x0, float y0, float x1, float y1, float width);
 
                 /** Draw line
                  *
+                 * @param g gradient
                  * @param x0 first point x coordinate
                  * @param y0 first point y coordinate
                  * @param x1 second point x coordinate
                  * @param y1 second point y coordinate
                  * @param width line width
-                 * @param g gradient
                  */
-                virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g);
+                virtual void line(IGradient *g, float x0, float y0, float x1, float y1, float width);
 
                 /** Draw parametric line defined by equation a*x + b*y + c = 0
                  *
+                 * @param color line color
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void parametric_line(float a, float b, float c, float width, const Color &color);
+                virtual void parametric_line(const Color &color, float a, float b, float c, float width);
 
-                /** Draw parameteric line defined by equation a*x + b*y + c = 0 and cull it by specified boundaries
+                /** Draw parameteric line defined by equation a*x + b*y + c = 0 and cull it by two of
+                 * specified boundaries which are selected depending on the slope of the line.
                  *
+                 * @param color line color
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
@@ -594,12 +596,12 @@ namespace lsp
                  * @param top
                  * @param bottom
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color);
+                virtual void parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width);
 
                 /** Draw parametric bar defined by two line equations
                  *
+                 * @param gr gradient to fill bar
                  * @param a1 the x multiplier 1
                  * @param b1 the y multiplier 1
                  * @param c1 the shift 1
@@ -610,10 +612,11 @@ namespace lsp
                  * @param right
                  * @param top
                  * @param bottom
-                 * @param gr gradient to fill bar
                  */
-                virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                        float left, float right, float top, float bottom, IGradient *gr);
+                virtual void parametric_bar(
+                    IGradient *gr,
+                    float a1, float b1, float c1, float a2, float b2, float c2,
+                    float left, float right, float top, float bottom);
 
                 virtual void fill_frame(const Color &color,
                     float fx, float fy, float fw, float fh,

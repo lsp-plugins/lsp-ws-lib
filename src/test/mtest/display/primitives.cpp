@@ -151,8 +151,6 @@ MTEST_BEGIN("ws.display", primitives)
                         }
                         y += 40;
 
-//                        virtual void wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width) override;
-
                         s->end();
 
                         return STATUS_OK;

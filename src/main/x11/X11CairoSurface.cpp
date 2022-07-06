@@ -813,7 +813,7 @@ namespace lsp
                 out_text_relative(f, color, x, y, dx, dy, text->get_utf8(first, last));
             }
 
-            void X11CairoSurface::line(float x0, float y0, float x1, float y1, float width, const Color &color)
+            void X11CairoSurface::line(const Color &color, float x0, float y0, float x1, float y1, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -827,7 +827,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::line(float x0, float y0, float x1, float y1, float width, IGradient *g)
+            void X11CairoSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -843,7 +843,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_line(float a, float b, float c, float width, const Color &color)
+            void X11CairoSurface::parametric_line(const Color &color, float a, float b, float c, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -867,7 +867,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color)
+            void X11CairoSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -891,13 +891,15 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                    float left, float right, float top, float bottom, IGradient *gr)
+            void X11CairoSurface::parametric_bar(
+                IGradient *g,
+                float a1, float b1, float c1, float a2, float b2, float c2,
+                float left, float right, float top, float bottom)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(gr);
+                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
                 cg->apply(pCR);
 
                 if (fabs(a1) > fabs(b1))
