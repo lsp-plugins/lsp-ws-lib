@@ -284,18 +284,8 @@ namespace lsp
                         ue.nType                = UIE_RESIZE;
                         ue.nLeft                = sSize.nLeft;
                         ue.nTop                 = sSize.nTop;
-                        ue.nWidth               = LOWORD(lParam);
-                        ue.nHeight              = HIWORD(lParam);
-
-                        if (has_border())
-                        {
-                            ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
-                            ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
-                            ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
-
-                            ue.nWidth              -= hborder * 2;
-                            ue.nHeight             -= vborder * 2 - vcaption;
-                        }
+                        ue.nWidth               = LOWORD(lParam); // The low-order word of lParam specifies the new width of the client area.
+                        ue.nHeight              = HIWORD(lParam); // The high-order word of lParam specifies the new height of the client area.
 
                         handle_event(&ue);
 
@@ -745,9 +735,10 @@ namespace lsp
                     return STATUS_OK;
 
                 // These system metrics affect the actual client size of the window
-                ssize_t hborder         = GetSystemMetrics(SM_CXSIZEFRAME);
-                ssize_t vborder         = GetSystemMetrics(SM_CYSIZEFRAME);
-                ssize_t vcaption        = GetSystemMetrics(SM_CYCAPTION);
+                bool border             = has_border();
+                ssize_t hborder         = (border) ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
+                ssize_t vborder         = (border) ? GetSystemMetrics(SM_CYSIZEFRAME) : 0;
+                ssize_t vcaption        = (border) ? GetSystemMetrics(SM_CYCAPTION) : 0;
 
                 BOOL res = MoveWindow(
                     hWindow,                                // hWnd

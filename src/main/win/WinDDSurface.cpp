@@ -631,6 +631,103 @@ namespace lsp
                 pDC->DrawGeometry(g, brush, width);
             }
 
+            void WinDDSurface::line(const Color &c, float x0, float y0, float x1, float y1, float width)
+            {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                pDC->DrawLine(
+                    D2D1::Point2F(x0, y0),
+                    D2D1::Point2F(x1, y1),
+                    brush, width, NULL);
+            }
+
+            void WinDDSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
+            {
+                if ((pDC == NULL) || (g == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
+                if (brush == NULL)
+                    return;
+                pDC->DrawLine(
+                    D2D1::Point2F(x0, y0),
+                    D2D1::Point2F(x1, y1),
+                    brush, width, NULL);
+            }
+
+            void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float width)
+            {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                if (fabs(a) > fabs(b))
+                    pDC->DrawLine(
+                        D2D1::Point2F(- c / a, 0.0f),
+                        D2D1::Point2F(-(c + b*nHeight)/a, nHeight),
+                        brush, width, NULL);
+                else
+                    pDC->DrawLine(
+                        D2D1::Point2F(0.0f, - c / b),
+                        D2D1::Point2F(nWidth, -(c + a*nWidth)/b),
+                        brush, width, NULL);
+            }
+
+            void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
+            {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                if (fabs(a) > fabs(b))
+                    pDC->DrawLine(
+                        D2D1::Point2F(roundf(-(c + b*top)/a), roundf(top)),
+                        D2D1::Point2F(roundf(-(c + b*bottom)/a), roundf(bottom)),
+                        brush, width, NULL);
+                else
+                    pDC->DrawLine(
+                        D2D1::Point2F(roundf(left), roundf(-(c + a*left)/b)),
+                        D2D1::Point2F(roundf(right), roundf(-(c + a*right)/b)),
+                        brush, width, NULL);
+            }
+
+            void WinDDSurface::parametric_bar(
+                IGradient *g,
+                float a1, float b1, float c1, float a2, float b2, float c2,
+                float left, float right, float top, float bottom)
+            {
+            }
+
+            void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
+            {
+            }
+
+            void WinDDSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
+            {
+            }
+
+            void WinDDSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
+            {
+            }
+
+            void WinDDSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
+            {
+            }
+
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
                 return false;
@@ -721,27 +818,6 @@ namespace lsp
             {
             }
 
-            void WinDDSurface::line(float x0, float y0, float x1, float y1, float width, const Color &color)
-            {
-            }
-
-            void WinDDSurface::line(float x0, float y0, float x1, float y1, float width, IGradient *g)
-            {
-            }
-
-            void WinDDSurface::parametric_line(float a, float b, float c, float width, const Color &color)
-            {
-            }
-
-            void WinDDSurface::parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color)
-            {
-            }
-
-            void WinDDSurface::parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                    float left, float right, float top, float bottom, IGradient *gr)
-            {
-            }
-
             void WinDDSurface::fill_frame(const Color &color,
                 float fx, float fy, float fw, float fh,
                 float ix, float iy, float iw, float ih
@@ -766,22 +842,6 @@ namespace lsp
                 const Color &color, float radius, size_t flags,
                 const ws::rectangle_t *out, const ws::rectangle_t *in
             )
-            {
-            }
-
-            void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
-            {
-            }
-
-            void WinDDSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
-            {
-            }
-
-            void WinDDSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
-            {
-            }
-
-            void WinDDSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
             }
 
