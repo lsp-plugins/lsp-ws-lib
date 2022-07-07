@@ -44,9 +44,12 @@ namespace lsp
             class WinDDSurface: public ISurface
             {
                 protected:
-                    WinDisplay             *pDisplay;
-                    HWND                    hWindow;
-                    ID2D1RenderTarget      *pDC;
+                    WinDisplay                 *pDisplay;
+                    HWND                        hWindow;
+                    ID2D1RenderTarget          *pDC;
+                #ifdef LSP_DEBUG
+                    ssize_t                     nClipping;
+                #endif /* LSP_DEBUG */
 
                 public:
                     explicit WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height);
@@ -144,7 +147,6 @@ namespace lsp
                     virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
-                    virtual void clip_begin(const ws::rectangle_t *area) override;
 
                     virtual void clip_end() override;
 

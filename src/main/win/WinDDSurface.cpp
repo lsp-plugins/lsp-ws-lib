@@ -77,6 +77,9 @@ namespace lsp
                 nWidth      = width;
                 nHeight     = height;
                 nType       = ST_DDRAW;
+            #ifdef LSP_DEBUG
+                nClipping   = 0;
+            #endif /* LSP_DEBUG */
             }
 
             WinDDSurface::WinDDSurface(WinDisplay *dpy, size_t width, size_t height):
@@ -85,6 +88,9 @@ namespace lsp
                 pDisplay    = dpy;
                 hWindow     = NULL;
                 pDC         = NULL;
+            #ifdef LSP_DEBUG
+                nClipping   = 0;
+            #endif /* LSP_DEBUG */
             }
 
             WinDDSurface::~WinDDSurface()
@@ -144,6 +150,11 @@ namespace lsp
                 if (pDC == NULL)
                     return;
 
+            #ifdef LSP_DEBUG
+                if (nClipping > 0)
+                    lsp_error("Mismatched number of clip_begin() and clip_end() calls");
+            #endif /* LSP_DEBUG */
+
                 HRESULT hr = pDC->EndDraw();
                 if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
                     safe_release(pDC);
@@ -171,14 +182,37 @@ namespace lsp
                 }
             }
 
-            ISurface *WinDDSurface::create(size_t width, size_t height)
+            void WinDDSurface::clear(const Color &color)
             {
-                return NULL;
+                if (pDC == NULL)
+                    return;
+
+                D2D_COLOR_F c;
+                color.get_rgbo(c.r, c.g, c.b, c.a);
+                pDC->Clear(&c);
             }
 
-            ISurface *WinDDSurface::create_copy()
+            void WinDDSurface::clear_rgb(uint32_t color)
             {
-                return NULL;
+                if (pDC == NULL)
+                    return;
+
+                D2D_COLOR_F c;
+                c.r     = ((color >> 16) & 0xff) / 255.0f;
+                c.g     = ((color >> 8) & 0xff) / 255.0f;
+                c.b     = (color & 0xff) / 255.0f;
+                c.a     = ((color >> 24) & 0xff) / 255.0f;
+                pDC->Clear(&c);
+            }
+
+            void WinDDSurface::clear_rgba(uint32_t color)
+            {
+                D2D_COLOR_F c;
+                c.r     = ((color >> 16) & 0xff) / 255.0f;
+                c.g     = ((color >> 8) & 0xff) / 255.0f;
+                c.b     = (color & 0xff) / 255.0f;
+                c.a     = 0.0f;
+                pDC->Clear(&c);
             }
 
             IGradient *WinDDSurface::linear_gradient(float x0, float y0, float x1, float y1)
@@ -208,30 +242,6 @@ namespace lsp
                         D2D1::Point2F(cx0 - cx1, cy0 - cy1),
                         r, r
                     ));
-            }
-
-            void WinDDSurface::draw(ISurface *s, float x, float y)
-            {
-            }
-
-            void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy)
-            {
-            }
-
-            void WinDDSurface::draw(ISurface *s, const ws::rectangle_t *r)
-            {
-            }
-
-            void WinDDSurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
-            {
-            }
-
-            void WinDDSurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
-            {
-            }
-
-            void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
-            {
             }
 
             void WinDDSurface::draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush)
@@ -896,7 +906,7 @@ namespace lsp
                 lsp_finally( safe_release(s); );
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
-                // Draw the sector
+                // Draw the negative arc
                 float radius = fabs(x1 - x0 + y1 - y0);
                 s->BeginFigure(
                     D2D1::Point2F(x0, y0),
@@ -1047,6 +1057,78 @@ namespace lsp
                         ixe, iye - radius);
             }
 
+            void WinDDSurface::clip_begin(float x, float y, float w, float h)
+            {
+                if (pDC == NULL)
+                    return;
+
+                // Create the clipping layer
+                ID2D1Layer *layer = NULL;
+                if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
+                    return;
+                lsp_finally( safe_release(layer); );
+
+                // Apply the layer
+                pDC->PushLayer(
+                    D2D1::LayerParameters(D2D1::RectF(x, y, x+w, y+h)),
+                    layer);
+
+                #ifdef LSP_DEBUG
+                ++ nClipping;
+                #endif /* LSP_DEBUG */
+            }
+
+            void WinDDSurface::clip_end()
+            {
+                if (pDC == NULL)
+                    return;
+
+            #ifdef LSP_DEBUG
+                if (nClipping <= 0)
+                {
+                    lsp_error("Mismatched number of clip_begin() and clip_end() calls");
+                    return;
+                }
+                -- nClipping;
+            #endif /* LSP_DEBUG */
+
+                pDC->PopLayer();
+            }
+
+            ISurface *WinDDSurface::create(size_t width, size_t height)
+            {
+                return NULL;
+            }
+
+            ISurface *WinDDSurface::create_copy()
+            {
+                return NULL;
+            }
+
+            void WinDDSurface::draw(ISurface *s, float x, float y)
+            {
+            }
+
+            void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy)
+            {
+            }
+
+            void WinDDSurface::draw(ISurface *s, const ws::rectangle_t *r)
+            {
+            }
+
+            void WinDDSurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
+            {
+            }
+
+            void WinDDSurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
+            {
+            }
+
+            void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
+            {
+            }
+
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
                 return false;
@@ -1070,39 +1152,6 @@ namespace lsp
             bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
                 return false;
-            }
-
-            void WinDDSurface::clear(const Color &color)
-            {
-                if (pDC == NULL)
-                    return;
-
-                D2D_COLOR_F c;
-                color.get_rgba(c.r, c.g, c.b, c.a);
-                pDC->Clear(&c);
-            }
-
-            void WinDDSurface::clear_rgb(uint32_t color)
-            {
-                if (pDC == NULL)
-                    return;
-
-                D2D_COLOR_F c;
-                c.r     = ((color >> 16) & 0xff) / 255.0f;
-                c.g     = ((color >> 8) & 0xff) / 255.0f;
-                c.b     = (color & 0xff) / 255.0f;
-                c.a     = ((color >> 24) & 0xff) / 255.0f;
-                pDC->Clear(&c);
-            }
-
-            void WinDDSurface::clear_rgba(uint32_t color)
-            {
-                D2D_COLOR_F c;
-                c.r     = ((color >> 16) & 0xff) / 255.0f;
-                c.g     = ((color >> 8) & 0xff) / 255.0f;
-                c.b     = (color & 0xff) / 255.0f;
-                c.a     = 0.0f;
-                pDC->Clear(&c);
             }
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
@@ -1134,18 +1183,6 @@ namespace lsp
             }
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
-            {
-            }
-
-            void WinDDSurface::clip_begin(float x, float y, float w, float h)
-            {
-            }
-
-            void WinDDSurface::clip_begin(const ws::rectangle_t *area)
-            {
-            }
-
-            void WinDDSurface::clip_end()
             {
             }
 

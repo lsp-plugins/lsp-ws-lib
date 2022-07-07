@@ -1288,10 +1288,16 @@ namespace lsp
                 if (pCR == NULL)
                     return;
 
-                cairo_restore(pCR);
             #ifdef LSP_DEBUG
-                --nNumClips;
+                if (nNumClips <= 0)
+                {
+                    lsp_error("Mismatched number of clip_begin() and clip_end() calls");
+                    return;
+                }
+                -- nNumClips;
             #endif /* LSP_DEBUG */
+
+                cairo_restore(pCR);
             }
 
         }
