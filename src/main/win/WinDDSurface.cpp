@@ -706,26 +706,169 @@ namespace lsp
             }
 
             void WinDDSurface::parametric_bar(
-                IGradient *g,
+                IGradient *gr,
                 float a1, float b1, float c1, float a2, float b2, float c2,
                 float left, float right, float top, float bottom)
             {
+                if ((pDC == NULL) || (gr == NULL))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(gr)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                // Create geometry object
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the sector
+                if (fabs(a1) > fabs(b1))
+                {
+                    s->BeginFigure(
+                        D2D1::Point2F(ssize_t(-(c1 + b1*top)/a1), ssize_t(top)),
+                        D2D1_FIGURE_BEGIN_FILLED);
+                    s->AddLine(D2D1::Point2F(ssize_t(-(c1 + b1*bottom)/a1), ssize_t(bottom)));
+                }
+                else
+                {
+                    s->BeginFigure(
+                        D2D1::Point2F(ssize_t(left), ssize_t(-(c1 + a1*left)/b1)),
+                        D2D1_FIGURE_BEGIN_FILLED);
+                    s->AddLine(D2D1::Point2F(ssize_t(right), ssize_t(-(c1 + a1*right)/b1)));
+                }
+
+                if (fabs(a2) > fabs(b2))
+                {
+                    s->AddLine(D2D1::Point2F(ssize_t(-(c2 + b2*bottom)/a2), ssize_t(bottom)));
+                    s->AddLine(D2D1::Point2F(ssize_t(-(c2 + b2*top)/a2), ssize_t(top)));
+                }
+                else
+                {
+                    s->AddLine(D2D1::Point2F(ssize_t(right), ssize_t(-(c2 + a2*right)/b2)));
+                    s->AddLine(D2D1::Point2F(ssize_t(left), ssize_t(-(c2 + a2*left)/b2)));
+                }
+
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
+
+                // Draw the geometry
+                pDC->FillGeometry(g, brush);
+            }
+
+            void WinDDSurface::draw_polygon(ID2D1Brush *brush, const float *x, const float *y, size_t n, float width)
+            {
+                // Create geometry object
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the polygon with lines
+                s->BeginFigure(D2D1::Point2F(x[0], y[0]), (width < 0.0f) ? D2D1_FIGURE_BEGIN_FILLED : D2D1_FIGURE_BEGIN_HOLLOW);
+                for (size_t i=1; i<n; ++i)
+                    s->AddLine(D2D1::Point2F(x[i], y[i]));
+                s->EndFigure((width < 0.0f) ?  D2D1_FIGURE_END_CLOSED : D2D1_FIGURE_END_OPEN);
+                s->Close();
+
+                // Draw the geometry
+                if (width < 0.0f)
+                    pDC->FillGeometry(g, brush);
+                else
+                    pDC->DrawGeometry(g, brush, width);
             }
 
             void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
             {
+                if ((pDC == NULL) || (n < 2))
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                draw_polygon(brush, x, y, n, -1.0f);
             }
 
             void WinDDSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
             {
+                if ((pDC == NULL) || (gr == NULL) || (n < 2))
+                    return;
+
+                ID2D1Brush *brush   = static_cast<WinDDGradient *>(gr)->get_brush();
+                if (brush == NULL)
+                    return;
+
+                draw_polygon(brush, x, y, n, -1.0f);
             }
 
             void WinDDSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
             {
+                if ((pDC == NULL) || (n < 2))
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                draw_polygon(brush, x, y, n, width);
             }
 
             void WinDDSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
+                if ((pDC == NULL) || (n < 2))
+                    return;
+
+                // Create brushes
+                ID2D1SolidColorBrush *f_brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(fill), &f_brush)))
+                    return;
+                lsp_finally( safe_release(f_brush); );
+                ID2D1SolidColorBrush *w_brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(wire), &w_brush)))
+                    return;
+                lsp_finally( safe_release(w_brush); );
+
+                // Create geometry object
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the polygon with lines
+                s->BeginFigure(D2D1::Point2F(x[0], y[0]), D2D1_FIGURE_BEGIN_FILLED);
+                for (size_t i=1; i<n; ++i)
+                    s->AddLine(D2D1::Point2F(x[i], y[i]));
+                s->EndFigure(D2D1_FIGURE_END_OPEN);
+                s->Close();
+
+                // Draw the geometry
+                pDC->FillGeometry(g, f_brush);
+                pDC->DrawGeometry(g, w_brush, width);
             }
 
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
