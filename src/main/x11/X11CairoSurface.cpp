@@ -1031,13 +1031,14 @@ namespace lsp
 
             void X11CairoSurface::fill_frame(
                 const Color &color,
+                size_t flags, float radius,
                 float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih
-            )
+                float ix, float iy, float iw, float ih)
             {
                 if (pCR == NULL)
                     return;
 
+                // Draw the frame
                 float fxe = fx + fw, fye = fy + fh, ixe = ix + iw, iye = iy + ih;
 
                 if ((ix >= fxe) || (ixe < fx) || (iy >= fye) || (iye < fy))
@@ -1050,120 +1051,97 @@ namespace lsp
                 else if ((ix <= fx) && (ixe >= fxe) && (iy <= fy) && (iye >= fye))
                     return;
 
-                #define MOVE_TO(p, x, y) \
-                    /*lsp_trace("move_to: %d, %d", int(x), int(y));*/ \
-                    cairo_move_to(p, (x), (y));
-                #define LINE_TO(p, x, y) \
-                    /*lsp_trace("line_to: %d, %d", int(x), int(y)); */\
-                    cairo_move_to(p, (x), (y));
-
-                #define RECTANGLE(p, x, y, w, h) \
-                    /*lsp_trace("rectangle: %d, %d, %d, %d", int(x), int(y), int(w), int(h)); */ \
-                    cairo_rectangle(p, (x), (y), (w), (h));
-
                 setSourceRGBA(color);
                 if (ix <= fx)
                 {
                     if (iy <= fy)
-                    { // OK
-                        RECTANGLE(pCR, ixe, fy, fxe - ixe, iye - fy);
+                    {
+                        cairo_rectangle(pCR, ixe, fy, fxe - ixe, iye - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                     else if (iye >= fye)
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, ixe, iy, fxe - ixe, fye - iy);
+                        cairo_rectangle(pCR, ixe, iy, fxe - ixe, fye - iy);
                         cairo_fill(pCR);
                     }
                     else
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, ixe, iy, fxe - ixe, ih);
+                        cairo_rectangle(pCR, ixe, iy, fxe - ixe, ih);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                 }
                 else if (ixe >= fxe)
                 {
                     if (iy <= fy)
-                    { // OK ?
-                        RECTANGLE(pCR, fx, fy, ix - fx, iye - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, ix - fx, iye - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                     else if (iye >= fye)
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iy, ix - fx, fye - iy);
+                        cairo_rectangle(pCR, fx, iy, ix - fx, fye - iy);
                         cairo_fill(pCR);
                     }
                     else
                     { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iy, ix - fx, ih);
+                        cairo_rectangle(pCR, fx, iy, ix - fx, ih);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                 }
                 else
                 {
                     if (iy <= fy)
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, ix - fx, iye - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, ix - fx, iye - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, ixe, fy, fxe - ixe, iye - fy);
+                        cairo_rectangle(pCR, ixe, fy, fxe - ixe, iye - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                     else if (iye >= fye)
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iy, ix - fx, fye - iy);
+                        cairo_rectangle(pCR, fx, iy, ix - fx, fye - iy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, ixe, iy, fxe - ixe, fye - iy);
+                        cairo_rectangle(pCR, ixe, iy, fxe - ixe, fye - iy);
                         cairo_fill(pCR);
                     }
                     else
-                    { // OK
-                        RECTANGLE(pCR, fx, fy, fw, iy - fy);
+                    {
+                        cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iy, ix - fx, ih);
+                        cairo_rectangle(pCR, fx, iy, ix - fx, ih);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, ixe, iy, fxe - ixe, ih);
+                        cairo_rectangle(pCR, ixe, iy, fxe - ixe, ih);
                         cairo_fill(pCR);
-                        RECTANGLE(pCR, fx, iye, fw, fye - iye);
+                        cairo_rectangle(pCR, fx, iye, fw, fye - iye);
                         cairo_fill(pCR);
                     }
                 }
-//                cairo_close_path(pCR);
-//                cairo_fill(pCR);
-            }
 
-            void X11CairoSurface::fill_round_frame(
-                    const Color &color,
-                    float radius, size_t flags,
-                    float fx, float fy, float fw, float fh,
-                    float ix, float iy, float iw, float ih
-                    )
-            {
-                if (pCR == NULL)
+                // Ensure that there are no corners
+                if ((radius <= 0.0) || (!(flags & SURFMASK_ALL_CORNER)))
                     return;
 
-                fill_frame(color, fx, fy, fw, fh, ix, iy, iw, ih);
-                setSourceRGBA(color);
-
-                // Can draw?
+                // Can draw corners?
                 float minw = 0.0f;
                 minw += (flags & SURFMASK_L_CORNER) ? radius : 0.0;
                 minw += (flags & SURFMASK_R_CORNER) ? radius : 0.0;

@@ -274,37 +274,23 @@ namespace lsp
         {
         }
 
-        void ISurface::fill_frame(const Color &color,
-            float fx, float fy, float fw, float fh,
-            float ix, float iy, float iw, float ih)
-        {
-        }
-
-        void ISurface::fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in)
-        {
-            fill_frame(color,
-                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
-                    in->nLeft, in->nTop, in->nWidth, in->nHeight
-            );
-        }
-
-        void ISurface::fill_round_frame(
+        void ISurface::fill_frame(
             const Color &color,
-            float radius, size_t flags,
+            size_t flags, float radius,
             float fx, float fy, float fw, float fh,
             float ix, float iy, float iw, float ih)
         {
         }
 
-        void ISurface::fill_round_frame(
-                const Color &color, float radius, size_t flags,
+        void ISurface::fill_frame(
+                const Color &color, size_t flags, float radius,
                 const ws::rectangle_t *out, const ws::rectangle_t *in
             )
         {
-            fill_round_frame(color, radius, flags,
-                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
-                    in->nLeft, in->nTop, in->nWidth, in->nHeight
-            );
+            fill_frame(
+                color, flags, radius,
+                out->nLeft, out->nTop, out->nWidth, out->nHeight,
+                in->nLeft, in->nTop, in->nWidth, in->nHeight);
         }
 
         void ISurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)

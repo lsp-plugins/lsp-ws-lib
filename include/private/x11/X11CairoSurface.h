@@ -178,12 +178,7 @@ namespace lsp
 
                     virtual void fill_frame(
                         const Color &color,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih) override;
-
-                    virtual void fill_round_frame(
-                        const Color &color,
-                        float radius, size_t flags,
+                        size_t flags, float radius,
                         float fx, float fy, float fw, float fh,
                         float ix, float iy, float iw, float ih) override;
 

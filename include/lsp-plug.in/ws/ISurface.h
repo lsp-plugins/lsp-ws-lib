@@ -618,20 +618,41 @@ namespace lsp
                     float a1, float b1, float c1, float a2, float b2, float c2,
                     float left, float right, float top, float bottom);
 
-                virtual void fill_frame(const Color &color,
-                    float fx, float fy, float fw, float fh,
-                    float ix, float iy, float iw, float ih);
-
-                virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in);
-
-                virtual void fill_round_frame(
+                /**
+                 * Draw the rectangle with the rectangle hole inside. The rectangle hole
+                 * additionally allows to round corners.
+                 *
+                 * @param color color of the rectangle
+                 * @param flags flags that indicate the rounding of the corresponding corner
+                 * @param radius the radius of the rounding for all corners
+                 * @param fx the left coordinate of the outer rectangle
+                 * @param fy the top coordinate of the outer rectangle
+                 * @param fw the width of the outer rectangle
+                 * @param fh the height of the outer rectangle
+                 * @param ix the left coordinate of the inner rectangle
+                 * @param iy the top coordinate of the inner rectangle
+                 * @param iw the width of the inner rectangle
+                 * @param ih the height of the inner rectangle
+                 */
+                virtual void fill_frame(
                     const Color &color,
-                    float radius, size_t flags,
+                    size_t flags, float radius,
                     float fx, float fy, float fw, float fh,
                     float ix, float iy, float iw, float ih);
 
-                virtual void fill_round_frame(
-                    const Color &color, float radius, size_t flags,
+                /**
+                 * Draw the rectangle with the rectangle hole inside. The rectangle hole
+                 * additionally allows to round corners.
+                 *
+                 * @param color color of the rectangle
+                 * @param flags flags that indicate the rounding of the corresponding corner
+                 * @param radius the radius of the rounding for all corners
+                 * @param out the parameters of the outer rectangle
+                 * @param in the parameters of the inner rectangle
+                 */
+                virtual void fill_frame(
+                    const Color &color,
+                    size_t flags, float radius,
                     const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 /** Draw polygon
