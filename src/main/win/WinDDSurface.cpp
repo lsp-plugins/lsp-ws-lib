@@ -48,6 +48,16 @@ namespace lsp
                 return c;
             }
 
+            static inline D2D1_RECT_F d2d_rect(float x, float y, float w, float h)
+            {
+                D2D1_RECT_F r;
+                r.left      = x;
+                r.top       = y;
+                r.right     = x + w;
+                r.bottom    = y + h;
+                return r;
+            }
+
             template <class T>
                 static inline void safe_release(T * &obj)
                 {
@@ -871,6 +881,172 @@ namespace lsp
                 pDC->DrawGeometry(g, w_brush, width);
             }
 
+            void WinDDSurface::draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2)
+            {
+                // Create geometry object for the sector
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return;
+                lsp_finally( safe_release(g); );
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return;
+                lsp_finally( safe_release(s); );
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Draw the sector
+                float radius = fabs(x1 - x0 + y1 - y0);
+                s->BeginFigure(
+                    D2D1::Point2F(x0, y0),
+                    D2D1_FIGURE_BEGIN_FILLED);
+                s->AddLine(D2D1::Point2F(x1, y1));
+                s->AddArc(
+                    D2D1::ArcSegment(
+                        D2D1::Point2F(x2, y2),
+                        D2D1::SizeF(radius, radius),
+                        0.0f,
+                        D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+                        D2D1_ARC_SIZE_SMALL)
+                    );
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
+
+                // Draw the geometry
+                pDC->FillGeometry(g, brush, NULL);
+            }
+
+            void WinDDSurface::fill_frame(
+                const Color &color,
+                size_t flags, float radius,
+                float fx, float fy, float fw, float fh,
+                float ix, float iy, float iw, float ih)
+            {
+                if (pDC == NULL)
+                    return;
+
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                // Draw the frame
+                float fxe = fx + fw, fye = fy + fh, ixe = ix + iw, iye = iy + ih;
+
+                if ((ix >= fxe) || (ixe < fx) || (iy >= fye) || (iye < fy))
+                {
+                    pDC->FillRectangle(d2d_rect(fx, fy, fw, fh), brush);
+                    return;
+                }
+                else if ((ix <= fx) && (ixe >= fxe) && (iy <= fy) && (iye >= fye))
+                    return;
+
+                if (ix <= fx)
+                {
+                    if (iy <= fy)
+                    {
+                        pDC->FillRectangle(d2d_rect(ixe, fy, fxe - ixe, iye - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                    else if (iye >= fye)
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(ixe, iy, fxe - ixe, fye - iy), brush);
+                    }
+                    else
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(ixe, iy, fxe - ixe, ih), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                }
+                else if (ixe >= fxe)
+                {
+                    if (iy <= fy)
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, ix - fx, iye - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                    else if (iye >= fye)
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iy, ix - fx, fye - iy), brush);
+                    }
+                    else
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iy, ix - fx, ih), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                }
+                else
+                {
+                    if (iy <= fy)
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, ix - fx, iye - fy), brush);
+                        pDC->FillRectangle(d2d_rect(ixe, fy, fxe - ixe, iye - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                    else if (iye >= fye)
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iy, ix - fx, fye - iy), brush);
+                        pDC->FillRectangle(d2d_rect(ixe, iy, fxe - ixe, fye - iy), brush);
+                    }
+                    else
+                    {
+                        pDC->FillRectangle(d2d_rect(fx, fy, fw, iy - fy), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iy, ix - fx, ih), brush);
+                        pDC->FillRectangle(d2d_rect(ixe, iy, fxe - ixe, ih), brush);
+                        pDC->FillRectangle(d2d_rect(fx, iye, fw, fye - iye), brush);
+                    }
+                }
+
+                // Ensure that there are no corners
+                if ((radius <= 0.0) || (!(flags & SURFMASK_ALL_CORNER)))
+                    return;
+
+                // Can draw corners?
+                float minw = 0.0f;
+                minw += (flags & SURFMASK_L_CORNER) ? radius : 0.0;
+                minw += (flags & SURFMASK_R_CORNER) ? radius : 0.0;
+                if (iw < minw)
+                    return;
+
+                float minh = 0.0f;
+                minh += (flags & SURFMASK_T_CORNER) ? radius : 0.0;
+                minh += (flags & SURFMASK_B_CORNER) ? radius : 0.0;
+                if (ih < minh)
+                    return;
+
+                // Draw corners
+                if (flags & SURFMASK_LT_CORNER)
+                    draw_negative_arc(
+                        brush,
+                        ix, iy,
+                        ix + radius, iy,
+                        ix, iy + radius);
+                if (flags & SURFMASK_RT_CORNER)
+                    draw_negative_arc(
+                        brush,
+                        ixe, iy,
+                        ixe, iy + radius,
+                        ixe - radius, iy);
+                if (flags & SURFMASK_LB_CORNER)
+                    draw_negative_arc(
+                        brush,
+                        ix, iye,
+                        ix, iye - radius,
+                        ix + radius, iye);
+                if (flags & SURFMASK_RB_CORNER)
+                    draw_negative_arc(
+                        brush,
+                        ixe, iye,
+                        ixe - radius, iye,
+                        ixe, iye - radius);
+            }
+
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
                 return false;
@@ -958,33 +1134,6 @@ namespace lsp
             }
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
-            {
-            }
-
-            void WinDDSurface::fill_frame(const Color &color,
-                float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih
-            )
-            {
-            }
-
-            void WinDDSurface::fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in)
-            {
-            }
-
-            void WinDDSurface::fill_round_frame(
-                const Color &color,
-                float radius, size_t flags,
-                float fx, float fy, float fw, float fh,
-                float ix, float iy, float iw, float ih
-            )
-            {
-            }
-
-            void WinDDSurface::fill_round_frame(
-                const Color &color, float radius, size_t flags,
-                const ws::rectangle_t *out, const ws::rectangle_t *in
-            )
             {
             }
 

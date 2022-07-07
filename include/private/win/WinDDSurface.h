@@ -58,6 +58,7 @@ namespace lsp
                 protected:
                     void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
                     void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
+                    void    draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_polygon(ID2D1Brush *brush, const float *x, const float *y, size_t n, float width);
 
                 public:
@@ -113,21 +114,11 @@ namespace lsp
                     virtual void wire_poly(const Color &c, float width, const float *x, const float *y, size_t n) override;
                     virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n) override;
 
-                    virtual void fill_frame(const Color &color,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih) override;
-
-                    virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in) override;
-
-                    virtual void fill_round_frame(
+                    virtual void fill_frame(
                         const Color &color,
-                        float radius, size_t flags,
+                        size_t flags, float radius,
                         float fx, float fy, float fw, float fh,
                         float ix, float iy, float iw, float ih) override;
-
-                    virtual void fill_round_frame(
-                        const Color &color, float radius, size_t flags,
-                        const ws::rectangle_t *out, const ws::rectangle_t *in) override;
 
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;

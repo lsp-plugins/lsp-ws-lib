@@ -1095,7 +1095,7 @@ namespace lsp
                         cairo_fill(pCR);
                     }
                     else
-                    { // OK
+                    {
                         cairo_rectangle(pCR, fx, fy, fw, iy - fy);
                         cairo_fill(pCR);
                         cairo_rectangle(pCR, fx, iy, ix - fx, ih);
@@ -1155,19 +1155,19 @@ namespace lsp
                     return;
 
                 // Draw corners
-                if (flags & SURFMASK_RT_CORNER)
-                {
-                    cairo_move_to(pCR, ix + iw, iy);
-                    cairo_line_to(pCR, ix + iw, iy + radius);
-                    cairo_arc_negative(pCR, ix + iw - radius, iy + radius, radius, 2.0*M_PI, 1.5*M_PI);
-                    cairo_close_path(pCR);
-                    cairo_fill(pCR);
-                }
                 if (flags & SURFMASK_LT_CORNER)
                 {
                     cairo_move_to(pCR, ix, iy);
                     cairo_line_to(pCR, ix + radius, iy);
                     cairo_arc_negative(pCR, ix + radius, iy + radius, radius, 1.5*M_PI, 1.0*M_PI);
+                    cairo_close_path(pCR);
+                    cairo_fill(pCR);
+                }
+                if (flags & SURFMASK_RT_CORNER)
+                {
+                    cairo_move_to(pCR, ix + iw, iy);
+                    cairo_line_to(pCR, ix + iw, iy + radius);
+                    cairo_arc_negative(pCR, ix + iw - radius, iy + radius, radius, 2.0*M_PI, 1.5*M_PI);
                     cairo_close_path(pCR);
                     cairo_fill(pCR);
                 }
