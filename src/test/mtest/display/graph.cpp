@@ -121,6 +121,114 @@ MTEST_BEGIN("ws.display", graph)
                             s->parametric_line(c, A, B, C, X(-0.75f), X(0.75f), Y(0.75f), Y(-0.75f), 2.0f);
                         }
 
+                        // Parametric bar
+                        {
+                            ws::IGradient *g = s->linear_gradient(X(0.0f), Y(0.0f), X(0.5f), Y(-0.25f));
+                            if (g != NULL)
+                            {
+                                lsp_finally( delete g; );
+                                c.set_rgb24(0x00ff00);
+                                g->add_color(0.0f, c, 0.0f);
+                                g->add_color(1.0f, c, 0.75f);
+
+                                float X0 = X(0.25f);
+                                float Y0 = Y(0.0f);
+                                float X1 = X(0.5f);
+                                float Y1 = Y(1.0f);
+                                float A1 = 1.0f;
+                                float B1 = -A1*(X1 - X0) / (Y1 - Y0);
+                                float C1 = -A1*X0 - B1*Y0;
+
+                                X0 = X(0.5f);
+                                Y0 = Y(0.0f);
+                                X1 = X(0.75f);
+                                Y1 = Y(1.0f);
+                                float A2 = 1.0f;
+                                float B2 = -A2*(X1 - X0) / (Y1 - Y0);
+                                float C2 = -A2*X0 - B2*Y0;
+
+                                s->parametric_bar(g, A1, B1, C1, A2, B2, C2, X(-0.75f), X(0.75f), Y(0.75f), Y(-0.75f));
+                            }
+                        }
+
+                        // Different types of graphics
+                        constexpr size_t N = 200;
+                        float *vx = new float[200];
+                        float *vy = new float[200];
+                        lsp_finally(
+                            if (vx != NULL)
+                                delete [] vx;
+                            if (vy != NULL)
+                                delete [] vy;
+                        );
+
+                        // Method 1: fill_poly with solid color
+                        {
+                            c.set_rgb24(0xff00ff);
+                            c.alpha(0.5f);
+                            for (size_t i=0; i<N; ++i)
+                            {
+                                float a = (i * M_PI * 2.0f) / N;
+                                float t = a * 8.0f;
+                                float r = 0.25f + 0.0625f * cosf(t);
+
+                                vx[i]   = X(-0.5f + r * cos(a));
+                                vy[i]   = Y(0.5f  + r * sin(a));
+                            }
+                            s->fill_poly(c, vx, vy, N);
+                        }
+                        // Method 2: fill_poly with gradient color
+                        {
+                            ws::IGradient *g = s->radial_gradient(
+                                    X(-0.5f), Y(-0.5f),
+                                    X(-0.5f), Y(-0.5f), 0.5f * HW);
+
+                            c.set_rgb24(0x0000ff);
+                            g->add_color(0.0f, c, 0.5f);
+                            c.set_rgb24(0xffff00);
+                            g->add_color(1.0f, c, 0.5f);
+
+                            for (size_t i=0; i<N; ++i)
+                            {
+                                float a = M_PI * 0.25 + (i * M_PI * 1.5f) / N;
+                                float t = a * 12.0f;
+                                float r = 0.25f + 0.0625f * cosf(t);
+
+                                vx[i]   = X(-0.5f + r * cos(a));
+                                vy[i]   = Y(-0.5f  + r * sin(a));
+                            }
+                            s->fill_poly(g, vx, vy, N);
+                        }
+                        // Method 3: wire poly
+                        {
+                            c.set_rgb24(0x0088cc);
+                            constexpr float f1 = 3.0f;
+                            constexpr float f2 = 4.0f;
+
+                            for (size_t i=0; i<N; ++i)
+                            {
+                                float t = (i * M_PI * 2.0f) / N;
+                                vx[i]   = X(0.5 + 0.25 * cosf(f1 * t));
+                                vy[i]   = Y(0.5 + 0.25 * sinf(f2 * t));
+                            }
+
+                            s->wire_poly(c, 3.0f, vx, vy, N);
+                        }
+
+                        // Method 4: draw the poly
+                        {
+                            c.set_rgb24(0x0088cc);
+                            Color fill(c, 0.5f);
+
+                            for (size_t i=0; i<N; ++i)
+                            {
+                                float t = float(i) / (N - 1);
+                                vx[i]   = X(0.5 + 0.5 * (t - 0.5f));
+                                vy[i]   = Y(-0.5 + 0.25 * sinf(t * M_PI * 8.0f));
+                            }
+                            s->draw_poly(fill, c, 3.0f, vx, vy, N);
+                        }
+
                         s->end();
 
                         return STATUS_OK;
