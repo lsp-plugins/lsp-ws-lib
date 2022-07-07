@@ -72,18 +72,12 @@ MTEST_BEGIN("ws.display", surface)
                                 x->wire_rect(c, SURFMASK_NONE, 0.0f, 0.0f, 0.0f, 160, 100, 1.0f);
                             x->end();
 
-                            s->draw(x, 0.0f, 0.0f, 2.0f, 2.0f);
-                            s->draw(x, 320.0f, 0.0f);
-                            s->draw_alpha(x, 320.0f, 100.0f, 1.0f, 1.0f, 0.5f);
-                            s->draw_clipped(x, 480.0f, 0.0f, 16, 10, 128, 80);
-                            s->draw_rotate_alpha(x, 320, 240, 1.0f, 1.0f, M_PI * 0.5f, 0.5f);
-
-                            ws::rectangle_t r;
-                            r.nLeft     = 320;
-                            r.nTop      = 200;
-                            r.nWidth    = 320;
-                            r.nHeight   = 200;
-                            s->draw(x, &r);
+                            s->draw(x, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f);
+                            s->draw(x, 320.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+                            s->draw(x, 320.0f, 100.0f, 1.0f, 1.0f, 0.5f);
+                            s->draw_clipped(x, 480.0f, 0.0f, 16, 10, 128, 80, 0.0f);
+                            s->draw_rotate(x, 320, 240, 1.0f, 1.0f, M_PI * 0.5f, 0.5f);
+                            s->draw(x, 320, 200, 1.5f, 1.5f, 0.0f);
                         }
 
                         s->end();

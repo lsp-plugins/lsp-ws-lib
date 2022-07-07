@@ -185,23 +185,7 @@ namespace lsp
                 return false;
             }
 
-            void X11CairoSurface::draw(ISurface *s, float x, float y)
-            {
-                surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE))
-                    return;
-                if (pCR == NULL)
-                    return;
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
-                if (cs->pSurface == NULL)
-                    return;
-
-                // Draw one surface on another
-                ::cairo_set_source_surface(pCR, cs->pSurface, x, y);
-                ::cairo_paint(pCR);
-            }
-
-            void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy)
+            void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
                 surface_type_t type = s->type();
                 if ((type != ST_XLIB) && (type != ST_IMAGE))
@@ -214,42 +198,30 @@ namespace lsp
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
-                if (sx < 0.0f)
-                    x       -= sx * s->width();
-                if (sy < 0.0f)
-                    y       -= sy * s->height();
-                ::cairo_translate(pCR, x, y);
-                ::cairo_scale(pCR, sx, sy);
-                ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                ::cairo_paint(pCR);
+                if ((sx != 1.0f) && (sy != 1.0f))
+                {
+                    if (sx < 0.0f)
+                        x       -= sx * s->width();
+                    if (sy < 0.0f)
+                        y       -= sy * s->height();
+
+                    ::cairo_translate(pCR, x, y);
+                    ::cairo_scale(pCR, sx, sy);
+                    ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                }
+                else
+                    ::cairo_set_source_surface(pCR, cs->pSurface, x, y);
+
+                // Draw the surface
+                if (a > 0.0f)
+                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                else
+                    ::cairo_paint(pCR);
+
                 ::cairo_restore(pCR);
             }
 
-            void X11CairoSurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
-            {
-                surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE))
-                    return;
-                if (pCR == NULL)
-                    return;
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
-                if (cs->pSurface == NULL)
-                    return;
-
-                // Draw one surface on another
-                ::cairo_save(pCR);
-                if (sx < 0.0f)
-                    x       -= sx * s->width();
-                if (sy < 0.0f)
-                    y       -= sy * s->height();
-                ::cairo_translate(pCR, x, y);
-                ::cairo_scale(pCR, sx, sy);
-                ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                ::cairo_paint_with_alpha(pCR, 1.0f - a);
-                ::cairo_restore(pCR);
-            }
-
-            void X11CairoSurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
+            void X11CairoSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
                 surface_type_t type = s->type();
                 if ((type != ST_XLIB) && (type != ST_IMAGE))
@@ -266,11 +238,14 @@ namespace lsp
                 ::cairo_scale(pCR, sx, sy);
                 ::cairo_rotate(pCR, ra);
                 ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
-                ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                if (a > 0.0f)
+                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                else
+                    ::cairo_paint(pCR);
                 ::cairo_restore(pCR);
             }
 
-            void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
+            void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
                 surface_type_t type = s->type();
                 if ((type != ST_XLIB) && (type != ST_IMAGE))
@@ -283,9 +258,13 @@ namespace lsp
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
-                ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
                 ::cairo_rectangle(pCR, x, y, sw, sh);
-                ::cairo_fill(pCR);
+                ::cairo_clip(pCR);
+                ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
+                if (a > 0.0f)
+                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                else
+                    ::cairo_paint(pCR);
                 ::cairo_restore(pCR);
             }
 

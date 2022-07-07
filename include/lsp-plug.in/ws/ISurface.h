@@ -148,31 +148,6 @@ namespace lsp
                 virtual void end();
 
             public:
-                /** Draw surface
-                 *
-                 * @param s surface to draw
-                 * @param x offset from left
-                 * @param y offset from top
-                 */
-                virtual void draw(ISurface *s, float x, float y);
-
-                /** Draw surface
-                 *
-                 * @param s surface to draw
-                 * @param x offset from left
-                 * @param y offset from top
-                 * @param sx surface scale x
-                 * @param sy surface scale y
-                 */
-                virtual void draw(ISurface *s, float x, float y, float sx, float sy);
-
-                /**
-                 * Draw surface
-                 * @param s surface to draw
-                 * @param r the rectangle to place the surface
-                 */
-                virtual void draw(ISurface *s, const ws::rectangle_t *r);
-
                 /** Draw surface with alpha blending
                  *
                  * @param s surface to draw
@@ -182,7 +157,7 @@ namespace lsp
                  * @param sy surface scale y
                  * @param a alpha
                  */
-                virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a);
+                virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a);
 
                 /** Draw surface with alpha blending and rotating
                  *
@@ -194,7 +169,7 @@ namespace lsp
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */
-                virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
+                virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
 
                 /** Draw clipped surface
                  *
@@ -205,8 +180,9 @@ namespace lsp
                  * @param sy source surface starting position
                  * @param sw source surface width
                  * @param sh source surface height
+                 * @param a alpha
                  */
-                virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh);
+                virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a);
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *

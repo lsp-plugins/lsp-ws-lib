@@ -77,32 +77,15 @@ namespace lsp
             return new IGradient();
         }
 
-        void ISurface::draw(ISurface *s, float x, float y)
+        void ISurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
         {
         }
 
-        void ISurface::draw(ISurface *s, float x, float y, float sx, float sy)
+        void ISurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
         {
         }
 
-        void ISurface::draw(ISurface *s, const ws::rectangle_t *r)
-        {
-            float sx = (s->width()  > 0) ? float(r->nWidth ) / float(s->width())  : 0.0f;
-            float sy = (s->height() > 0) ? float(r->nHeight) / float(s->height()) : 0.0f;
-
-            return draw(s, r->nLeft, r->nTop, sx, sy);
-        }
-
-        void ISurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
-        {
-        }
-
-        void ISurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
-        {
-
-        }
-
-        void ISurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
+        void ISurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
         {
         }
 

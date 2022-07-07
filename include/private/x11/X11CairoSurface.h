@@ -121,11 +121,9 @@ namespace lsp
 
                 public:
                     // Drawing methods
-                    virtual void draw(ISurface *s, float x, float y) override;
-                    virtual void draw(ISurface *s, float x, float y, float sx, float sy) override;
-                    virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a) override;
-                    virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
-                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh) override;
+                    virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
+                    virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
+                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
 
                     virtual void begin() override;
                     virtual void end() override;
