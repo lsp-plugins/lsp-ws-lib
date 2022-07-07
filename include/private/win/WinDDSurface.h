@@ -53,7 +53,7 @@ namespace lsp
 
                 public:
                     explicit WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height);
-                    explicit WinDDSurface(WinDisplay *dpy, size_t width, size_t height);
+                    explicit WinDDSurface(WinDisplay *dpy, ID2D1RenderTarget *dc, size_t width, size_t height);
                     virtual ~WinDDSurface();
 
                     virtual void destroy() override;
@@ -139,12 +139,9 @@ namespace lsp
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first) override;
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
 
-                    virtual void draw(ISurface *s, float x, float y) override;
-                    virtual void draw(ISurface *s, float x, float y, float sx, float sy) override;
-                    virtual void draw(ISurface *s, const ws::rectangle_t *r) override;
-                    virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a) override;
-                    virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
-                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh) override;
+                    virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
+                    virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
+                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
 

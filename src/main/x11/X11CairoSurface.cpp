@@ -187,11 +187,12 @@ namespace lsp
 
             void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
-                surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE))
-                    return;
                 if (pCR == NULL)
                     return;
+                surface_type_t type = s->type();
+                if (type != ST_IMAGE)
+                    return;
+
                 X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
                 if (cs->pSurface == NULL)
                     return;

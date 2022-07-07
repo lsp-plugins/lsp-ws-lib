@@ -82,12 +82,12 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
-            WinDDSurface::WinDDSurface(WinDisplay *dpy, size_t width, size_t height):
+            WinDDSurface::WinDDSurface(WinDisplay *dpy, ID2D1RenderTarget *dc, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay    = dpy;
                 hWindow     = NULL;
-                pDC         = NULL;
+                pDC         = dc;
             #ifdef LSP_DEBUG
                 nClipping   = 0;
             #endif /* LSP_DEBUG */
@@ -104,11 +104,8 @@ namespace lsp
 
             void WinDDSurface::begin()
             {
-                if (hWindow == NULL)
-                    return;
-
                 // Create render target if necessary
-                if (pDC == NULL)
+                if ((pDC == NULL) && (hWindow != NULL) && (nType == ST_DDRAW))
                 {
                     FLOAT dpi_x, dpi_y;
                     D2D1_RENDER_TARGET_PROPERTIES prop;
@@ -117,8 +114,8 @@ namespace lsp
                     pDisplay->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
                     prop.type                   = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-                    prop.pixelFormat.format     = DXGI_FORMAT_UNKNOWN;
-                    prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_UNKNOWN; // D2D1_ALPHA_MODE_STRAIGHT;
+                    prop.pixelFormat.format     = DXGI_FORMAT_B8G8R8A8_UNORM;
+                    prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_PREMULTIPLIED; // D2D1_ALPHA_MODE_STRAIGHT;
                     prop.dpiX                   = dpi_x;
                     prop.dpiY                   = dpi_y;
                     prop.usage                  = D2D1_RENDER_TARGET_USAGE_NONE;
@@ -130,23 +127,22 @@ namespace lsp
                     hwndProp.presentOptions     = D2D1_PRESENT_OPTIONS_NONE;
 
                     ID2D1HwndRenderTarget *ht   = NULL;
-                    HRESULT res                 = pDisplay->d2d_factory()->CreateHwndRenderTarget(prop, hwndProp, &ht);
-                    if (res != S_OK)
+                    HRESULT hr                  = pDisplay->d2d_factory()->CreateHwndRenderTarget(prop, hwndProp, &ht);
+                    if (FAILED(hr))
                     {
-                        lsp_error("Error creating HWND render target: 0x%08lx", long(res));
+                        lsp_error("Error creating HWND render target: 0x%08lx", long(hr));
                         return;
                     }
 
                     pDC         = ht;
                 }
 
-                pDC->BeginDraw();
+                if (pDC != NULL)
+                    pDC->BeginDraw();
             }
 
             void WinDDSurface::end()
             {
-                if (hWindow == NULL)
-                    return;
                 if (pDC == NULL)
                     return;
 
@@ -1097,7 +1093,26 @@ namespace lsp
 
             ISurface *WinDDSurface::create(size_t width, size_t height)
             {
-                return NULL;
+                if (pDC == NULL)
+                    return NULL;
+
+                D2D1_SIZE_F desiredSize = D2D1::SizeF(width, height);
+                D2D1_SIZE_U desiredPixelSize = D2D1::SizeU(width, height);
+                D2D1_PIXEL_FORMAT pixelFormat = D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED);
+
+                ID2D1BitmapRenderTarget *dc = NULL;
+                HRESULT hr = pDC->CreateCompatibleRenderTarget(
+                    &desiredSize,
+                    &desiredPixelSize,
+                    &pixelFormat,
+                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_GDI_COMPATIBLE, // options
+                    &dc);
+                if (FAILED(hr))
+                    return NULL;
+
+                return new WinDDSurface(pDisplay, dc, width, height);
             }
 
             ISurface *WinDDSurface::create_copy()
@@ -1105,27 +1120,115 @@ namespace lsp
                 return NULL;
             }
 
-            void WinDDSurface::draw(ISurface *s, float x, float y)
+            void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
+                if (pDC == NULL)
+                    return;
+                if (s->type() != ST_IMAGE)
+                    return;
+
+                // Get the source surface
+                WinDDSurface *ws            = static_cast<WinDDSurface *>(s);
+                if (ws->pDC == NULL)
+                    return;
+                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(ws->pDC);
+
+                // Get the bitmap of the surface
+                ID2D1Bitmap *bm             = NULL;
+                if (FAILED(dc->GetBitmap(&bm)))
+                    return;
+                lsp_finally( safe_release(bm); );
+
+                // Draw the bitmap
+                pDC->DrawBitmap(
+                    bm,
+                    D2D1::RectF(x, y, x + ws->nWidth * sx, y + ws->nHeight * sy),
+                    1.0f - a,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
             }
 
-            void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy)
+            void WinDDSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
+                if (pDC == NULL)
+                    return;
+                if (s->type() != ST_IMAGE)
+                    return;
+
+                // Get the source surface
+                WinDDSurface *ws            = static_cast<WinDDSurface *>(s);
+                if (ws->pDC == NULL)
+                    return;
+                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(ws->pDC);
+
+                // Get the bitmap of the surface
+                ID2D1Bitmap *bm             = NULL;
+                if (FAILED(dc->GetBitmap(&bm)))
+                    return;
+                lsp_finally( safe_release(bm); );
+
+                // Draw the bitmap
+                D2D1_MATRIX_3X2_F m;
+                pDC->GetTransform(&m);
+                pDC->SetTransform(D2D1::Matrix3x2F::Rotation(ra * 180.0f / M_PI, D2D1::Point2F(x, y)));
+
+                pDC->DrawBitmap(
+                    bm,
+                    D2D1::RectF(x, y, x + ws->nWidth * sx, y + ws->nHeight * sy),
+                    1.0f - a,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+                pDC->SetTransform(&m);
             }
 
-            void WinDDSurface::draw(ISurface *s, const ws::rectangle_t *r)
+            void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
+                if (pDC == NULL)
+                    return;
+                if (s->type() != ST_IMAGE)
+                    return;
+
+                // Get the source surface
+                WinDDSurface *ws            = static_cast<WinDDSurface *>(s);
+                if (ws->pDC == NULL)
+                    return;
+                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(ws->pDC);
+
+                // Get the bitmap of the surface
+                ID2D1Bitmap *bm             = NULL;
+                if (FAILED(dc->GetBitmap(&bm)))
+                    return;
+                lsp_finally( safe_release(bm); );
+
+                // Create the clipping layer
+                ID2D1Layer *layer = NULL;
+                if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
+                    return;
+                lsp_finally( safe_release(layer); );
+
+                // Apply the clipping layer
+                pDC->PushLayer(
+                    D2D1::LayerParameters(D2D1::RectF(x, y, x+sw, y+sh)),
+                    layer);
+
+                // Draw the bitmap
+                x -= sx;
+                y -= sy;
+                pDC->DrawBitmap(
+                    bm,
+                    D2D1::RectF(x, y, x + ws->nWidth, y + ws->nHeight),
+                    1.0f - a,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+
+                // Pop the clipping layer
+                pDC->PopLayer();
             }
 
-            void WinDDSurface::draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a)
+            void *WinDDSurface::start_direct()
             {
+                // TODO: convert bitmap into WIC bitmap and use it
+                return NULL;
             }
 
-            void WinDDSurface::draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
-            {
-            }
-
-            void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh)
+            void WinDDSurface::end_direct()
             {
             }
 
@@ -1204,15 +1307,6 @@ namespace lsp
             surf_line_cap_t WinDDSurface::set_line_cap(surf_line_cap_t lc)
             {
                 return SURFLCAP_BUTT;
-            }
-
-            void *WinDDSurface::start_direct()
-            {
-                return NULL;
-            }
-
-            void WinDDSurface::end_direct()
-            {
             }
         } /* namespace win */
     } /* namespace ws */
