@@ -69,6 +69,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+                nNumClips       = 0;
             }
 
             X11CairoSurface::X11CairoSurface(X11Display *dpy, size_t width, size_t height):
@@ -79,6 +80,7 @@ namespace lsp
                 pFO             = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 nStride         = cairo_image_surface_get_stride(pSurface);
+                nNumClips       = 0;
             }
 
             ISurface *X11CairoSurface::create(size_t width, size_t height)
@@ -303,12 +305,21 @@ namespace lsp
                 // Initialize settings
                 ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_DEFAULT);
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
+
+            #ifdef LSP_DEBUG
+                nNumClips       = 0;
+            #endif /* LSP_DEBUG */
             }
 
             void X11CairoSurface::end()
             {
                 if (pCR == NULL)
                     return;
+
+            #ifdef LSP_DEBUG
+                if (nNumClips > 0)
+                    lsp_error("Mismatching number of clip_begin() and clip_end() calls");
+            #endif /* LSP_DEBUG */
 
                 if (pFO != NULL)
                 {
@@ -1266,6 +1277,10 @@ namespace lsp
                 cairo_rectangle(pCR, x, y, w, h);
                 cairo_clip(pCR);
                 cairo_new_path(pCR);
+
+            #ifdef LSP_DEBUG
+                ++nNumClips;
+            #endif /* LSP_DEBUG */
             }
 
             void X11CairoSurface::clip_end()
@@ -1274,6 +1289,9 @@ namespace lsp
                     return;
 
                 cairo_restore(pCR);
+            #ifdef LSP_DEBUG
+                --nNumClips;
+            #endif /* LSP_DEBUG */
             }
 
         }

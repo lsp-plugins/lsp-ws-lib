@@ -50,6 +50,9 @@ namespace lsp
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
                     X11Display             *pDisplay;
+                #ifdef LSP_DEBUG
+                    size_t                  nNumClips;
+                #endif /* LSP_DEBUG */
 
                 protected:
                     typedef struct font_context_t

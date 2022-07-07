@@ -324,7 +324,6 @@ namespace lsp
             ST_IMAGE,           // Image surface
             ST_XLIB,            // Surface created by XLIB extension
             ST_DDRAW,           // Surface created by DirectDraw factory
-            ST_PROXY            // Proxy surface
         };
 
         typedef struct font_parameters_t
