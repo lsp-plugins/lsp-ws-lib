@@ -716,7 +716,9 @@ namespace lsp
                  */
                 virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
 
-                /** Return difference (in bytes) between two sequential rows
+                /** Return difference (in bytes) between two sequential rows.
+                 * \note Valid value is returned only between start_direct() and
+                 * end_direct() calls.
                  *
                  * @return stride between rows
                  */
@@ -736,7 +738,9 @@ namespace lsp
                 virtual     void *row(size_t row);
 
                 /**
-                 * Start direct access to the surface
+                 * Start direct access to the surface. Returns pointer to the
+                 * array of rows with B8G8R8A8 format where alpha of 0xff means
+                 * fully opaque color and 0x00 means fully transient color.
                  * @return pointer to surface buffer or NULL if error/not possible
                  */
                 virtual     void *start_direct();
