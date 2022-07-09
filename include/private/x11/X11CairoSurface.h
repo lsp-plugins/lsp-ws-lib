@@ -124,6 +124,9 @@ namespace lsp
                     virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
                     virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
                     virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
+                    virtual void draw_raw(
+                        const void *data, size_t width, size_t height, size_t stride,
+                        float x, float y, float sx, float sy, float a) override;
 
                     virtual void begin() override;
                     virtual void end() override;

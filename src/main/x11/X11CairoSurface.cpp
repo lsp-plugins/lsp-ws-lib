@@ -269,6 +269,46 @@ namespace lsp
                 ::cairo_restore(pCR);
             }
 
+            void X11CairoSurface::draw_raw(
+                const void *data, size_t width, size_t height, size_t stride,
+                float x, float y, float sx, float sy, float a)
+            {
+                if (pCR == NULL)
+                    return;
+
+                cairo_surface_t *cs = cairo_image_surface_create_for_data(
+                    static_cast<unsigned char *>(const_cast<void *>(data)),
+                    CAIRO_FORMAT_ARGB32,
+                    width, height, stride);
+                if (cs == NULL)
+                    return;
+                lsp_finally( cairo_surface_destroy(cs); );
+
+                // Draw one surface on another
+                ::cairo_save(pCR);
+                if ((sx != 1.0f) && (sy != 1.0f))
+                {
+                    if (sx < 0.0f)
+                        x       -= sx * width;
+                    if (sy < 0.0f)
+                        y       -= sy * height;
+
+                    ::cairo_translate(pCR, x, y);
+                    ::cairo_scale(pCR, sx, sy);
+                    ::cairo_set_source_surface(pCR, cs, 0.0f, 0.0f);
+                }
+                else
+                    ::cairo_set_source_surface(pCR, cs, x, y);
+
+                // Draw the surface
+                if (a > 0.0f)
+                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
+                else
+                    ::cairo_paint(pCR);
+
+                ::cairo_restore(pCR);
+            }
+
             void X11CairoSurface::begin()
             {
                 // Force end() call

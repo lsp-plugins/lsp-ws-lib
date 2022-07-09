@@ -89,6 +89,12 @@ namespace lsp
         {
         }
 
+        void ISurface::draw_raw(
+            const void *data, size_t width, size_t height, size_t stride,
+            float x, float y, float sx, float sy, float a)
+        {
+        }
+
         void ISurface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
         {
         }

@@ -184,6 +184,22 @@ namespace lsp
                  */
                 virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a);
 
+                /** Draw surface from BGRA32 memory chunk where alpha is premultiplied
+                 *
+                 * @param data pointer to data array
+                 * @param width the width of the image
+                 * @param height the height of the image
+                 * @param strid the size of the row in bytes
+                 * @param x offset from left
+                 * @param y offset from top
+                 * @param sx surface scale x
+                 * @param sy surface scale y
+                 * @param a alpha
+                 */
+                virtual void draw_raw(
+                    const void *data, size_t width, size_t height, size_t stride,
+                    float x, float y, float sx, float sy, float a);
+
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
                  * @param color rectangle color
