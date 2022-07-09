@@ -47,6 +47,10 @@ namespace lsp
                     WinDisplay                 *pDisplay;
                     HWND                        hWindow;
                     ID2D1RenderTarget          *pDC;
+                    struct {
+                        IWICBitmap                 *pBitmap;
+                        IWICBitmapLock             *pLock;
+                    } sDirect;
                 #ifdef LSP_DEBUG
                     ssize_t                     nClipping;
                 #endif /* LSP_DEBUG */

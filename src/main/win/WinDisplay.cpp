@@ -30,6 +30,7 @@
 #include <private/win/WinDisplay.h>
 #include <private/win/WinWindow.h>
 
+#include <combaseapi.h>
 #include <windows.h>
 #include <d2d1.h>
 
@@ -55,6 +56,7 @@ namespace lsp
             {
                 bExit           = false;
                 pD2D1Factroy    = NULL;
+                pWICFactory     = NULL;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -69,7 +71,13 @@ namespace lsp
 
             status_t WinDisplay::init(int argc, const char **argv)
             {
-                bExit   = false;
+                HRESULT hr;
+
+                hr = CoInitialize(NULL);
+                if (FAILED(hr))
+                    return STATUS_UNKNOWN_ERR;
+
+                bExit           = false;
 
                 WNDCLASSW wc;
                 bzero(&wc, sizeof(wc));
@@ -89,9 +97,24 @@ namespace lsp
                     translate_cursor(mouse_pointer_t(i));
 
                 // Create D2D1 factory
-                if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2D1Factroy)))
+                hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2D1Factroy);
+                if (FAILED(hr))
                 {
                     lsp_error("Error creating D2D1 factory: %ld", long(GetLastError()));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+
+                // Create the COM imaging factory
+                hr = CoCreateInstance(
+                    CLSID_WICImagingFactory,
+                    NULL,
+                    CLSCTX_INPROC_SERVER,
+                    IID_PPV_ARGS(&pWICFactory)
+                );
+                if (FAILED(hr))
+                {
+                    lsp_error("Error creating WIC factory: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
 

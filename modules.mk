@@ -94,6 +94,11 @@ LIBMSACM_NAME              := libmsacm
 LIBMSACM_TYPE              := opt
 LIBMSACM_LDFLAGS           := -lmsacm32
 
+LIBOLE_VERSION             := system
+LIBOLE_NAME                := libole
+LIBOLE_TYPE                := opt
+LIBOLE_LDFLAGS             := -lole32
+
 LIBPTHREAD_VERSION         := system
 LIBPTHREAD_NAME            := libpthread
 LIBPTHREAD_TYPE            := opt
@@ -107,6 +112,11 @@ LIBSHLWAPI_VERSION         := system
 LIBSHLWAPI_NAME            := libshlwapi
 LIBSHLWAPI_TYPE            := opt
 LIBSHLWAPI_LDFLAGS         := -lshlwapi
+
+LIBWINCODEC_VERSION        := system
+LIBWINCODEC_NAME           := libwincodec
+LIBWINCODEC_TYPE           := opt
+LIBWINCODEC_LDFLAGS        := -lwindowscodecs
 
 LIBWINMM_VERSION           := system
 LIBWINMM_NAME              := libwinmm

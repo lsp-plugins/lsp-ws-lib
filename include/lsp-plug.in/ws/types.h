@@ -324,7 +324,6 @@ namespace lsp
             ST_IMAGE,           // Image surface
             ST_XLIB,            // Surface created by XLIB extension (X.11 Linux/FreeBSD)
             ST_DDRAW,           // Surface created by DirectDraw factory (Windows)
-            ST_WIC              // Surface that provides writability and in-memory representation to bitmap sources (Windows)
         };
 
         typedef struct font_parameters_t

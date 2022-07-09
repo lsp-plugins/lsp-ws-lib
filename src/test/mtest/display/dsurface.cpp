@@ -74,10 +74,9 @@ MTEST_BEGIN("ws.display", dsurface)
                                 for (size_t y=0; y<sa->height(); ++y)
                                 {
                                     uint32_t *row = reinterpret_cast<uint32_t *>(ptr);
+                                    uint32_t alpha= uint8_t((0xff * y) / (sa->height() - 1)) << 24;
                                     for (size_t x=0; x<sa->width(); ++x)
-                                    {
-                                        row[x]  = CPU_TO_LE(uint32_t((x * y) | 0xff000000));
-                                    }
+                                        row[x]  = CPU_TO_LE(uint32_t((x * y) | alpha));
                                     ptr    += sa->stride();
                                 }
                                 sa->end_direct();
@@ -104,9 +103,7 @@ MTEST_BEGIN("ws.display", dsurface)
                                 {
                                     uint32_t *row = reinterpret_cast<uint32_t *>(ptr);
                                     for (size_t x=0; x<sb->width(); ++x)
-                                    {
                                         row[x]  = CPU_TO_LE(LE_TO_CPU(row[x]) ^ 0x00ffffff);
-                                    }
                                     ptr    += sb->stride();
                                 }
                                 sb->end_direct();
