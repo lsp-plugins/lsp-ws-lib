@@ -293,13 +293,7 @@ namespace lsp
                 lsp_finally( cairo_surface_destroy(cs); );
 
                 // Draw one surface on another
-                float sw = fabs(sx * width), sh = fabs(sy * height);
                 ::cairo_save(pCR);
-                ::cairo_rectangle(pCR, x, y, sw, sh);
-                ::cairo_clip(pCR);
-
-                cairo_operator_t op = cairo_get_operator(pCR);
-                ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
 
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
@@ -321,7 +315,6 @@ namespace lsp
                 else
                     ::cairo_paint(pCR);
 
-                ::cairo_set_operator (pCR, op);
                 ::cairo_restore(pCR);
             }
 
