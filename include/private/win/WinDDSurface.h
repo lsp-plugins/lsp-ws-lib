@@ -47,10 +47,6 @@ namespace lsp
                     WinDisplay                 *pDisplay;
                     HWND                        hWindow;
                     ID2D1RenderTarget          *pDC;
-                    struct {
-                        IWICBitmap                 *pBitmap;
-                        IWICBitmapLock             *pLock;
-                    } sDirect;
                 #ifdef LSP_DEBUG
                     ssize_t                     nClipping;
                 #endif /* LSP_DEBUG */
@@ -146,6 +142,9 @@ namespace lsp
                     virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
                     virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
                     virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
+                    virtual void draw_raw(
+                        const void *data, size_t width, size_t height, size_t stride,
+                        float x, float y, float sx, float sy, float a) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
 
@@ -156,10 +155,6 @@ namespace lsp
 
                     virtual surf_line_cap_t get_line_cap() override;
                     virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
-
-                    virtual     void *start_direct() override;
-
-                    virtual     void end_direct() override;
 
                 public:
                     void        sync_size();

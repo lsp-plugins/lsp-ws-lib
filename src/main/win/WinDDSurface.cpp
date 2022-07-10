@@ -75,9 +75,6 @@ namespace lsp
                 hWindow         = hwnd;
                 pDC             = NULL;
 
-                sDirect.pBitmap = NULL;
-                sDirect.pLock   = NULL;
-
                 nWidth          = width;
                 nHeight         = height;
                 nType           = ST_DDRAW;
@@ -93,9 +90,6 @@ namespace lsp
                 hWindow         = NULL;
                 pDC             = dc;
 
-                sDirect.pBitmap = NULL;
-                sDirect.pLock   = NULL;
-
             #ifdef LSP_DEBUG
                 nClipping       = 0;
             #endif /* LSP_DEBUG */
@@ -107,8 +101,6 @@ namespace lsp
 
             void WinDDSurface::destroy()
             {
-                safe_release(sDirect.pLock);
-                safe_release(sDirect.pBitmap);
                 safe_release(pDC);
             }
 
@@ -159,17 +151,6 @@ namespace lsp
             #ifdef LSP_DEBUG
                 if (nClipping > 0)
                     lsp_error("Mismatched number of clip_begin() and clip_end() calls");
-            #endif /* LSP_DEBUG */
-
-            #ifdef LSP_DEBUG
-                if ((sDirect.pBitmap != NULL) || (sDirect.pLock != NULL))
-                {
-                    lsp_error("Missing end_direct() call");
-
-                    safe_release(sDirect.pLock);
-                    safe_release(sDirect.pBitmap);
-                    return;
-                }
             #endif /* LSP_DEBUG */
 
                 HRESULT hr = pDC->EndDraw();
@@ -1281,125 +1262,38 @@ namespace lsp
                 pDC->PopLayer();
             }
 
-            void *WinDDSurface::start_direct()
+            void WinDDSurface::draw_raw(
+                const void *data, size_t width, size_t height, size_t stride,
+                float x, float y, float sx, float sy, float a)
             {
-                if ((pDC == NULL) || (nType != ST_IMAGE))
-                    return NULL;
-
-                pDC->Flush();
-
-            #ifdef LSP_DEBUG
-                if ((sDirect.pBitmap != NULL) || (sDirect.pLock != NULL))
-                {
-                    lsp_error("Duplicate start_direct() call");
-                    return NULL;
-                }
-            #endif /* LSP_DEBUG */
-
                 HRESULT hr;
 
                 // Create WIC bitmap
-                IWICBitmap *bitmap = NULL;
-                pDisplay->wic_factory()->CreateBitmap(
-                    nWidth, nHeight,
+                IWICBitmap *wic = NULL;
+                pDisplay->wic_factory()->CreateBitmapFromMemory(
+                    width, height,
                     GUID_WICPixelFormat32bppPBGRA,
-                    WICBitmapCacheOnDemand,
-                    &bitmap);
-                if ((FAILED(hr)) || (bitmap == NULL))
-                    return NULL;
-                lsp_finally( safe_release(bitmap); );
-
-                // Create D2D1 render target for WIC
-                ID2D1RenderTarget *wic = NULL;
-                D2D1_RENDER_TARGET_PROPERTIES prop;
-                prop.type                   = D2D1_RENDER_TARGET_TYPE_DEFAULT;
-                prop.pixelFormat.format     = DXGI_FORMAT_B8G8R8A8_UNORM;
-                prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_PREMULTIPLIED;
-                prop.dpiX                   = 0.0f;
-                prop.dpiY                   = 0.0f;
-                prop.usage                  = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
-                prop.minLevel               = D2D1_FEATURE_LEVEL_DEFAULT;
-
-                hr = pDisplay->d2d_factory()->CreateWicBitmapRenderTarget(bitmap, &prop, &wic);
+                    stride,
+                    height * stride,
+                    static_cast<BYTE *>(const_cast<void *>(data)),
+                    &wic);
                 if ((FAILED(hr)) || (wic == NULL))
-                    return NULL;
+                    return;
                 lsp_finally( safe_release(wic); );
 
-                // Get the bitmap of the surface
-                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(pDC);
-                ID2D1Bitmap *src_bitmap     = NULL;
-                if (FAILED(dc->GetBitmap(&src_bitmap)))
-                    return NULL;
-                lsp_finally( safe_release(src_bitmap); );
-
-                // Draw the contents of the render target to the current surface
-                wic->BeginDraw();
-                    wic->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-                    wic->DrawBitmap(
-                        src_bitmap,
-                        D2D1::RectF(0.0f, 0.0f, nWidth, nHeight),
-                        1.0f,
-                        D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
-                wic->EndDraw();
-                wic->Flush();
-
-                // Save bitmap pointer, lock it and return
-                IWICBitmapLock *lock        = NULL;
-                WICRect lock_rect;
-                lock_rect.X                 = 0;
-                lock_rect.Y                 = 0;
-                lock_rect.Width             = nWidth;
-                lock_rect.Height            = nHeight;
-
-                hr = bitmap->Lock(&lock_rect, WICBitmapLockRead | WICBitmapLockWrite, &lock);
-                if (FAILED(hr))
-                    return NULL;
-
-                // Obtain the desired buffer parameters
-                UINT buffer_size            = 0;
-                UINT buffer_stride          = 0;
-                BYTE *data_ptr              = NULL;
-                lock->GetDataPointer(&buffer_size, &data_ptr);
-                lock->GetStride(&buffer_stride);
-
-                // Commit the direct access state and return
-                nStride                     = buffer_stride;
-                lsp::swap(sDirect.pBitmap, bitmap);
-                lsp::swap(sDirect.pLock, lock);
-
-                return data_ptr;
-            }
-
-            void WinDDSurface::end_direct()
-            {
-                if ((pDC == NULL) || (nType != ST_IMAGE))
+                // Create ID2D1Bitmap from WIC bitmap
+                ID2D1Bitmap *src = NULL;
+                hr = pDC->CreateBitmapFromWicBitmap(wic, NULL, &src);
+                if ((FAILED(hr)) || (src == NULL))
                     return;
+                lsp_finally( safe_release(src); );
 
-                safe_release(sDirect.pLock);
-            #ifdef LSP_DEBUG
-                if (sDirect.pBitmap == NULL)
-                {
-                    lsp_error("Invalid end_direct() call");
-                    return;
-                }
-            #endif /* LSP_DEBUG */
-                lsp_finally( safe_release(sDirect.pBitmap); );
-
-                HRESULT hr;
-
-                // Create bitmap
-                ID2D1Bitmap *bitmap = NULL;
-                hr = pDC->CreateBitmapFromWicBitmap(sDirect.pBitmap, NULL, &bitmap);
-                if ((FAILED(hr)) || (bitmap == NULL))
-                    return;
-                lsp_finally( safe_release(bitmap); );
-
-                pDC->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+                // Draw the bitmap
                 pDC->DrawBitmap(
-                    bitmap,
-                    D2D1::RectF(0.0f, 0.0f, nWidth, nHeight),
-                    1.0f,
-                    D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
+                    src,
+                    D2D1::RectF(x, y, x + width * sx, y + height * sy),
+                    1.0f - a,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
             }
 
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
