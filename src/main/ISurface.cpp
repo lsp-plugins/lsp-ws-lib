@@ -150,7 +150,12 @@ namespace lsp
 
         bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
         {
-            return false;
+            if (text == NULL)
+                return false;
+            LSPString tmp;
+            if (!tmp.set_utf8(text))
+                return false;
+            return get_text_parameters(f, tp, &tmp, 0, tmp.length());
         }
 
         bool ISurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)

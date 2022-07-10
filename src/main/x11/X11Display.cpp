@@ -267,6 +267,11 @@ namespace lsp
                         vCursors[i] = ::XCreateFontCursor(pDisplay, id);
                 }
 
+                // Create estimation surface
+                pEstimation     = create_surface(1, 1);
+                if (pEstimation == NULL)
+                    return STATUS_NO_MEM;
+
                 return IDisplay::init(argc, argv);
             }
 
@@ -412,6 +417,14 @@ namespace lsp
                 {
                     FT_Done_FreeType(hFtLibrary);
                     hFtLibrary      = NULL;
+                }
+
+                // Destroy estimation surface
+                if (pEstimation != NULL)
+                {
+                    pEstimation->destroy();
+                    delete pEstimation;
+                    pEstimation     = NULL;
                 }
             }
 
@@ -3952,6 +3965,30 @@ namespace lsp
                     mi->name.~LSPString();
                 }
                 list->flush();
+            }
+
+            bool X11Display::get_font_parameters(const Font &f, font_parameters_t *fp)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally( pEstimation->end(); );
+                return pEstimation->get_font_parameters(f, fp);
+            }
+
+            bool X11Display::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally( pEstimation->end(); );
+                return pEstimation->get_text_parameters(f, tp, text);
+            }
+
+            bool X11Display::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally( pEstimation->end(); );
+                return pEstimation->get_text_parameters(f, tp, text, first, last);
             }
 
             const MonitorInfo *X11Display::enum_monitors(size_t *count)

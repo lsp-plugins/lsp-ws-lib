@@ -235,6 +235,8 @@ namespace lsp
 
                     lltl::darray<MonitorInfo>   vMonitors;
 
+                    ISurface                   *pEstimation;        // Estimation surface
+
                 protected:
                     void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
@@ -340,6 +342,10 @@ namespace lsp
                     virtual status_t            add_font_alias(const char *name, const char *alias) override;
                     virtual status_t            remove_font(const char *name) override;
                     virtual void                remove_all_fonts() override;
+
+                    virtual bool                get_font_parameters(const Font &f, font_parameters_t *fp) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     virtual const MonitorInfo  *enum_monitors(size_t *count) override;
 

@@ -786,6 +786,7 @@ namespace lsp
             {
                 if (text == NULL)
                     return false;
+                // Cairo internally uses UTF-8 character encoding.
                 return get_text_parameters(f, tp, text->get_utf8(first, last));
             }
 

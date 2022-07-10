@@ -96,7 +96,6 @@ namespace lsp
                 r3d::factory_t             *p3DFactory;         // Pointer to the factory object
                 ssize_t                     nCurrent3D;         // Current 3D backend
                 ssize_t                     nPending3D;         // Pending 3D backend
-                ISurface                   *pEstimation;        // Estimation surface
 
             protected:
                 friend class IR3DBackend;
@@ -315,14 +314,6 @@ namespace lsp
                  */
                 virtual ISurface *create_surface(size_t width, size_t height);
 
-                /**
-                 * Get estimation surface. This surface is not for drawing but
-                 * for estimating additional parameters like text parameters, etc.
-                 *
-                 * @return pointer to estimation surface
-                 */
-                virtual ISurface *estimation_surface();
-
                 /** Submit task for execution
                  *
                  * @param time time when the task should be triggered (timestamp in milliseconds)
@@ -446,6 +437,53 @@ namespace lsp
                  * Remove all previously loaded custom fonts and aliases
                  */
                 virtual void remove_all_fonts();
+
+                /** Get font parameters
+                 *
+                 * @param f font
+                 * @param fp font parameters to store
+                 * @return status of operation
+                 */
+                virtual bool get_font_parameters(const Font &f, font_parameters_t *fp);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @param last last character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                 /**
                  * Enumerate list of mointors and return the pointer to the list of monitors.

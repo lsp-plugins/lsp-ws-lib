@@ -103,7 +103,6 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
-            pEstimation         = NULL;
         }
 
         IDisplay::~IDisplay()
@@ -433,14 +432,6 @@ namespace lsp
 
         void IDisplay::destroy()
         {
-            // Destroy estimation surface
-            if (pEstimation != NULL)
-            {
-                pEstimation->destroy();
-                delete pEstimation;
-                pEstimation     = NULL;
-            }
-
             // Destroy all backends
             for (size_t j=0,m=s3DBackends.size(); j<m;++j)
             {
@@ -748,13 +739,6 @@ namespace lsp
         {
             return NULL;
         }
-
-        ISurface *IDisplay::estimation_surface()
-        {
-            if (pEstimation != NULL)
-                return pEstimation;
-            return pEstimation  = create_surface(1, 1);
-        }
     
         bool IDisplay::taskid_exists(taskid_t id)
         {
@@ -898,6 +882,40 @@ namespace lsp
 
         void IDisplay::remove_all_fonts()
         {
+        }
+
+        bool IDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
+        {
+            return false;
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+        {
+            if (text == NULL)
+                return false;
+            LSPString tmp;
+            if (!tmp.set_utf8(text))
+                return false;
+            return get_text_parameters(f, tp, &tmp, 0, tmp.length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, 0, text->length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, first, text->length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+        {
+            return false;
         }
 
         const MonitorInfo *IDisplay::enum_monitors(size_t *count)
