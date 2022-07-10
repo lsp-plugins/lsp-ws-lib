@@ -474,6 +474,17 @@ namespace lsp
                 // TODO
             }
 
+            bool WinDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
+            {
+                // TODO
+                return false;
+            }
+
+            bool WinDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                return false;
+            }
+
             HCURSOR WinDisplay::translate_cursor(mouse_pointer_t pointer)
             {
                 HCURSOR res = vCursors[pointer];

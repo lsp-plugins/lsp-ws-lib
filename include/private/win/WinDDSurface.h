@@ -125,10 +125,8 @@ namespace lsp
                         float fx, float fy, float fw, float fh,
                         float ix, float iy, float iw, float ih) override;
 
+                    // Font and text parameter estimation
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text) override;
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;

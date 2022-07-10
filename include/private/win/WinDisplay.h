@@ -114,6 +114,10 @@ namespace lsp
                     virtual status_t            remove_font(const char *name) override;
                     virtual void                remove_all_fonts() override;
 
+                    // Font and text parameter estimation
+                    virtual bool                get_font_parameters(const Font &f, font_parameters_t *fp) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
+
                 public:
                     HCURSOR                     translate_cursor(mouse_pointer_t cursor);
                     inline ID2D1Factory        *d2d_factory()           { return pD2D1Factroy;      }

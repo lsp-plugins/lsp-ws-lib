@@ -1303,27 +1303,14 @@ namespace lsp
 
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
-                return false;
-            }
-
-            bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
-            {
-                return false;
-            }
-
-            bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)
-            {
-                return false;
-            }
-
-            bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first)
-            {
-                return false;
+                // Redirect call to the display
+                return pDisplay->get_font_parameters(f, fp);
             }
 
             bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                return false;
+                // Redirect call to the display
+                return pDisplay->get_text_parameters(f, tp, text, first, last);
             }
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
