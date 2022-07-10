@@ -69,7 +69,9 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+            #ifdef LSP_DEBUG
                 nNumClips       = 0;
+            #endif /* LSP_DEBUG */
             }
 
             X11CairoSurface::X11CairoSurface(X11Display *dpy, size_t width, size_t height):
@@ -80,7 +82,9 @@ namespace lsp
                 pFO             = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 nStride         = cairo_image_surface_get_stride(pSurface);
+            #ifdef LSP_DEBUG
                 nNumClips       = 0;
+            #endif /* LSP_DEBUG */
             }
 
             ISurface *X11CairoSurface::create(size_t width, size_t height)
@@ -198,7 +202,11 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
+                float sw = fabs(sx * s->width()), sh = fabs(sy * s->height());
                 ::cairo_save(pCR);
+                ::cairo_rectangle(pCR, x, y, sw, sh);
+                ::cairo_clip(pCR);
+
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -285,7 +293,11 @@ namespace lsp
                 lsp_finally( cairo_surface_destroy(cs); );
 
                 // Draw one surface on another
+                float sw = fabs(sx * width), sh = fabs(sy * height);
                 ::cairo_save(pCR);
+                ::cairo_rectangle(pCR, x, y, sw, sh);
+                ::cairo_clip(pCR);
+
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
 

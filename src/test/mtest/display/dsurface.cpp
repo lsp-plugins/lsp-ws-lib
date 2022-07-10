@@ -56,63 +56,37 @@ MTEST_BEGIN("ws.display", dsurface)
                         s->clear(c);
                         lsp_finally( s->end(); );
 
-                        // Create surface and perform direct access to it
-                        ws::ISurface *sa = s->create(320, 200);
-                        if (sa == NULL)
-                            return STATUS_OK;
+                        uint32_t *buf = static_cast<uint32_t *>(malloc( 320 * 200 * sizeof(uint32_t)));
+                        lsp_finally( free(buf); );
 
-                        lsp_finally(
-                            sa->destroy();
-                            delete sa;
-                        );
-
+                        for (size_t y=0; y<200; ++y)
                         {
-                            sa->begin();
-                            uint8_t *ptr = static_cast<uint8_t *>(sa->start_direct());
-                            if (ptr != NULL)
-                            {
-                                for (size_t y=0; y<sa->height(); ++y)
-                                {
-                                    uint32_t *row = reinterpret_cast<uint32_t *>(ptr);
-                                    uint32_t alpha= uint8_t((0xff * y) / (sa->height() - 1)) << 24;
-                                    for (size_t x=0; x<sa->width(); ++x)
-                                        row[x]  = CPU_TO_LE(uint32_t((x * y) | alpha));
-                                    ptr    += sa->stride();
-                                }
-                                sa->end_direct();
-                            }
-                            sa->end();
-                            s->draw(sa, 0, 0, 1, 1, 0);
-                            s->draw(sa, 320, 200, 1, 1, 0);
+                            uint32_t *row = &buf[y * 320];
+                            uint32_t alpha= uint8_t((0xff * y) / (200 - 1)) << 24;
+                            for (size_t x=0; x<320; ++x)
+                                row[x]  = CPU_TO_LE(uint32_t((x * y) | alpha));
                         }
 
-                        ws::ISurface *sb = sa->create_copy();
-                        if (sb == NULL)
-                            return STATUS_OK;
-                        lsp_finally(
-                            sb->destroy();
-                            delete sb;
-                        );
+                        s->draw_raw(
+                            buf, 320, 200, 320 * sizeof(uint32_t),
+                            0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+                        s->draw_raw(
+                            buf, 320, 200, 320 * sizeof(uint32_t),
+                            320.0f, 200.0f, 1.0f, 1.0f, 0.0f);
 
+                        for (size_t y=0; y<200; ++y)
                         {
-                            sb->begin();
-                            uint8_t *ptr = static_cast<uint8_t *>(sb->start_direct());
-                            if (ptr != NULL)
-                            {
-                                for (size_t y=0; y<sb->height(); ++y)
-                                {
-                                    uint32_t *row = reinterpret_cast<uint32_t *>(ptr);
-                                    for (size_t x=0; x<sb->width(); ++x)
-                                        row[x]  = CPU_TO_LE(LE_TO_CPU(row[x]) ^ 0x00ffffff);
-                                    ptr    += sb->stride();
-                                }
-                                sb->end_direct();
-                            }
-                            sb->end();
-                            s->draw(sb, 0, 200, 1, 1, 0);
-                            s->draw(sb, 320, 0, 1, 1, 0);
+                            uint32_t *row = &buf[y * 320];
+                            for (size_t x=0; x<320; ++x)
+                                row[x]  = CPU_TO_LE(LE_TO_CPU(row[x]) ^ 0x00ffffff);
                         }
 
+                        s->draw_raw(
+                            buf, 320, 200, 320 * sizeof(uint32_t),
+                            320.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+                        s->draw_raw(
+                            buf, 320, 200, 320 * sizeof(uint32_t),
+                            0.0f, 200.0f, 1.0f, 1.0f, 0.0f);
 
                         return STATUS_OK;
                     }
