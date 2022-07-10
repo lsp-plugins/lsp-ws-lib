@@ -184,7 +184,9 @@ namespace lsp
                  */
                 virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a);
 
-                /** Draw surface from BGRA32 memory chunk where alpha is premultiplied
+                /** Draw surface from BGRA32 memory chunk where alpha is premultiplied.
+                 * That means that alpha of 0xff defines fully opaque color and 0x00
+                 * defines fully transient color.
                  *
                  * @param data pointer to data array
                  * @param width the width of the image
@@ -752,19 +754,6 @@ namespace lsp
                  * @param row row number
                  */
                 virtual     void *row(size_t row);
-
-                /**
-                 * Start direct access to the surface. Returns pointer to the
-                 * array of rows with B8G8R8A8 format where alpha of 0xff means
-                 * fully opaque color and 0x00 means fully transient color.
-                 * @return pointer to surface buffer or NULL if error/not possible
-                 */
-                virtual     void *start_direct();
-
-                /**
-                 * End direct access to the surface
-                 */
-                virtual     void end_direct();
         };
     }
 

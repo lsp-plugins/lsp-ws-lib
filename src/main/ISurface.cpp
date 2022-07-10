@@ -356,14 +356,5 @@ namespace lsp
             return &pData[row * nStride];
         }
 
-        void *ISurface::start_direct()
-        {
-            return NULL;
-        }
-
-        void ISurface::end_direct()
-        {
-        }
-    }
-
+    } /* namespace ws */
 } /* namespace lsp */

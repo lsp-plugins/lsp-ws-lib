@@ -286,6 +286,9 @@ namespace lsp
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
+                cairo_operator_t op = cairo_get_operator(pCR);
+                ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
+
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -306,6 +309,7 @@ namespace lsp
                 else
                     ::cairo_paint(pCR);
 
+                ::cairo_set_operator (pCR, op);
                 ::cairo_restore(pCR);
             }
 
@@ -1268,24 +1272,6 @@ namespace lsp
                 return
                     (old == CAIRO_LINE_CAP_BUTT) ? SURFLCAP_BUTT :
                     (old == CAIRO_LINE_CAP_ROUND) ? SURFLCAP_ROUND : SURFLCAP_SQUARE;
-            }
-
-            void *X11CairoSurface::start_direct()
-            {
-                if ((pCR == NULL) || (pSurface == NULL) || (nType != ST_IMAGE))
-                    return NULL;
-
-                nStride = cairo_image_surface_get_stride(pSurface);
-                return pData = reinterpret_cast<uint8_t *>(cairo_image_surface_get_data(pSurface));
-            }
-
-            void X11CairoSurface::end_direct()
-            {
-                if ((pCR == NULL) || (pSurface == NULL) || (nType != ST_IMAGE) || (pData == NULL))
-                    return;
-
-                cairo_surface_mark_dirty(pSurface);
-                pData = NULL;
             }
 
             void X11CairoSurface::clip_begin(float x, float y, float w, float h)

@@ -191,9 +191,6 @@ namespace lsp
 
                     virtual surf_line_cap_t get_line_cap() override;
                     virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
-
-                    virtual void *start_direct() override;
-                    virtual void end_direct() override;
             };
         }
     }
