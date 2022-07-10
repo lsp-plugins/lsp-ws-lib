@@ -81,10 +81,14 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-                nStride         = cairo_image_surface_get_stride(pSurface);
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
+            }
+
+            IDisplay *X11CairoSurface::display()
+            {
+                return pDisplay;
             }
 
             ISurface *X11CairoSurface::create(size_t width, size_t height)

@@ -65,6 +65,8 @@ namespace lsp
                     void    draw_polygon(ID2D1Brush *brush, const float *x, const float *y, size_t n, float width);
 
                 public:
+                    virtual IDisplay *display() override;
+
                     virtual ISurface *create(size_t width, size_t height) override;
                     virtual ISurface *create_copy() override;
 

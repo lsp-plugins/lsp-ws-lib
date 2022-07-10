@@ -19,6 +19,7 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/ISurface.h>
 #include <stdlib.h>
 
@@ -31,8 +32,6 @@ namespace lsp
             nWidth      = width;
             nHeight     = height;
             nType       = type;
-            nStride     = nWidth * sizeof(uint32_t);
-            pData       = NULL;
         }
 
         ISurface::ISurface()
@@ -40,8 +39,6 @@ namespace lsp
             nWidth      = 0;
             nHeight     = 0;
             nType       = ST_UNKNOWN;
-            nStride     = nWidth * sizeof(uint32_t);
-            pData       = NULL;
         }
 
         ISurface::~ISurface()
@@ -49,8 +46,11 @@ namespace lsp
             nWidth      = 0;
             nHeight     = 0;
             nType       = ST_UNKNOWN;
-            nStride     = nWidth * sizeof(uint32_t);
-            pData       = NULL;
+        }
+
+        IDisplay *ISurface::display()
+        {
+            return NULL;
         }
 
         ISurface *ISurface::create(size_t width, size_t height)
@@ -337,23 +337,6 @@ namespace lsp
         surf_line_cap_t ISurface::set_line_cap(surf_line_cap_t lc)
         {
             return SURFLCAP_BUTT;
-        }
-
-        size_t ISurface::stride()
-        {
-            return nStride;
-        }
-
-        void *ISurface::data()
-        {
-            return pData;
-        }
-
-        void *ISurface::row(size_t row)
-        {
-            if ((row >= nHeight) || (pData == NULL))
-                return NULL;
-            return &pData[row * nStride];
         }
 
     } /* namespace ws */

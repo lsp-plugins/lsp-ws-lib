@@ -89,11 +89,7 @@ namespace lsp
                      */
                     explicit X11CairoSurface(X11Display *dpy, size_t width, size_t height);
 
-                    /** Destructor
-                     *
-                     */
                     virtual ~X11CairoSurface();
-
 
                     virtual void destroy() override;
 
@@ -106,12 +102,13 @@ namespace lsp
                      */
                     bool resize(size_t width, size_t height);
 
-                    virtual ISurface *create(size_t width, size_t height) override;
+                public:
+                    virtual IDisplay *display() override;
 
+                    virtual ISurface *create(size_t width, size_t height) override;
                     virtual ISurface *create_copy() override;
 
                     virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
-
                     virtual IGradient *radial_gradient
                     (
                         float cx0, float cy0,
@@ -177,8 +174,7 @@ namespace lsp
                     virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
-
-                    void clip_end() override;
+                    virtual void clip_end() override;
 
                     virtual void fill_frame(
                         const Color &color,

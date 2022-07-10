@@ -43,6 +43,8 @@ namespace lsp
 {
     namespace ws
     {
+        class IDisplay;
+
         enum surf_line_cap_t
         {
             SURFLCAP_BUTT,
@@ -62,8 +64,6 @@ namespace lsp
             protected:
                 size_t          nWidth;
                 size_t          nHeight;
-                size_t          nStride;
-                uint8_t        *pData;
                 surface_type_t  nType;
 
             protected:
@@ -93,6 +93,12 @@ namespace lsp
                 inline surface_type_t type()  const { return nType; }
 
             public:
+                /**
+                 * Return pointer to the owner's display
+                 * @return pointer to the owner's display
+                 */
+                virtual IDisplay *display();
+
                 /** Create child surface for drawing
                  * @param width surface width
                  * @param height surface height
@@ -733,27 +739,6 @@ namespace lsp
                  * @return line cap
                  */
                 virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
-
-                /** Return difference (in bytes) between two sequential rows.
-                 * \note Valid value is returned only between start_direct() and
-                 * end_direct() calls.
-                 *
-                 * @return stride between rows
-                 */
-                virtual     size_t stride();
-
-                /**
-                 * Return raw buffer data
-                 *
-                 * @return raw buffer data
-                 */
-                virtual     void *data();
-
-                /**
-                 * Return pointer to the beginning of the specified row
-                 * @param row row number
-                 */
-                virtual     void *row(size_t row);
         };
     }
 

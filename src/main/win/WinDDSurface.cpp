@@ -1093,6 +1093,11 @@ namespace lsp
                 pDC->PopLayer();
             }
 
+            IDisplay *WinDDSurface::display()
+            {
+                return pDisplay;
+            }
+
             ISurface *WinDDSurface::create(size_t width, size_t height)
             {
                 if (pDC == NULL)
