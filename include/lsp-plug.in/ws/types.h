@@ -331,8 +331,6 @@ namespace lsp
             float Ascent;       // The distance that the font extends above the baseline
             float Descent;      // The distance that the font extends below the baseline
             float Height;       // The recommended vertical distance between baselines when setting consecutive lines of text with the font
-            float MaxXAdvance;  // The maximum distance in the X direction that the origin is advanced for any glyph in the font
-            float MaxYAdvance;  // The maximum distance in the Y direction that the origin is advanced for any glyph in the font
         } font_parameters_t;
 
         typedef struct text_parameters_t

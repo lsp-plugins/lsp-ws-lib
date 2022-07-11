@@ -733,8 +733,6 @@ namespace lsp
                 fp->Ascent          = fe.ascent;
                 fp->Descent         = fe.descent;
                 fp->Height          = fe.height;
-                fp->MaxXAdvance     = fe.max_x_advance;
-                fp->MaxYAdvance     = fe.max_y_advance;
 
                 return true;
             }
@@ -761,10 +759,11 @@ namespace lsp
                         int num_glyphs = 0;
 
                         cairo_scaled_font_t *scaled_font = cairo_get_scaled_font(pCR);
-                        cairo_scaled_font_text_to_glyphs(scaled_font, 0.0, 0.0,
-                                                   text, -1,
-                                                   &glyphs, &num_glyphs,
-                                                   NULL, NULL, NULL);
+                        cairo_scaled_font_text_to_glyphs(
+                            scaled_font, 0.0, 0.0,
+                            text, -1,
+                            &glyphs, &num_glyphs,
+                            NULL, NULL, NULL);
                         cairo_glyph_extents (pCR, glyphs, num_glyphs, &te);
                         cairo_glyph_free(glyphs);
                     }
