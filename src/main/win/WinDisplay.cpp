@@ -25,6 +25,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/runtime/system.h>
 
@@ -814,12 +815,12 @@ namespace lsp
                 tl->GetMetrics(&tm);
 
                 float ratio     = f.size() / float(fm.designUnitsPerEm);
-                tp->XBearing    = 0.0f;
-                tp->YBearing    = - fm.capHeight * ratio;
                 tp->Width       = tm.width;
-                tp->Height      = tm.height;
+                tp->Height      = (fm.ascent + fm.descent + fm.lineGap) * ratio;
                 tp->XAdvance    = tm.width;
-                tp->YAdvance    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
+                tp->YAdvance    = tp->Height;
+                tp->XBearing    = (f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f;
+                tp->YBearing    = - fm.capHeight * ratio;
 
                 return true;
             }
