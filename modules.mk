@@ -76,6 +76,11 @@ LIBD2D1_NAME               := libd2d1
 LIBD2D1_TYPE               := opt
 LIBD2D1_LDFLAGS            := -ld2d1
 
+LIBDWRITE_VERSION          := system
+LIBDWRITE_NAME             := libdwrite
+LIBDWRITE_TYPE             := opt
+LIBDWRITE_LDFLAGS          := -ldwrite
+
 LIBFREETYPE_VERSION        := system
 LIBFREETYPE_NAME           := freetype2
 LIBFREETYPE_TYPE           := pkg
@@ -83,6 +88,11 @@ LIBFREETYPE_TYPE           := pkg
 LIBGL_VERSION              := system
 LIBGL_NAME                 := gl
 LIBGL_TYPE                 := pkg
+
+LIBGDI32_VERSION           := system
+LIBGDI32_NAME              := libgid32
+LIBGDI32_TYPE              := opt
+LIBGDI32_LDFLAGS           := -lgdi32
 
 LIBICONV_VERSION           := system
 LIBICONV_NAME              := libiconv

@@ -24,6 +24,7 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/runtime/system.h>
 
@@ -31,6 +32,7 @@
 #include <private/win/WinWindow.h>
 
 #include <combaseapi.h>
+#include <locale.h>
 #include <windows.h>
 #include <d2d1.h>
 
@@ -51,12 +53,23 @@ namespace lsp
             static const BYTE none_cursor_and[] = { 0xff };
             static const BYTE none_cursor_xor[] = { 0 };
 
+            template <class T>
+                static inline void safe_release(T * &obj)
+                {
+                    if (obj != NULL)
+                    {
+                        obj->Release();
+                        obj = NULL;
+                    }
+                }
+
             WinDisplay::WinDisplay():
                 IDisplay()
             {
                 bExit           = false;
                 pD2D1Factroy    = NULL;
                 pWICFactory     = NULL;
+                pDWriteFactory  = NULL;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -104,8 +117,7 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
                 }
 
-
-                // Create the COM imaging factory
+                // Create the Windows Imaging factory
                 hr = CoCreateInstance(
                     CLSID_WICImagingFactory,
                     NULL,
@@ -117,6 +129,23 @@ namespace lsp
                     lsp_error("Error creating WIC factory: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
+
+                // Create DirectWrite factory and initialize font cache
+                hr = DWriteCreateFactory(
+                    DWRITE_FACTORY_TYPE_SHARED,
+                    __uuidof(IDWriteFactory),
+                    reinterpret_cast<IUnknown**>(&pDWriteFactory));
+                if (FAILED(hr))
+                {
+                    lsp_error("Error creating DirectWrite factory: %ld", long(GetLastError()));
+                    return STATUS_UNKNOWN_ERR;
+                }
+                if (!create_font_cache())
+                {
+                    lsp_error("Error initializing font cache");
+                    return STATUS_UNKNOWN_ERR;
+                }
+                lsp_debug("Default font family: %s", sDflFontFamily.get_native());
 
                 return STATUS_OK;
             }
@@ -133,6 +162,12 @@ namespace lsp
 
                 // Destroy monitors
                 drop_monitors(&vMonitors);
+                drop_font_cache(&vFontCache);
+
+                // Release factoreis
+                safe_release( pDWriteFactory );
+                safe_release( pWICFactory );
+                safe_release( pD2D1Factroy );
             }
 
             LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -474,15 +509,319 @@ namespace lsp
                 // TODO
             }
 
+            bool WinDisplay::create_font_cache()
+            {
+                // Get font collection
+                IDWriteFontCollection *fc = NULL;
+                HRESULT hr      = pDWriteFactory->GetSystemFontCollection(&fc, FALSE);
+                if (FAILED(hr))
+                    return false;
+                lsp_finally( safe_release(fc); );
+
+                // Temporary variables to store font family names
+                WCHAR *buf  = NULL;
+                size_t blen = 0;
+                lsp_finally(
+                    if (buf != NULL)
+                        free(buf);
+                );
+                LSPString fname, dfl_name;
+
+                // Update the cache
+                lsp_trace("Scanning for available fonts");
+
+                for (size_t i=0, n=fc->GetFontFamilyCount(); i<n; ++i)
+                {
+                    // Get font family
+                    IDWriteFontFamily *ff = NULL;
+                    hr = fc->GetFontFamily(i, &ff);
+                    if ((FAILED(hr)) || (ff == NULL))
+                        continue;
+                    lsp_finally( safe_release(ff); );
+
+                    // Obtain names of the font family
+                    IDWriteLocalizedStrings *fnames = NULL;
+                    hr = ff->GetFamilyNames(&fnames);
+                    if ((FAILED(hr)) || (fnames == NULL))
+                        continue;
+                    lsp_finally( safe_release(fnames); );
+
+                    // Enumerate all possible font family names
+                    for (size_t j=0, m=fnames->GetCount(); j<m; ++j)
+                    {
+                        // Obtain the string with the family name
+                        UINT32 str_len = 0;
+                        hr = fnames->GetStringLength(j, &str_len);
+                        if (FAILED(hr))
+                            continue;
+                        if (blen < str_len)
+                        {
+                            WCHAR *tmp  = reinterpret_cast<WCHAR *>(realloc(buf, sizeof(WCHAR) * (str_len + 2)));
+                            if (tmp == NULL)
+                                continue;
+                            buf         = tmp;
+                            blen        = str_len;
+                        }
+                        hr = fnames->GetString(j, buf, blen + 2);
+                        if (FAILED(hr))
+                            continue;
+
+                        // Add font family to the cache
+                        if (!fname.set_utf16(buf))
+                            continue;
+                        fname.tolower();
+                        lsp_trace("  %s", fname.get_native());
+                        if (vFontCache.create(&fname, ff))
+                        {
+                            if (dfl_name.is_empty())
+                                dfl_name.swap(&fname);
+                            ff->AddRef();
+                        }
+                    }
+                }
+
+                // Obtain default font family
+                // Tier 1
+                NONCLIENTMETRICSW metrics;
+                metrics.cbSize = sizeof(metrics);
+                if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0))
+                {
+                    LOGFONTW *list[] = {
+                        &metrics.lfMessageFont,
+                        &metrics.lfMenuFont,
+                        &metrics.lfCaptionFont,
+                        &metrics.lfSmCaptionFont,
+                        &metrics.lfStatusFont,
+                    };
+
+                    for (LOGFONTW *item : list)
+                    {
+                        if (fname.set_utf16(item->lfFaceName, wcsnlen(item->lfFaceName, LF_FACESIZE)))
+                        {
+                            fname.tolower();
+                            if (vFontCache.contains(&fname))
+                            {
+                                sDflFontFamily.swap(fname);
+                                return true;
+                            }
+                        }
+                    }
+                }
+
+                // Tier 2
+                static const uint32_t stock_objects[] = {
+                    SYSTEM_FONT,
+                    DEFAULT_GUI_FONT,
+                    DEVICE_DEFAULT_FONT
+                };
+                for (uint32_t id: stock_objects)
+                {
+                    HFONT hfont = reinterpret_cast<HFONT>(GetStockObject(id));
+                    if (hfont != NULL)
+                    {
+                        lsp_finally( DeleteObject(hfont); );
+
+                        LOGFONTW lf;
+                        ::bzero(&lf, sizeof(lf));
+                        if (GetObjectW(hfont, sizeof(lf), &lf) > 0)
+                        {
+                            if (fname.set_utf16(lf.lfFaceName, wcsnlen(lf.lfFaceName, LF_FACESIZE)))
+                            {
+                                fname.tolower();
+                                if (vFontCache.contains(&fname))
+                                {
+                                    sDflFontFamily.swap(fname);
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Tier 3
+                if (dfl_name.is_empty())
+                    return false;
+
+                sDflFontFamily.swap(dfl_name);
+                return true;
+            }
+
+            IDWriteFontFamily *WinDisplay::get_font_family(const Font &f, LSPString *name)
+            {
+                // Prepare font name
+                LSPString tmp;
+                if (!tmp.set_utf8(f.name()))
+                    return NULL;
+                tmp.tolower();
+
+                // Obtain the font family
+                IDWriteFontFamily *ff = vFontCache.get(&tmp);
+                if (ff != NULL)
+                {
+                    if (name != NULL)
+                        name->swap(tmp);
+                    ff->AddRef();
+                    return ff;
+                }
+
+                // Obtain the default font family
+                ff = vFontCache.get(&sDflFontFamily);
+                if (ff == NULL)
+                    return NULL;
+                if (name != NULL)
+                {
+                    if (!name->set(&sDflFontFamily))
+                        return NULL;
+                }
+                ff->AddRef();
+                return ff;
+            }
+
+            IDWriteTextLayout *WinDisplay::create_text_layout(
+                const Font &f,
+                const LSPString *fname,
+                IDWriteFontFamily *ff,
+                const WCHAR *string,
+                size_t length)
+            {
+                HRESULT hr;
+
+                // Obtain the system locale
+                const WCHAR *wLocale    = _wsetlocale(LC_ALL, NULL);
+                if (wLocale == NULL)
+                    wLocale         = L"en-us";
+
+                // Create text format
+                IDWriteTextFormat *tf   = NULL;
+                hr = pDWriteFactory->CreateTextFormat(
+                    fname->get_utf16(),         // Font family name
+                    NULL,                       // Font collection (NULL sets it to use the system font collection)
+                    (f.bold())   ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
+                    (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
+                    DWRITE_FONT_STRETCH_NORMAL,
+                    f.size(),
+                    wLocale,
+                    &tf);
+                if ((FAILED(hr)) || (tf == NULL))
+                    return NULL;
+                lsp_finally( safe_release(tf); );
+
+                tf->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+                tf->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+                tf->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, 0.0f, 0.0f);
+
+                // Create text layout
+                IDWriteTextLayout *layout = NULL;
+                hr = pDWriteFactory->CreateTextLayout(
+                    string,
+                    wcslen(string),
+                    tf,
+                    10000.0f,
+                    10000.0f,
+                    &layout);
+                if ((FAILED(hr)) || (layout == NULL))
+                    return NULL;
+
+                // Apply underline option
+                DWRITE_TEXT_RANGE range;
+                range.startPosition     = 0;
+                range.length            = length;
+                layout->SetUnderline(f.is_underline(), range);
+
+                return layout;
+            }
+
+            void WinDisplay::drop_font_cache(font_cache_t *cache)
+            {
+                lltl::parray<IDWriteFontFamily> list;
+                cache->values(&list);
+                cache->flush();
+                for (size_t i=0, n=list.size(); i<n; ++i)
+                {
+                    IDWriteFontFamily *item = list.uget(i);
+                    safe_release( item );
+                }
+            }
+
+            bool WinDisplay::get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics)
+            {
+                HRESULT hr;
+
+                // Find the matching font
+                DWRITE_FONT_WEIGHT fWeight  = (f.bold())   ? DWRITE_FONT_WEIGHT_BOLD  : DWRITE_FONT_WEIGHT_REGULAR;
+                DWRITE_FONT_STYLE fStyle    = (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
+                DWRITE_FONT_STRETCH fStretch= DWRITE_FONT_STRETCH_NORMAL;
+
+                IDWriteFont* font = NULL;
+                hr = ff->GetFirstMatchingFont(fWeight, fStretch, fStyle, &font);
+                if ((FAILED(hr)) || (font == NULL))
+                    return false;
+                lsp_finally( safe_release(font); );
+
+                // Get font metrics
+                font->GetMetrics(metrics);
+
+                return true;
+            }
+
             bool WinDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
-                // TODO
-                return false;
+                // Obtain the font family
+                IDWriteFontFamily *ff   = get_font_family(f, NULL);
+                if (ff == NULL)
+                    return false;
+                lsp_finally( safe_release(ff); );
+
+                // Get font metrics
+                DWRITE_FONT_METRICS fm;
+                if (!get_font_metrics(f, ff, &fm))
+                    return false;
+
+                float ratio     = f.size() / float(fm.designUnitsPerEm);
+                fp->Ascent      = fm.ascent * ratio;
+                fp->Descent     = fm.descent * ratio;
+                fp->Height      = (fm.ascent + fm.descent + fm.lineGap) * ratio;
+
+                return true;
             }
 
             bool WinDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                return false;
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return false;
+
+                // Obtain the font family
+                LSPString family_name;
+                IDWriteFontFamily *ff   = get_font_family(f, &family_name);
+                if (ff == NULL)
+                    return false;
+                lsp_finally( safe_release(ff); );
+
+                // Obtain font metrics
+                DWRITE_FONT_METRICS fm;
+                if (!get_font_metrics(f, ff, &fm))
+                    return false;
+
+                // Create text layout
+                IDWriteTextLayout *tl   = create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                if (tl == NULL)
+                    return false;
+                lsp_finally( safe_release(tl); );
+
+                // Get text layout metrics and font metrics
+                DWRITE_TEXT_METRICS tm;
+                tl->GetMetrics(&tm);
+
+                float ratio     = f.size() / float(fm.designUnitsPerEm);
+                tp->XBearing    = 0.0f;
+                tp->YBearing    = - fm.capHeight * ratio;
+                tp->Width       = tm.width;
+                tp->Height      = tm.height;
+                tp->XAdvance    = tm.width;
+                tp->YAdvance    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
+
+                return true;
             }
 
             HCURSOR WinDisplay::translate_cursor(mouse_pointer_t pointer)

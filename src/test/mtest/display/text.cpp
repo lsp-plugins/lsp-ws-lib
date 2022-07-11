@@ -56,7 +56,7 @@ MTEST_BEGIN("ws.display", text)
 
                         // Draw the text
                         ws::Font f;
-                        f.set_name("Sans");
+                        f.set_name("arial");
                         f.set_size(32);
 
                         ws::font_parameters_t fp;

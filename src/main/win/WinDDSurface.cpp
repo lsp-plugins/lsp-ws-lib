@@ -1315,18 +1315,61 @@ namespace lsp
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
             {
-            }
+                if ((pDC == NULL) || (text == NULL))
+                    return;
 
-            void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text)
-            {
-            }
-
-            void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first)
-            {
+                LSPString tmp;
+                if (tmp.set_utf8(text))
+                    out_text(f, color, x, y, &tmp, 0, tmp.length());
             }
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
+                if (pDC == NULL)
+                    return;
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return;
+
+                // Obtain the font family
+                LSPString family_name;
+                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name);
+                if (ff == NULL)
+                    return;
+                lsp_finally( safe_release(ff); );
+
+                // Create text layout
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                if (tl == NULL)
+                    return;
+                lsp_finally( safe_release(tl); );
+
+                // Create brush
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                // Draw the text
+                D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
+                switch (f.antialias())
+                {
+                    case FA_DISABLED:
+                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
+                        break;
+                    case FA_ENABLED:
+                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+                        break;
+                    case FA_DEFAULT:
+                    default:
+                        break;
+                }
+                pDC->DrawTextLayout(
+                    D2D1::Point2F(x, y),
+                    tl,
+                    brush,
+                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+                pDC->SetTextAntialiasMode(antialias);
             }
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)

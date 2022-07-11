@@ -130,8 +130,6 @@ namespace lsp
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first) override;
                     virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;

@@ -28,11 +28,14 @@
 
 #ifdef PLATFORM_WINDOWS
 
+#include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 
 #include <windows.h>
 #include <wincodec.h>
 #include <d2d1.h>
+#include <dwrite.h>
 
 namespace lsp
 {
@@ -46,21 +49,32 @@ namespace lsp
             {
                 private:
                     friend class WinWindow;
+                    friend class WinDDSurface;
 
                 public:
                     static const WCHAR         *WINDOW_CLASS_NAME;
 
+                    typedef lltl::pphash<LSPString, IDWriteFontFamily> font_cache_t;
+
                 protected:
-                    volatile bool               bExit;                  // Indicator that forces to leave the main loop
-                    ID2D1Factory               *pD2D1Factroy;           // Direct2D factory
-                    IWICImagingFactory         *pWICFactory;            // WIC Imaging Factory
-                    MSG                         sPendingMessage;        // Currently pending message
-                    HCURSOR                     vCursors[__MP_COUNT];   // Cursor handles (cached)
-                    lltl::darray<MonitorInfo>   vMonitors;              // Monitor information
+                    volatile bool               bExit;                      // Indicator that forces to leave the main loop
+                    ID2D1Factory               *pD2D1Factroy;               // Direct2D factory
+                    IWICImagingFactory         *pWICFactory;                // WIC Imaging Factory
+                    IDWriteFactory             *pDWriteFactory;             // DirectWrite Factory for text
+                    LSPString                   sDflFontFamily;             // Default font family name
+                    MSG                         sPendingMessage;            // Currently pending message
+                    HCURSOR                     vCursors[__MP_COUNT];       // Cursor handles (cached)
+                    lltl::darray<MonitorInfo>   vMonitors;                  // Monitor information
+                    font_cache_t                vFontCache;                 // Font cache
 
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
+                    IDWriteTextLayout          *create_text_layout(const Font &f, const LSPString *fname, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
+                    IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name);
+                    bool                        get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics);
+                    static void                 drop_font_cache(font_cache_t *cache);
+                    bool                        create_font_cache();
 
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
