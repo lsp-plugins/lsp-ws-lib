@@ -336,7 +336,7 @@ namespace lsp
                     return;
 
                 // Initialize settings
-                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_DEFAULT);
+                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_GOOD);
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
 
             #ifdef LSP_DEBUG
@@ -839,11 +839,12 @@ namespace lsp
                     cairo_text_extents_t extents;
                     cairo_text_extents(pCR, text, &extents);
 
-                    float r_w   = extents.x_advance - extents.x_bearing;
-                    float r_h   = extents.y_advance - extents.y_bearing;
-                    float fx    = x - extents.x_bearing + (r_w + 4) * 0.5f * dx - r_w * 0.5f;
-                    float fy    = y - extents.y_advance + (r_h + 4) * 0.5f * (1.0f - dy) - r_h * 0.5f + 1.0f;
+                    float r_w   = extents.x_advance;
+                    float r_h   = -extents.y_bearing;
+                    float fx    = x - extents.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                    float fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
 
+                    setSourceRGBA(color);
                     cairo_move_to(pCR, fx, fy);
                     cairo_show_text(pCR, text);
                 }
@@ -1247,7 +1248,7 @@ namespace lsp
                     return false;
 
                 bool old = cairo_get_antialias(pCR) != CAIRO_ANTIALIAS_NONE;
-                cairo_set_antialias(pCR, (set) ? CAIRO_ANTIALIAS_DEFAULT : CAIRO_ANTIALIAS_NONE);
+                cairo_set_antialias(pCR, (set) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
 
                 return old;
             }
