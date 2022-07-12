@@ -140,7 +140,10 @@ namespace lsp
                 }
 
                 if (pDC != NULL)
+                {
                     pDC->BeginDraw();
+                    pDC->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+                }
             }
 
             void WinDDSurface::end()
@@ -1374,28 +1377,98 @@ namespace lsp
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
             {
-            }
+                if ((pDC == NULL) || (text == NULL))
+                    return;
 
-            void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text)
-            {
-            }
+                LSPString tmp;
+                if (!tmp.set_utf8(text))
+                    return;
 
-            void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first)
-            {
+                return out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
             }
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
+                if (pDC == NULL)
+                    return;
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return;
+
+                // Obtain the font family
+                LSPString family_name;
+                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name);
+                if (ff == NULL)
+                    return;
+                lsp_finally( safe_release(ff); );
+
+                // Obtain font metrics
+                DWRITE_FONT_METRICS fm;
+                if (!pDisplay->get_font_metrics(f, ff, &fm))
+                    return;
+
+                // Create text layout
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                if (tl == NULL)
+                    return;
+                lsp_finally( safe_release(tl); );
+
+                // Create brush
+                ID2D1SolidColorBrush *brush = NULL;
+                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+                    return;
+                lsp_finally( safe_release(brush); );
+
+                // Get text layout metrics and font metrics
+                DWRITE_TEXT_METRICS tm;
+                tl->GetMetrics(&tm);
+
+                // Compute the text position
+                float ratio     = f.size() / float(fm.designUnitsPerEm);
+                float height    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
+                float xbearing  = (f.italic()) ? sinf(0.033f * M_PI) * height : 0.0f;
+                float r_w       = tm.width;
+                float r_h       = fm.capHeight * ratio;
+                float fx        = x - xbearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                float fy        = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+
+                // Draw the text
+                D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
+                switch (f.antialias())
+                {
+                    case FA_DISABLED:
+                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
+                        break;
+                    case FA_ENABLED:
+                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+                        break;
+                    case FA_DEFAULT:
+                    default:
+                        break;
+                }
+
+                pDC->DrawTextLayout(
+                    D2D1::Point2F(fx, fy),
+                    tl,
+                    brush,
+                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+                pDC->SetTextAntialiasMode(antialias);
             }
 
             bool WinDDSurface::get_antialiasing()
             {
-                return false;
+                if (pDC == NULL)
+                    return false;
+                return pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
             }
 
             bool WinDDSurface::set_antialiasing(bool set)
             {
-                return false;
+                if (pDC == NULL)
+                    return false;
+                bool old    = pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
+                pDC->SetAntialiasMode((set) ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
+                return old;
             }
 
             surf_line_cap_t WinDDSurface::get_line_cap()

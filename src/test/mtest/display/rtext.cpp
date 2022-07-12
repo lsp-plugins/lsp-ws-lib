@@ -57,7 +57,6 @@ MTEST_BEGIN("ws.display", rtext)
                         // Draw the text
                         ws::Font f;
                         f.set_name("arial");
-                        f.set_size(32);
 
                         s->set_antialiasing(false);
                         for (size_t y=0; y<3; ++y)
@@ -69,7 +68,16 @@ MTEST_BEGIN("ws.display", rtext)
                                 float dy = y - 1.0f;
 
                                 c.set_rgb24(0x000000);
+                                f.set_size(32);
                                 s->out_text_relative(f, c, xx, yy, dx, dy, "Text");
+
+                                c.set_rgb24(0x00cc00);
+                                f.set_size(12);
+                                s->out_text_relative(f, c, xx, yy, -dx, -dy, "Текст");
+
+                                c.set_rgb24(0x0000ff);
+                                s->line(c, xx - 48, yy, xx + 48, yy, 1.0f);
+                                s->line(c, xx, yy - 24, xx, yy + 24, 1.0f);
 
                                 c.set_rgb24(0xff0000);
                                 s->line(c, xx - 8, yy - 8, xx + 8, yy + 8, 1.0f);

@@ -821,7 +821,7 @@ namespace lsp
 
             void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (text == NULL)
+                if ((pCR == NULL) || (text == NULL))
                     return;
                 out_text(f, color, x, y, text->get_utf8(first, last));
             }

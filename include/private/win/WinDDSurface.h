@@ -128,13 +128,9 @@ namespace lsp
                     // Font and text parameter estimation
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
-
                     virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
                     virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
-
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first) override;
                     virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
@@ -145,7 +141,6 @@ namespace lsp
                         float x, float y, float sx, float sy, float a) override;
 
                     virtual void clip_begin(float x, float y, float w, float h) override;
-
                     virtual void clip_end() override;
 
                     virtual bool get_antialiasing() override;
