@@ -25,12 +25,14 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/runtime/system.h>
 
 #include <private/win/WinDisplay.h>
 #include <private/win/WinWindow.h>
+#include <private/win/fonts.h>
 
 #include <combaseapi.h>
 #include <locale.h>
@@ -71,6 +73,7 @@ namespace lsp
                 pD2D1Factroy    = NULL;
                 pWICFactory     = NULL;
                 pDWriteFactory  = NULL;
+                hWindowClass    = 0;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -81,6 +84,7 @@ namespace lsp
 
             WinDisplay::~WinDisplay()
             {
+                do_destroy();
             }
 
             status_t WinDisplay::init(int argc, const char **argv)
@@ -100,7 +104,7 @@ namespace lsp
                 wc.hInstance     = GetModuleHandleW(NULL);
                 wc.lpszClassName = WINDOW_CLASS_NAME;
 
-                if (!RegisterClassW(&wc))
+                if (!(hWindowClass = RegisterClassW(&wc)))
                 {
                     lsp_error("Error registering window class: %ld", long(GetLastError));
                     return STATUS_UNKNOWN_ERR;
@@ -151,24 +155,38 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void WinDisplay::destroy()
+            void WinDisplay::do_destroy()
             {
-                UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
+                // Deregister window class
+                if (hWindowClass != 0)
+                {
+                    UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
+                    hWindowClass    = 0;
+                }
 
                 // Destroy cursors
                 if (vCursors[MP_NONE] != NULL)
+                {
                     DestroyCursor(vCursors[MP_NONE]);
+                    vCursors[MP_NONE]   = NULL;
+                }
                 for (size_t i=0; i<__MP_COUNT; ++i)
-                    vCursors[i]     = NULL;
+                    vCursors[i]         = NULL;
 
                 // Destroy monitors
                 drop_monitors(&vMonitors);
                 drop_font_cache(&vFontCache);
+                remove_all_fonts();
 
-                // Release factoreis
+                // Release factories
                 safe_release( pDWriteFactory );
                 safe_release( pWICFactory );
                 safe_release( pD2D1Factroy );
+            }
+
+            void WinDisplay::destroy()
+            {
+                do_destroy();
             }
 
             LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -475,39 +493,186 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t WinDisplay::add_font(const char *name, const char *path)
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t WinDisplay::add_font(const char *name, const io::Path *path)
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t WinDisplay::add_font(const char *name, const LSPString *path)
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
             status_t WinDisplay::add_font(const char *name, io::IInStream *is)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                HRESULT hr;
+
+                if ((name == NULL) || (is == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+                if (pDWriteFactory == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Create font record
+                font_t *f = vCustomFonts.get(name);
+                if (f != NULL)
+                    return STATUS_ALREADY_EXISTS;
+                if ((f = alloc_font(name)) == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally( drop_font(f); );
+
+                // Dump data to memory stream
+                io::OutMemoryStream os;
+                wssize_t length = is->sink(&os);
+                if (length < 0)
+                    return status_t(-length);
+
+                // Create loader
+                WinFontCollectionLoader *loader = new WinFontCollectionLoader();
+                if (loader == NULL)
+                    return STATUS_NO_MEM;
+                loader->AddRef();
+                lsp_finally( safe_release(loader); );
+
+                // Create custom font collection
+                hr = pDWriteFactory->CreateCustomFontCollection(loader, &os, sizeof(&os), &f->collection);
+                if ((FAILED(hr)) || (f->collection == NULL))
+                    return STATUS_UNKNOWN_ERR;
+
+                // Obtain the first available font family
+                UINT32 count = f->collection->GetFontFamilyCount();
+                if (count <= 0)
+                    return STATUS_UNKNOWN_ERR;
+                f->collection->GetFontFamily(0, &f->family);
+                if ((FAILED(hr)) || (f->family == NULL))
+                    return STATUS_UNKNOWN_ERR;
+
+                // Obtain the first matching font
+                IDWriteLocalizedStrings *names = NULL;
+                hr = f->family->GetFamilyNames(&names);
+                if ((FAILED(hr)) || (names == NULL))
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally( safe_release(names); );
+
+                // Enumerate all possible font family names
+                for (size_t j=0, m=names->GetCount(); j<m; ++j)
+                {
+                    // Obtain the string with the family name
+                    hr = names->GetStringLength(j, &count);
+                    if (FAILED(hr))
+                        continue;
+                    WCHAR *tmp      = reinterpret_cast<WCHAR *>(realloc(f->wname, sizeof(WCHAR) * (count + 2)));
+                    if (tmp == NULL)
+                        continue;
+                    f->wname        = tmp;
+                    hr = names->GetString(j, f->wname, count + 2);
+                    if (FAILED(hr))
+                        continue;
+
+                    // The font has been found, add it to registry and exit
+                    if (!vCustomFonts.create(name, f))
+                        return STATUS_UNKNOWN_ERR;
+                #ifdef LSP_TRACE
+                    LSPString out;
+                    out.set_utf16(f->wname);
+                    lsp_trace("Registered font %s as font family %s", name, out.get_native());
+                #endif /* LSP_TRACE */
+
+                    // Do not drop the font record at exit
+                    f = NULL;
+                    return STATUS_OK;
+                }
+
+                return STATUS_UNKNOWN_ERR;
             }
 
             status_t WinDisplay::add_font_alias(const char *name, const char *alias)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if ((name == NULL) || (alias == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                font_t *f = vCustomFonts.get(name);
+                if (f != NULL)
+                    return STATUS_ALREADY_EXISTS;
+
+                if ((f = alloc_font(name)) == NULL)
+                    return STATUS_NO_MEM;
+                if ((f->alias = strdup(alias)) == NULL)
+                {
+                    drop_font(f);
+                    return STATUS_NO_MEM;
+                }
+                if (!vCustomFonts.create(name, f))
+                {
+                    drop_font(f);
+                    return STATUS_NO_MEM;
+                }
+
+                return STATUS_OK;
             }
 
             status_t WinDisplay::remove_font(const char *name)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (name == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                font_t *f = NULL;;
+                if (!vCustomFonts.remove(name, &f))
+                    return STATUS_NOT_FOUND;
+
+                drop_font(f);
+                return STATUS_OK;
+            }
+
+            WinDisplay::font_t *WinDisplay::alloc_font(const char *name)
+            {
+                font_t *f = static_cast<font_t *>(malloc(sizeof(font_t)));
+                if (f == NULL)
+                    return NULL;
+                if ((f->name = strdup(name)) == NULL)
+                {
+                    free(f);
+                    return NULL;
+                }
+                f->alias        = NULL;
+                f->wname        = NULL;
+                f->family       = NULL;
+                f->collection   = NULL;
+                return f;
+            }
+
+            void WinDisplay::drop_font(font_t *f)
+            {
+                if (f == NULL)
+                    return;
+
+                if (f->name != NULL)
+                {
+                    free(f->name);
+                    f->name = NULL;
+                }
+
+                if (f->family != NULL)
+                {
+                    if (f->wname != NULL)
+                    {
+                        free(f->wname);
+                        f->wname = NULL;
+                    }
+                }
+                else
+                {
+                    if (f->alias != NULL)
+                    {
+                        free(f->alias);
+                        f->alias = NULL;
+                    }
+                }
+
+                safe_release(f->family);
+                safe_release(f->collection);
+
+                free(f);
             }
 
             void WinDisplay::remove_all_fonts()
             {
-                // TODO
+                lltl::parray<font_t> custom;
+                vCustomFonts.values(&custom);
+                vCustomFonts.flush();
+
+                for (size_t i=0, n=custom.size(); i<n; ++i)
+                    drop_font(custom.uget(i));
+                custom.flush();
             }
 
             bool WinDisplay::create_font_cache()
@@ -647,13 +812,45 @@ namespace lsp
                 return true;
             }
 
-            IDWriteFontFamily *WinDisplay::get_font_family(const Font &f, LSPString *name)
+            WinDisplay::font_t *WinDisplay::get_custom_font_collection(const char *name)
+            {
+                lltl::parray<char> visited;
+
+                const char *resolved = name;
+                while (true)
+                {
+                    font_t *f = vCustomFonts.get(resolved);
+                    if (f->family != NULL)
+                        return f;
+                    else if (f->alias == NULL)
+                        return NULL;
+
+                    // Prevent from infinite recursion
+                    resolved        = f->alias;
+                    for (size_t i=0, n=visited.size(); i<n; ++i)
+                    {
+                        const char *v = visited.uget(i);
+                        if (strcmp(resolved, v) == 0)
+                            return NULL;
+                    }
+
+                    // Append record to visited
+                    if (!visited.add(const_cast<char *>(resolved)))
+                        return NULL;
+                }
+            }
+
+            IDWriteFontFamily *WinDisplay::get_font_family(const Font &f, LSPString *name, font_t **custom)
             {
                 // Prepare font name
                 LSPString tmp;
                 if (!tmp.set_utf8(f.name()))
                     return NULL;
                 tmp.tolower();
+
+                // Obtain custom font collection
+                if (custom != NULL)
+                    *custom     = get_custom_font_collection(tmp.get_utf8());
 
                 // Obtain the font family
                 IDWriteFontFamily *ff = vFontCache.get(&tmp);
@@ -680,7 +877,7 @@ namespace lsp
 
             IDWriteTextLayout *WinDisplay::create_text_layout(
                 const Font &f,
-                const LSPString *fname,
+                const WCHAR *fname,
                 IDWriteFontFamily *ff,
                 const WCHAR *string,
                 size_t length)
@@ -695,7 +892,7 @@ namespace lsp
                 // Create text format
                 IDWriteTextFormat *tf   = NULL;
                 hr = pDWriteFactory->CreateTextFormat(
-                    fname->get_utf16(),         // Font family name
+                    fname,                      // Font family name
                     NULL,                       // Font collection (NULL sets it to use the system font collection)
                     (f.bold())   ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
                     (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
@@ -704,7 +901,23 @@ namespace lsp
                     wLocale,
                     &tf);
                 if ((FAILED(hr)) || (tf == NULL))
-                    return NULL;
+                {
+                    if (!f.italic())
+                        return NULL;
+
+                    // Create text format with OBLIQUE style instead of Italic
+                    hr = pDWriteFactory->CreateTextFormat(
+                        fname,
+                        NULL,
+                        (f.bold()) ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
+                        DWRITE_FONT_STYLE_OBLIQUE,
+                        DWRITE_FONT_STRETCH_NORMAL,
+                        f.size(),
+                        wLocale,
+                        &tf);
+                    if ((FAILED(hr)) || (tf == NULL))
+                        return NULL;
+                }
                 lsp_finally( safe_release(tf); );
 
                 tf->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
@@ -756,7 +969,13 @@ namespace lsp
                 IDWriteFont* font = NULL;
                 hr = ff->GetFirstMatchingFont(fWeight, fStretch, fStyle, &font);
                 if ((FAILED(hr)) || (font == NULL))
-                    return false;
+                {
+                    if (!f.italic())
+                        return false;
+                    hr = ff->GetFirstMatchingFont(fWeight, fStretch, DWRITE_FONT_STYLE_OBLIQUE, &font);
+                    if ((FAILED(hr)) || (font == NULL))
+                        return false;
+                }
                 lsp_finally( safe_release(font); );
 
                 // Get font metrics
@@ -767,15 +986,20 @@ namespace lsp
 
             bool WinDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
+                DWRITE_FONT_METRICS fm;
+
                 // Obtain the font family
-                IDWriteFontFamily *ff   = get_font_family(f, NULL);
-                if (ff == NULL)
-                    return false;
+                font_t *custom          = NULL;
+                IDWriteFontFamily *ff   = get_font_family(f, NULL, &custom);
                 lsp_finally( safe_release(ff); );
 
-                // Get font metrics
-                DWRITE_FONT_METRICS fm;
-                if (!get_font_metrics(f, ff, &fm))
+                // Try to obtain font metrics, seek for custom settings first
+                bool found = false;
+                if (custom != NULL)
+                    found = get_font_metrics(f, custom->family, &fm);
+                if ((!found) && (ff != NULL))
+                    found = get_font_metrics(f, ff, &fm);
+                if (found)
                     return false;
 
                 float ratio     = f.size() / float(fm.designUnitsPerEm);
@@ -786,26 +1010,21 @@ namespace lsp
                 return true;
             }
 
-            bool WinDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            bool WinDisplay::try_get_text_parameters(
+                const Font &f,
+                const WCHAR *fname,
+                IDWriteFontFamily *ff,
+                text_parameters_t *tp,
+                const WCHAR *text,
+                ssize_t length)
             {
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
-                    return false;
-
-                // Obtain the font family
-                LSPString family_name;
-                IDWriteFontFamily *ff   = get_font_family(f, &family_name);
-                if (ff == NULL)
-                    return false;
-                lsp_finally( safe_release(ff); );
-
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
                 if (!get_font_metrics(f, ff, &fm))
                     return false;
 
                 // Create text layout
-                IDWriteTextLayout *tl   = create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                IDWriteTextLayout *tl   = create_text_layout(f, fname, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally( safe_release(tl); );
@@ -823,6 +1042,29 @@ namespace lsp
                 tp->YBearing    = - fm.capHeight * ratio;
 
                 return true;
+            }
+
+            bool WinDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return false;
+                size_t range = text->range_length(first, last);
+
+                // Obtain the font family
+                LSPString family_name;
+                font_t *custom          = NULL;
+                IDWriteFontFamily *ff   = get_font_family(f, &family_name, &custom);
+                lsp_finally( safe_release(ff); );
+
+                // Process custom font first
+                bool found = false;
+                if (custom != NULL)
+                    found = try_get_text_parameters(f, custom->wname, custom->family, tp, pText, range);
+                if ((!found) && (ff != NULL))
+                    found = try_get_text_parameters(f, family_name.get_utf16(), ff, tp, pText, range);
+
+                return found;
             }
 
             HCURSOR WinDisplay::translate_cursor(mouse_pointer_t pointer)

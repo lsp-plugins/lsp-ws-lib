@@ -67,7 +67,7 @@ namespace lsp
             class X11CairoSurface;
         #endif /* USE_LIBCAIRO */
 
-            class X11Display: public IDisplay
+            class LSP_SYMBOL_HIDDEN X11Display: public IDisplay
             {
                 friend class X11Window;
 
@@ -335,9 +335,6 @@ namespace lsp
 
                     virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
 
-                    virtual status_t            add_font(const char *name, const char *path) override;
-                    virtual status_t            add_font(const char *name, const io::Path *path) override;
-                    virtual status_t            add_font(const char *name, const LSPString *path) override;
                     virtual status_t            add_font(const char *name, io::IInStream *is) override;
                     virtual status_t            add_font_alias(const char *name, const char *alias) override;
                     virtual status_t            remove_font(const char *name) override;

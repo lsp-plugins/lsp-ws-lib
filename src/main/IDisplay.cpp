@@ -26,6 +26,7 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
+#include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/ipc/Library.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/IWindow.h>
@@ -852,17 +853,38 @@ namespace lsp
 
         status_t IDisplay::add_font(const char *name, const char *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if ((name == NULL) || (path == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString tmp;
+            if (!tmp.set_utf8(path))
+                return STATUS_NO_MEM;
+
+            return add_font(name, &tmp);
         }
 
         status_t IDisplay::add_font(const char *name, const io::Path *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if ((name == NULL) || (path == NULL))
+                return STATUS_BAD_ARGUMENTS;
+            return add_font(name, path->as_utf8());
         }
 
         status_t IDisplay::add_font(const char *name, const LSPString *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            io::InFileStream ifs;
+            status_t res = ifs.open(path);
+            if (res != STATUS_OK)
+                return res;
+
+            lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
+            res = add_font(name, &ifs);
+            status_t res2 = ifs.close();
+
+            return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IDisplay::add_font(const char *name, io::IInStream *is)

@@ -1326,31 +1326,18 @@ namespace lsp
                     out_text(f, color, x, y, &tmp, 0, tmp.length());
             }
 
-            void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+            bool WinDDSurface::try_out_text(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length)
             {
-                if (pDC == NULL)
-                    return;
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
-                    return;
-
-                // Obtain the font family
-                LSPString family_name;
-                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name);
-                if (ff == NULL)
-                    return;
-                lsp_finally( safe_release(ff); );
-
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, ff, text, length);
                 if (tl == NULL)
-                    return;
+                    return false;
                 lsp_finally( safe_release(tl); );
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
-                    return;
+                    return false;
                 lsp_finally( safe_release(brush); );
 
                 // Draw the text
@@ -1373,6 +1360,35 @@ namespace lsp
                     brush,
                     D2D1_DRAW_TEXT_OPTIONS_NONE);
                 pDC->SetTextAntialiasMode(antialias);
+
+                return true;
+            }
+
+            void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                if (pDC == NULL)
+                    return;
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return;
+                size_t length = text->range_length(first, last);
+
+                // Obtain the font family
+                LSPString family_name;
+                WinDisplay::font_t *custom = NULL;
+                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
+                lsp_finally( safe_release(ff); );
+
+                if (custom != NULL)
+                {
+                    if (try_out_text(custom->family, custom->wname, f, color, x, y, pText, length))
+                        return;
+                }
+                if (ff != NULL)
+                {
+                    if (try_out_text(ff, family_name.get_utf16(), f, color, x, y, pText, length))
+                        return;
+                }
             }
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
@@ -1387,36 +1403,23 @@ namespace lsp
                 return out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
             }
 
-            void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
+            bool WinDDSurface::try_out_text_relative(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const WCHAR *text, size_t length)
             {
-                if (pDC == NULL)
-                    return;
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
-                    return;
-
-                // Obtain the font family
-                LSPString family_name;
-                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name);
-                if (ff == NULL)
-                    return;
-                lsp_finally( safe_release(ff); );
-
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
                 if (!pDisplay->get_font_metrics(f, ff, &fm))
-                    return;
+                    return false;
 
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, &family_name, ff, pText, text->range_length(first, last));
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, ff, text, length);
                 if (tl == NULL)
-                    return;
+                    return false;
                 lsp_finally( safe_release(tl); );
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
-                    return;
+                    return false;
                 lsp_finally( safe_release(brush); );
 
                 // Get text layout metrics and font metrics
@@ -1453,6 +1456,36 @@ namespace lsp
                     brush,
                     D2D1_DRAW_TEXT_OPTIONS_NONE);
                 pDC->SetTextAntialiasMode(antialias);
+
+                return true;
+            }
+
+            void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                if (pDC == NULL)
+                    return;
+                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
+                if (pText == NULL)
+                    return;
+                size_t length = text->range_length(first, last);
+
+                // Obtain the font family
+                LSPString family_name;
+                WinDisplay::font_t *custom = NULL;
+                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
+                lsp_finally( safe_release(ff); );
+
+
+                if (custom != NULL)
+                {
+                    if (try_out_text_relative(custom->family, custom->wname, f, color, x, y, dx, dy, pText, length))
+                        return;
+                }
+                if (ff != NULL)
+                {
+                    if (try_out_text_relative(ff, family_name.get_utf16(), f, color, x, y, dx, dy, pText, length))
+                        return;
+                }
             }
 
             bool WinDDSurface::get_antialiasing()

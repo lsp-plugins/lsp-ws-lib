@@ -123,6 +123,11 @@ LIBSHLWAPI_NAME            := libshlwapi
 LIBSHLWAPI_TYPE            := opt
 LIBSHLWAPI_LDFLAGS         := -lshlwapi
 
+LIBUUID_VERSION            := system
+LIBUUID_NAME               := libuuid
+LIBUUID_TYPE               := opt
+LIBUUID_LDFLAGS            := -luuid
+
 LIBWINCODEC_VERSION        := system
 LIBWINCODEC_NAME           := libwincodec
 LIBWINCODEC_TYPE           := opt

@@ -123,12 +123,9 @@ MTEST_BEGIN("ws.display", font)
         MTEST_ASSERT(dpy != NULL);
         lsp_finally( ws::lsp_ws_free_display(dpy); );
 
-    #ifndef PLATFORM_WINDOWS
-        // TODO: implement all this stuff for Windows
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
         MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
-    #endif /* PLATFORM_WINDOWS */
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);

@@ -3782,25 +3782,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::add_font(const char *name, const char *path)
-            {
-                if ((name == NULL) || (path == NULL))
-                    return STATUS_BAD_ARGUMENTS;
-
-                LSPString tmp;
-                if (!tmp.set_utf8(path))
-                    return STATUS_NO_MEM;
-
-                return add_font(name, &tmp);
-            }
-
-            status_t X11Display::add_font(const char *name, const io::Path *path)
-            {
-                if ((name == NULL) || (path == NULL))
-                    return STATUS_BAD_ARGUMENTS;
-                return add_font(name, path->as_utf8());
-            }
-
             X11Display::font_t *X11Display::alloc_font_object(const char *name)
             {
                 font_t *f       = static_cast<font_t *>(malloc(sizeof(font_t)));
@@ -3825,23 +3806,6 @@ namespace lsp
             #endif /* USE_LIBCAIRO */
 
                 return f;
-            }
-
-            status_t X11Display::add_font(const char *name, const LSPString *path)
-            {
-                if (name == NULL)
-                    return STATUS_BAD_ARGUMENTS;
-
-                io::InFileStream ifs;
-                status_t res = ifs.open(path);
-                if (res != STATUS_OK)
-                    return res;
-
-                lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
-                res = add_font(name, &ifs);
-                status_t res2 = ifs.close();
-
-                return (res == STATUS_OK) ? res2 : res;
             }
 
             status_t X11Display::add_font(const char *name, io::IInStream *is)

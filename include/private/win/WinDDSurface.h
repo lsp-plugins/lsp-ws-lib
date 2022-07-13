@@ -41,7 +41,7 @@ namespace lsp
     {
         namespace win
         {
-            class WinDDSurface: public ISurface
+            class LSP_SYMBOL_HIDDEN WinDDSurface: public ISurface
             {
                 protected:
                     WinDisplay                 *pDisplay;
@@ -63,6 +63,9 @@ namespace lsp
                     void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_polygon(ID2D1Brush *brush, const float *x, const float *y, size_t n, float width);
+
+                    bool    try_out_text(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length);
+                    bool    try_out_text_relative(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const WCHAR *text, size_t length);
 
                 public:
                     virtual IDisplay *display() override;

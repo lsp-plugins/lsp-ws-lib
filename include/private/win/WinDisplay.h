@@ -44,6 +44,7 @@ namespace lsp
         namespace win
         {
             class WinWindow;
+            class WinCustomFontLoader;
 
             class WinDisplay: public IDisplay
             {
@@ -54,27 +55,48 @@ namespace lsp
                 public:
                     static const WCHAR         *WINDOW_CLASS_NAME;
 
+                protected:
+                    typedef struct font_t
+                    {
+                        char                   *name;           // Name of the font
+                        union
+                        {
+                            char                   *alias;          // Font alias (the symbolic name of the font)
+                            WCHAR                  *wname;          // The real font name
+                        };
+                        IDWriteFontFamily      *family;         // Font family
+                        IDWriteFontCollection  *collection;     // Font collection
+                    } font_t;
+
                     typedef lltl::pphash<LSPString, IDWriteFontFamily> font_cache_t;
+                    typedef lltl::pphash<char, font_t> custom_font_cache_t;
 
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
                     ID2D1Factory               *pD2D1Factroy;               // Direct2D factory
                     IWICImagingFactory         *pWICFactory;                // WIC Imaging Factory
                     IDWriteFactory             *pDWriteFactory;             // DirectWrite Factory for text
+                    ATOM                        hWindowClass;               // Window class
                     LSPString                   sDflFontFamily;             // Default font family name
                     MSG                         sPendingMessage;            // Currently pending message
                     HCURSOR                     vCursors[__MP_COUNT];       // Cursor handles (cached)
                     lltl::darray<MonitorInfo>   vMonitors;                  // Monitor information
                     font_cache_t                vFontCache;                 // Font cache
+                    custom_font_cache_t         vCustomFonts;               // Custom fonts
 
                 protected:
+                    void                        do_destroy();
                     status_t                    do_main_iteration(timestamp_t ts);
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
-                    IDWriteTextLayout          *create_text_layout(const Font &f, const LSPString *fname, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
-                    IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name);
+                    IDWriteTextLayout          *create_text_layout(const Font &f, const WCHAR *fname, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
+                    IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name, font_t **custom);
                     bool                        get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics);
                     static void                 drop_font_cache(font_cache_t *cache);
                     bool                        create_font_cache();
+                    static void                 drop_font(font_t *f);
+                    static font_t              *alloc_font(const char *name);
+                    font_t                     *get_custom_font_collection(const char *name);
+                    bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
 
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -120,9 +142,6 @@ namespace lsp
                     virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
 
                     // Font management
-                    virtual status_t            add_font(const char *name, const char *path) override;
-                    virtual status_t            add_font(const char *name, const io::Path *path) override;
-                    virtual status_t            add_font(const char *name, const LSPString *path) override;
                     virtual status_t            add_font(const char *name, io::IInStream *is) override;
                     virtual status_t            add_font_alias(const char *name, const char *alias) override;
                     virtual status_t            remove_font(const char *name) override;

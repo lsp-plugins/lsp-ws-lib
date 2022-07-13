@@ -39,7 +39,7 @@ namespace lsp
         {
             class X11Display;
 
-            class X11Window: public IWindow, public IEventHandler
+            class LSP_SYMBOL_HIDDEN X11Window: public IWindow, public IEventHandler
             {
                 protected:
                     enum flags_t
