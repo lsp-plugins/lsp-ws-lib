@@ -1022,7 +1022,7 @@ namespace lsp
                     found = get_font_metrics(f, custom->family, &fm);
                 if ((!found) && (ff != NULL))
                     found = get_font_metrics(f, ff, &fm);
-                if (found)
+                if (!found)
                     return false;
 
                 float ratio     = f.size() / float(fm.designUnitsPerEm);

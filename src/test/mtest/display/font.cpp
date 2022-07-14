@@ -74,18 +74,35 @@ MTEST_BEGIN("ws.display", font)
                         s->get_font_parameters(f, &fp);
                         s->get_text_parameters(f, &tp, "A");
 
-                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
-                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
+                        ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2) / 2;
+                        ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) / 2;
+
+                        float tx, ty;
 
                         c.set_rgb24(0xffff00);
                         f.set_antialiasing(ws::FA_ENABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                        tx = x + tp.XBearing;
+                        ty = y + fp.Ascent;
+                        s->out_text(f, c, tx, ty, "A");
                         x += tp.Width;
+
+//                        c.set_rgb24(0xcccccc);
+//                        s->line(c, tx - 8, ty, tx + 8, ty, 1.0f);
+//                        s->line(c, tx, ty - 8, tx, ty + 8, 1.0f);
 
                         c.set_rgb24(0x00ffff);
                         f.set_name("alias");
                         f.set_antialiasing(ws::FA_DISABLED);
-                        s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
+                        tx = x + tp.XBearing;
+                        ty = y + fp.Ascent;
+                        s->out_text(f, c, tx, ty, "A");
+
+//                        c.set_rgb24(0xcccccc);
+//                        s->line(c, tx - 8, ty, tx + 8, ty, 1.0f);
+//                        s->line(c, tx, ty - 8, tx, ty + 8, 1.0f);
+
+                        c.set_rgb24(0xffffff);
+                        s->wire_rect(c, SURFMASK_NONE, 0.0f, 8, 8, pWnd->width() - 16, pWnd->height() - 16, 1.0f);
 
                         s->end();
 
