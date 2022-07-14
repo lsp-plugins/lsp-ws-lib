@@ -60,16 +60,16 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinFontFileStream implementation
-            WinFontFileStream::WinFontFileStream(WinCustomFontLoader *loader, const uint8_t *data, size_t size)
+            WinFontFileStream::WinFontFileStream(WinFontFileLoader *loader)
             {
                 nRefCount       = 0;
                 nOffset         = 0;
-                pData           = data;
-                nSize           = size;
+                pLoader         = safe_acquire(loader);
             }
 
             WinFontFileStream::~WinFontFileStream()
             {
+                safe_release(pLoader);
             }
 
             HRESULT STDMETHODCALLTYPE WinFontFileStream::QueryInterface(REFIID iid, void **ppvObject)
@@ -106,10 +106,10 @@ namespace lsp
             {
                 // Validate the position
                 wssize_t end    = fileOffset + fragmentSize;
-                if (end <= nSize)
+                if (end <= pLoader->nSize)
                 {
                     // Return the pointer
-                    *fragmentStart      = &pData[fileOffset];
+                    *fragmentStart      = &pLoader->pData[fileOffset];
                     *fragmentContext    = NULL;
                     return S_OK;
                 }
@@ -129,7 +129,7 @@ namespace lsp
             {
                 if (fileSize == NULL)
                     return E_INVALIDARG;
-                *fileSize           = nSize;
+                *fileSize           = pLoader->nSize;
                 return S_OK;
             }
 
@@ -143,16 +143,24 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinCustomFontLoader implementation
-            WinCustomFontLoader::WinCustomFontLoader()
+            WinFontFileLoader::WinFontFileLoader(io::OutMemoryStream *os)
             {
                 nRefCount       = 0;
+                nSize           = os->size();
+                pData           = os->release();
             }
 
-            WinCustomFontLoader::~WinCustomFontLoader()
+            WinFontFileLoader::~WinFontFileLoader()
             {
+                if (pData != NULL)
+                {
+                    free(pData);
+                    pData       = NULL;
+                }
+                nSize       = 0;
             }
 
-            HRESULT STDMETHODCALLTYPE WinCustomFontLoader::QueryInterface(REFIID iid, void** ppvObject)
+            HRESULT STDMETHODCALLTYPE WinFontFileLoader::QueryInterface(REFIID iid, void** ppvObject)
             {
                 if (IsEqualIID(iid, IID_IUnknown) ||
                     IsEqualIID(iid, __uuidof(IDWriteFontFileLoader)))
@@ -165,12 +173,12 @@ namespace lsp
                 return E_NOINTERFACE;
             }
 
-            ULONG STDMETHODCALLTYPE WinCustomFontLoader::AddRef()
+            ULONG STDMETHODCALLTYPE WinFontFileLoader::AddRef()
             {
                 return InterlockedIncrement(&nRefCount);
             }
 
-            ULONG STDMETHODCALLTYPE WinCustomFontLoader::Release()
+            ULONG STDMETHODCALLTYPE WinFontFileLoader::Release()
             {
                 ULONG newCount = InterlockedDecrement(&nRefCount);
                 if (newCount == 0)
@@ -178,7 +186,7 @@ namespace lsp
                 return newCount;
             }
 
-            HRESULT STDMETHODCALLTYPE WinCustomFontLoader::CreateStreamFromKey(
+            HRESULT STDMETHODCALLTYPE WinFontFileLoader::CreateStreamFromKey(
                 void const *fontFileReferenceKey,
                 UINT32 fontFileReferenceKeySize,
                 OUT IDWriteFontFileStream **fontFileStream)
@@ -187,14 +195,14 @@ namespace lsp
                 if (fontFileStream == NULL)
                     return E_INVALIDARG;
                 *fontFileStream     = NULL;
-                if (fontFileReferenceKeySize != sizeof(io::OutMemoryStream *))
+                if (fontFileReferenceKeySize != sizeof(WinFontFileLoader * const *))
                     return E_INVALIDARG;
-                io::OutMemoryStream *os = const_cast<io::OutMemoryStream *>(static_cast<const io::OutMemoryStream *>(fontFileReferenceKey));
-                if (os == NULL)
+                WinFontFileLoader *loader = *static_cast<WinFontFileLoader * const *>(fontFileReferenceKey);
+                if (loader != this)
                     return E_INVALIDARG;
 
                 // Create data stream
-                WinFontFileStream *s= new WinFontFileStream(this, os->data(), os->size());
+                WinFontFileStream *s= new WinFontFileStream(this);
                 if (s == NULL)
                     return E_OUTOFMEMORY;
 
@@ -205,13 +213,12 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinFontFileEnumerator implementation
-            WinFontFileEnumerator::WinFontFileEnumerator(IDWriteFactory *factory, io::OutMemoryStream *os)
+            WinFontFileEnumerator::WinFontFileEnumerator(IDWriteFactory *factory, WinFontFileLoader *loader)
             {
                 nRefCount           = 0;
                 pFactory            = safe_acquire(factory);
                 pCurrFile           = NULL;
-                pOS                 = os;
-                pLoader             = NULL;
+                pLoader             = safe_acquire(loader);
                 nNextIndex          = 0;
             }
 
@@ -259,14 +266,7 @@ namespace lsp
                 if (nNextIndex >= 1)
                     return hr;
 
-                if (pLoader == NULL)
-                {
-                    pLoader = safe_acquire(new WinCustomFontLoader());
-                    if (pLoader == NULL)
-                        return E_OUTOFMEMORY;
-                }
-
-                hr = pFactory->CreateCustomFontFileReference(pOS, sizeof(pOS), pLoader, &pCurrFile);
+                hr = pFactory->CreateCustomFontFileReference(&pLoader, sizeof(&pLoader), pLoader, &pCurrFile);
                 if ((FAILED(hr)) || (pCurrFile == NULL))
                     return hr;
 
@@ -333,14 +333,12 @@ namespace lsp
                 if (fontFileEnumerator == NULL)
                     return E_INVALIDARG;
                 *fontFileEnumerator = NULL;
-                if (collectionKeySize != sizeof(io::OutMemoryStream *))
+                if (collectionKeySize != sizeof(WinFontCollectionLoader * const *))
                     return E_INVALIDARG;
-                io::OutMemoryStream *os = const_cast<io::OutMemoryStream *>(static_cast<const io::OutMemoryStream *>(collectionKey));
-                if (os == NULL)
-                    return E_INVALIDARG;
+                WinFontFileLoader *loader = *static_cast<WinFontFileLoader * const *>(collectionKey);
 
                 // Create font file enumerator
-                WinFontFileEnumerator* enumerator = new WinFontFileEnumerator(factory, os);
+                WinFontFileEnumerator *enumerator = new WinFontFileEnumerator(factory, loader);
                 if (enumerator == NULL)
                     return E_OUTOFMEMORY;
 

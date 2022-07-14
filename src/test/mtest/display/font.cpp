@@ -83,6 +83,7 @@ MTEST_BEGIN("ws.display", font)
                         x += tp.Width;
 
                         c.set_rgb24(0x00ffff);
+                        f.set_name("alias");
                         f.set_antialiasing(ws::FA_DISABLED);
                         s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
 
@@ -126,6 +127,7 @@ MTEST_BEGIN("ws.display", font)
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
         MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
+        MTEST_ASSERT(dpy->add_font_alias("alias", "example") == STATUS_OK);
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
@@ -135,8 +137,9 @@ MTEST_BEGIN("ws.display", font)
         );
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test font") == STATUS_OK);
-        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
-        MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);

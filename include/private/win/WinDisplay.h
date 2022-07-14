@@ -44,7 +44,7 @@ namespace lsp
         namespace win
         {
             class WinWindow;
-            class WinCustomFontLoader;
+            class WinFontFileLoader;
 
             class WinDisplay: public IDisplay
             {
@@ -64,8 +64,10 @@ namespace lsp
                             char                   *alias;          // Font alias (the symbolic name of the font)
                             WCHAR                  *wname;          // The real font name
                         };
-                        IDWriteFontFamily      *family;         // Font family
-                        IDWriteFontCollection  *collection;     // Font collection
+                        IDWriteFontFileLoader       *file;          // Font file loader
+                        IDWriteFontCollectionLoader *loader;        // Font collection loader
+                        IDWriteFontFamily           *family;        // Font family
+                        IDWriteFontCollection       *collection;    // Font collection
                     } font_t;
 
                     typedef lltl::pphash<LSPString, IDWriteFontFamily> font_cache_t;
@@ -88,15 +90,15 @@ namespace lsp
                     void                        do_destroy();
                     status_t                    do_main_iteration(timestamp_t ts);
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
-                    IDWriteTextLayout          *create_text_layout(const Font &f, const WCHAR *fname, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
+                    IDWriteTextLayout          *create_text_layout(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
                     IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name, font_t **custom);
                     bool                        get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics);
                     static void                 drop_font_cache(font_cache_t *cache);
                     bool                        create_font_cache();
-                    static void                 drop_font(font_t *f);
+                    void                        drop_font(font_t *f);
                     static font_t              *alloc_font(const char *name);
                     font_t                     *get_custom_font_collection(const char *name);
-                    bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
+                    bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
 
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

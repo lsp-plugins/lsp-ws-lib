@@ -39,7 +39,7 @@ namespace lsp
         namespace win
         {
             class WinFontFileStream;
-            class WinCustomFontLoader;
+            class WinFontFileLoader;
             class WinFontFileEnumerator;
             class WinFontCollectionLoader;
 
@@ -53,11 +53,10 @@ namespace lsp
                 private:
                     ULONG                   nRefCount;
                     size_t                  nOffset;
-                    const uint8_t          *pData;
-                    size_t                  nSize;
+                    WinFontFileLoader      *pLoader;
 
                 public:
-                    explicit WinFontFileStream(WinCustomFontLoader *loader, const uint8_t *data, size_t size);
+                    explicit WinFontFileStream(WinFontFileLoader *loader);
                     virtual ~WinFontFileStream();
 
                 public: // IUnknown
@@ -82,14 +81,19 @@ namespace lsp
              * of fonts embedded in the application as resources. The font collection
              * key is an index in the WinCustomFonts collection.
              */
-            class LSP_SYMBOL_HIDDEN WinCustomFontLoader: public IDWriteFontFileLoader
+            class LSP_SYMBOL_HIDDEN WinFontFileLoader: public IDWriteFontFileLoader
             {
                 private:
+                    friend class WinFontFileStream;
+
+                private:
                     ULONG                   nRefCount;
+                    uint8_t                *pData;
+                    size_t                  nSize;
 
                 public:
-                    explicit WinCustomFontLoader();
-                    virtual ~WinCustomFontLoader();
+                    explicit WinFontFileLoader(io::OutMemoryStream *os);
+                    virtual ~WinFontFileLoader();
 
                 public: // IUnknown
                     virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override;
@@ -114,12 +118,11 @@ namespace lsp
                     ULONG                   nRefCount;
                     IDWriteFactory         *pFactory;
                     IDWriteFontFile        *pCurrFile;
-                    io::OutMemoryStream    *pOS;
-                    WinCustomFontLoader    *pLoader;
+                    WinFontFileLoader      *pLoader;
                     size_t                  nNextIndex;
 
                 public:
-                    explicit WinFontFileEnumerator(IDWriteFactory *factory, io::OutMemoryStream *os);
+                    explicit WinFontFileEnumerator(IDWriteFactory *factory, WinFontFileLoader *loader);
                     virtual ~WinFontFileEnumerator();
 
                 public: // IUnknown

@@ -516,15 +516,26 @@ namespace lsp
                 if (length < 0)
                     return status_t(-length);
 
-                // Create loader
-                WinFontCollectionLoader *loader = new WinFontCollectionLoader();
-                if (loader == NULL)
+                // Create file loader
+                f->file = new WinFontFileLoader(&os);
+                if (f->file == NULL)
                     return STATUS_NO_MEM;
-                loader->AddRef();
-                lsp_finally( safe_release(loader); );
+                f->file->AddRef();
+                hr = pDWriteFactory->RegisterFontFileLoader(f->file);
+                if (FAILED(hr))
+                    return STATUS_UNKNOWN_ERR;
+
+                // Create collection loader
+                f->loader = new WinFontCollectionLoader();
+                if (f->loader == NULL)
+                    return STATUS_NO_MEM;
+                f->loader->AddRef();
+                hr = pDWriteFactory->RegisterFontCollectionLoader(f->loader);
+                if (FAILED(hr))
+                    return STATUS_UNKNOWN_ERR;
 
                 // Create custom font collection
-                hr = pDWriteFactory->CreateCustomFontCollection(loader, &os, sizeof(&os), &f->collection);
+                hr = pDWriteFactory->CreateCustomFontCollection(f->loader, &f->file, sizeof(&f->file), &f->collection);
                 if ((FAILED(hr)) || (f->collection == NULL))
                     return STATUS_UNKNOWN_ERR;
 
@@ -623,6 +634,8 @@ namespace lsp
                     free(f);
                     return NULL;
                 }
+                f->file         = NULL;
+                f->loader       = NULL;
                 f->alias        = NULL;
                 f->wname        = NULL;
                 f->family       = NULL;
@@ -658,6 +671,13 @@ namespace lsp
                     }
                 }
 
+                if (f->loader != NULL)
+                    pDWriteFactory->UnregisterFontCollectionLoader(f->loader);
+                if (f->file != NULL)
+                    pDWriteFactory->UnregisterFontFileLoader(f->file);
+
+                safe_release(f->file);
+                safe_release(f->loader);
                 safe_release(f->family);
                 safe_release(f->collection);
 
@@ -820,9 +840,11 @@ namespace lsp
                 while (true)
                 {
                     font_t *f = vCustomFonts.get(resolved);
+                    if (f == NULL)
+                        return NULL;
                     if (f->family != NULL)
                         return f;
-                    else if (f->alias == NULL)
+                    if (f->alias == NULL)
                         return NULL;
 
                     // Prevent from infinite recursion
@@ -878,6 +900,7 @@ namespace lsp
             IDWriteTextLayout *WinDisplay::create_text_layout(
                 const Font &f,
                 const WCHAR *fname,
+                IDWriteFontCollection *fc,
                 IDWriteFontFamily *ff,
                 const WCHAR *string,
                 size_t length)
@@ -893,7 +916,7 @@ namespace lsp
                 IDWriteTextFormat *tf   = NULL;
                 hr = pDWriteFactory->CreateTextFormat(
                     fname,                      // Font family name
-                    NULL,                       // Font collection (NULL sets it to use the system font collection)
+                    fc,                         // Font collection (NULL sets it to use the system font collection)
                     (f.bold())   ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
                     (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
                     DWRITE_FONT_STRETCH_NORMAL,
@@ -908,7 +931,7 @@ namespace lsp
                     // Create text format with OBLIQUE style instead of Italic
                     hr = pDWriteFactory->CreateTextFormat(
                         fname,
-                        NULL,
+                        fc,
                         (f.bold()) ? DWRITE_FONT_WEIGHT_BOLD : DWRITE_FONT_WEIGHT_REGULAR,
                         DWRITE_FONT_STYLE_OBLIQUE,
                         DWRITE_FONT_STRETCH_NORMAL,
@@ -1013,6 +1036,7 @@ namespace lsp
             bool WinDisplay::try_get_text_parameters(
                 const Font &f,
                 const WCHAR *fname,
+                IDWriteFontCollection *fc,
                 IDWriteFontFamily *ff,
                 text_parameters_t *tp,
                 const WCHAR *text,
@@ -1024,7 +1048,7 @@ namespace lsp
                     return false;
 
                 // Create text layout
-                IDWriteTextLayout *tl   = create_text_layout(f, fname, ff, text, length);
+                IDWriteTextLayout *tl   = create_text_layout(f, fname, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally( safe_release(tl); );
@@ -1060,9 +1084,9 @@ namespace lsp
                 // Process custom font first
                 bool found = false;
                 if (custom != NULL)
-                    found = try_get_text_parameters(f, custom->wname, custom->family, tp, pText, range);
+                    found = try_get_text_parameters(f, custom->wname, custom->collection, custom->family, tp, pText, range);
                 if ((!found) && (ff != NULL))
-                    found = try_get_text_parameters(f, family_name.get_utf16(), ff, tp, pText, range);
+                    found = try_get_text_parameters(f, family_name.get_utf16(), NULL, ff, tp, pText, range);
 
                 return found;
             }

@@ -1326,10 +1326,10 @@ namespace lsp
                     out_text(f, color, x, y, &tmp, 0, tmp.length());
             }
 
-            bool WinDDSurface::try_out_text(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length)
+            bool WinDDSurface::try_out_text(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length)
             {
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, ff, text, length);
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally( safe_release(tl); );
@@ -1381,12 +1381,12 @@ namespace lsp
 
                 if (custom != NULL)
                 {
-                    if (try_out_text(custom->family, custom->wname, f, color, x, y, pText, length))
+                    if (try_out_text(custom->collection, custom->family, custom->wname, f, color, x, y, pText, length))
                         return;
                 }
                 if (ff != NULL)
                 {
-                    if (try_out_text(ff, family_name.get_utf16(), f, color, x, y, pText, length))
+                    if (try_out_text(NULL, ff, family_name.get_utf16(), f, color, x, y, pText, length))
                         return;
                 }
             }
@@ -1403,7 +1403,7 @@ namespace lsp
                 return out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
             }
 
-            bool WinDDSurface::try_out_text_relative(IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const WCHAR *text, size_t length)
+            bool WinDDSurface::try_out_text_relative(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const WCHAR *text, size_t length)
             {
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
@@ -1411,7 +1411,7 @@ namespace lsp
                     return false;
 
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, ff, text, length);
+                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally( safe_release(tl); );
@@ -1478,12 +1478,12 @@ namespace lsp
 
                 if (custom != NULL)
                 {
-                    if (try_out_text_relative(custom->family, custom->wname, f, color, x, y, dx, dy, pText, length))
+                    if (try_out_text_relative(custom->collection, custom->family, custom->wname, f, color, x, y, dx, dy, pText, length))
                         return;
                 }
                 if (ff != NULL)
                 {
-                    if (try_out_text_relative(ff, family_name.get_utf16(), f, color, x, y, dx, dy, pText, length))
+                    if (try_out_text_relative(NULL, ff, family_name.get_utf16(), f, color, x, y, dx, dy, pText, length))
                         return;
                 }
             }
