@@ -86,12 +86,12 @@ MTEST_BEGIN("ws.display", events)
 
                     // Keyboard events
                     case ws::UIE_KEY_DOWN:
-                        pTest->printf("KEY_DOWN: code=%d, raw=%d, state=0x%x\n",
-                            int(ev->nCode), int(ev->nRawCode), int(ev->nState));
+                        pTest->printf("KEY_DOWN: code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
+                            int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
                         break;
                     case ws::UIE_KEY_UP:
-                        pTest->printf("KEY_UP: code=%d, raw=%d, state=0x%x\n",
-                            int(ev->nCode), int(ev->nRawCode), int(ev->nState));
+                        pTest->printf("KEY_UP: code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
+                            int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
                         break;
 
                     // Redraw event

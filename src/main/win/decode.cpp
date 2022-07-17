@@ -31,9 +31,11 @@ namespace lsp
         {
             size_t decode_mouse_keystate(size_t code)
             {
+                BYTE kState[256];
                 size_t result = 0;
+
                 #define DC(mask, flag)  \
-                    if (code & mask) \
+                    if (code & (mask)) \
                         result |= flag; \
 
                 DC(MK_CONTROL, MCF_CONTROL);
@@ -44,10 +46,48 @@ namespace lsp
                 DC(MK_XBUTTON1, MCF_BUTTON4);
                 DC(MK_XBUTTON2, MCF_BUTTON5);
 
+                #undef DC
+
+                // Obtain the keyboard state
+                if (GetKeyboardState(kState))
+                {
+                    if ((kState[VK_MENU] | kState[VK_LMENU] | kState[VK_RMENU]) & 0x80)
+                        result     |= MCF_ALT;
+                    if (kState[VK_CAPITAL])
+                        result     |= MCF_LOCK;
+                }
+
                 return result;
             }
-        }
-    }
-}
+
+            size_t decode_kb_keystate(const BYTE *kState)
+            {
+                size_t result = 0;
+
+                if ((kState[VK_CONTROL] | kState[VK_LCONTROL] | kState[VK_RCONTROL]) & 0x80)
+                    result     |= MCF_CONTROL;
+                if ((kState[VK_SHIFT] | kState[VK_LSHIFT] | kState[VK_RSHIFT]) & 0x80)
+                    result     |= MCF_SHIFT;
+                if ((kState[VK_MENU] | kState[VK_LMENU] | kState[VK_RMENU]) & 0x80)
+                    result     |= MCF_ALT;
+                if (kState[VK_CAPITAL])
+                    result     |= MCF_LOCK;
+
+                if (kState[VK_LBUTTON] & 0x80)
+                    result     |= MCF_LEFT;
+                if (kState[VK_MBUTTON] & 0x80)
+                    result     |= MCF_MIDDLE;
+                if (kState[VK_RBUTTON] & 0x80)
+                    result     |= MCF_RIGHT;
+                if (kState[VK_XBUTTON1] & 0x80)
+                    result     |= MCF_BUTTON4;
+                if (kState[VK_XBUTTON2] & 0x80)
+                    result     |= MCF_BUTTON5;
+
+                return result;
+            }
+        } /* namespace win */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* PLATFORM_WINDOWS */

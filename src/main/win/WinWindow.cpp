@@ -28,6 +28,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/ws/win/decode.h>
+#include <lsp-plug.in/ws/keycodes.h>
 
 #include <private/win/WinDisplay.h>
 #include <private/win/WinDDSurface.h>
@@ -39,6 +40,14 @@
 #ifndef WM_MOUSEHWHEEL
     #define WM_MOUSEHWHEEL 0x020e
 #endif /* WM_MOUSEHWHEEL */
+
+#ifndef VK_IME_ON
+    #define VK_IME_ON       0x16
+#endif /* VK_IME_ON */
+
+#ifndef VK_IME_OFF
+    #define VK_IME_OFF      0x1a
+#endif /* VK_IME_ON */
 
 namespace lsp
 {
@@ -169,7 +178,7 @@ namespace lsp
 
             void WinWindow::process_mouse_event(timestamp_t ts, const ws::event_t *ev)
             {
-                // Mouse is leaing window?
+                // Mouse is leaving window?
                 if (ev->nType == UIE_MOUSE_OUT)
                 {
                     // Restore the previous cursor if it was saved
@@ -456,6 +465,24 @@ namespace lsp
                         handle_event(&ue);
                         return 0;
                     }
+
+                    // Keyboard events
+                    case WM_KEYDOWN:
+                    case WM_KEYUP:
+                    case WM_SYSKEYUP:
+                    case WM_SYSKEYDOWN:
+                    {
+                        ue.nType                = ((uMsg == WM_KEYDOWN) || (uMsg == WM_SYSKEYDOWN)) ? UIE_KEY_DOWN : UIE_KEY_UP;
+                        if (process_virtual_key(&ue, wParam, lParam))
+                            handle_event(&ue);
+                        return 0;
+                    }
+//                    case WM_CHAR:
+//                        lsp_trace("WM_CHAR code=0x%x", wParam);
+//                        return 0;
+//                    case WM_DEADCHAR:
+//                        lsp_trace("WM_DEADCHAR code=0x%x", wParam);
+//                        return 0;
 
                     default:
                         break;
@@ -1076,6 +1103,310 @@ namespace lsp
                 HWND wnd = GetParent(hWindow);
 
                 return wnd != NULL;
+            }
+
+            bool WinWindow::process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam)
+            {
+                #define TRK(scan, code) \
+                    case scan: \
+                        ev->nCode = code; \
+                        return true;
+
+                #define TRX(scan, cond, code1, code2) \
+                    case scan: \
+                        ev->nCode = (cond) ? code2 : code1; \
+                        return true;
+
+                #define SKP(scan) \
+                    case scan: \
+                        break;
+
+                #define IGN(scan) \
+                    case scan: \
+                        return false;
+
+                BYTE kState[256];
+                if (!GetKeyboardState(kState))
+                    return false;
+
+                ev->nState       = decode_kb_keystate(kState);
+
+                // lParam bit #29
+                // The context code. The value is 1 if the ALT key is down while the key is pressed;
+                // it is 0 if the WM_SYSKEYDOWN message is posted to the active window because no window
+                // has the keyboard focus.
+                if (lParam & (1 << 29))
+                    ev->nState     |= MCF_ALT;
+
+                // lParam bit #24
+                // Indicates whether the key is an extended key, such as the right-hand ALT and CTRL keys
+                // that appear on an enhanced 101- or 102-key keyboard. The value is 1 if it is an extended
+                // key; otherwise, it is 0.
+                bool ext            = ev->nState & (1 << 24);
+
+                ev->nCode           = WSK_UNKNOWN;
+                ev->nRawCode        = (lParam & (~0xffff)) | wParam;
+
+                //lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d", int(wParam), int(lParam), int(ext));
+
+                // Process special case for numpad
+                if (kState[VK_NUMLOCK])
+                {
+                    switch (wParam)
+                    {
+                        TRK(VK_NUMPAD0, WSK_KEYPAD_0)
+                        TRK(VK_NUMPAD1, WSK_KEYPAD_1)
+                        TRK(VK_NUMPAD2, WSK_KEYPAD_2)
+                        TRK(VK_NUMPAD3, WSK_KEYPAD_3)
+                        TRK(VK_NUMPAD4, WSK_KEYPAD_4)
+                        TRK(VK_NUMPAD5, WSK_KEYPAD_5)
+                        TRK(VK_NUMPAD6, WSK_KEYPAD_6)
+                        TRK(VK_NUMPAD7, WSK_KEYPAD_7)
+                        TRK(VK_NUMPAD8, WSK_KEYPAD_8)
+                        TRK(VK_NUMPAD9, WSK_KEYPAD_9)
+                        TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
+                        TRK(VK_ADD, WSK_KEYPAD_ADD)
+                        TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
+                        TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
+                        TRK(VK_DECIMAL, WSK_KEYPAD_DECIMAL)
+                        TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
+                        default:
+                            break;
+                    }
+                }
+                else
+                {
+                    switch (wParam)
+                    {
+                        TRK(VK_NUMPAD0, WSK_KEYPAD_INSERT)
+                        TRK(VK_NUMPAD1, WSK_KEYPAD_END)
+                        TRK(VK_NUMPAD2, WSK_KEYPAD_DOWN)
+                        TRK(VK_NUMPAD3, WSK_KEYPAD_PAGE_UP)
+                        TRK(VK_NUMPAD4, WSK_KEYPAD_LEFT)
+                        TRK(VK_NUMPAD5, WSK_KEYPAD_BEGIN)
+                        TRK(VK_NUMPAD6, WSK_KEYPAD_RIGHT)
+                        TRK(VK_NUMPAD7, WSK_KEYPAD_HOME)
+                        TRK(VK_NUMPAD8, WSK_KEYPAD_UP)
+                        TRK(VK_NUMPAD9, WSK_KEYPAD_PAGE_UP)
+                        TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
+                        TRK(VK_ADD, WSK_KEYPAD_ADD)
+                        TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
+                        TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
+                        TRK(VK_DECIMAL, WSK_KEYPAD_DELETE)
+                        TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
+                        default:
+                            break;
+                    }
+                }
+
+                WCHAR buf[4];
+                UINT wScanCode = MapVirtualKeyW(wParam, MAPVK_VK_TO_VSC);
+
+                int res = ToUnicode(wParam, wScanCode, kState, buf, sizeof(buf)/sizeof(WCHAR), MAPVK_VK_TO_VSC);
+                if (res == 1)
+                {
+                    ev->nCode           = buf[0];
+                    return true;
+                }
+                else if (res >= 2)
+                {
+                    // Surrogate pair?
+                    WCHAR p1 = buf[0] & 0xfc00;
+                    WCHAR p2 = buf[1] & 0xfc00;
+
+                    if (p1 == 0xd800) // buf[0] is high part of surrogate pair
+                    {
+                        if (p2 == 0xdc00) // buf[1] is low part of surrogate pair
+                            ev->nCode           = 0x10000 + (((buf[0] & 0x3ff) << 10) | (buf[1] & 0x3ff));
+                        else
+                            ev->nCode           = WSK_UNKNOWN;
+                    }
+                    else if (p1 == 0xdc00) // buf[0] is low part of surrogate pair
+                    {
+                        if (p2 == 0xd800) // buf[1] is high part of surrogate pair
+                            ev->nCode           = 0x10000 + (((buf[1] & 0x3ff) << 10) | (buf[0] & 0x3ff));
+                        else
+                            ev->nCode           = WSK_UNKNOWN;
+                    }
+                    else
+                        ev->nCode           = WSK_UNKNOWN;
+
+                    return true;
+                }
+
+                // Could not translate the key, analyze the code
+                switch (wParam)
+                {
+                    IGN(VK_LBUTTON)         // Left mouse button
+                    IGN(VK_RBUTTON)         // Right mouse button
+
+                    TRK(VK_CANCEL, WSK_BREAK)  // Control-break processing
+
+                    IGN(VK_MBUTTON)         // Middle mouse button
+                    IGN(VK_XBUTTON1)        // X1 mouse button
+                    IGN(VK_XBUTTON2)        // X2 mouse button
+
+                    TRK(VK_BACK, WSK_BACKSPACE);
+                    TRK(VK_TAB, WSK_TAB);
+
+                    TRK(VK_CLEAR, WSK_CLEAR)
+                    TRK(VK_RETURN, WSK_RETURN)
+
+                    TRX(VK_SHIFT, ext, WSK_SHIFT_L, WSK_SHIFT_R)
+                    TRX(VK_CONTROL, ext, WSK_CONTROL_L, WSK_CONTROL_R)
+                    TRX(VK_MENU, ext, WSK_ALT_L, WSK_ALT_R)
+
+                    TRK(VK_PAUSE, WSK_PAUSE);
+                    TRK(VK_CAPITAL, WSK_CAPS_LOCK);
+
+                    // TODO: lookup how to deal with it
+                    IGN(VK_KANA| VK_HANGEUL | VK_HANGUL)    // IME Kana mode, IME Hanguel mode (maintained for compatibility; use VK_HANGUL), IME Hangul mode
+                    IGN(VK_IME_ON)          // IME On
+                    IGN(VK_JUNJA)           // IME Junja mode
+                    IGN(VK_FINAL)           // IME final mode
+                    IGN(VK_HANJA | VK_KANJI)// IME Hanja mode, IME Kanji mode
+                    IGN(VK_IME_OFF)         // IME Off
+
+                    TRK(VK_ESCAPE, WSK_ESCAPE)
+
+                    // TODO: lookup how to deal with it
+                    IGN(VK_CONVERT)         // IME convert
+                    IGN(VK_NONCONVERT)      // IME nonconvert
+                    IGN(VK_ACCEPT)          // IME accept
+                    IGN(VK_MODECHANGE)      // IME mode change request
+
+                    TRK(VK_SPACE, ' ')
+                    TRK(VK_PRIOR, WSK_PAGE_UP)
+                    TRK(VK_NEXT, WSK_PAGE_DOWN)
+                    TRK(VK_END, WSK_END)
+                    TRK(VK_HOME, WSK_HOME)
+                    TRK(VK_LEFT, WSK_LEFT)
+                    TRK(VK_UP, WSK_UP)
+                    TRK(VK_RIGHT, WSK_RIGHT)
+                    TRK(VK_DOWN, WSK_DOWN)
+                    TRK(VK_SELECT, WSK_SELECT)
+                    TRK(VK_PRINT, WSK_PRINT)
+                    TRK(VK_EXECUTE, WSK_EXECUTE)
+                    TRK(VK_SNAPSHOT, WSK_SYS_REQ)
+                    TRK(VK_INSERT, WSK_INSERT)
+                    TRK(VK_DELETE, WSK_DELETE)
+                    TRK(VK_HELP, WSK_HELP)
+
+                    TRK(VK_LWIN, WSK_SUPER_L)
+                    TRK(VK_RWIN, WSK_SUPER_R)
+                    TRK(VK_APPS, WSK_MENU)
+                    TRK(VK_SLEEP, WSK_HYPER_R)  // TODO: check
+
+                    TRK(VK_NUMPAD0, WSK_KEYPAD_0)
+                    TRK(VK_NUMPAD1, WSK_KEYPAD_1)
+                    TRK(VK_NUMPAD2, WSK_KEYPAD_2)
+                    TRK(VK_NUMPAD3, WSK_KEYPAD_3)
+                    TRK(VK_NUMPAD4, WSK_KEYPAD_4)
+                    TRK(VK_NUMPAD5, WSK_KEYPAD_5)
+                    TRK(VK_NUMPAD6, WSK_KEYPAD_6)
+                    TRK(VK_NUMPAD7, WSK_KEYPAD_7)
+                    TRK(VK_NUMPAD8, WSK_KEYPAD_8)
+                    TRK(VK_NUMPAD9, WSK_KEYPAD_9)
+                    TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
+                    TRK(VK_ADD, WSK_KEYPAD_ADD)
+                    TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
+                    TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
+                    TRK(VK_DECIMAL, WSK_KEYPAD_DECIMAL)
+                    TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
+
+                    TRK(VK_F1, WSK_F1)
+                    TRK(VK_F2, WSK_F2)
+                    TRK(VK_F3, WSK_F3)
+                    TRK(VK_F4, WSK_F4)
+                    TRK(VK_F5, WSK_F5)
+                    TRK(VK_F6, WSK_F6)
+                    TRK(VK_F7, WSK_F7)
+                    TRK(VK_F8, WSK_F8)
+                    TRK(VK_F9, WSK_F9)
+                    TRK(VK_F10, WSK_F10)
+                    TRK(VK_F11, WSK_F11)
+                    TRK(VK_F12, WSK_F12)
+                    TRK(VK_F13, WSK_F13)
+                    TRK(VK_F14, WSK_F14)
+                    TRK(VK_F15, WSK_F15)
+                    TRK(VK_F16, WSK_F16)
+                    TRK(VK_F17, WSK_F17)
+                    TRK(VK_F18, WSK_F18)
+                    TRK(VK_F19, WSK_F19)
+                    TRK(VK_F20, WSK_F20)
+                    TRK(VK_F21, WSK_F21)
+                    TRK(VK_F22, WSK_F22)
+                    TRK(VK_F23, WSK_F23)
+                    TRK(VK_F24, WSK_F24)
+
+                    TRK(VK_NUMLOCK, WSK_NUM_LOCK)
+                    TRK(VK_SCROLL, WSK_SCROLL_LOCK)
+
+                    TRK(VK_LSHIFT, WSK_SHIFT_L)
+                    TRK(VK_RSHIFT, WSK_SHIFT_R)
+                    TRK(VK_LCONTROL, WSK_CONTROL_L)
+                    TRK(VK_RCONTROL, WSK_CONTROL_R)
+                    TRK(VK_LMENU, WSK_ALT_L)
+                    TRK(VK_RMENU, WSK_ALT_R)
+
+                    // TODO: find out how to deal with it
+                    IGN(VK_BROWSER_BACK)        // Browser Back key
+                    IGN(VK_BROWSER_FORWARD)     // Browser Forward key
+                    IGN(VK_BROWSER_REFRESH)     // Browser Refresh key
+                    IGN(VK_BROWSER_STOP)        // Browser Stop key
+                    IGN(VK_BROWSER_SEARCH)      // Browser Search key
+                    IGN(VK_BROWSER_FAVORITES)   // Browser Favorites key
+                    IGN(VK_BROWSER_HOME)        // Browser Start and Home key
+                    IGN(VK_VOLUME_MUTE)         // Volume Mute key
+                    IGN(VK_VOLUME_DOWN)         // Volume Down key
+                    IGN(VK_VOLUME_UP)           // Volume Up key
+                    IGN(VK_MEDIA_NEXT_TRACK)    // Next Track key
+                    IGN(VK_MEDIA_PREV_TRACK)    // Previous Track key
+                    IGN(VK_MEDIA_STOP)          // Stop Media key
+                    IGN(VK_MEDIA_PLAY_PAUSE)    // Play/Pause Media key
+                    IGN(VK_LAUNCH_MAIL)         // Start Mail key
+                    IGN(VK_LAUNCH_MEDIA_SELECT) // Select Media key
+                    IGN(VK_LAUNCH_APP1)         // Start Application 1 key
+                    IGN(VK_LAUNCH_APP2)         // Start Application 2 key
+
+                    SKP(VK_OEM_1)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the ';:' key
+                    SKP(VK_OEM_PLUS)            // For any country/region, the '+' key
+                    SKP(VK_OEM_COMMA)           // For any country/region, the ',' key
+                    SKP(VK_OEM_MINUS)           // For any country/region, the '-' key
+                    SKP(VK_OEM_PERIOD)          // For any country/region, the '.' key
+                    SKP(VK_OEM_2)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '/?' key
+                    SKP(VK_OEM_3)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '`~' key
+                    SKP(VK_OEM_4)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '[{' key
+                    SKP(VK_OEM_5)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '\|' key
+                    SKP(VK_OEM_6)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the ']}' key
+                    SKP(VK_OEM_7)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the 'single-quote/double-quote' key
+                    SKP(VK_OEM_8)               // Used for miscellaneous characters; it can vary by keyboard. For the US standard keyboard, the '`~' key
+                    SKP(VK_OEM_102)             // The <> keys on the US standard keyboard, or the \\| key on the non-US 102-key keyboard
+
+                    // TODO: how to deal with it?
+                    IGN(VK_PROCESSKEY)          // IME PROCESS key
+                    IGN(VK_PACKET)              // Used to pass Unicode characters as if they were keystrokes. The VK_PACKET key is the low word of a 32-bit Virtual Key value used for non-keyboard input methods. For more information, see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP
+
+                    IGN(VK_ATTN)                // Attn key
+                    IGN(VK_CRSEL)               // CrSel key
+                    IGN(VK_EXSEL)               // ExSel key
+                    IGN(VK_EREOF)               // Erase EOF key
+                    IGN(VK_PLAY)                // Play key
+                    IGN(VK_ZOOM)                // Zoom key
+                    IGN(VK_NONAME)              // Reserved
+                    IGN(VK_PA1)                 // PA1 key
+                    IGN(VK_OEM_CLEAR)           // Clear key
+
+                    default:
+                        break;
+                } // switch
+
+                #undef TRK
+                #undef TRX
+                #undef SKP
+                #undef IGN
+
+                return false;
             }
         } /* namespace win */
     } /* namespace ws */

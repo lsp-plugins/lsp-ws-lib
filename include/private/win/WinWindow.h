@@ -57,6 +57,21 @@ namespace lsp
                         event_t         sUp;
                     } btn_event_t;
 
+                    typedef enum {
+                        XKS_ALT_L       = 1 << 0,
+                        XKS_ALT_R       = 1 << 1,
+                        XKS_CTRL_L      = 1 << 2,
+                        XKS_CTRL_R      = 1 << 3,
+                        XKS_SHIFT_L     = 1 << 4,
+                        XKS_SHIFT_R     = 1 << 5,
+                        XKS_CAPS        = 1 << 6,
+                        XKS_LBUTTON     = 1 << 7,
+                        XKS_MBUTTON     = 1 << 8,
+                        XKS_RBUTTON     = 1 << 9,
+                        XKS_BUTTON4     = 1 << 10,
+                        XKS_BUTTON5     = 1 << 11
+                    } x_keystate_t;
+
                 protected:
                     WinDisplay         *pDisplay;       // Pointer to the display
                     HWND                hWindow;        // The identifier of the wrapped window
@@ -74,7 +89,7 @@ namespace lsp
                     size_t              nActions;       // Allowed window actions
                     POINT               sMousePos;      // Last mouse position for tracking MOUSE_OUT event
                     CURSORINFO          sSavedCursor;   // The saved cursor before the mouse has entered the window
-                    btn_event_t         vBtnEvent[3];
+                    btn_event_t         vBtnEvent[3];   // Events for detecting double click and triple click
 
                 protected:
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -84,6 +99,7 @@ namespace lsp
                     bool                has_border() const;
                     static bool         check_click(const btn_event_t *ev);
                     static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
+                    bool                process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);

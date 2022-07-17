@@ -869,7 +869,7 @@ namespace lsp
                 XWSK(KEYPAD_PAGE_UP), // 0x9a
                 XWSK(KEYPAD_PAGE_DOWN), // 0x9b
                 XWSK(KEYPAD_END), // 0x9c
-                XWSK(KEYPAD_BEGIN), // 0x9d
+                XWSK(CLEAR), // 0x9d
                 XWSK(KEYPAD_INSERT), // 0x9e
                 XWSK(KEYPAD_DELETE), // 0x9f
 

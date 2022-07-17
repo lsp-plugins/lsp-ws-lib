@@ -35,7 +35,19 @@ namespace lsp
     {
         namespace win
         {
+            /**
+             * Decode the key state from the mouse event
+             * @param code the key state from the mouse event
+             * @return mask that indicates the pressure of some specific keys
+             */
             size_t      decode_mouse_keystate(size_t code);
+
+            /**
+             * Obtain the current state of keys for the keyboard
+             * @param kState current keyboard state
+             * @return mask that indicates the pressure of some specific keys
+             */
+            size_t      decode_kb_keystate(const BYTE *kState);
         }
     }
 }
