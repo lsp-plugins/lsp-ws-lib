@@ -186,8 +186,10 @@ namespace lsp
         enum ui_event_type_t
         {
             UIE_UNKNOWN,
+            // Keyboard events
             UIE_KEY_DOWN,
             UIE_KEY_UP,
+            // Mouse events
             UIE_MOUSE_DOWN,
             UIE_MOUSE_UP,
             UIE_MOUSE_MOVE,
@@ -197,6 +199,7 @@ namespace lsp
             UIE_MOUSE_TRI_CLICK,
             UIE_MOUSE_IN,
             UIE_MOUSE_OUT,
+            // Window events
             UIE_REDRAW,
             UIE_RENDER,
             UIE_SIZE_REQUEST,
@@ -206,11 +209,11 @@ namespace lsp
             UIE_CLOSE,
             UIE_FOCUS_IN,
             UIE_FOCUS_OUT,
-
+            // Drag&Drop events
             UIE_DRAG_ENTER,
             UIE_DRAG_LEAVE,
             UIE_DRAG_REQUEST,
-
+            // Supplementary constants
             UIE_TOTAL,
             UIE_FIRST = UIE_KEY_DOWN,
             UIE_LAST = UIE_CLOSE,

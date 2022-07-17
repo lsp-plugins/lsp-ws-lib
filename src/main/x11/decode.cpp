@@ -803,7 +803,7 @@ namespace lsp
                 { 0x20ac, 0x20ac }
             };
 
-            #define XWSK(code) (WSK_ ## code - WSK_FIRST)
+            #define XWSK(code) (WSK_ ## code - WSK_KEYSETS_FIRST)
 
             uint8_t ctltable[] =
             {
@@ -1030,7 +1030,7 @@ namespace lsp
                 {
                     // Contol keys
                     code_t result = ctltable[code & 0xff];
-                    return (result != 0xff) ? result + WSK_FIRST : WSK_UNKNOWN;
+                    return (result != 0xff) ? result + WSK_KEYSETS_FIRST : WSK_UNKNOWN;
                 }
 
                 // Lookup character table

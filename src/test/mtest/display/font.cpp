@@ -42,18 +42,6 @@ MTEST_BEGIN("ws.display", font)
             {
                 switch (ev->nType)
                 {
-                    case ws::UIE_MOUSE_CLICK:
-                        pTest->printf("CLICK\n");
-                        break;
-
-                    case ws::UIE_MOUSE_DBL_CLICK:
-                        pTest->printf("DBL_CLICK\n");
-                        break;
-
-                    case ws::UIE_MOUSE_TRI_CLICK:
-                        pTest->printf("TRI_CLICK\n");
-                        break;
-
                     case ws::UIE_REDRAW:
                     {
                         Color c(0.0f, 0.5f, 0.75f);
@@ -108,17 +96,6 @@ MTEST_BEGIN("ws.display", font)
 
                         return STATUS_OK;
                     }
-
-                    case ws::UIE_MOUSE_MOVE:
-                    {
-                        size_t screen;
-                        ssize_t left, top;
-
-                        if (pWnd->display()->get_pointer_location(&screen, &left, &top) == STATUS_OK)
-                            pTest->printf("Pointer location: local=(%d, %d), screen=(%d, %d, %d)\n",
-                                int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen));
-                        return STATUS_OK;
-                    };
 
                     case ws::UIE_CLOSE:
                     {
