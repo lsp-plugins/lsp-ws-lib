@@ -83,7 +83,17 @@ namespace lsp
                 enBorderStyle           = BS_SIZEABLE;
                 nActions                = WA_ALL;
 
+                sMousePos.x             = 0;
+                sMousePos.y             = 0;
                 bzero(&sSavedCursor, sizeof(sSavedCursor));
+
+                for (size_t i=0; i<3; ++i)
+                {
+                    init_event(&vBtnEvent[i].sDown);
+                    init_event(&vBtnEvent[i].sUp);
+                    vBtnEvent[i].sDown.nType    = UIE_UNKNOWN;
+                    vBtnEvent[i].sUp.nType      = UIE_UNKNOWN;
+                }
             }
 
             WinWindow::~WinWindow()
@@ -157,13 +167,30 @@ namespace lsp
                 pDisplay    = NULL;
             }
 
-            void WinWindow::generate_enter_event(timestamp_t ts, const ws::event_t *ev)
+            void WinWindow::process_mouse_event(timestamp_t ts, const ws::event_t *ev)
             {
+                // Mouse is leaing window?
+                if (ev->nType == UIE_MOUSE_OUT)
+                {
+                    // Restore the previous cursor if it was saved
+                    if (sSavedCursor.cbSize == sizeof(sSavedCursor))
+                    {
+                        HCURSOR cursor = pDisplay->translate_cursor(enPointer);
+                        if (cursor != NULL)
+                            SetCursor(sSavedCursor.hCursor);
+                    }
+                    return;
+                }
+
+                // Save current mouse position
+                sMousePos.x         = LONG(ev->nLeft);
+                sMousePos.y         = LONG(ev->nTop);
+
                 if (bMouseInside)
                     return;
 
                 ws::event_t xev     = *ev;
-                xev.nCode           = UIE_MOUSE_IN;
+                xev.nType           = UIE_MOUSE_IN;
                 bMouseInside        = true;
 
                 // Set mouse tracking
@@ -352,7 +379,7 @@ namespace lsp
                         ue.nTop                 = GET_Y_LPARAM(lParam);
                         ue.nState               = decode_mouse_keystate(wParam);
 
-                        generate_enter_event(xts, &ue);
+                        process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -374,7 +401,7 @@ namespace lsp
                         nMouseCapture          |= 1 << ue.nCode;
 
                         lsp_trace("button down: %d", int(ue.nCode));
-                        generate_enter_event(xts, &ue);
+                        process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -395,7 +422,7 @@ namespace lsp
                             ReleaseCapture();
 
                         lsp_trace("button up: %d", int(ue.nCode));
-                        generate_enter_event(xts, &ue);
+                        process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -414,23 +441,18 @@ namespace lsp
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
 
-                        generate_enter_event(xts, &ue);
+                        process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
                     case WM_MOUSELEAVE:
                     {
                         bMouseInside            = false;
-
-                        // Restore the previous cursor if it was saved
-                        if (sSavedCursor.cbSize == sizeof(sSavedCursor))
-                        {
-                            HCURSOR cursor = pDisplay->translate_cursor(enPointer);
-                            if (cursor != NULL)
-                                SetCursor(sSavedCursor.hCursor);
-                        }
-
                         ue.nType                = UIE_MOUSE_OUT;
+                        ue.nLeft                = sMousePos.x;
+                        ue.nTop                 = sMousePos.y;
+
+                        process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -455,9 +477,41 @@ namespace lsp
                 return res;
             }
 
+            bool WinWindow::check_click(const btn_event_t *ev)
+            {
+                if ((ev->sDown.nType != UIE_MOUSE_DOWN) || (ev->sUp.nType != UIE_MOUSE_UP))
+                    return false;
+                if (ev->sDown.nCode != ev->sUp.nCode)
+                    return false;
+
+                UINT delay = GetDoubleClickTime();
+                if ((ev->sUp.nTime < ev->sDown.nTime) || ((ev->sUp.nTime - ev->sDown.nTime) > delay))
+                    return false;
+
+                return (ev->sDown.nLeft == ev->sUp.nLeft) && (ev->sDown.nTop == ev->sUp.nTop);
+            }
+
+            bool WinWindow::check_double_click(const btn_event_t *pe, const btn_event_t *ev)
+            {
+                if (!check_click(pe))
+                    return false;
+
+                if (pe->sDown.nCode != ev->sDown.nCode)
+                    return false;
+                UINT delay = GetDoubleClickTime();
+                if ((ev->sUp.nTime < pe->sUp.nTime) || ((ev->sUp.nTime - pe->sUp.nTime) > delay))
+                    return false;
+
+                return (pe->sUp.nLeft == ev->sUp.nLeft) && (pe->sUp.nTop == ev->sUp.nTop);
+            }
+
             status_t WinWindow::handle_event(const event_t *ev)
             {
                 IEventHandler *handler = pHandler;
+
+                // Generated event
+                event_t gen;
+                init_event(&gen);
 
                 switch (ev->nType)
                 {
@@ -487,13 +541,49 @@ namespace lsp
                         break;
                     }
 
+                    // Simulation of mouse double click and triple click events
+                    case UIE_MOUSE_DOWN:
+                    {
+                        // Shift the buffer and push event
+                        vBtnEvent[0]            = vBtnEvent[1];
+                        vBtnEvent[1]            = vBtnEvent[2];
+                        vBtnEvent[2].sDown      = *ev;
+                        init_event(&vBtnEvent[2].sUp);
+                        break;
+                    }
+
+                    case UIE_MOUSE_UP:
+                    {
+                        // Push event
+                        vBtnEvent[2].sUp        = *ev;
+
+                        // Check that click happened
+                        if (check_click(&vBtnEvent[2]))
+                        {
+                            gen                     = *ev;
+                            gen.nType               = UIE_MOUSE_CLICK;
+
+                            if (check_double_click(&vBtnEvent[1], &vBtnEvent[2]))
+                            {
+                                gen.nType               = UIE_MOUSE_DBL_CLICK;
+                                if (check_double_click(&vBtnEvent[0], &vBtnEvent[1]))
+                                    gen.nType               = UIE_MOUSE_TRI_CLICK;
+                            }
+                        }
+                        break;
+                    }
+
                     default:
                         break;
                 }
 
                 // Pass event to event handler
                 if (handler != NULL)
+                {
                     handler->handle_event(ev);
+                    if (gen.nType != UIE_UNKNOWN)
+                        handler->handle_event(&gen);
+                }
 
                 return STATUS_OK;
             }

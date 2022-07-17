@@ -51,6 +51,13 @@ namespace lsp
                     friend class WinDisplay;
 
                 protected:
+                    typedef struct btn_event_t
+                    {
+                        event_t         sDown;
+                        event_t         sUp;
+                    } btn_event_t;
+
+                protected:
                     WinDisplay         *pDisplay;       // Pointer to the display
                     HWND                hWindow;        // The identifier of the wrapped window
                     HWND                hParent;        // The identifier of parent window
@@ -65,14 +72,18 @@ namespace lsp
                     mouse_pointer_t     enPointer;      // Mouse pointer
                     border_style_t      enBorderStyle;  // Border style of the window
                     size_t              nActions;       // Allowed window actions
+                    POINT               sMousePos;      // Last mouse position for tracking MOUSE_OUT event
                     CURSORINFO          sSavedCursor;   // The saved cursor before the mouse has entered the window
+                    btn_event_t         vBtnEvent[3];
 
                 protected:
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
                     void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
-                    void                generate_enter_event(timestamp_t ts, const ws::event_t *ev);
+                    void                process_mouse_event(timestamp_t ts, const ws::event_t *ev);
                     status_t            commit_border_style(border_style_t bs, size_t wa);
                     bool                has_border() const;
+                    static bool         check_click(const btn_event_t *ev);
+                    static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
