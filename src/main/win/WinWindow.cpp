@@ -1150,53 +1150,99 @@ namespace lsp
                 //lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d", int(wParam), int(lParam), int(ext));
 
                 // Process special case for numpad
-                if (kState[VK_NUMLOCK])
+                bool num = kState[VK_NUMLOCK];
+                switch (wParam)
                 {
-                    switch (wParam)
-                    {
-                        TRK(VK_NUMPAD0, WSK_KEYPAD_0)
-                        TRK(VK_NUMPAD1, WSK_KEYPAD_1)
-                        TRK(VK_NUMPAD2, WSK_KEYPAD_2)
-                        TRK(VK_NUMPAD3, WSK_KEYPAD_3)
-                        TRK(VK_NUMPAD4, WSK_KEYPAD_4)
-                        TRK(VK_NUMPAD5, WSK_KEYPAD_5)
-                        TRK(VK_NUMPAD6, WSK_KEYPAD_6)
-                        TRK(VK_NUMPAD7, WSK_KEYPAD_7)
-                        TRK(VK_NUMPAD8, WSK_KEYPAD_8)
-                        TRK(VK_NUMPAD9, WSK_KEYPAD_9)
-                        TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
-                        TRK(VK_ADD, WSK_KEYPAD_ADD)
-                        TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
-                        TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
-                        TRK(VK_DECIMAL, WSK_KEYPAD_DECIMAL)
-                        TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
-                        default:
-                            break;
-                    }
-                }
-                else
-                {
-                    switch (wParam)
-                    {
-                        TRK(VK_NUMPAD0, WSK_KEYPAD_INSERT)
-                        TRK(VK_NUMPAD1, WSK_KEYPAD_END)
-                        TRK(VK_NUMPAD2, WSK_KEYPAD_DOWN)
-                        TRK(VK_NUMPAD3, WSK_KEYPAD_PAGE_UP)
-                        TRK(VK_NUMPAD4, WSK_KEYPAD_LEFT)
-                        TRK(VK_NUMPAD5, WSK_KEYPAD_BEGIN)
-                        TRK(VK_NUMPAD6, WSK_KEYPAD_RIGHT)
-                        TRK(VK_NUMPAD7, WSK_KEYPAD_HOME)
-                        TRK(VK_NUMPAD8, WSK_KEYPAD_UP)
-                        TRK(VK_NUMPAD9, WSK_KEYPAD_PAGE_UP)
-                        TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
-                        TRK(VK_ADD, WSK_KEYPAD_ADD)
-                        TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
-                        TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
-                        TRK(VK_DECIMAL, WSK_KEYPAD_DELETE)
-                        TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
-                        default:
-                            break;
-                    }
+                    TRK(VK_CANCEL, WSK_BREAK)  // Control-break processing
+
+                    TRK(VK_BACK, WSK_BACKSPACE)
+                    TRK(VK_TAB, WSK_TAB)
+
+                    TRK(VK_CLEAR, WSK_CLEAR)
+                    TRK(VK_RETURN, WSK_RETURN)
+
+                    TRX(VK_SHIFT, ext, WSK_SHIFT_L, WSK_SHIFT_R)
+                    TRX(VK_CONTROL, ext, WSK_CONTROL_L, WSK_CONTROL_R)
+                    TRX(VK_MENU, ext, WSK_ALT_L, WSK_ALT_R)
+
+                    TRK(VK_PAUSE, WSK_PAUSE);
+                    TRK(VK_CAPITAL, WSK_CAPS_LOCK);
+
+                    TRK(VK_ESCAPE, WSK_ESCAPE)
+
+                    TRK(VK_PRIOR, WSK_PAGE_UP)
+                    TRK(VK_NEXT, WSK_PAGE_DOWN)
+                    TRK(VK_END, WSK_END)
+                    TRK(VK_HOME, WSK_HOME)
+                    TRK(VK_LEFT, WSK_LEFT)
+                    TRK(VK_UP, WSK_UP)
+                    TRK(VK_RIGHT, WSK_RIGHT)
+                    TRK(VK_DOWN, WSK_DOWN)
+                    TRK(VK_SELECT, WSK_SELECT)
+                    TRK(VK_PRINT, WSK_PRINT)
+                    TRK(VK_EXECUTE, WSK_EXECUTE)
+                    TRK(VK_SNAPSHOT, WSK_SYS_REQ)
+                    TRK(VK_INSERT, WSK_INSERT)
+                    TRK(VK_DELETE, WSK_DELETE)
+                    TRK(VK_HELP, WSK_HELP)
+
+                    TRK(VK_LWIN, WSK_SUPER_L)
+                    TRK(VK_RWIN, WSK_SUPER_R)
+                    TRK(VK_APPS, WSK_MENU)
+                    TRK(VK_SLEEP, WSK_HYPER_R)  // TODO: check
+
+                    TRK(VK_F1, WSK_F1)
+                    TRK(VK_F2, WSK_F2)
+                    TRK(VK_F3, WSK_F3)
+                    TRK(VK_F4, WSK_F4)
+                    TRK(VK_F5, WSK_F5)
+                    TRK(VK_F6, WSK_F6)
+                    TRK(VK_F7, WSK_F7)
+                    TRK(VK_F8, WSK_F8)
+                    TRK(VK_F9, WSK_F9)
+                    TRK(VK_F10, WSK_F10)
+                    TRK(VK_F11, WSK_F11)
+                    TRK(VK_F12, WSK_F12)
+                    TRK(VK_F13, WSK_F13)
+                    TRK(VK_F14, WSK_F14)
+                    TRK(VK_F15, WSK_F15)
+                    TRK(VK_F16, WSK_F16)
+                    TRK(VK_F17, WSK_F17)
+                    TRK(VK_F18, WSK_F18)
+                    TRK(VK_F19, WSK_F19)
+                    TRK(VK_F20, WSK_F20)
+                    TRK(VK_F21, WSK_F21)
+                    TRK(VK_F22, WSK_F22)
+                    TRK(VK_F23, WSK_F23)
+                    TRK(VK_F24, WSK_F24)
+
+                    TRK(VK_NUMLOCK, WSK_NUM_LOCK)
+                    TRK(VK_SCROLL, WSK_SCROLL_LOCK)
+
+                    TRK(VK_LSHIFT, WSK_SHIFT_L)
+                    TRK(VK_RSHIFT, WSK_SHIFT_R)
+                    TRK(VK_LCONTROL, WSK_CONTROL_L)
+                    TRK(VK_RCONTROL, WSK_CONTROL_R)
+                    TRK(VK_LMENU, WSK_ALT_L)
+
+                    TRX(VK_NUMPAD0, num, WSK_KEYPAD_0, WSK_KEYPAD_INSERT)
+                    TRX(VK_NUMPAD1, num, WSK_KEYPAD_1, WSK_KEYPAD_END)
+                    TRX(VK_NUMPAD2, num, WSK_KEYPAD_2, WSK_KEYPAD_DOWN)
+                    TRX(VK_NUMPAD3, num, WSK_KEYPAD_3, WSK_KEYPAD_PAGE_UP)
+                    TRX(VK_NUMPAD4, num, WSK_KEYPAD_4, WSK_KEYPAD_LEFT)
+                    TRX(VK_NUMPAD5, num, WSK_KEYPAD_5, WSK_KEYPAD_BEGIN)
+                    TRX(VK_NUMPAD6, num, WSK_KEYPAD_6, WSK_KEYPAD_RIGHT)
+                    TRX(VK_NUMPAD7, num, WSK_KEYPAD_7, WSK_KEYPAD_HOME)
+                    TRX(VK_NUMPAD8, num, WSK_KEYPAD_8, WSK_KEYPAD_UP)
+                    TRX(VK_NUMPAD9, num, WSK_KEYPAD_9, WSK_KEYPAD_PAGE_UP)
+                    TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
+                    TRK(VK_ADD, WSK_KEYPAD_ADD)
+                    TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
+                    TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
+                    TRX(VK_DECIMAL, num, WSK_KEYPAD_DECIMAL, WSK_KEYPAD_DELETE)
+                    TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
+                    default:
+                        break;
                 }
 
                 WCHAR buf[4];
@@ -1240,24 +1286,9 @@ namespace lsp
                     IGN(VK_LBUTTON)         // Left mouse button
                     IGN(VK_RBUTTON)         // Right mouse button
 
-                    TRK(VK_CANCEL, WSK_BREAK)  // Control-break processing
-
                     IGN(VK_MBUTTON)         // Middle mouse button
                     IGN(VK_XBUTTON1)        // X1 mouse button
                     IGN(VK_XBUTTON2)        // X2 mouse button
-
-                    TRK(VK_BACK, WSK_BACKSPACE);
-                    TRK(VK_TAB, WSK_TAB);
-
-                    TRK(VK_CLEAR, WSK_CLEAR)
-                    TRK(VK_RETURN, WSK_RETURN)
-
-                    TRX(VK_SHIFT, ext, WSK_SHIFT_L, WSK_SHIFT_R)
-                    TRX(VK_CONTROL, ext, WSK_CONTROL_L, WSK_CONTROL_R)
-                    TRX(VK_MENU, ext, WSK_ALT_L, WSK_ALT_R)
-
-                    TRK(VK_PAUSE, WSK_PAUSE);
-                    TRK(VK_CAPITAL, WSK_CAPS_LOCK);
 
                     // TODO: lookup how to deal with it
                     IGN(VK_KANA| VK_HANGEUL | VK_HANGUL)    // IME Kana mode, IME Hanguel mode (maintained for compatibility; use VK_HANGUL), IME Hangul mode
@@ -1267,87 +1298,11 @@ namespace lsp
                     IGN(VK_HANJA | VK_KANJI)// IME Hanja mode, IME Kanji mode
                     IGN(VK_IME_OFF)         // IME Off
 
-                    TRK(VK_ESCAPE, WSK_ESCAPE)
-
                     // TODO: lookup how to deal with it
                     IGN(VK_CONVERT)         // IME convert
                     IGN(VK_NONCONVERT)      // IME nonconvert
                     IGN(VK_ACCEPT)          // IME accept
                     IGN(VK_MODECHANGE)      // IME mode change request
-
-                    TRK(VK_SPACE, ' ')
-                    TRK(VK_PRIOR, WSK_PAGE_UP)
-                    TRK(VK_NEXT, WSK_PAGE_DOWN)
-                    TRK(VK_END, WSK_END)
-                    TRK(VK_HOME, WSK_HOME)
-                    TRK(VK_LEFT, WSK_LEFT)
-                    TRK(VK_UP, WSK_UP)
-                    TRK(VK_RIGHT, WSK_RIGHT)
-                    TRK(VK_DOWN, WSK_DOWN)
-                    TRK(VK_SELECT, WSK_SELECT)
-                    TRK(VK_PRINT, WSK_PRINT)
-                    TRK(VK_EXECUTE, WSK_EXECUTE)
-                    TRK(VK_SNAPSHOT, WSK_SYS_REQ)
-                    TRK(VK_INSERT, WSK_INSERT)
-                    TRK(VK_DELETE, WSK_DELETE)
-                    TRK(VK_HELP, WSK_HELP)
-
-                    TRK(VK_LWIN, WSK_SUPER_L)
-                    TRK(VK_RWIN, WSK_SUPER_R)
-                    TRK(VK_APPS, WSK_MENU)
-                    TRK(VK_SLEEP, WSK_HYPER_R)  // TODO: check
-
-                    TRK(VK_NUMPAD0, WSK_KEYPAD_0)
-                    TRK(VK_NUMPAD1, WSK_KEYPAD_1)
-                    TRK(VK_NUMPAD2, WSK_KEYPAD_2)
-                    TRK(VK_NUMPAD3, WSK_KEYPAD_3)
-                    TRK(VK_NUMPAD4, WSK_KEYPAD_4)
-                    TRK(VK_NUMPAD5, WSK_KEYPAD_5)
-                    TRK(VK_NUMPAD6, WSK_KEYPAD_6)
-                    TRK(VK_NUMPAD7, WSK_KEYPAD_7)
-                    TRK(VK_NUMPAD8, WSK_KEYPAD_8)
-                    TRK(VK_NUMPAD9, WSK_KEYPAD_9)
-                    TRK(VK_MULTIPLY, WSK_KEYPAD_MULTIPLY)
-                    TRK(VK_ADD, WSK_KEYPAD_ADD)
-                    TRK(VK_SEPARATOR, WSK_KEYPAD_SEPARATOR)
-                    TRK(VK_SUBTRACT, WSK_KEYPAD_SUBTRACT)
-                    TRK(VK_DECIMAL, WSK_KEYPAD_DECIMAL)
-                    TRK(VK_DIVIDE, WSK_KEYPAD_DIVIDE)
-
-                    TRK(VK_F1, WSK_F1)
-                    TRK(VK_F2, WSK_F2)
-                    TRK(VK_F3, WSK_F3)
-                    TRK(VK_F4, WSK_F4)
-                    TRK(VK_F5, WSK_F5)
-                    TRK(VK_F6, WSK_F6)
-                    TRK(VK_F7, WSK_F7)
-                    TRK(VK_F8, WSK_F8)
-                    TRK(VK_F9, WSK_F9)
-                    TRK(VK_F10, WSK_F10)
-                    TRK(VK_F11, WSK_F11)
-                    TRK(VK_F12, WSK_F12)
-                    TRK(VK_F13, WSK_F13)
-                    TRK(VK_F14, WSK_F14)
-                    TRK(VK_F15, WSK_F15)
-                    TRK(VK_F16, WSK_F16)
-                    TRK(VK_F17, WSK_F17)
-                    TRK(VK_F18, WSK_F18)
-                    TRK(VK_F19, WSK_F19)
-                    TRK(VK_F20, WSK_F20)
-                    TRK(VK_F21, WSK_F21)
-                    TRK(VK_F22, WSK_F22)
-                    TRK(VK_F23, WSK_F23)
-                    TRK(VK_F24, WSK_F24)
-
-                    TRK(VK_NUMLOCK, WSK_NUM_LOCK)
-                    TRK(VK_SCROLL, WSK_SCROLL_LOCK)
-
-                    TRK(VK_LSHIFT, WSK_SHIFT_L)
-                    TRK(VK_RSHIFT, WSK_SHIFT_R)
-                    TRK(VK_LCONTROL, WSK_CONTROL_L)
-                    TRK(VK_RCONTROL, WSK_CONTROL_R)
-                    TRK(VK_LMENU, WSK_ALT_L)
-                    TRK(VK_RMENU, WSK_ALT_R)
 
                     // TODO: find out how to deal with it
                     IGN(VK_BROWSER_BACK)        // Browser Back key
