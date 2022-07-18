@@ -791,7 +791,7 @@ namespace lsp
                 WCHAR *tmp = static_cast<WCHAR *>(malloc((length + 1) * sizeof(WCHAR)));
                 if (tmp == NULL)
                     return STATUS_NO_MEM;
-                lsp_finally( free(tmp); );
+                lsp_finally{ free(tmp); };
 
                 if (GetWindowTextW(hWindow, tmp, length + 1) <= 0)
                 {

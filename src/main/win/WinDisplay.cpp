@@ -508,7 +508,7 @@ namespace lsp
                     return STATUS_ALREADY_EXISTS;
                 if ((f = alloc_font(name)) == NULL)
                     return STATUS_NO_MEM;
-                lsp_finally( drop_font(f); );
+                lsp_finally{ drop_font(f); };
 
                 // Dump data to memory stream
                 io::OutMemoryStream os;
@@ -552,7 +552,7 @@ namespace lsp
                 hr = f->family->GetFamilyNames(&names);
                 if ((FAILED(hr)) || (names == NULL))
                     return STATUS_UNKNOWN_ERR;
-                lsp_finally( safe_release(names); );
+                lsp_finally{ safe_release(names); };
 
                 // Enumerate all possible font family names
                 for (size_t j=0, m=names->GetCount(); j<m; ++j)
@@ -702,15 +702,15 @@ namespace lsp
                 HRESULT hr      = pDWriteFactory->GetSystemFontCollection(&fc, FALSE);
                 if (FAILED(hr))
                     return false;
-                lsp_finally( safe_release(fc); );
+                lsp_finally{ safe_release(fc); };
 
                 // Temporary variables to store font family names
                 WCHAR *buf  = NULL;
                 size_t blen = 0;
-                lsp_finally(
+                lsp_finally{
                     if (buf != NULL)
                         free(buf);
-                );
+                };
                 LSPString fname, dfl_name;
 
                 // Update the cache
@@ -723,14 +723,14 @@ namespace lsp
                     hr = fc->GetFontFamily(i, &ff);
                     if ((FAILED(hr)) || (ff == NULL))
                         continue;
-                    lsp_finally( safe_release(ff); );
+                    lsp_finally{ safe_release(ff); };
 
                     // Obtain names of the font family
                     IDWriteLocalizedStrings *fnames = NULL;
                     hr = ff->GetFamilyNames(&fnames);
                     if ((FAILED(hr)) || (fnames == NULL))
                         continue;
-                    lsp_finally( safe_release(fnames); );
+                    lsp_finally{ safe_release(fnames); };
 
                     // Enumerate all possible font family names
                     for (size_t j=0, m=fnames->GetCount(); j<m; ++j)
@@ -805,7 +805,7 @@ namespace lsp
                     HFONT hfont = reinterpret_cast<HFONT>(GetStockObject(id));
                     if (hfont != NULL)
                     {
-                        lsp_finally( DeleteObject(hfont); );
+                        lsp_finally{ DeleteObject(hfont); };
 
                         LOGFONTW lf;
                         ::bzero(&lf, sizeof(lf));
@@ -941,7 +941,7 @@ namespace lsp
                     if ((FAILED(hr)) || (tf == NULL))
                         return NULL;
                 }
-                lsp_finally( safe_release(tf); );
+                lsp_finally{ safe_release(tf); };
 
                 tf->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
                 tf->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
@@ -999,7 +999,7 @@ namespace lsp
                     if ((FAILED(hr)) || (font == NULL))
                         return false;
                 }
-                lsp_finally( safe_release(font); );
+                lsp_finally{ safe_release(font); };
 
                 // Get font metrics
                 font->GetMetrics(metrics);
@@ -1014,7 +1014,7 @@ namespace lsp
                 // Obtain the font family
                 font_t *custom          = NULL;
                 IDWriteFontFamily *ff   = get_font_family(f, NULL, &custom);
-                lsp_finally( safe_release(ff); );
+                lsp_finally{ safe_release(ff); };
 
                 // Try to obtain font metrics, seek for custom settings first
                 bool found = false;
@@ -1051,7 +1051,7 @@ namespace lsp
                 IDWriteTextLayout *tl   = create_text_layout(f, fname, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
-                lsp_finally( safe_release(tl); );
+                lsp_finally{ safe_release(tl); };
 
                 // Get text layout metrics and font metrics
                 DWRITE_TEXT_METRICS tm;
@@ -1079,7 +1079,7 @@ namespace lsp
                 LSPString family_name;
                 font_t *custom          = NULL;
                 IDWriteFontFamily *ff   = get_font_family(f, &family_name, &custom);
-                lsp_finally( safe_release(ff); );
+                lsp_finally{ safe_release(ff); };
 
                 // Process custom font first
                 bool found = false;

@@ -123,7 +123,7 @@ namespace lsp
                     &list);
                 if (FAILED(hr) || (list == NULL))
                     return NULL;
-                lsp_finally( list->Release(); );
+                lsp_finally{ list->Release(); };
 
                 // Create brush
                 if (bLinear)

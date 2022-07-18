@@ -260,13 +260,13 @@ namespace lsp
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Generate geometry for the rounded rectangle
@@ -336,7 +336,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 D2D_RECT_F rect;
                 float hw    = line_width * 0.5f;
@@ -357,7 +357,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 D2D_RECT_F rect;
                 float hw    = line_width * 0.5f;
@@ -418,7 +418,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 D2D_RECT_F rect;
                 rect.left   = left;
@@ -437,7 +437,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 D2D_RECT_F rect;
                 rect.left   = r->nLeft;
@@ -492,19 +492,19 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the sector
@@ -533,13 +533,13 @@ namespace lsp
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the sector
@@ -563,7 +563,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 draw_triangle(brush, x0, y0, x1, y1, x2, y2);
             }
@@ -588,7 +588,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 pDC->FillEllipse(
                     D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
@@ -617,19 +617,19 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the arc
@@ -660,7 +660,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 pDC->DrawLine(
                     D2D1::Point2F(x0, y0),
@@ -690,7 +690,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 if (fabs(a) > fabs(b))
                     pDC->DrawLine(
@@ -712,7 +712,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 if (fabs(a) > fabs(b))
                     pDC->DrawLine(
@@ -742,13 +742,13 @@ namespace lsp
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the sector
@@ -791,13 +791,13 @@ namespace lsp
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the polygon with lines
@@ -822,7 +822,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 draw_polygon(brush, x, y, n, -1.0f);
             }
@@ -847,7 +847,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 draw_polygon(brush, x, y, n, width);
             }
@@ -861,23 +861,23 @@ namespace lsp
                 ID2D1SolidColorBrush *f_brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(fill), &f_brush)))
                     return;
-                lsp_finally( safe_release(f_brush); );
+                lsp_finally{ safe_release(f_brush); };
                 ID2D1SolidColorBrush *w_brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(wire), &w_brush)))
                     return;
-                lsp_finally( safe_release(w_brush); );
+                lsp_finally{ safe_release(w_brush); };
 
                 // Create geometry object
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the polygon with lines
@@ -898,13 +898,13 @@ namespace lsp
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
-                lsp_finally( safe_release(g); );
+                lsp_finally{ safe_release(g); };
 
                 // Create sink
                 ID2D1GeometrySink *s = NULL;
                 if (FAILED(g->Open(&s)))
                     return;
-                lsp_finally( safe_release(s); );
+                lsp_finally{ safe_release(s); };
                 s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
 
                 // Draw the negative arc
@@ -940,7 +940,7 @@ namespace lsp
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 // Draw the frame
                 float fxe = fx + fw, fye = fy + fh, ixe = ix + iw, iye = iy + ih;
@@ -1067,7 +1067,7 @@ namespace lsp
                 ID2D1Layer *layer = NULL;
                 if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
                     return;
-                lsp_finally( safe_release(layer); );
+                lsp_finally{ safe_release(layer); };
 
                 // Apply the layer
                 pDC->PushLayer(
@@ -1135,7 +1135,7 @@ namespace lsp
                 ID2D1Bitmap *bm             = NULL;
                 if (FAILED(sdc->GetBitmap(&bm)))
                     return NULL;
-                lsp_finally( safe_release(bm); );
+                lsp_finally{ safe_release(bm); };
 
                 // Create new render target
                 D2D1_SIZE_F desiredSize = D2D1::SizeF(nWidth, nHeight);
@@ -1185,7 +1185,7 @@ namespace lsp
                 ID2D1Bitmap *bm             = NULL;
                 if (FAILED(dc->GetBitmap(&bm)))
                     return;
-                lsp_finally( safe_release(bm); );
+                lsp_finally{ safe_release(bm); };
 
                 // Draw the bitmap
                 pDC->DrawBitmap(
@@ -1212,7 +1212,7 @@ namespace lsp
                 ID2D1Bitmap *bm             = NULL;
                 if (FAILED(dc->GetBitmap(&bm)))
                     return;
-                lsp_finally( safe_release(bm); );
+                lsp_finally{ safe_release(bm); };
 
                 // Draw the bitmap
                 D2D1_MATRIX_3X2_F m;
@@ -1244,13 +1244,13 @@ namespace lsp
                 ID2D1Bitmap *bm             = NULL;
                 if (FAILED(dc->GetBitmap(&bm)))
                     return;
-                lsp_finally( safe_release(bm); );
+                lsp_finally{ safe_release(bm); };
 
                 // Create the clipping layer
                 ID2D1Layer *layer = NULL;
                 if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
                     return;
-                lsp_finally( safe_release(layer); );
+                lsp_finally{ safe_release(layer); };
 
                 // Apply the clipping layer
                 pDC->PushLayer(
@@ -1287,14 +1287,14 @@ namespace lsp
                     &wic);
                 if ((FAILED(hr)) || (wic == NULL))
                     return;
-                lsp_finally( safe_release(wic); );
+                lsp_finally{ safe_release(wic); };
 
                 // Create ID2D1Bitmap from WIC bitmap
                 ID2D1Bitmap *src = NULL;
                 hr = pDC->CreateBitmapFromWicBitmap(wic, NULL, &src);
                 if ((FAILED(hr)) || (src == NULL))
                     return;
-                lsp_finally( safe_release(src); );
+                lsp_finally{ safe_release(src); };
 
                 // Draw the bitmap
                 pDC->DrawBitmap(
@@ -1332,13 +1332,13 @@ namespace lsp
                 IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
-                lsp_finally( safe_release(tl); );
+                lsp_finally{ safe_release(tl); };
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return false;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 // Draw the text
                 D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
@@ -1377,7 +1377,7 @@ namespace lsp
                 LSPString family_name;
                 WinDisplay::font_t *custom = NULL;
                 IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
-                lsp_finally( safe_release(ff); );
+                lsp_finally{ safe_release(ff); };
 
                 if (custom != NULL)
                 {
@@ -1414,13 +1414,13 @@ namespace lsp
                 IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
-                lsp_finally( safe_release(tl); );
+                lsp_finally{ safe_release(tl); };
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return false;
-                lsp_finally( safe_release(brush); );
+                lsp_finally{ safe_release(brush); };
 
                 // Get text layout metrics and font metrics
                 DWRITE_TEXT_METRICS tm;
@@ -1473,7 +1473,7 @@ namespace lsp
                 LSPString family_name;
                 WinDisplay::font_t *custom = NULL;
                 IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
-                lsp_finally( safe_release(ff); );
+                lsp_finally{ safe_release(ff); };
 
 
                 if (custom != NULL)
