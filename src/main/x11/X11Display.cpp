@@ -166,6 +166,8 @@ namespace lsp
                 sTranslateReq.bSuccess  = false;
 
                 bzero(&sCairoUserDataKey, sizeof(sCairoUserDataKey));
+
+                pEstimation     = NULL;
             }
 
             X11Display::~X11Display()
