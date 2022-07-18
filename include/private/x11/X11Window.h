@@ -108,6 +108,7 @@ namespace lsp
 
                 public:
                     virtual ISurface   *get_surface() override;
+                    virtual status_t    invalidate() override;
 
                     virtual ssize_t     left() override;
                     virtual ssize_t     top() override;
@@ -137,6 +138,7 @@ namespace lsp
 
                     virtual status_t    grab_events(grab_t group) override;
                     virtual status_t    ungrab_events() override;
+                    virtual bool        is_grabbing_events() const override;
 
                     virtual status_t    set_size_constraints(const size_limit_t *c) override;
                     virtual status_t    get_size_constraints(size_limit_t *c) override;

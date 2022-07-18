@@ -340,6 +340,30 @@ namespace lsp
                 return pSurface;
             }
 
+            status_t X11Window::invalidate()
+            {
+                if ((pSurface == NULL) || (hWindow == None))
+                    return STATUS_BAD_STATE;
+
+                XEvent ev;
+                XExposeEvent *ex = &ev.xexpose;
+
+                ex->type        = Expose;
+                ex->serial      = 0;
+                ex->send_event  = True;
+                ex->display     = NULL;
+                ex->window      = hWindow;
+                ex->x           = sSize.nLeft;
+                ex->y           = sSize.nHeight;
+                ex->width       = sSize.nWidth;
+                ex->height      = sSize.nHeight;
+                ex->count       = 0;
+
+                ::XSendEvent(pX11Display->x11display(), hWindow, False, NoEventMask, &ev);
+                pX11Display->flush();
+                return STATUS_OK;
+            }
+
             status_t X11Window::do_update_constraints(bool disable)
             {
                 if (hWindow == 0)
@@ -932,6 +956,7 @@ namespace lsp
             {
                 if (!(nFlags & F_GRABBING))
                     return STATUS_NO_GRAB;
+                nFlags &= ~F_GRABBING;
                 return pX11Display->ungrab_events(this);
             }
 
@@ -943,6 +968,11 @@ namespace lsp
                     nFlags |= F_GRABBING;
                 }
                 return STATUS_OK;
+            }
+
+            bool X11Window::is_grabbing_events() const
+            {
+                return nFlags & F_GRABBING;
             }
 
             status_t X11Window::show(IWindow *over)
@@ -1265,10 +1295,10 @@ namespace lsp
 
                 if (result != Success)
                     return STATUS_UNKNOWN_ERR;
-                lsp_finally(
+                lsp_finally{
                     if (data != NULL)
                         XFree(data);
-                );
+                };
 
                 if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
                 {

@@ -294,7 +294,7 @@ namespace lsp
                     width, height, stride);
                 if (cs == NULL)
                     return;
-                lsp_finally( cairo_surface_destroy(cs); );
+                lsp_finally { cairo_surface_destroy(cs); };
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
@@ -764,8 +764,8 @@ namespace lsp
                             text, -1,
                             &glyphs, &num_glyphs,
                             NULL, NULL, NULL);
+                        lsp_finally{ cairo_glyph_free(glyphs); };
                         cairo_glyph_extents (pCR, glyphs, num_glyphs, &te);
-                        cairo_glyph_free(glyphs);
                     }
                     unset_current_font(&ctx);
                 }

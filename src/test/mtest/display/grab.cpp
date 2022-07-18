@@ -3,7 +3,7 @@
  *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 17 июл. 2022 г.
+ * Created on: 18 июл. 2022 г.
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -24,7 +24,7 @@
 #include <lsp-plug.in/ws/factory.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 
-MTEST_BEGIN("ws.display", events)
+MTEST_BEGIN("ws.display", grab)
 
     class Handler: public ws::IEventHandler
     {
@@ -63,8 +63,24 @@ MTEST_BEGIN("ws.display", events)
                         snprintf(buf, sizeof(buf), " button=%d (0x%d), state=0x%x", int(ev->nCode), int(ev->nCode), int(ev->nState));
                         return log_mouse_event("MOUSE_DOWN", ev, buf);
                     case ws::UIE_MOUSE_UP:
+                    {
                         snprintf(buf, sizeof(buf), " button=%d (0x%d), state=0x%x", int(ev->nCode), int(ev->nCode), int(ev->nState));
-                        return log_mouse_event("MOUSE_UP", ev, buf);
+                        log_mouse_event("MOUSE_UP", ev, buf);
+
+                        if (pWnd->is_grabbing_events())
+                        {
+                            pWnd->ungrab_events();
+                            pTest->printf("Finished event grabbing\n");
+                        }
+                        else
+                        {
+                            pWnd->grab_events(ws::GRAB_MENU);
+                            pTest->printf("Starting event grabbing\n");
+                        }
+                        pWnd->invalidate();
+
+                        return STATUS_OK;
+                    }
                     case ws::UIE_MOUSE_SCROLL:
                         snprintf(buf, sizeof(buf), " direction=%d, state=0x%x", int(ev->nCode), int(ev->nState));
                         return log_mouse_event("MOUSE_SCROLL", ev, buf);
@@ -97,9 +113,12 @@ MTEST_BEGIN("ws.display", events)
                     // Redraw event
                     case ws::UIE_REDRAW:
                     {
-                        pTest->printf("REDRAW\n");
+                        bool grabbing = pWnd->is_grabbing_events();
+                        pTest->printf("REDRAW grabbing=%s\n", (grabbing) ? "true" : "false");
 
-                        Color c(0.0f, 0.5f, 0.75f);
+                        Color c;
+                        c.set_rgb24((grabbing) ? 0xff2222 : 0x0088cc);
+
                         ws::ISurface *s = pWnd->get_surface();
                         if (s == NULL)
                             return STATUS_OK;
@@ -182,6 +201,9 @@ MTEST_BEGIN("ws.display", events)
     }
 
 MTEST_END
+
+
+
 
 
 

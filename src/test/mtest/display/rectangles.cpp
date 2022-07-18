@@ -85,7 +85,7 @@ MTEST_BEGIN("ws.display", rectangles)
                             ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
                             if (g == NULL)
                                 continue;
-                            lsp_finally( delete g; );
+                            lsp_finally { delete g; };
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
                             g->add_color(0.0f, c);
@@ -103,7 +103,7 @@ MTEST_BEGIN("ws.display", rectangles)
                             ws::IGradient *g = s->radial_gradient(8 + 40*i + 16, y + 20, 8 + 40*i + 16, y + 20, 20);
                             if (g == NULL)
                                 continue;
-                            lsp_finally( delete g; );
+                            lsp_finally { delete g; };
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
                             g->add_color(0.0f, c);
@@ -150,7 +150,7 @@ MTEST_BEGIN("ws.display", rectangles)
                             ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
                             if (g == NULL)
                                 continue;
-                            lsp_finally( delete g; );
+                            lsp_finally { delete g; };
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
                             g->add_color(0.0f, c);
@@ -168,7 +168,7 @@ MTEST_BEGIN("ws.display", rectangles)
                             ws::IGradient *g = s->radial_gradient(8 + 40*i, y, 8 + 40*i, y, 48);
                             if (g == NULL)
                                 continue;
-                            lsp_finally( delete g; );
+                            lsp_finally { delete g; };
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
                             g->add_color(0.0f, c);
@@ -208,14 +208,14 @@ MTEST_BEGIN("ws.display", rectangles)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test rectangles") == STATUS_OK);

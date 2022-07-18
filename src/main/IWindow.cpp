@@ -387,6 +387,11 @@ namespace lsp
             return STATUS_NO_GRAB;
         }
 
+        bool IWindow::is_grabbing_events() const
+        {
+            return false;
+        }
+
         status_t IWindow::set_class(const char *instance, const char *wclass)
         {
             return STATUS_OK;
@@ -400,6 +405,11 @@ namespace lsp
         bool IWindow::has_parent() const
         {
             return false;
+        }
+
+        status_t IWindow::invalidate()
+        {
+            return STATUS_NOT_IMPLEMENTED;
         }
     } /* namespace ws */
 } /* namespace lsp */

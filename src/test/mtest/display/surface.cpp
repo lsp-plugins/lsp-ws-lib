@@ -57,10 +57,10 @@ MTEST_BEGIN("ws.display", surface)
                         ws::ISurface *x = s->create(160, 100);
                         if (x != NULL)
                         {
-                            lsp_finally(
+                            lsp_finally {
                                 x->destroy();
                                 delete x;
-                            );
+                            };
 
                             x->begin();
                                 c.set_rgba32(0x8800ccff);
@@ -104,14 +104,14 @@ MTEST_BEGIN("ws.display", surface)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test rectangles") == STATUS_OK);

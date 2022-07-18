@@ -81,6 +81,12 @@ namespace lsp
                  */
                 virtual ISurface *get_surface();
 
+                /**
+                 * Invalidate contents of the window and issue it's redraw.
+                 * @return status of operation
+                 */
+                virtual status_t invalidate();
+
                 /** Get left coordinate of window
                  *
                  * @return value
@@ -392,6 +398,12 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t ungrab_events();
+
+                /**
+                 * Check whether window is currently grabbing events
+                 * @return true if window is currently grabbing events
+                 */
+                virtual bool is_grabbing_events() const;
 
                 /**
                  * Set window class

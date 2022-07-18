@@ -3935,7 +3935,7 @@ namespace lsp
             {
                 // Redirect the request to estimation surface
                 pEstimation->begin();
-                lsp_finally( pEstimation->end(); );
+                lsp_finally{ pEstimation->end(); };
                 return pEstimation->get_font_parameters(f, fp);
             }
 
@@ -3943,7 +3943,7 @@ namespace lsp
             {
                 // Redirect the request to estimation surface
                 pEstimation->begin();
-                lsp_finally( pEstimation->end(); );
+                lsp_finally{ pEstimation->end(); };
                 return pEstimation->get_text_parameters(f, tp, text);
             }
 
@@ -3951,7 +3951,7 @@ namespace lsp
             {
                 // Redirect the request to estimation surface
                 pEstimation->begin();
-                lsp_finally( pEstimation->end(); );
+                lsp_finally{ pEstimation->end(); };
                 return pEstimation->get_text_parameters(f, tp, text, first, last);
             }
 

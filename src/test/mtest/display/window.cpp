@@ -99,7 +99,7 @@ MTEST_BEGIN("ws.display", window)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         // Enumerate list of displays
         printf("List of attached displays:\n");
@@ -120,10 +120,10 @@ MTEST_BEGIN("ws.display", window)
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_mouse_pointer(ws::MP_HAND) == STATUS_OK);
         MTEST_ASSERT(wnd->get_mouse_pointer() == ws::MP_HAND);

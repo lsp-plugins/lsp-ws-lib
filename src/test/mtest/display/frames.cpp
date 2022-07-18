@@ -159,14 +159,14 @@ MTEST_BEGIN("ws.display", frames)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test frames") == STATUS_OK);

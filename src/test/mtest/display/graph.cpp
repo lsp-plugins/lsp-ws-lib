@@ -71,7 +71,7 @@ MTEST_BEGIN("ws.display", graph)
                             ws::IGradient *g = s->linear_gradient(X(0.0f), Y(-1.0f), X(0.0f), Y(1.0f));
                             if (g != NULL)
                             {
-                                lsp_finally( delete g; );
+                                lsp_finally { delete g; };
                                 c.set_rgb24(0x0000ff);
                                 g->add_color(0.0f, c, 0.5f);
                                 g->add_color(1.0f, c, 0.0f);
@@ -85,7 +85,7 @@ MTEST_BEGIN("ws.display", graph)
                             ws::IGradient *g = s->linear_gradient(X(-1.0f), Y(0.0f), X(1.0f), Y(0.0f));
                             if (g != NULL)
                             {
-                                lsp_finally( delete g; );
+                                lsp_finally { delete g; };
                                 c.set_rgb24(0xff0000);
                                 g->add_color(0.0f, c, 0.5f);
                                 g->add_color(1.0f, c, 0.0f);
@@ -126,7 +126,7 @@ MTEST_BEGIN("ws.display", graph)
                             ws::IGradient *g = s->linear_gradient(X(0.0f), Y(0.0f), X(0.5f), Y(-0.25f));
                             if (g != NULL)
                             {
-                                lsp_finally( delete g; );
+                                lsp_finally { delete g; };
                                 c.set_rgb24(0x00ff00);
                                 g->add_color(0.0f, c, 0.0f);
                                 g->add_color(1.0f, c, 0.75f);
@@ -155,12 +155,12 @@ MTEST_BEGIN("ws.display", graph)
                         constexpr size_t N = 200;
                         float *vx = new float[200];
                         float *vy = new float[200];
-                        lsp_finally(
+                        lsp_finally {
                             if (vx != NULL)
                                 delete [] vx;
                             if (vy != NULL)
                                 delete [] vy;
-                        );
+                        };
 
                         // Method 1: fill_poly with solid color
                         {
@@ -253,14 +253,14 @@ MTEST_BEGIN("ws.display", graph)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test graph") == STATUS_OK);

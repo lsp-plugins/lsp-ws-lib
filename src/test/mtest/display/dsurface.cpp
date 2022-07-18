@@ -54,10 +54,10 @@ MTEST_BEGIN("ws.display", dsurface)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
-                        lsp_finally( s->end(); );
+                        lsp_finally{ s->end(); };
 
                         uint32_t *buf = static_cast<uint32_t *>(malloc( 320 * 200 * sizeof(uint32_t)));
-                        lsp_finally( free(buf); );
+                        lsp_finally{ free(buf); };
 
                         for (size_t y=0; y<200; ++y)
                         {
@@ -110,14 +110,14 @@ MTEST_BEGIN("ws.display", dsurface)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test direct surface") == STATUS_OK);

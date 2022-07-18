@@ -116,7 +116,7 @@ MTEST_BEGIN("ws.display", font)
     {
         ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally( ws::lsp_ws_free_display(dpy); );
+        lsp_finally { ws::lsp_ws_free_display(dpy); };
 
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
@@ -125,10 +125,10 @@ MTEST_BEGIN("ws.display", font)
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
-        lsp_finally(
+        lsp_finally {
             wnd->destroy();
             delete wnd;
-        );
+        };
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test font") == STATUS_OK);
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
