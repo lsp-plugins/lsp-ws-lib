@@ -70,6 +70,7 @@ namespace lsp
 
             //-----------------------------------------------------------------
             volatile atomic_t WinDisplay::hLock     = 0;
+            volatile DWORD WinDisplay::nThreadId    = 0;
             WinDisplay  *WinDisplay::pHandlers      = NULL;
             HHOOK WinDisplay::hMouseHook            = NULL;
             HHOOK WinDisplay::hKeyboardHook         = NULL;
@@ -1231,8 +1232,8 @@ namespace lsp
 
             status_t WinDisplay::install_windows_hooks()
             {
-                while (!atomic_cas(&hLock, 0, 1)) {  }
-                lsp_finally { hLock = 0; };
+                lock_handlers();
+                lsp_finally { unlock_handlers(); };
 
                 if (hMouseHook == NULL)
                 {
@@ -1274,8 +1275,8 @@ namespace lsp
 
             status_t WinDisplay::uninstall_windows_hooks()
             {
-                while (!atomic_cas(&hLock, 0, 1)) {  }
-                lsp_finally { hLock = 0; };
+                lock_handlers();
+                lsp_finally { unlock_handlers(); };
 
                 // Remove self from the list
                 for (WinDisplay **dpy = &pHandlers; *dpy != NULL; dpy = &((*dpy)->pNextHandler))
@@ -1305,43 +1306,48 @@ namespace lsp
 
             LRESULT CALLBACK WinDisplay::mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                while (!atomic_cas(&hLock, 0, 1)) {  }
-                HHOOK hook = hMouseHook;
-
-                if (nCode >= 0)
+                HHOOK hook = NULL;
                 {
-                    // Form the list of handlers
-                    lltl::parray<WinDisplay> handlers;
-                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
-                        handlers.add(dpy);
+                    lock_handlers();
+                    lsp_finally { unlock_handlers(); };
+                    hook = hMouseHook;
 
-                    // Process the event
-                    for (size_t i=0, n=handlers.size(); i<n; ++i)
-                        handlers[i]->process_mouse_hook(nCode, wParam, lParam);
+                    if (nCode >= 0)
+                    {
+                        // Form the list of handlers
+                        lltl::parray<WinDisplay> handlers;
+                        for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                            handlers.add(dpy);
+
+                        // Process the event
+                        for (size_t i=0, n=handlers.size(); i<n; ++i)
+                            handlers[i]->process_mouse_hook(nCode, wParam, lParam);
+                    }
                 }
 
-                hLock       = 0;
                 return CallNextHookEx(hook, nCode, wParam, lParam);
             }
 
             LRESULT CALLBACK WinDisplay::keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                while (!atomic_cas(&hLock, 0, 1)) {  }
-                HHOOK hook = hMouseHook;
-
-                if (nCode >= 0)
+                HHOOK hook = NULL;
                 {
-                    // Form the list of handlers
-                    lltl::parray<WinDisplay> handlers;
-                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
-                        handlers.add(dpy);
+                    lock_handlers();
+                    lsp_finally { unlock_handlers(); };
+                    hook = hMouseHook;
 
-                    // Process the event
-                    for (size_t i=0, n=handlers.size(); i<n; ++i)
-                        handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
+                    if (nCode >= 0)
+                    {
+                        // Form the list of handlers
+                        lltl::parray<WinDisplay> handlers;
+                        for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                            handlers.add(dpy);
+
+                        // Process the event
+                        for (size_t i=0, n=handlers.size(); i<n; ++i)
+                            handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
+                    }
                 }
-
-                hLock       = 0;
                 return CallNextHookEx(hook, nCode, wParam, lParam);
             }
 
@@ -1506,6 +1512,50 @@ namespace lsp
                 }
             }
 
+            void WinDisplay::lock_handlers()
+            {
+                // Check that we are already owner of the lock
+                DWORD thread_id = GetCurrentThreadId();
+                if (nThreadId != thread_id)
+                {
+                    // We're not owner of the lock.
+                    // Perform the first lock when it will be available (zero)
+                    while (!atomic_cas(&hLock, 0, 1)) {  }
+
+                    // Lock has been acquired, store us as the new owner
+                    nThreadId   = thread_id;
+                    return;
+                }
+
+                // We are the owners of the lock.
+                // Just increment the counter.
+                while (true)
+                {
+                    atomic_t count = hLock;
+                    if (atomic_cas(&hLock, count, count + 1))
+                        break;
+                }
+            }
+
+            void WinDisplay::unlock_handlers()
+            {
+                // Ensure that our thread is an exclusive owner of the lock
+                DWORD thread_id = GetCurrentThreadId();
+                if (nThreadId != thread_id)
+                    return;
+
+                // Decrement the counter
+                // We are already owner, so we can reset thread identifier
+                // before decrementing the counter
+                while (true)
+                {
+                    atomic_t count = hLock;
+                    if (count == 1)
+                        nThreadId   = 0;
+                    if (atomic_cas(&hLock, count, count - 1))
+                        return;
+                }
+            }
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

@@ -90,6 +90,7 @@ namespace lsp
 
                 protected:
                     static volatile atomic_t    hLock;
+                    static volatile DWORD       nThreadId;
                     static HHOOK                hMouseHook;
                     static HHOOK                hKeyboardHook;
                     static WinDisplay          *pHandlers;
@@ -134,6 +135,8 @@ namespace lsp
                     static WINBOOL CALLBACK     enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam);
                     static LRESULT CALLBACK     mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     static LRESULT CALLBACK     keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
+                    static void                 lock_handlers();
+                    static void                 unlock_handlers();
 
                 public:
                     explicit WinDisplay();
