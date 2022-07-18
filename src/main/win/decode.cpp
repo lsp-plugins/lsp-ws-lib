@@ -86,6 +86,29 @@ namespace lsp
 
                 return result;
             }
+
+            WPARAM encode_mouse_keystate(const BYTE *kState)
+            {
+                WPARAM result = 0;
+
+                if ((kState[VK_CONTROL] | kState[VK_LCONTROL] | kState[VK_RCONTROL]) & 0x80)
+                    result     |= MK_CONTROL;
+                if ((kState[VK_SHIFT] | kState[VK_LSHIFT] | kState[VK_RSHIFT]) & 0x80)
+                    result     |= MK_SHIFT;
+
+                if (kState[VK_LBUTTON] & 0x80)
+                    result     |= MK_LBUTTON;
+                if (kState[VK_MBUTTON] & 0x80)
+                    result     |= MK_MBUTTON;
+                if (kState[VK_RBUTTON] & 0x80)
+                    result     |= MK_RBUTTON;
+                if (kState[VK_XBUTTON1] & 0x80)
+                    result     |= MK_XBUTTON1;
+                if (kState[VK_XBUTTON2] & 0x80)
+                    result     |= MK_XBUTTON2;
+
+                return result;
+            }
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

@@ -954,20 +954,29 @@ namespace lsp
 
             status_t X11Window::ungrab_events()
             {
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
                 if (!(nFlags & F_GRABBING))
                     return STATUS_NO_GRAB;
+
+                status_t res = pX11Display->ungrab_events(this);
                 nFlags &= ~F_GRABBING;
-                return pX11Display->ungrab_events(this);
+                return res;
             }
 
             status_t X11Window::grab_events(grab_t group)
             {
-                if (!(nFlags & F_GRABBING))
-                {
-                    pX11Display->grab_events(this, group);
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
+
+                if (nFlags & F_GRABBING)
+                    return STATUS_OK;
+
+                status_t res = pX11Display->grab_events(this, group);
+                if (res == STATUS_OK)
                     nFlags |= F_GRABBING;
-                }
-                return STATUS_OK;
+
+                return res;
             }
 
             bool X11Window::is_grabbing_events() const

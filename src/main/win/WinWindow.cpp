@@ -37,18 +37,6 @@
 #include <windows.h>
 #include <windowsx.h>
 
-#ifndef WM_MOUSEHWHEEL
-    #define WM_MOUSEHWHEEL 0x020e
-#endif /* WM_MOUSEHWHEEL */
-
-#ifndef VK_IME_ON
-    #define VK_IME_ON       0x16
-#endif /* VK_IME_ON */
-
-#ifndef VK_IME_OFF
-    #define VK_IME_OFF      0x1a
-#endif /* VK_IME_ON */
-
 namespace lsp
 {
     namespace ws
@@ -58,7 +46,7 @@ namespace lsp
             WinWindow::WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper):
                 ws::IWindow(dpy, handler)
             {
-                pDisplay                = dpy;
+                pWinDisplay             = dpy;
                 if (wrapper)
                 {
                     hWindow                 = wnd;
@@ -74,6 +62,7 @@ namespace lsp
                 pOldProc                = reinterpret_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
                 bMouseInside            = false;
+                bGrabbing               = false;
                 nMouseCapture           = 0;
 
                 sSize.nLeft             = 0;
@@ -151,7 +140,7 @@ namespace lsp
                 }
 
                 // Create surface
-                pSurface        = new WinDDSurface(pDisplay, hWindow, sSize.nWidth, sSize.nHeight);
+                pSurface        = new WinDDSurface(pWinDisplay, hWindow, sSize.nWidth, sSize.nHeight);
                 if (pSurface == NULL)
                     return STATUS_NO_MEM;
 
@@ -184,7 +173,7 @@ namespace lsp
                     // Restore the previous cursor if it was saved
                     if (sSavedCursor.cbSize == sizeof(sSavedCursor))
                     {
-                        HCURSOR cursor = pDisplay->translate_cursor(enPointer);
+                        HCURSOR cursor = pWinDisplay->translate_cursor(enPointer);
                         if (cursor != NULL)
                             SetCursor(sSavedCursor.hCursor);
                     }
@@ -196,6 +185,11 @@ namespace lsp
                 sMousePos.y         = LONG(ev->nTop);
 
                 if (bMouseInside)
+                    return;
+                if ((sMousePos.x < 0) ||
+                    (sMousePos.y < 0) ||
+                    (sMousePos.x >= (sSize.nLeft + sSize.nWidth)) ||
+                    (sMousePos.y >= (sSize.nTop  + sSize.nHeight)))
                     return;
 
                 ws::event_t xev     = *ev;
@@ -214,7 +208,7 @@ namespace lsp
                 sSavedCursor.cbSize = sizeof(sSavedCursor);
                 if (GetCursorInfo(&sSavedCursor))
                 {
-                    HCURSOR cursor = pDisplay->translate_cursor(enPointer);
+                    HCURSOR cursor = pWinDisplay->translate_cursor(enPointer);
                     if (cursor != NULL)
                         SetCursor(cursor);
 
@@ -409,7 +403,28 @@ namespace lsp
                             SetCapture(hWindow);
                         nMouseCapture          |= 1 << ue.nCode;
 
-                        lsp_trace("button down: %d", int(ue.nCode));
+                        process_mouse_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+                    case WM_XBUTTONDOWN:
+                    {
+                        ue.nType                = UIE_MOUSE_DOWN;
+                        ue.nCode                = (HIWORD(wParam) == XBUTTON1) ? MCB_BUTTON4 :
+                                                  (HIWORD(wParam) == XBUTTON2) ? MCB_BUTTON5 :
+                                                  MCB_NONE;
+                        if (ue.nCode == MCB_NONE)
+                            break;
+
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nState               = decode_mouse_keystate(wParam);
+
+                        // Set mouse capture
+                        if (!nMouseCapture)
+                            SetCapture(hWindow);
+                        nMouseCapture          |= 1 << ue.nCode;
+
                         process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
@@ -426,15 +441,38 @@ namespace lsp
                         ue.nTop                 = GET_Y_LPARAM(lParam);
                         ue.nState               = decode_mouse_keystate(wParam);
 
+                        // Reset capture if possible
                         nMouseCapture          &= ~(1 << ue.nCode);
                         if (nMouseCapture == 0)
                             ReleaseCapture();
 
-                        lsp_trace("button up: %d", int(ue.nCode));
                         process_mouse_event(xts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
+                    case WM_XBUTTONUP:
+                    {
+                        ue.nType                = UIE_MOUSE_UP;
+                        ue.nCode                = (HIWORD(wParam) == XBUTTON1) ? MCB_BUTTON4 :
+                                                  (HIWORD(wParam) == XBUTTON2) ? MCB_BUTTON5 :
+                                                  MCB_NONE;
+                        if (ue.nCode == MCB_NONE)
+                            break;
+
+                        ue.nLeft                = GET_X_LPARAM(lParam);
+                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nState               = decode_mouse_keystate(wParam);
+
+                        // Reset capture if possible
+                        nMouseCapture          &= ~(1 << ue.nCode);
+                        if (nMouseCapture == 0)
+                            ReleaseCapture();
+
+                        process_mouse_event(xts, &ue);
+                        handle_event(&ue);
+                        return 0;
+                    }
+
                     case WM_MOUSEWHEEL:
                     case WM_MOUSEHWHEEL:
                     {
@@ -621,6 +659,15 @@ namespace lsp
                 return pSurface;
             }
 
+            status_t WinWindow::invalidate()
+            {
+                if ((hWindow == NULL) || (!is_visible()))
+                    return STATUS_BAD_STATE;
+
+                InvalidateRect(hWindow, NULL, FALSE);
+                return STATUS_OK;
+            }
+
             void *WinWindow::handle()
             {
                 return reinterpret_cast<void *>(hWindow);
@@ -670,6 +717,12 @@ namespace lsp
             {
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
+
+                if (bGrabbing)
+                {
+                    pWinDisplay->ungrab_events(this);
+                    bGrabbing = false;
+                }
 
                 ShowWindow(hWindow, SW_HIDE);
                 return STATUS_OK;
@@ -1041,12 +1094,35 @@ namespace lsp
 
             status_t WinWindow::grab_events(grab_t group)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                if (bGrabbing)
+                    return STATUS_OK;
+
+                status_t res = pWinDisplay->grab_events(this, group);
+                if (res == STATUS_OK)
+                    bGrabbing = true;
+
+                return res;
             }
 
             status_t WinWindow::ungrab_events()
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+                if (!bGrabbing)
+                    return STATUS_NO_GRAB;
+
+                status_t res = pWinDisplay->ungrab_events(this);
+                bGrabbing = false;
+
+                return res;
+            }
+
+            bool WinWindow::is_grabbing_events() const
+            {
+                return bGrabbing;
             }
 
             status_t WinWindow::set_icon(const void *bgra, size_t width, size_t height)
@@ -1063,11 +1139,11 @@ namespace lsp
 
                 if ((bMouseInside) && (is_visible()))
                 {
-                    HCURSOR new_c = pDisplay->translate_cursor(pointer);
+                    HCURSOR new_c = pWinDisplay->translate_cursor(pointer);
                     if (new_c == NULL)
                         return STATUS_UNKNOWN_ERR;
 
-                    HCURSOR old_c = pDisplay->translate_cursor(enPointer);
+                    HCURSOR old_c = pWinDisplay->translate_cursor(enPointer);
                     if (old_c != new_c)
                     {
                         if (!SetCursor(new_c))

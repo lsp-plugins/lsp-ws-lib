@@ -48,6 +48,13 @@ namespace lsp
              * @return mask that indicates the pressure of some specific keys
              */
             size_t      decode_kb_keystate(const BYTE *kState);
+
+            /**
+             * Decode keyboard state as it is a mouse event keyboard state
+             * @param kState keyboard state
+             * @return encoded keyboard state
+             */
+            WPARAM      encode_mouse_keystate(const BYTE *kState);
         }
     }
 }

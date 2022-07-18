@@ -28,6 +28,7 @@
 
 #ifdef PLATFORM_WINDOWS
 
+#include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/IDisplay.h>
@@ -36,6 +37,20 @@
 #include <wincodec.h>
 #include <d2d1.h>
 #include <dwrite.h>
+
+//-----------------------------------------------------------------------------
+// Some specific definitions
+#ifndef WM_MOUSEHWHEEL
+    #define WM_MOUSEHWHEEL  0x020e
+#endif /* WM_MOUSEHWHEEL */
+
+#ifndef VK_IME_ON
+    #define VK_IME_ON       0x16
+#endif /* VK_IME_ON */
+
+#ifndef VK_IME_OFF
+    #define VK_IME_OFF      0x1a
+#endif /* VK_IME_ON */
 
 namespace lsp
 {
@@ -74,6 +89,12 @@ namespace lsp
                     typedef lltl::pphash<char, font_t> custom_font_cache_t;
 
                 protected:
+                    static volatile atomic_t    hLock;
+                    static HHOOK                hMouseHook;
+                    static HHOOK                hKeyboardHook;
+                    static WinDisplay          *pHandlers;
+
+                protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
                     ID2D1Factory               *pD2D1Factroy;               // Direct2D factory
                     IWICImagingFactory         *pWICFactory;                // WIC Imaging Factory
@@ -85,6 +106,9 @@ namespace lsp
                     lltl::darray<MonitorInfo>   vMonitors;                  // Monitor information
                     font_cache_t                vFontCache;                 // Font cache
                     custom_font_cache_t         vCustomFonts;               // Custom fonts
+                    WinDisplay                 *pNextHandler;               // Next hook handler in the chain of handlers
+                    lltl::parray<WinWindow>     vGrab[__GRAB_TOTAL];        // Grab queue according to the priority
+                    lltl::parray<WinWindow>     sTargets;                   // Targets for event delivery
 
                 protected:
                     void                        do_destroy();
@@ -99,10 +123,17 @@ namespace lsp
                     static font_t              *alloc_font(const char *name);
                     font_t                     *get_custom_font_collection(const char *name);
                     bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
+                    status_t                    install_windows_hooks();
+                    status_t                    uninstall_windows_hooks();
+                    void                        process_mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
+                    void                        process_keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
+                    bool                        fill_targets();
 
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
                     static WINBOOL CALLBACK     enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam);
+                    static LRESULT CALLBACK     mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
+                    static LRESULT CALLBACK     keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
 
                 public:
                     explicit WinDisplay();
@@ -157,6 +188,9 @@ namespace lsp
                     HCURSOR                     translate_cursor(mouse_pointer_t cursor);
                     inline ID2D1Factory        *d2d_factory()           { return pD2D1Factroy;      }
                     inline IWICImagingFactory  *wic_factory()           { return pWICFactory;       }
+
+                    status_t                    grab_events(WinWindow *wnd, grab_t group);
+                    status_t                    ungrab_events(WinWindow *wnd);
             };
         } /* namespace win */
     } /* namespace ws */

@@ -29,6 +29,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/ws/win/decode.h>
 
 #include <private/win/WinDisplay.h>
 #include <private/win/WinWindow.h>
@@ -51,6 +52,7 @@ namespace lsp
     {
         namespace win
         {
+            //-----------------------------------------------------------------
             const WCHAR *WinDisplay::WINDOW_CLASS_NAME = L"lsp-ws-lib window";
 
             static const BYTE none_cursor_and[] = { 0xff };
@@ -66,6 +68,13 @@ namespace lsp
                     }
                 }
 
+            //-----------------------------------------------------------------
+            volatile atomic_t WinDisplay::hLock     = 0;
+            WinDisplay  *WinDisplay::pHandlers      = NULL;
+            HHOOK WinDisplay::hMouseHook            = NULL;
+            HHOOK WinDisplay::hKeyboardHook         = NULL;
+
+            //-----------------------------------------------------------------
             WinDisplay::WinDisplay():
                 IDisplay()
             {
@@ -80,6 +89,8 @@ namespace lsp
 
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = NULL;
+
+                pNextHandler    = NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -172,6 +183,11 @@ namespace lsp
                 }
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]         = NULL;
+
+                // Destroy grab state
+                for (size_t i=0; i<__GRAB_TOTAL; ++i)
+                    vGrab[i].clear();
+                uninstall_windows_hooks();
 
                 // Destroy monitors
                 drop_monitors(&vMonitors);
@@ -1151,6 +1167,343 @@ namespace lsp
             #undef TRC
 
                 return vCursors[pointer] = res;
+            }
+
+            status_t WinDisplay::grab_events(WinWindow *wnd, grab_t group)
+            {
+                // Check validity of argument
+                if (group >= __GRAB_TOTAL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                // Check that window does not belong to any active grab group
+                size_t count = 0;
+                for (size_t i=0; i<__GRAB_TOTAL; ++i)
+                {
+                    lltl::parray<WinWindow> &g = vGrab[i];
+                    if (g.index_of(wnd) >= 0)
+                    {
+                        lsp_warn("Grab duplicated for window %p (id=%p)", wnd, wnd->hWindow);
+                        return STATUS_DUPLICATED;
+                    }
+                    count   += g.size();
+                }
+
+                // Add a grab
+                if (!vGrab[group].add(wnd))
+                    return STATUS_NO_MEM;
+
+                // Obtain a grab if necessary
+                if (count > 0)
+                    return STATUS_OK;
+
+                lsp_trace("Setting grab for display=%p", this);
+                return install_windows_hooks();
+            }
+
+            status_t WinDisplay::ungrab_events(WinWindow *wnd)
+            {
+                bool found = false;
+
+                // Check that window does belong to any active grab group
+                size_t count = 0;
+                for (size_t i=0; i<__GRAB_TOTAL; ++i)
+                {
+                    lltl::parray<WinWindow> &g = vGrab[i];
+                    if (g.premove(wnd))
+                        found = true;
+                    count      += g.size();
+                }
+
+                // Return error if not found
+                if (!found)
+                {
+                    lsp_trace("No grab found for window %p (%lx)", wnd, long(wnd->hWindow));
+                    return STATUS_NO_GRAB;
+                }
+
+                // Need to release X11 grab?
+                if (count > 0)
+                    return STATUS_OK;
+
+                lsp_trace("Releasing grab for display=%d", this);
+                return uninstall_windows_hooks();
+            }
+
+            status_t WinDisplay::install_windows_hooks()
+            {
+                while (!atomic_cas(&hLock, 0, 1)) {  }
+                lsp_finally { hLock = 0; };
+
+                if (hMouseHook == NULL)
+                {
+                    hMouseHook = SetWindowsHookExW(
+                        WH_MOUSE_LL,
+                        mouse_hook,
+                        NULL,
+                        0);
+                    if (hMouseHook == NULL)
+                    {
+                        lsp_error("Error setting up mouse hook code=%ld", long(GetLastError()));
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                }
+                if (hKeyboardHook == NULL)
+                {
+                    hKeyboardHook = SetWindowsHookExW(
+                        WH_KEYBOARD_LL,
+                        keyboard_hook,
+                        NULL,
+                        0);
+                    if (hKeyboardHook == NULL)
+                    {
+                        lsp_error("Error setting up keyboard hook code=%ld", long(GetLastError()));
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                }
+
+                // Install self to the list
+                for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                    if (dpy == this)
+                        return STATUS_OK;
+
+                pNextHandler    = pHandlers;
+                pHandlers       = this;
+
+                return STATUS_OK;
+            }
+
+            status_t WinDisplay::uninstall_windows_hooks()
+            {
+                while (!atomic_cas(&hLock, 0, 1)) {  }
+                lsp_finally { hLock = 0; };
+
+                // Remove self from the list
+                for (WinDisplay **dpy = &pHandlers; *dpy != NULL; dpy = &((*dpy)->pNextHandler))
+                    if (*dpy == this)
+                    {
+                        *dpy = (*dpy)->pNextHandler;
+                        break;
+                    }
+
+                if (pHandlers != NULL)
+                    return STATUS_OK;
+
+                // Kill hooks
+                if (hMouseHook != NULL)
+                {
+                    UnhookWindowsHookEx(hMouseHook);
+                    hMouseHook      = NULL;
+                }
+                if (hKeyboardHook != NULL)
+                {
+                    UnhookWindowsHookEx(hKeyboardHook);
+                    hKeyboardHook   = NULL;
+                }
+
+                return STATUS_OK;
+            }
+
+            LRESULT CALLBACK WinDisplay::mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
+            {
+                while (!atomic_cas(&hLock, 0, 1)) {  }
+                HHOOK hook = hMouseHook;
+
+                if (nCode >= 0)
+                {
+                    // Form the list of handlers
+                    lltl::parray<WinDisplay> handlers;
+                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                        handlers.add(dpy);
+
+                    // Process the event
+                    for (size_t i=0, n=handlers.size(); i<n; ++i)
+                        handlers[i]->process_mouse_hook(nCode, wParam, lParam);
+                }
+
+                hLock       = 0;
+                return CallNextHookEx(hook, nCode, wParam, lParam);
+            }
+
+            LRESULT CALLBACK WinDisplay::keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
+            {
+                while (!atomic_cas(&hLock, 0, 1)) {  }
+                HHOOK hook = hMouseHook;
+
+                if (nCode >= 0)
+                {
+                    // Form the list of handlers
+                    lltl::parray<WinDisplay> handlers;
+                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                        handlers.add(dpy);
+
+                    // Process the event
+                    for (size_t i=0, n=handlers.size(); i<n; ++i)
+                        handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
+                }
+
+                hLock       = 0;
+                return CallNextHookEx(hook, nCode, wParam, lParam);
+            }
+
+            bool WinDisplay::fill_targets()
+            {
+                // Check if there is grab enabled and obtain list of receivers
+                for (ssize_t i=__GRAB_TOTAL-1; i>=0; --i)
+                {
+                    lltl::parray<WinWindow> &g = vGrab[i];
+                    if (g.size() <= 0)
+                        continue;
+
+                    // Add listeners from grabbing windows
+                    for (size_t j=0; j<g.size();)
+                    {
+                        WinWindow *wnd = g.uget(j);
+                        if (wnd == NULL)
+                        {
+                            g.remove(j);
+                            continue;
+                        }
+                        sTargets.add(wnd);
+                        ++j;
+                    }
+
+                    // Finally, break if there are target windows
+                    if (sTargets.size() > 0)
+                        return true;
+                }
+
+                return false;
+            }
+
+            void WinDisplay::process_mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
+            {
+                /**
+                 * @param nCode A code that the hook procedure uses to determine how to process the message.
+                 *      If nCode is less than zero, the hook procedure must pass the message to the CallNextHookEx
+                 *      function without further processing and should return the value returned by CallNextHookEx.
+                 * @param wParam The identifier of the mouse message. This parameter can be one of the following messages:
+                 *      WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_RBUTTONDOWN, or WM_RBUTTONUP
+                 * @param lParam A pointer to a MSLLHOOKSTRUCT structure.
+                 */
+                lsp_trace("mouse_hook");
+
+                if (nCode != HC_ACTION)
+                    return;
+
+                // Preprocess the message
+                BYTE kState[256];
+                if (!GetKeyboardState(kState))
+                    return;
+
+                UINT uMsg   = wParam;
+                const MSLLHOOKSTRUCT *mou = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
+                wParam      = encode_mouse_keystate(kState);
+
+                switch (uMsg)
+                {
+                    case WM_LBUTTONDOWN:
+                    case WM_MBUTTONDOWN:
+                    case WM_RBUTTONDOWN:
+                    case WM_LBUTTONUP:
+                    case WM_MBUTTONUP:
+                    case WM_RBUTTONUP:
+                    case WM_MOUSEMOVE:
+                        break;
+
+                    case WM_XBUTTONDOWN:
+                    case WM_XBUTTONUP:
+                        /**
+                         * @param mouseData If the message is WM_XBUTTONDOWN, WM_XBUTTONUP, the high-order word specifies
+                         * which X button was pressed or released, and the low-order word is reserved.
+                         */
+                        wParam |= (HIWORD(mou->mouseData)) << 16;
+                        break;
+
+                    case WM_MOUSEWHEEL:
+                    case WM_MOUSEHWHEEL:
+                        //! @param mouseData: If the message is WM_MOUSEWHEEL, the high-order word of this member is the wheel delta.
+                        //! The low-order word is reserved. A positive value indicates that the wheel was rotated forward, away
+                        //! from the user; a negative value indicates that the wheel was rotated backward, toward the user. One
+                        //! wheel click is defined as WHEEL_DELTA, which is 120.
+                        wParam |= (HIWORD(mou->mouseData)) << 16;
+                        break;
+                    default:
+                        return;
+                }
+
+                // Form list of targets
+                lsp_finally { sTargets.clear(); };
+                if (!fill_targets())
+                    return;
+
+                 // Notify all targets
+                for (size_t i=0, n=sTargets.size(); i<n; ++i)
+                {
+                    WinWindow *wnd = sTargets.uget(i);
+                    if ((wnd == NULL) || (wnd->hWindow == NULL))
+                        continue;
+
+                    /**
+                     * @param pt The x- and y-coordinates of the cursor, in per-monitor-aware screen coordinates.
+                     */
+                    POINT pt    = mou->pt;
+                    if (!ScreenToClient(wnd->hWindow, &pt))
+                        continue;
+                    lParam      = MAKELONG(pt.x, pt.y);
+
+                    wnd->process_event(uMsg, wParam, lParam);
+                }
+            }
+
+            void WinDisplay::process_keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
+            {
+                lsp_trace("keyboard_hook");
+
+                /**
+                 * @param nCode A code that the hook procedure uses to determine how to process the message.
+                 *      If nCode is less than zero, the hook procedure must pass the message to the CallNextHookEx
+                 *      function without further processing and should return the value returned by CallNextHookEx.
+                 * @param wParam The identifier of the keyboard message. This parameter can be one of the following
+                 *      messages: WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, or WM_SYSKEYUP.
+                 * @param lParam A pointer to a KBDLLHOOKSTRUCT structure.
+                 */
+                if (nCode != HC_ACTION)
+                    return;
+
+                // Preprocess parameters
+                UINT uMsg = wParam;
+                const KBDLLHOOKSTRUCT *kbd = reinterpret_cast<KBDLLHOOKSTRUCT *>(lParam);
+
+                switch (uMsg)
+                {
+                    case WM_KEYDOWN:
+                    case WM_KEYUP:
+                    case WM_SYSKEYDOWN:
+                    case WM_SYSKEYUP:
+                        break;
+                    default:
+                        return;
+                }
+
+                wParam  = kbd->vkCode;
+                lParam  = 1; // Repeat count
+                lParam |= ((kbd->scanCode & 0xff) << 16); // scan code
+                lParam |= (kbd->flags & LLKHF_EXTENDED) ? (1 << 24) : 0; // the extended key flag
+                lParam |= (kbd->flags & LLKHF_ALTDOWN) ? (1 << 29) : 0; // the context code
+                lParam |= (kbd->flags & LLKHF_UP) ? (1 << 31) : 0; // the transition state
+
+                // Form list of targets
+                lsp_finally { sTargets.clear(); };
+                if (!fill_targets())
+                    return;
+
+                // Notify all targets
+                for (size_t i=0, n=sTargets.size(); i<n; ++i)
+                {
+                    WinWindow *wnd = sTargets.uget(i);
+                    if (wnd != NULL)
+                        wnd->process_event(uMsg, wParam, lParam);
+                }
             }
 
         } /* namespace win */

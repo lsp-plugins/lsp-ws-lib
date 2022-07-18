@@ -73,7 +73,7 @@ namespace lsp
                     } x_keystate_t;
 
                 protected:
-                    WinDisplay         *pDisplay;       // Pointer to the display
+                    WinDisplay         *pWinDisplay;    // Pointer to the display
                     HWND                hWindow;        // The identifier of the wrapped window
                     HWND                hParent;        // The identifier of parent window
                     WinDDSurface       *pSurface;       // Drawing surface
@@ -81,6 +81,7 @@ namespace lsp
                     WNDPROC             pOldProc;       // Old window procedure (if present)
                     bool                bWrapper;       // Indicates that window is a wrapper
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
+                    bool                bGrabbing;      // Grabbing mouse and keyboard events
                     size_t              nMouseCapture;  // Flag for capturing mouse
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints
@@ -110,6 +111,7 @@ namespace lsp
 
                 public:
                     virtual ISurface   *get_surface() override;
+                    virtual status_t    invalidate() override;
                     virtual void       *handle() override;
 
                     virtual ssize_t     left() override;
@@ -149,6 +151,7 @@ namespace lsp
 
                     virtual status_t    grab_events(grab_t group) override;
                     virtual status_t    ungrab_events() override;
+                    virtual bool        is_grabbing_events() const override;
 
                     virtual status_t    take_focus() override;
 

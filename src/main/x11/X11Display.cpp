@@ -280,13 +280,13 @@ namespace lsp
             int X11Display::x11_error_handler(Display *dpy, XErrorEvent *ev)
             {
                 while (!atomic_cas(&hLock, 0, 1)) { /* Wait */ }
+                lsp_finally { hLock = 0; };
 
                 // Dispatch errors between Displays
                 for (X11Display *dp = pHandlers; dp != NULL; dp = dp->pNextHandler)
                     if (dp->pDisplay == dpy)
                         dp->handle_error(ev);
 
-                hLock   = 0;
                 return 0;
             }
 
@@ -1837,7 +1837,7 @@ namespace lsp
                     event_t se          = ue;
 
                     // Clear the collection
-                    sTargets.clear();
+                    lsp_finally { sTargets.clear(); }
 
                     switch (se.nType)
                     {
@@ -1862,16 +1862,16 @@ namespace lsp
                                     continue;
 
                                 // Add listeners from grabbing windows
-                                for (size_t i=0; i<g.size();)
+                                for (size_t j=0; j<g.size();)
                                 {
-                                    X11Window *wnd = g.uget(i);
+                                    X11Window *wnd = g.uget(j);
                                     if ((wnd == NULL) || (vWindows.index_of(wnd) < 0))
                                     {
                                         g.remove(i);
                                         continue;
                                     }
                                     sTargets.add(wnd);
-                                    ++i;
+                                    ++j;
                                 }
 
                                 // Finally, break if there are target windows
