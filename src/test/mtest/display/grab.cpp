@@ -188,7 +188,7 @@ MTEST_BEGIN("ws.display", grab)
             delete wnd;
         };
         MTEST_ASSERT(wnd->init() == STATUS_OK);
-        MTEST_ASSERT(wnd->set_caption("Test events") == STATUS_OK);
+        MTEST_ASSERT(wnd->set_caption("Test grab") == STATUS_OK);
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_ALL) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);

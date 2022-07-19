@@ -1837,7 +1837,7 @@ namespace lsp
                     event_t se          = ue;
 
                     // Clear the collection
-                    lsp_finally { sTargets.clear(); }
+                    lsp_finally { sTargets.clear(); };
 
                     switch (se.nType)
                     {
