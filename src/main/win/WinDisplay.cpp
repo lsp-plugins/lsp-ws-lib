@@ -53,8 +53,6 @@ namespace lsp
         namespace win
         {
             //-----------------------------------------------------------------
-            const WCHAR *WinDisplay::WINDOW_CLASS_NAME = L"lsp-ws-lib window";
-
             static const BYTE none_cursor_and[] = { 0xff };
             static const BYTE none_cursor_xor[] = { 0 };
 
@@ -68,12 +66,35 @@ namespace lsp
                     }
                 }
 
+            static const char * const unicode_mimes[] =
+            {
+                "UTF8_STRING",
+                "text/plain;charset=utf-8",
+                "text/plain;charset=UTF-16LE",
+                "text/plain;charset=UTF-16BE",
+                NULL
+            };
+
+            static const char * const ansi_mimes[] =
+            {
+                "text/plain;charset=US-ASCII",
+                NULL
+            };
+
+            static const char * const oem_mimes[] =
+            {
+                "text/plain",
+                NULL
+            };
+
             //-----------------------------------------------------------------
-            volatile atomic_t WinDisplay::hLock     = 0;
-            volatile DWORD WinDisplay::nThreadId    = 0;
-            WinDisplay  *WinDisplay::pHandlers      = NULL;
-            HHOOK WinDisplay::hMouseHook            = NULL;
-            HHOOK WinDisplay::hKeyboardHook         = NULL;
+            const WCHAR *WinDisplay::WINDOW_CLASS_NAME      = L"lsp-ws-lib window";
+            const WCHAR *WinDisplay::CLIPBOARD_CLASS_NAME   = L"lsp-ws-lib clipboard window";
+            volatile atomic_t WinDisplay::hLock             = 0;
+            volatile DWORD WinDisplay::nThreadId            = 0;
+            WinDisplay  *WinDisplay::pHandlers              = NULL;
+            HHOOK WinDisplay::hMouseHook                    = NULL;
+            HHOOK WinDisplay::hKeyboardHook                 = NULL;
 
             //-----------------------------------------------------------------
             WinDisplay::WinDisplay():
@@ -84,6 +105,7 @@ namespace lsp
                 pWICFactory     = NULL;
                 pDWriteFactory  = NULL;
                 hWindowClass    = 0;
+                hClipClass      = 0;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -92,6 +114,8 @@ namespace lsp
                     vCursors[i]     = NULL;
 
                 pNextHandler    = NULL;
+                hClipWnd        = NULL;
+                pClipData       = NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -102,6 +126,7 @@ namespace lsp
             status_t WinDisplay::init(int argc, const char **argv)
             {
                 HRESULT hr;
+                WNDCLASSW wc;
 
                 hr = CoInitialize(NULL);
                 if (FAILED(hr))
@@ -109,7 +134,7 @@ namespace lsp
 
                 bExit           = false;
 
-                WNDCLASSW wc;
+                // Register window class
                 bzero(&wc, sizeof(wc));
 
                 wc.lpfnWndProc   = window_proc;
@@ -119,6 +144,19 @@ namespace lsp
                 if (!(hWindowClass = RegisterClassW(&wc)))
                 {
                     lsp_error("Error registering window class: %ld", long(GetLastError));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
+                // Register clipboard window class
+                bzero(&wc, sizeof(wc));
+
+                wc.lpfnWndProc   = clipboard_proc;
+                wc.hInstance     = GetModuleHandleW(NULL);
+                wc.lpszClassName = CLIPBOARD_CLASS_NAME;
+
+                if (!(hClipClass = RegisterClassW(&wc)))
+                {
+                    lsp_error("Error registering clipboard window class: %ld", long(GetLastError));
                     return STATUS_UNKNOWN_ERR;
                 }
 
@@ -164,16 +202,48 @@ namespace lsp
                 }
                 lsp_debug("Default font family: %s", sDflFontFamily.get_native());
 
+                // Create invisible clipboard window
+                hClipWnd = CreateWindowExW(
+                        0,                              // dwExStyle
+                        WinDisplay::WINDOW_CLASS_NAME,  // lpClassName
+                        L"Clipboard",                   // lpWindowName
+                        WS_OVERLAPPEDWINDOW,            // dwStyle
+                        0,                              // X
+                        0,                              // Y
+                        1,                              // nWidth
+                        1,                              // nHeight
+                        NULL,                           // hWndParent
+                        NULL,                           // hMenu
+                        GetModuleHandleW(NULL),         // hInstance
+                        this);                          // lpCreateParam
+                if (hClipWnd == NULL)
+                {
+                    lsp_error("Error creating clipboard window: %ld", long(GetLastError()));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
                 return STATUS_OK;
             }
 
             void WinDisplay::do_destroy()
             {
-                // Deregister window class
+                // Destroy clipboard window
+                if (hClipWnd != NULL)
+                {
+                    DestroyWindow(hClipWnd);
+                    hClipWnd            = NULL;
+                }
+
+                // Unregister window classes
                 if (hWindowClass != 0)
                 {
                     UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
                     hWindowClass    = 0;
+                }
+                if (hClipClass != 0)
+                {
+                    UnregisterClassW(CLIPBOARD_CLASS_NAME, GetModuleHandleW(NULL));
+                    hClipClass    = 0;
                 }
 
                 // Destroy cursors
@@ -199,6 +269,9 @@ namespace lsp
                 safe_release( pDWriteFactory );
                 safe_release( pWICFactory );
                 safe_release( pD2D1Factroy );
+
+                // Release clipboard data
+                destroy_clipboard();
             }
 
             void WinDisplay::destroy()
@@ -487,16 +560,6 @@ namespace lsp
                     *count      = vMonitors.size();
 
                 return vMonitors.array();
-            }
-
-            status_t WinDisplay::set_clipboard(size_t id, IDataSource *ds)
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t WinDisplay::get_clipboard(size_t id, IDataSink *dst)
-            {
-                return STATUS_NOT_IMPLEMENTED;
             }
 
             const char * const *WinDisplay::get_drag_ctypes()
@@ -1610,6 +1673,318 @@ namespace lsp
                 }
                 return false;
             }
+
+            bool WinDisplay::has_mime_types(const char * const * src_list, const char * const * check)
+            {
+                for( ; (src_list != NULL) && (*src_list != NULL); ++src_list)
+                {
+                    for (const char * const * ck = check; (ck != NULL) && (*ck != NULL); ++ck)
+                        if (!strcasecmp(*src_list, *ck))
+                            return true;
+                }
+                return false;
+            }
+
+            LRESULT CALLBACK WinDisplay::clipboard_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+            {
+                WinDisplay *dpy = reinterpret_cast<WinDisplay *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+
+                switch (uMsg)
+                {
+                    case WM_CREATE:
+                    {
+                        CREATESTRUCTW *create = reinterpret_cast<CREATESTRUCTW *>(lParam);
+                        dpy = reinterpret_cast<WinDisplay *>(create->lpCreateParams);
+                        if (dpy != NULL)
+                            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dpy));
+                        break;
+                    }
+                    case WM_RENDERFORMAT:
+                    {
+                        // wParam - The clipboard format to be rendered.
+                        lsp_trace("WM_RENDERFORMAT fmt=%d", int(wParam));
+                        dpy->render_clipboard_format(wParam);
+                        break;
+                    }
+                    case WM_RENDERALLFORMATS:
+                    {
+                        lsp_trace("WM_RENDERALLFORMATS");
+                        if (!OpenClipboard(dpy->hClipWnd))
+                            return 0;
+                        lsp_finally{ CloseClipboard(); };
+                        if (GetClipboardOwner() != dpy->hClipWnd)
+                            return 0;
+
+                        // Render each format
+                        UINT fmt = 0;
+                        while (true)
+                        {
+                            fmt = EnumClipboardFormats(fmt);
+                            if (fmt == 0)
+                                break;
+                            dpy->render_clipboard_format(fmt);
+                        }
+
+                        break;
+                    }
+                    case WM_DESTROYCLIPBOARD:
+                    {
+                        dpy->destroy_clipboard();
+                        return 0;
+                    }
+                    default:
+                        break;
+                }
+
+                return DefWindowProc(hwnd, uMsg, wParam, lParam);
+            }
+
+            void WinDisplay::destroy_clipboard()
+            {
+                // Release clipboard data
+                if (pClipData != NULL)
+                {
+                    pClipData->release();
+                    pClipData = NULL;
+                }
+
+                // Free previously allocated clipboard memory
+                for (size_t i=0, n=vClipMemory.size(); i<n; ++i)
+                {
+                    HGLOBAL data = vClipMemory.uget(i);
+                    if (data != NULL)
+                        GlobalFree(data);
+                }
+                vClipMemory.clear();
+            }
+
+            void *WinDisplay::clipboard_global_alloc(const void *src, size_t bytes)
+            {
+                if (src == NULL)
+                    return NULL;
+
+                // Allocate the memory region and copy data
+                HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                if (g == NULL)
+                    return NULL;
+
+                void *ptr = GlobalLock(g);
+                if (ptr == NULL)
+                {
+                    GlobalFree(g);
+                    return NULL;
+                }
+
+                memcpy(ptr, src, bytes);
+                GlobalUnlock(g);
+
+                // Register the memory region
+                if (vClipMemory.add(g))
+                    return g;
+
+                // Something went wrong
+                GlobalFree(g);
+                return NULL;
+            }
+
+            status_t WinDisplay::set_clipboard(size_t id, IDataSource *ds)
+            {
+                // Check arguments
+                if ((id < 0) || (id >= _CBUF_TOTAL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                // Release previous clipboard handler
+                if (pClipData != NULL)
+                {
+                    pClipData->release();
+                    pClipData = NULL;
+                }
+
+                // Work with the clipboard
+                if (!OpenClipboard(hClipWnd))
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally{ CloseClipboard(); };
+
+                // Empty clipboard if there is no replacement and return
+                if (ds == NULL)
+                {
+                    EmptyClipboard();
+                    return STATUS_OK;
+                }
+
+                // Save pointer to clipboard data
+                ds->acquire();
+                pClipData = ds;
+
+                // Now we need to register different clipboard formats
+                const char * const * mimes = ds->mime_types();
+                if (has_mime_types(mimes, unicode_mimes))
+                    SetClipboardData(CF_UNICODETEXT, NULL);
+                if (has_mime_types(mimes, oem_mimes))
+                    SetClipboardData(CF_OEMTEXT, NULL);
+                if (has_mime_types(mimes, ansi_mimes))
+                    SetClipboardData(CF_TEXT, NULL);
+
+                // Register custom clipboard formats
+                LSPString tmp;
+                for( ; (mimes != NULL) && (*mimes != NULL); ++mimes)
+                {
+                    if (!tmp.set_utf8(*mimes))
+                        continue;
+                    const WCHAR *name = tmp.get_utf16();
+                    if (name == NULL)
+                        continue;
+
+                    UINT fmt = RegisterClipboardFormatW(name);
+                    if (fmt != 0)
+                        SetClipboardData(fmt, NULL);
+                }
+
+                return STATUS_OK;
+            }
+
+            void WinDisplay::render_clipboard_format(UINT fmt)
+            {
+                if (pClipData == NULL)
+                    return;
+                pClipData->acquire();
+                lsp_finally { pClipData->release(); };
+
+                void *ptr   = NULL;
+                if (fmt == CF_UNICODETEXT)
+                    ptr         = make_clipboard_utf16_text();
+                else if (fmt == CF_OEMTEXT)
+                    ptr         = make_clipboard_native_text();
+                else if (fmt == CF_TEXT)
+                    ptr         = make_clipboard_ascii_text();
+                else
+                {
+                    LSPString tmp;
+                    WCHAR format_name[128];
+
+                    int format_len = GetClipboardFormatNameW(fmt, format_name, sizeof(format_name)/sizeof(WCHAR));
+                    if (format_len <= 0)
+                        return;
+                    if (!tmp.set_utf16(format_name, format_len))
+                        return;
+
+                    ptr         = make_clipboard_custom_format(tmp.get_utf8());
+                }
+
+                if (ptr != NULL)
+                    SetClipboardData(fmt, ptr);
+            }
+
+            wssize_t WinDisplay::read_clipboard_blob(io::IOutStream *os, const char *format)
+            {
+                io::IInStream *is = pClipData->open(oem_mimes[0]);
+                if (is == NULL)
+                    return -STATUS_NOT_SUPPORTED;
+                lsp_finally{
+                    is->close();
+                    delete is;
+                };
+                return is->sink(os);
+            }
+
+            void *WinDisplay::make_clipboard_utf16_text()
+            {
+                io::OutMemoryStream os;
+                LSPString tmp;
+
+                for (size_t index = 0; unicode_mimes[index] != NULL; ++index)
+                {
+                    os.clear();
+                    wssize_t res = read_clipboard_blob(&os, oem_mimes[0]);
+                    if (res < 0)
+                        continue;
+
+                    bool ok = false;
+                    switch (index)
+                    {
+                        case 0:
+                        case 1:
+                            ok = tmp.set_utf8(reinterpret_cast<const char *>(os.data()), size_t(res));
+                            break;
+                        case 2: // UTF-16LE
+                            ok = __IF_LEBE(
+                                tmp.set_utf16(reinterpret_cast<const lsp_utf16_t *>(os.data()), size_t(res / sizeof(lsp_utf16_t))),
+                                tmp.set_native(reinterpret_cast<const char *>(os.data()), size_t(res), "UTF16-LE")
+                            );
+                            break;
+                        case 3: // UTF-16BE
+                            ok = __IF_LEBE(
+                                tmp.set_native(reinterpret_cast<const char *>(os.data()), size_t(res), "UTF16-BE"),
+                                tmp.set_utf16(reinterpret_cast<const lsp_utf16_t *>(os.data()), size_t(res / sizeof(lsp_utf16_t)))
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                    if (!ok)
+                        continue;
+
+                    // TODO:
+                    // tmp.to_crlf();
+                    const lsp_utf16_t *data = tmp.get_utf16();
+                    return clipboard_global_alloc(data, tmp.temporal_size());
+                }
+
+                return NULL;
+            }
+
+            void *WinDisplay::make_clipboard_native_text()
+            {
+                io::OutMemoryStream os;
+                wssize_t res = read_clipboard_blob(&os, oem_mimes[0]);
+                if (res < 0)
+                    return NULL;
+
+                LSPString tmp;
+                if (!tmp.set_native(reinterpret_cast<const char *>(os.data()), size_t(res)))
+                    return NULL;
+
+                // TODO:
+                // tmp.to_crlf();
+                const char *data = tmp.get_native();
+                return clipboard_global_alloc(data, tmp.temporal_size());
+            }
+
+            void *WinDisplay::make_clipboard_ascii_text()
+            {
+                io::OutMemoryStream os;
+                wssize_t res = read_clipboard_blob(&os, ansi_mimes[0]);
+                if (res < 0)
+                    return NULL;
+
+                LSPString tmp;
+                if (!tmp.set_ascii(reinterpret_cast<const char *>(os.data()), size_t(res)))
+                    return NULL;
+
+                // TODO:
+                // tmp.to_crlf();
+                const char *data = tmp.get_ascii();
+                return clipboard_global_alloc(data, tmp.temporal_size());
+            }
+
+            void *WinDisplay::make_clipboard_custom_format(const char *name)
+            {
+                io::OutMemoryStream os;
+                wssize_t res = read_clipboard_blob(&os, ansi_mimes[0]);
+                return (res >= 0) ? clipboard_global_alloc(os.data(), res) : NULL;
+            }
+
+            status_t WinDisplay::get_clipboard(size_t id, IDataSink *dst)
+            {
+                dst->acquire();
+                lsp_finally { dst->release(); };
+
+
+
+                return STATUS_NOT_IMPLEMENTED;
+            }
+
+
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

@@ -29,6 +29,7 @@
 #ifdef PLATFORM_WINDOWS
 
 #include <lsp-plug.in/common/atomic.h>
+#include <lsp-plug.in/io/IOutStream.h>
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/IDisplay.h>
@@ -69,6 +70,7 @@ namespace lsp
 
                 public:
                     static const WCHAR         *WINDOW_CLASS_NAME;
+                    static const WCHAR         *CLIPBOARD_CLASS_NAME;
 
                 protected:
                     typedef struct font_t
@@ -101,6 +103,7 @@ namespace lsp
                     IWICImagingFactory         *pWICFactory;                // WIC Imaging Factory
                     IDWriteFactory             *pDWriteFactory;             // DirectWrite Factory for text
                     ATOM                        hWindowClass;               // Window class
+                    ATOM                        hClipClass;                 // Window class for the clipboard
                     LSPString                   sDflFontFamily;             // Default font family name
                     MSG                         sPendingMessage;            // Currently pending message
                     HCURSOR                     vCursors[__MP_COUNT];       // Cursor handles (cached)
@@ -110,11 +113,15 @@ namespace lsp
                     WinDisplay                 *pNextHandler;               // Next hook handler in the chain of handlers
                     lltl::parray<WinWindow>     vGrab[__GRAB_TOTAL];        // Grab queue according to the priority
                     lltl::parray<WinWindow>     sTargets;                   // Targets for event delivery
+                    HWND                        hClipWnd;                   // Clipboard window
+                    IDataSource                *pClipData;                  // Data source for clipboard
+                    lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard
 
                 protected:
                     void                        do_destroy();
                     status_t                    do_main_iteration(timestamp_t ts);
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
+
                     IDWriteTextLayout          *create_text_layout(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
                     IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name, font_t **custom);
                     bool                        get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics);
@@ -124,20 +131,32 @@ namespace lsp
                     static font_t              *alloc_font(const char *name);
                     font_t                     *get_custom_font_collection(const char *name);
                     bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
+
                     status_t                    install_windows_hooks();
                     status_t                    uninstall_windows_hooks();
                     void                        process_mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     void                        process_keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     bool                        fill_targets();
 
+                    void                        destroy_clipboard();
+                    void                        render_clipboard_format(UINT fmt);
+                    wssize_t                    read_clipboard_blob(io::IOutStream *os, const char *format);
+                    void                       *make_clipboard_utf16_text();
+                    void                       *make_clipboard_native_text();
+                    void                       *make_clipboard_ascii_text();
+                    void                       *make_clipboard_custom_format(const char *name);
+                    void                       *clipboard_global_alloc(const void *src, size_t bytes);
+
                 protected:
                     static LRESULT CALLBACK     window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+                    static LRESULT CALLBACK     clipboard_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
                     static WINBOOL CALLBACK     enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam);
                     static LRESULT CALLBACK     mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     static LRESULT CALLBACK     keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     static void                 lock_handlers();
                     static void                 unlock_handlers();
                     static bool                 is_hookable_event(UINT uMsg);
+                    static bool                 has_mime_types(const char * const * src_list, const char * const * check);
 
                 public:
                     explicit WinDisplay();
