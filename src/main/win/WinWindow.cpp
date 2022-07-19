@@ -237,15 +237,23 @@ namespace lsp
                 sMousePos.x         = LONG(ev->nLeft);
                 sMousePos.y         = LONG(ev->nTop);
 
-                if ((sMousePos.x < 0) ||
-                    (sMousePos.y < 0) ||
-                    (sMousePos.x >= (sSize.nLeft + sSize.nWidth)) ||
-                    (sMousePos.y >= (sSize.nTop  + sSize.nHeight)))
+                RECT rect;
+                if (!GetClientRect(hWindow, &rect))
+                {
+                    rect.left       = 0;
+                    rect.top        = 0;
+                    rect.right      = sSize.nWidth - 1;
+                    rect.bottom     = sSize.nHeight - 1;
+                }
+
+                if ((sMousePos.x < rect.left) ||
+                    (sMousePos.y < rect.top) ||
+                    (sMousePos.x > rect.right) ||
+                    (sMousePos.y > rect.bottom))
                 {
                     // Generate mouse out event if necessary
                     if (bMouseInside)
                         handle_mouse_leave();
-                    return;
                 }
                 else
                 {
