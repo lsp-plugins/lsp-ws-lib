@@ -137,6 +137,7 @@ namespace lsp
                     static LRESULT CALLBACK     keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     static void                 lock_handlers();
                     static void                 unlock_handlers();
+                    static bool                 is_hookable_event(UINT uMsg);
 
                 public:
                     explicit WinDisplay();

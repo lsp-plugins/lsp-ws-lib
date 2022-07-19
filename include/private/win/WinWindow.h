@@ -82,6 +82,7 @@ namespace lsp
                     bool                bWrapper;       // Indicates that window is a wrapper
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
                     bool                bGrabbing;      // Grabbing mouse and keyboard events
+                    timestamp_t         tsMsgIgnore;    // Timestamp of the event to ignore
                     size_t              nMouseCapture;  // Flag for capturing mouse
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints
@@ -93,7 +94,6 @@ namespace lsp
                     btn_event_t         vBtnEvent[3];   // Events for detecting double click and triple click
 
                 protected:
-                    LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam);
                     void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
                     void                process_mouse_event(timestamp_t ts, const ws::event_t *ev);
                     status_t            commit_border_style(border_style_t bs, size_t wa);
@@ -101,6 +101,8 @@ namespace lsp
                     static bool         check_click(const btn_event_t *ev);
                     static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     bool                process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam);
+                    void                handle_mouse_leave();
+                    void                handle_mouse_enter(const ws::event_t *ev);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
@@ -167,6 +169,18 @@ namespace lsp
 
                 public:
                     virtual status_t    handle_event(const event_t *ev) override;
+
+                public:
+                    /**
+                     * Process windows event delivered to the window
+                     * @param uMsg the event type
+                     * @param wParam the first parameter of the event
+                     * @param lParam the second parameter of the event
+                     * @param ts timestamp of the event
+                     * @param hook the event was delivered from the hook routine (SetWindowsHookEx)
+                     * @return 0 if the event has been processed
+                     */
+                    LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam, timestamp_t ts, bool hook);
             };
         } /* namespace win */
     } /* namespace ws */

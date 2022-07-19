@@ -45,8 +45,8 @@ MTEST_BEGIN("ws.display", grab)
                 ssize_t left, top;
 
                 if (pWnd->display()->get_pointer_location(&screen, &left, &top) == STATUS_OK)
-                    pTest->printf("%s: local=(%d, %d), screen=(%d, %d, %d)%s\n",
-                        event, int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen),
+                    pTest->printf("%s: ts=%lld local=(%d, %d), screen=(%d, %d, %d)%s\n",
+                        event, (long long)(ev->nTime), int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen),
                         (extra) ? extra : "");
 
                 return STATUS_OK;
@@ -102,12 +102,12 @@ MTEST_BEGIN("ws.display", grab)
 
                     // Keyboard events
                     case ws::UIE_KEY_DOWN:
-                        pTest->printf("KEY_DOWN: code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
-                            int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
+                        pTest->printf("KEY_DOWN: ts=%lld code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
+                            (long long)(ev->nTime), int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
                         break;
                     case ws::UIE_KEY_UP:
-                        pTest->printf("KEY_UP: code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
-                            int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
+                        pTest->printf("KEY_UP: ts=%lld code=%d (0x%x), raw=%d (0x%x), state=0x%x\n",
+                            (long long)(ev->nTime), int(ev->nCode), int(ev->nCode), int(ev->nRawCode), int(ev->nRawCode), int(ev->nState));
                         break;
 
                     // Redraw event

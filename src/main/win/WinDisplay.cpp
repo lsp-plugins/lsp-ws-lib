@@ -218,15 +218,35 @@ namespace lsp
                 }
 
                 // Obtain the "this" pointer
-                WinWindow *_this = reinterpret_cast<WinWindow *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+                WinWindow *wnd = reinterpret_cast<WinWindow *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
 //                lsp_trace("Received event: this=%p, hwnd=%p, uMsg=%d(0x%x), wParam=%d(0x%x), lParam=%p",
 //                    _this, hwnd, int(uMsg), int(uMsg), int(wParam), int(wParam), lParam);
-
-                if (_this == NULL)
+                if (wnd == NULL)
                     return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 
-                return _this->process_event(uMsg, wParam, lParam);
+                timestamp_t ts = GetMessageTime();
+
+                // Do not deliver several events to the window if it is grabbing events at this moment via hook
+                if (is_hookable_event(uMsg))
+                {
+                    if (wnd->is_grabbing_events())
+                    {
+                        wnd->tsMsgIgnore    = ts;
+                        return 0;
+                    }
+
+                    wssize_t delta = ts - wnd->tsMsgIgnore;
+                    // Skip some side-effect messages after grabbing
+                    if (delta <= 0)
+                        return 0;
+                    // Reset ignore time if there is enough time gap
+                    if (delta > 5000)
+                        wnd->tsMsgIgnore    = 0;
+                }
+
+                // Deliver event to the window
+                return wnd->process_event(uMsg, wParam, lParam, ts, false);
             }
 
             status_t WinDisplay::main()
@@ -1457,7 +1477,8 @@ namespace lsp
                         continue;
                     lParam      = MAKELONG(pt.x, pt.y);
 
-                    wnd->process_event(uMsg, wParam, lParam);
+                    wnd->tsMsgIgnore    = mou->time;
+                    wnd->process_event(uMsg, wParam, lParam, mou->time, true);
                 }
             }
 
@@ -1508,7 +1529,10 @@ namespace lsp
                 {
                     WinWindow *wnd = sTargets.uget(i);
                     if (wnd != NULL)
-                        wnd->process_event(uMsg, wParam, lParam);
+                    {
+                        wnd->tsMsgIgnore    = kbd->time;
+                        wnd->process_event(uMsg, wParam, lParam, kbd->time, true);
+                    }
                 }
             }
 
@@ -1555,6 +1579,36 @@ namespace lsp
                     if (atomic_cas(&hLock, count, count - 1))
                         return;
                 }
+            }
+
+            bool WinDisplay::is_hookable_event(UINT uMsg)
+            {
+                switch (uMsg)
+                {
+                    // Mouse events
+                    case WM_LBUTTONDOWN:
+                    case WM_MBUTTONDOWN:
+                    case WM_RBUTTONDOWN:
+                    case WM_LBUTTONUP:
+                    case WM_MBUTTONUP:
+                    case WM_RBUTTONUP:
+                    case WM_MOUSEMOVE:
+                    case WM_XBUTTONDOWN:
+                    case WM_XBUTTONUP:
+                    case WM_MOUSEWHEEL:
+                    case WM_MOUSEHWHEEL:
+
+                    // Keyboard events
+                    case WM_KEYDOWN:
+                    case WM_KEYUP:
+                    case WM_SYSKEYDOWN:
+                    case WM_SYSKEYUP:
+                        return true;
+
+                    default:
+                        break;
+                }
+                return false;
             }
         } /* namespace win */
     } /* namespace ws */

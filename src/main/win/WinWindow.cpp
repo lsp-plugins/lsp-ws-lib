@@ -63,6 +63,7 @@ namespace lsp
                 bWrapper                = wrapper;
                 bMouseInside            = false;
                 bGrabbing               = false;
+                tsMsgIgnore             = 0;
                 nMouseCapture           = 0;
 
                 sSize.nLeft             = 0;
@@ -165,33 +166,28 @@ namespace lsp
                 pDisplay    = NULL;
             }
 
-            void WinWindow::process_mouse_event(timestamp_t ts, const ws::event_t *ev)
+            void WinWindow::handle_mouse_leave()
             {
-                // Mouse is leaving window?
-                if (ev->nType == UIE_MOUSE_OUT)
+                ws::event_t ue;
+
+                bMouseInside            = false;
+                ue.nType                = UIE_MOUSE_OUT;
+                ue.nLeft                = sMousePos.x;
+                ue.nTop                 = sMousePos.y;
+
+                // Restore the previous cursor if it was saved
+                if (sSavedCursor.cbSize == sizeof(sSavedCursor))
                 {
-                    // Restore the previous cursor if it was saved
-                    if (sSavedCursor.cbSize == sizeof(sSavedCursor))
-                    {
-                        HCURSOR cursor = pWinDisplay->translate_cursor(enPointer);
-                        if (cursor != NULL)
-                            SetCursor(sSavedCursor.hCursor);
-                    }
-                    return;
+                    HCURSOR cursor = pWinDisplay->translate_cursor(enPointer);
+                    if (cursor != NULL)
+                        SetCursor(sSavedCursor.hCursor);
                 }
 
-                // Save current mouse position
-                sMousePos.x         = LONG(ev->nLeft);
-                sMousePos.y         = LONG(ev->nTop);
+                handle_event(&ue);
+            }
 
-                if (bMouseInside)
-                    return;
-                if ((sMousePos.x < 0) ||
-                    (sMousePos.y < 0) ||
-                    (sMousePos.x >= (sSize.nLeft + sSize.nWidth)) ||
-                    (sMousePos.y >= (sSize.nTop  + sSize.nHeight)))
-                    return;
-
+            void WinWindow::handle_mouse_enter(const ws::event_t *ev)
+            {
                 ws::event_t xev     = *ev;
                 xev.nType           = UIE_MOUSE_IN;
                 bMouseInside        = true;
@@ -226,25 +222,44 @@ namespace lsp
                 }
                 else
                 {
-                    sSavedCursor.cbSize         = 0;
-                    xev.nLeft                   = 0;
-                    xev.nTop                    = 0;
+                    sSavedCursor.cbSize     = 0;
+                    xev.nLeft               = 0;
+                    xev.nTop                = 0;
                 }
 
                 // Notify the handler about mouse enter event
                 handle_event(&xev);
             }
 
-            LRESULT WinWindow::process_event(UINT uMsg, WPARAM wParam, LPARAM lParam)
+            void WinWindow::process_mouse_event(timestamp_t ts, const ws::event_t *ev)
+            {
+                // Save current mouse position
+                sMousePos.x         = LONG(ev->nLeft);
+                sMousePos.y         = LONG(ev->nTop);
+
+                if ((sMousePos.x < 0) ||
+                    (sMousePos.y < 0) ||
+                    (sMousePos.x >= (sSize.nLeft + sSize.nWidth)) ||
+                    (sMousePos.y >= (sSize.nTop  + sSize.nHeight)))
+                {
+                    // Generate mouse out event if necessary
+                    if (bMouseInside)
+                        handle_mouse_leave();
+                    return;
+                }
+                else
+                {
+                    if (!bMouseInside)
+                        handle_mouse_enter(ev);
+                }
+            }
+
+            LRESULT WinWindow::process_event(UINT uMsg, WPARAM wParam, LPARAM lParam, timestamp_t ts, bool hook)
             {
                 // Translate the event and pass to handler
                 event_t ue;
                 init_event(&ue);
-
-                system::time_t ts;
-                system::get_time(&ts);
-                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
-                ue.nTime = xts;
+                ue.nTime        = ts;
 
                 // Translate the event
                 switch (uMsg)
@@ -382,7 +397,7 @@ namespace lsp
                         ue.nTop                 = GET_Y_LPARAM(lParam);
                         ue.nState               = decode_mouse_keystate(wParam);
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -403,7 +418,7 @@ namespace lsp
                             SetCapture(hWindow);
                         nMouseCapture          |= 1 << ue.nCode;
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -425,7 +440,7 @@ namespace lsp
                             SetCapture(hWindow);
                         nMouseCapture          |= 1 << ue.nCode;
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -446,7 +461,7 @@ namespace lsp
                         if (nMouseCapture == 0)
                             ReleaseCapture();
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -468,7 +483,7 @@ namespace lsp
                         if (nMouseCapture == 0)
                             ReleaseCapture();
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
@@ -488,19 +503,15 @@ namespace lsp
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
 
-                        process_mouse_event(xts, &ue);
+                        process_mouse_event(ts, &ue);
                         handle_event(&ue);
                         return 0;
                     }
                     case WM_MOUSELEAVE:
                     {
-                        bMouseInside            = false;
-                        ue.nType                = UIE_MOUSE_OUT;
-                        ue.nLeft                = sMousePos.x;
-                        ue.nTop                 = sMousePos.y;
-
-                        process_mouse_event(xts, &ue);
-                        handle_event(&ue);
+                        lsp_trace("WM_MOUSELEAVE");
+                        if (hook == bGrabbing)
+                            handle_mouse_leave();
                         return 0;
                     }
 
@@ -1116,6 +1127,14 @@ namespace lsp
 
                 status_t res = pWinDisplay->ungrab_events(this);
                 bGrabbing = false;
+
+                // Set mouse tracking
+                TRACKMOUSEEVENT track;
+                track.cbSize        = sizeof(track);
+                track.dwFlags       = TME_LEAVE;
+                track.hwndTrack     = hWindow;
+                track.dwHoverTime   = 0;
+                TrackMouseEvent(&track);
 
                 return res;
             }
