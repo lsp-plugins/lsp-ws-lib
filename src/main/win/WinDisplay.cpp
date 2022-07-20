@@ -1859,16 +1859,9 @@ namespace lsp
                     ptr         = make_clipboard_ascii_text();
                 else
                 {
-                    LSPString tmp;
-                    WCHAR format_name[128];
-
-                    int format_len = GetClipboardFormatNameW(fmt, format_name, sizeof(format_name)/sizeof(WCHAR));
-                    if (format_len <= 0)
-                        return;
-                    if (!tmp.set_utf16(format_name, format_len))
-                        return;
-
-                    ptr         = make_clipboard_custom_format(tmp.get_utf8());
+                    LSPString fmt_name;
+                    if (read_format_name(fmt, &fmt_name) == STATUS_OK)
+                        ptr         = make_clipboard_custom_format(fmt_name.get_utf8());
                 }
 
                 if (ptr != NULL)
@@ -1923,9 +1916,9 @@ namespace lsp
                     }
                     if (!ok)
                         continue;
+                    if (!tmp.to_dos())
+                        return NULL;
 
-                    // TODO:
-                    // tmp.to_crlf();
                     const lsp_utf16_t *data = tmp.get_utf16();
                     return clipboard_global_alloc(data, tmp.temporal_size());
                 }
@@ -1943,9 +1936,9 @@ namespace lsp
                 LSPString tmp;
                 if (!tmp.set_native(reinterpret_cast<const char *>(os.data()), size_t(res)))
                     return NULL;
+                if (!tmp.to_dos())
+                    return NULL;
 
-                // TODO:
-                // tmp.to_crlf();
                 const char *data = tmp.get_native();
                 return clipboard_global_alloc(data, tmp.temporal_size());
             }
@@ -1960,9 +1953,9 @@ namespace lsp
                 LSPString tmp;
                 if (!tmp.set_ascii(reinterpret_cast<const char *>(os.data()), size_t(res)))
                     return NULL;
+                if (!tmp.to_dos())
+                    return NULL;
 
-                // TODO:
-                // tmp.to_crlf();
                 const char *data = tmp.get_ascii();
                 return clipboard_global_alloc(data, tmp.temporal_size());
             }
@@ -1970,20 +1963,250 @@ namespace lsp
             void *WinDisplay::make_clipboard_custom_format(const char *name)
             {
                 io::OutMemoryStream os;
-                wssize_t res = read_clipboard_blob(&os, ansi_mimes[0]);
+                wssize_t res = read_clipboard_blob(&os, name);
                 return (res >= 0) ? clipboard_global_alloc(os.data(), res) : NULL;
+            }
+
+            status_t WinDisplay::read_format_name(UINT fmt, LSPString *dst)
+            {
+                ssize_t cap = 0;
+                WCHAR *buf = static_cast<WCHAR *>(malloc(sizeof(WCHAR) * cap));
+                if (buf == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally{ free(buf); };
+
+                while (true)
+                {
+                    ssize_t res = GetClipboardFormatNameW(fmt, buf, cap);
+                    if (res == 0)
+                        return STATUS_UNKNOWN_ERR;
+                    else if (res < (cap - 2))
+                    {
+                        while ((res > 0) && (buf[res] == '\0'))
+                            --res;
+                        if (!dst->set_utf16(buf, res))
+                            return STATUS_NO_MEM;
+                        return STATUS_OK;
+                    }
+
+                    // Grow the buffer size
+                    cap <<= 1;
+                    WCHAR *nbuf = static_cast<WCHAR *>(realloc(buf, sizeof(WCHAR) * cap));
+                    if (buf == NULL)
+                        return STATUS_NO_MEM;
+                    buf         = nbuf;
+                }
+            }
+
+            size_t WinDisplay::append_mimes(lltl::parray<char> *list, const char * const * mimes)
+            {
+                size_t added = 0;
+                for ( ; (mimes != NULL) && (*mimes != NULL); ++mimes)
+                    if (list->add(const_cast<char *>(*mimes)))
+                        ++added;
+                return added;
             }
 
             status_t WinDisplay::get_clipboard(size_t id, IDataSink *dst)
             {
+                typedef struct range_t
+                {
+                    ssize_t first;
+                    ssize_t count;
+                } range_t;
+
+                typedef struct fmt_t
+                {
+                    size_t idx;
+                    LSPString name;
+                } fmt_t;
+
                 dst->acquire();
                 lsp_finally { dst->release(); };
 
+                // Open clipboard
+                if (!OpenClipboard(hClipWnd))
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally{ CloseClipboard(); };
 
+                // Enumerate all available formats
+                lltl::parray<char> mimes;
+                lltl::parray<fmt_t> formats;
+                lsp_finally {
+                    for (size_t i=0, n=formats.size(); i<n; ++i)
+                    {
+                        fmt_t *fmt = formats.uget(i);
+                        delete fmt;
+                    }
+                };
 
-                return STATUS_NOT_IMPLEMENTED;
+                UINT fmt = 0;
+                ssize_t idx         = 0;
+                range_t unicode     = { 0, 0 };
+                range_t oem         = { 0, 0 };
+                range_t ansi        = { 0, 0 };
+
+                while (true)
+                {
+                    fmt = EnumClipboardFormats(fmt);
+                    if (fmt == 0)
+                        break;
+
+                    if (fmt == CF_UNICODETEXT)
+                    {
+                        unicode.first   = idx;
+                        unicode.count   = append_mimes(&mimes, unicode_mimes);
+                        idx            += lsp_max(unicode.count, 0);
+                    }
+                    else if (fmt == CF_OEMTEXT)
+                    {
+                        oem.first       = idx;
+                        oem.count       = append_mimes(&mimes, oem_mimes);
+                        idx            += lsp_max(oem.count, 0);
+                    }
+                    else if (fmt == CF_TEXT)
+                    {
+                        ansi.first      = idx;
+                        ansi.count      = append_mimes(&mimes, ansi_mimes);
+                        idx            += lsp_max(ansi.count, 0);
+                    }
+                    else
+                    {
+                        // Append custom format
+                        fmt_t *f        = new fmt_t;
+                        f->idx          = idx++;
+
+                        lsp_finally{
+                            if (f != NULL)
+                                delete f;
+                        };
+                        if ((f != NULL) && (formats.add(f)))
+                        {
+                            if (read_format_name(fmt, &f->name) == STATUS_OK)
+                            {
+                                const char *utf = f->name.get_utf8();
+                                if ((utf != NULL) && (mimes.add(const_cast<char *>(utf))))
+                                    f       = NULL;
+                            }
+                        }
+                    }
+                }
+
+                // Append terminator
+                if (!mimes.add(static_cast<char *>(NULL)))
+                    return STATUS_NO_MEM;
+
+                // Now open the sink
+                ssize_t res = dst->open(mimes.array());
+                if (res < 0)
+                    return -res;
+
+                // Determine what format has been selected
+                LSPString tmp;
+                if ((res >= unicode.first) && (res < (unicode.first + unicode.count)))
+                {
+                    // Unicode string
+                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    if (g == NULL)
+                        return dst->close(STATUS_UNKNOWN_ERR);
+                    WCHAR *s  = static_cast<WCHAR *>(GlobalLock(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    if (s == NULL)
+                        return dst->close(STATUS_NO_MEM);
+                    size_t n  = wcsnlen(s, GlobalSize(g));
+                    if (!tmp.set_utf16(s, n))
+                        return dst->close(STATUS_NO_MEM);
+                    if (!tmp.to_unix())
+                        return dst->close(STATUS_NO_MEM);
+
+                    res -= unicode.first;
+                    switch (res)
+                    {
+                        case 0:
+                        case 1: // UTF-8
+                        {
+                            const char *xs  = tmp.get_utf8();
+                            return write_to_sink(dst, xs, tmp.temporal_size());
+                        }
+                        case 2: // UTF-16LE
+                        {
+                            const lsp_utf16_t *xs = __IF_LEBE(
+                                tmp.get_utf16(),
+                                reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16LE"))
+                            );
+                            return write_to_sink(dst, xs, tmp.temporal_size());
+                        }
+                        case 3: // UTF-16BE
+                        {
+                            const lsp_utf16_t *xs = __IF_LEBE(
+                                reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16BE")),
+                                tmp.get_utf16()
+                            );
+                            return write_to_sink(dst, xs, tmp.temporal_size());
+                        }
+                        default:
+                            break;
+                    }
+
+                    return dst->close(STATUS_BAD_FORMAT);
+                }
+                else if ((res >= oem.first) && (res < (oem.first + oem.count)))
+                {
+                    // OEM string
+                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    if (g == NULL)
+                        return dst->close(STATUS_UNKNOWN_ERR);
+                    char *s     = static_cast<char *>(GlobalLock(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    if (s == NULL)
+                        return dst->close(STATUS_NO_MEM);
+                    size_t n  = strnlen(s, GlobalSize(g));
+                    if (!tmp.set_native(s, n))
+                        return dst->close(STATUS_NO_MEM);
+                    if (!tmp.to_unix())
+                        return dst->close(STATUS_NO_MEM);
+
+                    const char *xs  = tmp.get_native();
+                    return write_to_sink(dst, xs, tmp.temporal_size());
+                }
+                else if ((res >= ansi.first) && (res < (ansi.first + ansi.count)))
+                {
+                    // ANSI string
+                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    if (g == NULL)
+                        return dst->close(STATUS_UNKNOWN_ERR);
+                    char *s     = static_cast<char *>(GlobalLock(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    if (s == NULL)
+                        return dst->close(STATUS_NO_MEM);
+                    size_t n  = strnlen(s, GlobalSize(g));
+                    if (!tmp.set_ascii(s, n))
+                        return dst->close(STATUS_NO_MEM);
+                    if (!tmp.to_unix())
+                        return dst->close(STATUS_NO_MEM);
+
+                    const char *xs  = tmp.get_ascii();
+                    return write_to_sink(dst, xs, tmp.temporal_size());
+                }
+
+                // Custom format
+                HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                if (g == NULL)
+                    return dst->close(STATUS_UNKNOWN_ERR);
+                void *s     = GlobalLock(g);
+                lsp_finally{ GlobalUnlock(g); };
+                size_t n  = GlobalSize(g);
+
+                return write_to_sink(dst, s, n);
             }
 
+            status_t WinDisplay::write_to_sink(IDataSink *dst, const void *data, size_t bytes)
+            {
+                if (data == NULL)
+                    return dst->close(STATUS_NO_MEM);
+                status_t res = dst->write(data, bytes);
+                return dst->close(res);
+            }
 
         } /* namespace win */
     } /* namespace ws */

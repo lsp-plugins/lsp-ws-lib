@@ -157,6 +157,9 @@ namespace lsp
                     static void                 unlock_handlers();
                     static bool                 is_hookable_event(UINT uMsg);
                     static bool                 has_mime_types(const char * const * src_list, const char * const * check);
+                    static status_t             read_format_name(UINT fmt, LSPString *dst);
+                    static size_t               append_mimes(lltl::parray<char> *list, const char * const * mimes);
+                    static status_t             write_to_sink(IDataSink *dst, const void *data, size_t bytes);
 
                 public:
                     explicit WinDisplay();
