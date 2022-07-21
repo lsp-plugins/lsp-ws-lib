@@ -204,18 +204,18 @@ namespace lsp
 
                 // Create invisible clipboard window
                 hClipWnd = CreateWindowExW(
-                        0,                              // dwExStyle
-                        WinDisplay::WINDOW_CLASS_NAME,  // lpClassName
-                        L"Clipboard",                   // lpWindowName
-                        WS_OVERLAPPEDWINDOW,            // dwStyle
-                        0,                              // X
-                        0,                              // Y
-                        1,                              // nWidth
-                        1,                              // nHeight
-                        NULL,                           // hWndParent
-                        NULL,                           // hMenu
-                        GetModuleHandleW(NULL),         // hInstance
-                        this);                          // lpCreateParam
+                        0,                                  // dwExStyle
+                        WinDisplay::CLIPBOARD_CLASS_NAME,   // lpClassName
+                        L"Clipboard",                       // lpWindowName
+                        WS_OVERLAPPEDWINDOW,                // dwStyle
+                        0,                                  // X
+                        0,                                  // Y
+                        1,                                  // nWidth
+                        1,                                  // nHeight
+                        NULL,                               // hWndParent
+                        NULL,                               // hMenu
+                        GetModuleHandleW(NULL),             // hInstance
+                        this);                              // lpCreateParam
                 if (hClipWnd == NULL)
                 {
                     lsp_error("Error creating clipboard window: %ld", long(GetLastError()));
@@ -1792,6 +1792,15 @@ namespace lsp
                 // Check arguments
                 if ((id < 0) || (id >= _CBUF_TOTAL))
                     return STATUS_BAD_ARGUMENTS;
+                // Ignore data for any clipboard except the CBUF_CLIPBOARD
+                // This will prevent us from replacing the Ctrl-C/Ctrl-V clipboard data
+                // by the text selection data
+                if (id != CBUF_CLIPBOARD)
+                {
+                    ds->acquire();
+                    ds->release();
+                    return STATUS_OK;
+                }
 
                 // Release previous clipboard handler
                 if (pClipData != NULL)
@@ -1804,13 +1813,11 @@ namespace lsp
                 if (!OpenClipboard(hClipWnd))
                     return STATUS_UNKNOWN_ERR;
                 lsp_finally{ CloseClipboard(); };
+                EmptyClipboard();
 
-                // Empty clipboard if there is no replacement and return
+                // If there is no replacement - just return
                 if (ds == NULL)
-                {
-                    EmptyClipboard();
                     return STATUS_OK;
-                }
 
                 // Save pointer to clipboard data
                 ds->acquire();
@@ -1870,7 +1877,7 @@ namespace lsp
 
             wssize_t WinDisplay::read_clipboard_blob(io::IOutStream *os, const char *format)
             {
-                io::IInStream *is = pClipData->open(oem_mimes[0]);
+                io::IInStream *is = pClipData->open(format);
                 if (is == NULL)
                     return -STATUS_NOT_SUPPORTED;
                 lsp_finally{
@@ -1888,7 +1895,7 @@ namespace lsp
                 for (size_t index = 0; unicode_mimes[index] != NULL; ++index)
                 {
                     os.clear();
-                    wssize_t res = read_clipboard_blob(&os, oem_mimes[0]);
+                    wssize_t res = read_clipboard_blob(&os, unicode_mimes[index]);
                     if (res < 0)
                         continue;
 
@@ -1969,7 +1976,7 @@ namespace lsp
 
             status_t WinDisplay::read_format_name(UINT fmt, LSPString *dst)
             {
-                ssize_t cap = 0;
+                ssize_t cap = 64;
                 WCHAR *buf = static_cast<WCHAR *>(malloc(sizeof(WCHAR) * cap));
                 if (buf == NULL)
                     return STATUS_NO_MEM;
@@ -2040,7 +2047,9 @@ namespace lsp
                     }
                 };
 
-                UINT fmt = 0;
+                size_t gsize, n;
+                HGLOBAL g;
+                UINT fmt            = 0;
                 ssize_t idx         = 0;
                 range_t unicode     = { 0, 0 };
                 range_t oem         = { 0, 0 };
@@ -2074,20 +2083,25 @@ namespace lsp
                     {
                         // Append custom format
                         fmt_t *f        = new fmt_t;
-                        f->idx          = idx++;
+                        f->idx          = idx;
 
                         lsp_finally{
                             if (f != NULL)
                                 delete f;
                         };
-                        if ((f != NULL) && (formats.add(f)))
+                        if (f == NULL)
+                            continue;
+                        if (read_format_name(fmt, &f->name) != STATUS_OK)
+                            continue;
+                        const char *utf = f->name.get_utf8();
+                        if (utf == NULL)
+                            continue;
+                        if (!mimes.add(const_cast<char *>(utf)))
+                            continue;
+                        if (formats.add(f))
                         {
-                            if (read_format_name(fmt, &f->name) == STATUS_OK)
-                            {
-                                const char *utf = f->name.get_utf8();
-                                if ((utf != NULL) && (mimes.add(const_cast<char *>(utf))))
-                                    f       = NULL;
-                            }
+                            ++idx;
+                            f           = NULL;
                         }
                     }
                 }
@@ -2106,14 +2120,15 @@ namespace lsp
                 if ((res >= unicode.first) && (res < (unicode.first + unicode.count)))
                 {
                     // Unicode string
-                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
                     if (g == NULL)
                         return dst->close(STATUS_UNKNOWN_ERR);
-                    WCHAR *s  = static_cast<WCHAR *>(GlobalLock(g));
-                    lsp_finally{ GlobalUnlock(g); };
+                    gsize = GlobalSize(g);
+                    WCHAR *s    = static_cast<WCHAR *>(GlobalLock(g));
                     if (s == NULL)
                         return dst->close(STATUS_NO_MEM);
-                    size_t n  = wcsnlen(s, GlobalSize(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    n           = wcsnlen(s, gsize);
                     if (!tmp.set_utf16(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
@@ -2153,14 +2168,15 @@ namespace lsp
                 else if ((res >= oem.first) && (res < (oem.first + oem.count)))
                 {
                     // OEM string
-                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_OEMTEXT));
                     if (g == NULL)
                         return dst->close(STATUS_UNKNOWN_ERR);
+                    gsize       = GlobalSize(g);
                     char *s     = static_cast<char *>(GlobalLock(g));
-                    lsp_finally{ GlobalUnlock(g); };
                     if (s == NULL)
                         return dst->close(STATUS_NO_MEM);
-                    size_t n  = strnlen(s, GlobalSize(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    n           = strnlen(s, gsize);
                     if (!tmp.set_native(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
@@ -2172,14 +2188,15 @@ namespace lsp
                 else if ((res >= ansi.first) && (res < (ansi.first + ansi.count)))
                 {
                     // ANSI string
-                    HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_TEXT));
                     if (g == NULL)
                         return dst->close(STATUS_UNKNOWN_ERR);
+                    gsize       = GlobalSize(g);
                     char *s     = static_cast<char *>(GlobalLock(g));
-                    lsp_finally{ GlobalUnlock(g); };
                     if (s == NULL)
                         return dst->close(STATUS_NO_MEM);
-                    size_t n  = strnlen(s, GlobalSize(g));
+                    lsp_finally{ GlobalUnlock(g); };
+                    n           = strnlen(s, gsize);
                     if (!tmp.set_ascii(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
@@ -2190,14 +2207,14 @@ namespace lsp
                 }
 
                 // Custom format
-                HGLOBAL g   = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                g           = reinterpret_cast<HGLOBAL>(GetClipboardData(fmt));
                 if (g == NULL)
                     return dst->close(STATUS_UNKNOWN_ERR);
+                gsize       = GlobalSize(g);
                 void *s     = GlobalLock(g);
                 lsp_finally{ GlobalUnlock(g); };
-                size_t n  = GlobalSize(g);
 
-                return write_to_sink(dst, s, n);
+                return write_to_sink(dst, s, gsize);
             }
 
             status_t WinDisplay::write_to_sink(IDataSink *dst, const void *data, size_t bytes)
