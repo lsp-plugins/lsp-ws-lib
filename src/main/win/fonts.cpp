@@ -60,6 +60,8 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinFontFileStream implementation
+            LSP_IUNKNOWN_IMPL(WinFontFileStream, IDWriteFontFileStream)
+
             WinFontFileStream::WinFontFileStream(WinFontFileLoader *loader)
             {
                 nRefCount       = 0;
@@ -70,32 +72,6 @@ namespace lsp
             WinFontFileStream::~WinFontFileStream()
             {
                 safe_release(pLoader);
-            }
-
-            HRESULT STDMETHODCALLTYPE WinFontFileStream::QueryInterface(REFIID iid, void **ppvObject)
-            {
-                if (IsEqualIID(iid, IID_IUnknown) ||
-                    IsEqualIID(iid, __uuidof(IDWriteFontFileStream)))
-                {
-                    *ppvObject = safe_acquire(this);
-                    return S_OK;
-                }
-
-                *ppvObject = NULL;
-                return E_NOINTERFACE;
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileStream::AddRef()
-            {
-                return InterlockedIncrement(&nRefCount);
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileStream::Release()
-            {
-                ULONG newCount = InterlockedDecrement(&nRefCount);
-                if (newCount == 0)
-                    delete this;
-                return newCount;
             }
 
             HRESULT STDMETHODCALLTYPE WinFontFileStream::ReadFileFragment(
@@ -143,6 +119,8 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinCustomFontLoader implementation
+            LSP_IUNKNOWN_IMPL(WinFontFileLoader, IDWriteFontFileLoader)
+
             WinFontFileLoader::WinFontFileLoader(io::OutMemoryStream *os)
             {
                 nRefCount       = 0;
@@ -158,32 +136,6 @@ namespace lsp
                     pData       = NULL;
                 }
                 nSize       = 0;
-            }
-
-            HRESULT STDMETHODCALLTYPE WinFontFileLoader::QueryInterface(REFIID iid, void** ppvObject)
-            {
-                if (IsEqualIID(iid, IID_IUnknown) ||
-                    IsEqualIID(iid, __uuidof(IDWriteFontFileLoader)))
-                {
-                    *ppvObject = safe_acquire(this);
-                    return S_OK;
-                }
-
-                *ppvObject = NULL;
-                return E_NOINTERFACE;
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileLoader::AddRef()
-            {
-                return InterlockedIncrement(&nRefCount);
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileLoader::Release()
-            {
-                ULONG newCount = InterlockedDecrement(&nRefCount);
-                if (newCount == 0)
-                    delete this;
-                return newCount;
             }
 
             HRESULT STDMETHODCALLTYPE WinFontFileLoader::CreateStreamFromKey(
@@ -213,6 +165,8 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinFontFileEnumerator implementation
+            LSP_IUNKNOWN_IMPL(WinFontFileEnumerator, IDWriteFontFileEnumerator)
+
             WinFontFileEnumerator::WinFontFileEnumerator(IDWriteFactory *factory, WinFontFileLoader *loader)
             {
                 nRefCount           = 0;
@@ -227,32 +181,6 @@ namespace lsp
                 safe_release(pLoader);
                 safe_release(pCurrFile);
                 safe_release(pFactory);
-            }
-
-            HRESULT STDMETHODCALLTYPE WinFontFileEnumerator::QueryInterface(REFIID iid, void **ppvObject)
-            {
-                if (IsEqualIID(iid, IID_IUnknown) ||
-                    IsEqualIID(iid, __uuidof(IDWriteFontFileEnumerator)))
-                {
-                    *ppvObject = safe_acquire(this);
-                    return S_OK;
-                }
-
-                *ppvObject = NULL;
-                return E_NOINTERFACE;
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileEnumerator::AddRef()
-            {
-                return InterlockedIncrement(&nRefCount);
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontFileEnumerator::Release()
-            {
-                ULONG newCount = InterlockedDecrement(&nRefCount);
-                if (newCount == 0)
-                    delete this;
-                return newCount;
             }
 
             HRESULT STDMETHODCALLTYPE WinFontFileEnumerator::MoveNext(OUT BOOL *hasCurrentFile)
@@ -288,6 +216,8 @@ namespace lsp
 
             //-----------------------------------------------------------------
             // WinFontCollectionLoader implementation
+            LSP_IUNKNOWN_IMPL(WinFontCollectionLoader, IDWriteFontCollectionLoader)
+
             WinFontCollectionLoader::WinFontCollectionLoader()
             {
                 nRefCount   = 0;
@@ -295,32 +225,6 @@ namespace lsp
 
             WinFontCollectionLoader::~WinFontCollectionLoader()
             {
-            }
-
-            HRESULT STDMETHODCALLTYPE WinFontCollectionLoader::QueryInterface(REFIID iid, void **ppvObject)
-            {
-                if (IsEqualIID(iid, IID_IUnknown) ||
-                    IsEqualIID(iid, __uuidof(IDWriteFontCollectionLoader)))
-                {
-                    *ppvObject = safe_acquire(this);
-                    return S_OK;
-                }
-
-                *ppvObject = NULL;
-                return E_NOINTERFACE;
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontCollectionLoader::AddRef()
-            {
-                return InterlockedIncrement(&nRefCount);
-            }
-
-            ULONG STDMETHODCALLTYPE WinFontCollectionLoader::Release()
-            {
-                ULONG newCount = InterlockedDecrement(&nRefCount);
-                if (newCount == 0)
-                    delete this;
-                return newCount;
             }
 
             HRESULT STDMETHODCALLTYPE WinFontCollectionLoader::CreateEnumeratorFromKey(

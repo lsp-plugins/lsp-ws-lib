@@ -30,6 +30,8 @@
 #include <lsp-plug.in/io/IInStream.h>
 #include <lsp-plug.in/lltl/darray.h>
 
+#include <private/win/com.h>
+
 #include <dwrite.h>
 
 namespace lsp
@@ -50,19 +52,15 @@ namespace lsp
              */
             class LSP_SYMBOL_HIDDEN WinFontFileStream: public IDWriteFontFileStream
             {
+                LSP_IUNKNOWN_IFACE
+
                 private:
-                    ULONG                   nRefCount;
                     size_t                  nOffset;
                     WinFontFileLoader      *pLoader;
 
                 public:
                     explicit WinFontFileStream(WinFontFileLoader *loader);
                     virtual ~WinFontFileStream();
-
-                public: // IUnknown
-                    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override;
-                    virtual ULONG STDMETHODCALLTYPE AddRef() override;
-                    virtual ULONG STDMETHODCALLTYPE Release() override;
 
                 public: // IDWriteFontFileStream
                     virtual HRESULT STDMETHODCALLTYPE ReadFileFragment(
@@ -83,22 +81,18 @@ namespace lsp
              */
             class LSP_SYMBOL_HIDDEN WinFontFileLoader: public IDWriteFontFileLoader
             {
+                LSP_IUNKNOWN_IFACE
+
                 private:
                     friend class WinFontFileStream;
 
                 private:
-                    ULONG                   nRefCount;
                     uint8_t                *pData;
                     size_t                  nSize;
 
                 public:
                     explicit WinFontFileLoader(io::OutMemoryStream *os);
                     virtual ~WinFontFileLoader();
-
-                public: // IUnknown
-                    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override;
-                    virtual ULONG STDMETHODCALLTYPE AddRef() override;
-                    virtual ULONG STDMETHODCALLTYPE Release() override;
 
                 public: // IDWriteFontFileLoader
                     virtual HRESULT STDMETHODCALLTYPE CreateStreamFromKey(
@@ -114,8 +108,9 @@ namespace lsp
              */
             class LSP_SYMBOL_HIDDEN WinFontFileEnumerator: public IDWriteFontFileEnumerator
             {
+                LSP_IUNKNOWN_IFACE
+
                 private:
-                    ULONG                   nRefCount;
                     IDWriteFactory         *pFactory;
                     IDWriteFontFile        *pCurrFile;
                     WinFontFileLoader      *pLoader;
@@ -124,11 +119,6 @@ namespace lsp
                 public:
                     explicit WinFontFileEnumerator(IDWriteFactory *factory, WinFontFileLoader *loader);
                     virtual ~WinFontFileEnumerator();
-
-                public: // IUnknown
-                    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override;
-                    virtual ULONG STDMETHODCALLTYPE AddRef() override;
-                    virtual ULONG STDMETHODCALLTYPE Release() override;
 
                 public: // IDWriteFontFileEnumerator
                     virtual HRESULT STDMETHODCALLTYPE MoveNext(OUT BOOL *hasCurrentFile) override;
@@ -142,17 +132,11 @@ namespace lsp
              */
             class LSP_SYMBOL_HIDDEN WinFontCollectionLoader: public IDWriteFontCollectionLoader
             {
-                private:
-                    ULONG                   nRefCount;
+                LSP_IUNKNOWN_IFACE
 
                 public:
                     explicit WinFontCollectionLoader();
                     virtual ~WinFontCollectionLoader();
-
-                public: // IUnknown
-                    virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void **ppvObject) override;
-                    virtual ULONG STDMETHODCALLTYPE AddRef() override;
-                    virtual ULONG STDMETHODCALLTYPE Release() override;
 
                 public: // IDWriteFontCollectionLoader
                     virtual HRESULT STDMETHODCALLTYPE CreateEnumeratorFromKey(
