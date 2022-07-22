@@ -2839,7 +2839,22 @@ namespace lsp
                     complete_dnd_transfer(task, false);
                     return STATUS_NOT_FOUND;
                 }
+                else
+                {
+                    event_t ue;
+                    ue.nType        = UIE_DRAG_LEAVE;
+                    ue.nLeft        = 0;
+                    ue.nTop         = 0;
+                    ue.nWidth       = 0;
+                    ue.nHeight      = 0;
+                    ue.nCode        = 0;
+                    ue.nState       = 0;
+                    ue.nTime        = 0;
 
+                    tgt->handle_event(&ue);
+                }
+
+                // Process the event
                 status_t res        = STATUS_OK;
                 ssize_t index       = task->pSink->open(vDndMimeTypes.array());
                 if (index >= 0)
