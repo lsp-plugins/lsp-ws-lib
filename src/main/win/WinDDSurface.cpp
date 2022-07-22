@@ -31,6 +31,7 @@
 #include <private/win/WinDDGradient.h>
 #include <private/win/WinDDSurface.h>
 #include <private/win/WinDisplay.h>
+#include <private/win/com.h>
 
 #include <d2d1.h>
 #include <wincodec.h>
@@ -58,16 +59,6 @@ namespace lsp
                 r.bottom    = y + h;
                 return r;
             }
-
-            template <class T>
-                static inline void safe_release(T * &obj)
-                {
-                    if (obj != NULL)
-                    {
-                        obj->Release();
-                        obj = NULL;
-                    }
-                }
 
             WinDDSurface::WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height)
             {

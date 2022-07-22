@@ -38,27 +38,6 @@ namespace lsp
         namespace win
         {
             //-----------------------------------------------------------------
-            // Common methods
-            template <class T>
-                static inline void safe_release(T * &obj)
-                {
-                    if (obj != NULL)
-                    {
-                        obj->Release();
-                        obj = NULL;
-                    }
-                }
-
-            // Acquires an additional reference, if non-null.
-            template <class T>
-                inline T *safe_acquire(T * obj)
-                {
-                    if (obj != NULL)
-                        obj->AddRef();
-                    return obj;
-                }
-
-            //-----------------------------------------------------------------
             // WinFontFileStream implementation
             LSP_IUNKNOWN_IMPL(WinFontFileStream, IDWriteFontFileStream)
 

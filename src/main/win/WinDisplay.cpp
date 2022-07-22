@@ -33,6 +33,8 @@
 
 #include <private/win/WinDisplay.h>
 #include <private/win/WinWindow.h>
+#include <private/win/com.h>
+#include <private/win/dnd.h>
 #include <private/win/fonts.h>
 
 #include <combaseapi.h>
@@ -55,16 +57,6 @@ namespace lsp
             //-----------------------------------------------------------------
             static const BYTE none_cursor_and[] = { 0xff };
             static const BYTE none_cursor_xor[] = { 0 };
-
-            template <class T>
-                static inline void safe_release(T * &obj)
-                {
-                    if (obj != NULL)
-                    {
-                        obj->Release();
-                        obj = NULL;
-                    }
-                }
 
             static const char * const unicode_mimes[] =
             {

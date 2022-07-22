@@ -58,4 +58,33 @@
         return newCount; \
     }
 
+namespace lsp
+{
+    namespace ws
+    {
+        namespace win
+        {
+            // Releases reference, if non-null.
+            template <class T>
+                static inline void safe_release(T * &obj)
+                {
+                    if (obj != NULL)
+                    {
+                        obj->Release();
+                        obj = NULL;
+                    }
+                }
+
+            // Acquires an additional reference, if non-null.
+            template <class T>
+                inline T *safe_acquire(T * obj)
+                {
+                    if (obj != NULL)
+                        obj->AddRef();
+                    return obj;
+                }
+        } /* namespace win */
+    } /* namespace ws */
+} /* namespace lsp */
+
 #endif /* PRIVATE_WIN_COM_H_ */
