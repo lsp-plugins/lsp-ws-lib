@@ -353,28 +353,6 @@ MTEST_BEGIN("ws.display", clipboard)
                         return STATUS_OK;
                     }
 
-                    // Window events
-                    case ws::UIE_SIZE_REQUEST:
-                        pTest->printf("SIZE_REQUEST: size=(%d, %d)\n",
-                            int(ev->nWidth), int(ev->nHeight));
-                        return STATUS_OK;
-                    case ws::UIE_RESIZE:
-                        pTest->printf("RESIZE: coord=(%d, %d), size=(%d, %d)\n",
-                            int(ev->nLeft), int(ev->nTop), int(ev->nWidth), int(ev->nHeight));
-                        return STATUS_OK;
-                    case ws::UIE_FOCUS_IN:
-                        pTest->printf("FOCUS_IN\n");
-                        return STATUS_OK;
-                    case ws::UIE_FOCUS_OUT:
-                        pTest->printf("FOCUS_OUT\n");
-                        return STATUS_OK;
-                    case ws::UIE_SHOW:
-                        pTest->printf("SHOW\n");
-                        return STATUS_OK;
-                    case ws::UIE_HIDE:
-                        pTest->printf("HIDE\n");
-                        return STATUS_OK;
-
                     case ws::UIE_CLOSE:
                     {
                         pTest->printf("CLOSE\n");
