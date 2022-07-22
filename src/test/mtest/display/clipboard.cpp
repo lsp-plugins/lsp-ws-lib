@@ -398,11 +398,6 @@ MTEST_BEGIN("ws.display", clipboard)
         MTEST_ASSERT(dpy != NULL);
         lsp_finally { ws::lsp_ws_free_display(dpy); };
 
-        io::Path font;
-        MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
-        MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
-        MTEST_ASSERT(dpy->add_font_alias("alias", "example") == STATUS_OK);
-
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
         lsp_finally {
