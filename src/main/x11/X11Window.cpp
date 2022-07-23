@@ -101,6 +101,15 @@ namespace lsp
 
             status_t X11Window::init()
             {
+                // Register the window
+                if (pX11Display == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Initialize parent class
+                status_t res = IWindow::init();
+                if (res != STATUS_OK)
+                    return res;
+
                 Display *dpy = pX11Display->x11display();
                 Atom dnd_version    = 5;    // Version 5 of protocol is supported
 
@@ -317,6 +326,9 @@ namespace lsp
                     hWindow = None;
                     hParent = None;
                 }
+
+                pX11Display = NULL;
+                IWindow::destroy();
             }
 
             void X11Window::calc_constraints(rectangle_t *dst, const rectangle_t *req)

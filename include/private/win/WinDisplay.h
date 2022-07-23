@@ -116,6 +116,7 @@ namespace lsp
                     HWND                        hClipWnd;                   // Clipboard window
                     IDataSource                *pClipData;                  // Data source for clipboard
                     lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard
+                    WinWindow                  *pDragWindow;                // Window which is currently acting in Drag&Drop action
 
                 protected:
                     void                        do_destroy();
@@ -157,9 +158,7 @@ namespace lsp
                     static void                 unlock_handlers();
                     static bool                 is_hookable_event(UINT uMsg);
                     static bool                 has_mime_types(const char * const * src_list, const char * const * check);
-                    static status_t             read_format_name(UINT fmt, LSPString *dst);
                     static size_t               append_mimes(lltl::parray<char> *list, const char * const * mimes);
-                    static status_t             write_to_sink(IDataSink *dst, const void *data, size_t bytes);
 
                 public:
                     explicit WinDisplay();
@@ -217,6 +216,10 @@ namespace lsp
 
                     status_t                    grab_events(WinWindow *wnd, grab_t group);
                     status_t                    ungrab_events(WinWindow *wnd);
+
+                    WinWindow                  *set_drag_window(WinWindow *wnd);
+                    bool                        unset_drag_window(WinWindow *wnd);
+                    WinWindow                  *drag_window();
             };
         } /* namespace win */
     } /* namespace ws */

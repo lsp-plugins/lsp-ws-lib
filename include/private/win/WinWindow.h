@@ -32,6 +32,7 @@
 #include <lsp-plug.in/ws/IWindow.h>
 
 #include <private/win/WinDDSurface.h>
+#include <private/win/dnd.h>
 
 #include <windows.h>
 
@@ -77,6 +78,7 @@ namespace lsp
                     HWND                hWindow;        // The identifier of the wrapped window
                     HWND                hParent;        // The identifier of parent window
                     WinDDSurface       *pSurface;       // Drawing surface
+                    WinDNDTarget       *pDNDTarget;     // Drag&Drop target
                     LONG_PTR            pOldUserData;   // Old user data
                     WNDPROC             pOldProc;       // Old window procedure (if present)
                     bool                bWrapper;       // Indicates that window is a wrapper
@@ -181,6 +183,9 @@ namespace lsp
                      * @return 0 if the event has been processed
                      */
                     LRESULT             process_event(UINT uMsg, WPARAM wParam, LPARAM lParam, timestamp_t ts, bool hook);
+                    HWND                win_handle();
+                    WinDisplay         *win_display();
+                    WinDNDTarget       *dnd_target();
             };
         } /* namespace win */
     } /* namespace ws */

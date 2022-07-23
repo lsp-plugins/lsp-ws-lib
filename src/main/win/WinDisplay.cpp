@@ -36,6 +36,7 @@
 #include <private/win/com.h>
 #include <private/win/dnd.h>
 #include <private/win/fonts.h>
+#include <private/win/util.h>
 
 #include <combaseapi.h>
 #include <locale.h>
@@ -57,27 +58,6 @@ namespace lsp
             //-----------------------------------------------------------------
             static const BYTE none_cursor_and[] = { 0xff };
             static const BYTE none_cursor_xor[] = { 0 };
-
-            static const char * const unicode_mimes[] =
-            {
-                "UTF8_STRING",
-                "text/plain;charset=utf-8",
-                "text/plain;charset=UTF-16LE",
-                "text/plain;charset=UTF-16BE",
-                NULL
-            };
-
-            static const char * const ansi_mimes[] =
-            {
-                "text/plain;charset=US-ASCII",
-                NULL
-            };
-
-            static const char * const oem_mimes[] =
-            {
-                "text/plain",
-                NULL
-            };
 
             //-----------------------------------------------------------------
             const WCHAR *WinDisplay::WINDOW_CLASS_NAME      = L"lsp-ws-lib window";
@@ -108,6 +88,7 @@ namespace lsp
                 pNextHandler    = NULL;
                 hClipWnd        = NULL;
                 pClipData       = NULL;
+                pDragWindow     = NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -120,7 +101,7 @@ namespace lsp
                 HRESULT hr;
                 WNDCLASSW wc;
 
-                hr = CoInitialize(NULL);
+                hr = OleInitialize(NULL);
                 if (FAILED(hr))
                     return STATUS_UNKNOWN_ERR;
 
@@ -556,17 +537,23 @@ namespace lsp
 
             const char * const *WinDisplay::get_drag_ctypes()
             {
-                return NULL;
+                WinDNDTarget *tgt = (pDragWindow != NULL) ? pDragWindow->dnd_target() : NULL;
+                if (tgt == NULL)
+                    return NULL;
+
+                return tgt->formats();
             }
 
             status_t WinDisplay::reject_drag()
             {
-                return STATUS_NOT_IMPLEMENTED;
+                WinDNDTarget *tgt = (pDragWindow != NULL) ? pDragWindow->dnd_target() : NULL;
+                return (tgt != NULL) ? tgt->reject_drag() : STATUS_BAD_STATE;
             }
 
             status_t WinDisplay::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
             {
-                return STATUS_NOT_IMPLEMENTED;
+                WinDNDTarget *tgt = (pDragWindow != NULL) ? pDragWindow->dnd_target() : NULL;
+                return (tgt != NULL) ? tgt->accept_drag(sink, action, internal, r) : STATUS_BAD_STATE;
             }
 
             status_t WinDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
@@ -1669,11 +1656,9 @@ namespace lsp
             bool WinDisplay::has_mime_types(const char * const * src_list, const char * const * check)
             {
                 for( ; (src_list != NULL) && (*src_list != NULL); ++src_list)
-                {
-                    for (const char * const * ck = check; (ck != NULL) && (*ck != NULL); ++ck)
-                        if (!strcasecmp(*src_list, *ck))
-                            return true;
-                }
+                    if (index_of_mime(*src_list, check) >= 0)
+                        return true;
+
                 return false;
             }
 
@@ -1859,7 +1844,7 @@ namespace lsp
                 else
                 {
                     LSPString fmt_name;
-                    if (read_format_name(fmt, &fmt_name) == STATUS_OK)
+                    if (read_clipboard_format_name(fmt, &fmt_name) == STATUS_OK)
                         ptr         = make_clipboard_custom_format(fmt_name.get_utf8());
                 }
 
@@ -1966,37 +1951,6 @@ namespace lsp
                 return (res >= 0) ? clipboard_global_alloc(os.data(), res) : NULL;
             }
 
-            status_t WinDisplay::read_format_name(UINT fmt, LSPString *dst)
-            {
-                ssize_t cap = 64;
-                WCHAR *buf = static_cast<WCHAR *>(malloc(sizeof(WCHAR) * cap));
-                if (buf == NULL)
-                    return STATUS_NO_MEM;
-                lsp_finally{ free(buf); };
-
-                while (true)
-                {
-                    ssize_t res = GetClipboardFormatNameW(fmt, buf, cap);
-                    if (res == 0)
-                        return STATUS_UNKNOWN_ERR;
-                    else if (res < (cap - 2))
-                    {
-                        while ((res > 0) && (buf[res] == '\0'))
-                            --res;
-                        if (!dst->set_utf16(buf, res))
-                            return STATUS_NO_MEM;
-                        return STATUS_OK;
-                    }
-
-                    // Grow the buffer size
-                    cap <<= 1;
-                    WCHAR *nbuf = static_cast<WCHAR *>(realloc(buf, sizeof(WCHAR) * cap));
-                    if (buf == NULL)
-                        return STATUS_NO_MEM;
-                    buf         = nbuf;
-                }
-            }
-
             size_t WinDisplay::append_mimes(lltl::parray<char> *list, const char * const * mimes)
             {
                 size_t added = 0;
@@ -2039,8 +1993,6 @@ namespace lsp
                     }
                 };
 
-                size_t gsize, n;
-                HGLOBAL g;
                 UINT fmt            = 0;
                 ssize_t idx         = 0;
                 range_t unicode     = { 0, 0 };
@@ -2083,7 +2035,7 @@ namespace lsp
                         };
                         if (f == NULL)
                             continue;
-                        if (read_format_name(fmt, &f->name) != STATUS_OK)
+                        if (read_clipboard_format_name(fmt, &f->name) != STATUS_OK)
                             continue;
                         const char *utf = f->name.get_utf8();
                         if (utf == NULL)
@@ -2103,118 +2055,48 @@ namespace lsp
                     return STATUS_NO_MEM;
 
                 // Now open the sink
-                ssize_t res = dst->open(mimes.array());
-                if (res < 0)
-                    return -res;
+                ssize_t fmt_id  = dst->open(mimes.array());
+                if ((fmt_id < 0) || (fmt_id >= ssize_t(mimes.size() - 1)))
+                    return -fmt_id;
 
                 // Determine what format has been selected
-                LSPString tmp;
-                if ((res >= unicode.first) && (res < (unicode.first + unicode.count)))
-                {
+                HGLOBAL g   = NULL;
+                if ((fmt_id >= unicode.first) && (fmt_id < (unicode.first + unicode.count)))
                     // Unicode string
                     g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
-                    if (g == NULL)
-                        return dst->close(STATUS_UNKNOWN_ERR);
-                    gsize = GlobalSize(g);
-                    WCHAR *s    = static_cast<WCHAR *>(GlobalLock(g));
-                    if (s == NULL)
-                        return dst->close(STATUS_NO_MEM);
-                    lsp_finally{ GlobalUnlock(g); };
-                    n           = wcsnlen(s, gsize);
-                    if (!tmp.set_utf16(s, n))
-                        return dst->close(STATUS_NO_MEM);
-                    if (!tmp.to_unix())
-                        return dst->close(STATUS_NO_MEM);
-
-                    res -= unicode.first;
-                    switch (res)
-                    {
-                        case 0:
-                        case 1: // UTF-8
-                        {
-                            const char *xs  = tmp.get_utf8();
-                            return write_to_sink(dst, xs, tmp.temporal_size());
-                        }
-                        case 2: // UTF-16LE
-                        {
-                            const lsp_utf16_t *xs = __IF_LEBE(
-                                tmp.get_utf16(),
-                                reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16LE"))
-                            );
-                            return write_to_sink(dst, xs, tmp.temporal_size());
-                        }
-                        case 3: // UTF-16BE
-                        {
-                            const lsp_utf16_t *xs = __IF_LEBE(
-                                reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16BE")),
-                                tmp.get_utf16()
-                            );
-                            return write_to_sink(dst, xs, tmp.temporal_size());
-                        }
-                        default:
-                            break;
-                    }
-
-                    return dst->close(STATUS_BAD_FORMAT);
-                }
-                else if ((res >= oem.first) && (res < (oem.first + oem.count)))
-                {
+                else if ((fmt_id >= oem.first) && (fmt_id < (oem.first + oem.count)))
                     // OEM string
                     g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_OEMTEXT));
-                    if (g == NULL)
-                        return dst->close(STATUS_UNKNOWN_ERR);
-                    gsize       = GlobalSize(g);
-                    char *s     = static_cast<char *>(GlobalLock(g));
-                    if (s == NULL)
-                        return dst->close(STATUS_NO_MEM);
-                    lsp_finally{ GlobalUnlock(g); };
-                    n           = strnlen(s, gsize);
-                    if (!tmp.set_native(s, n))
-                        return dst->close(STATUS_NO_MEM);
-                    if (!tmp.to_unix())
-                        return dst->close(STATUS_NO_MEM);
-
-                    const char *xs  = tmp.get_native();
-                    return write_to_sink(dst, xs, tmp.temporal_size());
-                }
-                else if ((res >= ansi.first) && (res < (ansi.first + ansi.count)))
-                {
+                else if ((fmt_id >= ansi.first) && (fmt_id < (ansi.first + ansi.count)))
                     // ANSI string
                     g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_TEXT));
-                    if (g == NULL)
-                        return dst->close(STATUS_UNKNOWN_ERR);
-                    gsize       = GlobalSize(g);
-                    char *s     = static_cast<char *>(GlobalLock(g));
-                    if (s == NULL)
-                        return dst->close(STATUS_NO_MEM);
-                    lsp_finally{ GlobalUnlock(g); };
-                    n           = strnlen(s, gsize);
-                    if (!tmp.set_ascii(s, n))
-                        return dst->close(STATUS_NO_MEM);
-                    if (!tmp.to_unix())
-                        return dst->close(STATUS_NO_MEM);
+                else
+                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(fmt));
 
-                    const char *xs  = tmp.get_ascii();
-                    return write_to_sink(dst, xs, tmp.temporal_size());
-                }
-
-                // Custom format
-                g           = reinterpret_cast<HGLOBAL>(GetClipboardData(fmt));
                 if (g == NULL)
-                    return dst->close(STATUS_UNKNOWN_ERR);
-                gsize       = GlobalSize(g);
-                void *s     = GlobalLock(g);
-                lsp_finally{ GlobalUnlock(g); };
+                    return dst->close(STATUS_NO_MEM);
 
-                return write_to_sink(dst, s, gsize);
+                return sink_hglobal_contents(dst, g, mimes.uget(fmt_id));
             }
 
-            status_t WinDisplay::write_to_sink(IDataSink *dst, const void *data, size_t bytes)
+            WinWindow *WinDisplay::set_drag_window(WinWindow *wnd)
             {
-                if (data == NULL)
-                    return dst->close(STATUS_NO_MEM);
-                status_t res = dst->write(data, bytes);
-                return dst->close(res);
+                WinWindow *old  = pDragWindow;
+                pDragWindow     = wnd;
+                return old;
+            }
+
+            bool WinDisplay::unset_drag_window(WinWindow *wnd)
+            {
+                if (pDragWindow != wnd)
+                    return false;
+                pDragWindow     = NULL;
+                return true;
+            }
+
+            WinWindow *WinDisplay::drag_window()
+            {
+                return pDragWindow;
             }
 
         } /* namespace win */

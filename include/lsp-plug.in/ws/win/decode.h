@@ -61,6 +61,4 @@ namespace lsp
 
 #endif /* PLATFORM_WINDOWS */
 
-
-
 #endif /* LSP_PLUG_IN_WS_WIN_DECODE_H_ */

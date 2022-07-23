@@ -19,9 +19,11 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/ws/win/decode.h>
+#include <lsp-plug.in/common/types.h>
 
 #ifdef PLATFORM_WINDOWS
+
+#include <lsp-plug.in/ws/win/decode.h>
 
 namespace lsp
 {

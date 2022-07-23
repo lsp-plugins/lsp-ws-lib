@@ -26,6 +26,11 @@
 
 #ifdef PLATFORM_WINDOWS
 
+#include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/ws/IDataSink.h>
+
 #include <private/win/com.h>
 
 #include <oleidl.h>
@@ -43,7 +48,25 @@ namespace lsp
                 LSP_IUNKNOWN_IFACE
 
                 private:
-                    WinWindow      *pWindow;
+                    WinWindow                  *pWindow;
+                    IDataSink                  *pDataSink;
+                    drag_t                      enAction;
+                    bool                        bInternal;
+                    bool                        bUseRect;
+                    rectangle_t                 sRect;
+
+                    lltl::parray<char>          vFormatNames;
+                    lltl::darray<FORMATETC>     vFormats;
+                    lltl::pphash<char, FORMATETC> vFormatMapping;
+
+                protected:
+                    void                release_resources();
+                    void                reset_confirm_state();
+                    bool                read_formats(IDataObject *pDataObj);
+                    void                create_builtin_format_mapping(FORMATETC *fmt, const char * const * mimes);
+                    void                create_custom_format_mapping(FORMATETC *fmt, const char *name);
+                    DWORD               get_drop_effect();
+                    void                translate_point(event_t *ev, const POINTL & pt);
 
                 public:
                     explicit WinDNDTarget(WinWindow *wnd);
@@ -54,6 +77,11 @@ namespace lsp
                     virtual HRESULT STDMETHODCALLTYPE DragOver(DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) override;
                     virtual HRESULT STDMETHODCALLTYPE DragLeave() override;
                     virtual HRESULT STDMETHODCALLTYPE Drop(IDataObject *pDataObj, DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) override;
+
+                public:
+                    const char *const * formats() const;
+                    status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                    status_t            reject_drag();
             };
         }
     }

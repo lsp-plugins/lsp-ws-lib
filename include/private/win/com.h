@@ -22,6 +22,10 @@
 #ifndef PRIVATE_WIN_COM_H_
 #define PRIVATE_WIN_COM_H_
 
+#include <lsp-plug.in/common/types.h>
+
+#ifdef PLATFORM_WINDOWS
+
 #define LSP_IUNKNOWN_IFACE \
     private: \
         ULONG                   nRefCount; \
@@ -86,5 +90,7 @@ namespace lsp
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* PLATFORM_WINDOWS */
 
 #endif /* PRIVATE_WIN_COM_H_ */

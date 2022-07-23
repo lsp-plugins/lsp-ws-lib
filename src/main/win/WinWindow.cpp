@@ -58,6 +58,7 @@ namespace lsp
                     hParent                 = wnd;
                 }
                 pSurface                = NULL;
+                pDNDTarget              = NULL;
                 pOldUserData            = reinterpret_cast<LONG_PTR>(reinterpret_cast<void *>(NULL));
                 pOldProc                = reinterpret_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
@@ -103,8 +104,13 @@ namespace lsp
             status_t WinWindow::init()
             {
                 // Register the window
-                if (pDisplay == NULL)
+                if (pWinDisplay == NULL)
                     return STATUS_BAD_STATE;
+
+                // Initialize parent class
+                status_t res = IWindow::init();
+                if (res != STATUS_OK)
+                    return res;
 
                 if (!bWrapper)
                 {
@@ -145,6 +151,18 @@ namespace lsp
                 if (pSurface == NULL)
                     return STATUS_NO_MEM;
 
+                // Create Drag&Drop target
+                pDNDTarget      = new WinDNDTarget(this);
+                if (pDNDTarget == NULL)
+                    return STATUS_NO_MEM;
+                pDNDTarget->AddRef();
+                HRESULT hr = RegisterDragDrop(hWindow, pDNDTarget);
+                if (FAILED(hr))
+                {
+                    lsp_error("Failed to register Drag&Drop target: result=0x%lx", long(hr));
+                    return STATUS_UNKNOWN_ERR;
+                }
+
                 // Enable all keyboard and mouse input for the window
                 EnableWindow(hWindow, TRUE);
 
@@ -156,6 +174,18 @@ namespace lsp
                 if (hWindow == NULL)
                     return;
 
+                // Drag&Drop related
+                if (pWinDisplay != NULL)
+                    pWinDisplay->unset_drag_window(this);
+                if (pDNDTarget != NULL)
+                {
+                    RevokeDragDrop(hWindow);
+
+                    pDNDTarget->Release();
+                    pDNDTarget  = NULL;
+                }
+
+                // Custom user data
                 SetWindowLongPtrW(hWindow, GWLP_USERDATA, pOldUserData);
                 SetWindowLongPtrW(hWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WinDisplay::window_proc));
 
@@ -163,7 +193,9 @@ namespace lsp
                     DestroyWindow(hWindow);
 
                 hWindow     = NULL;
-                pDisplay    = NULL;
+                pWinDisplay = NULL;
+
+                IWindow::destroy();
             }
 
             void WinWindow::handle_mouse_leave()
@@ -657,6 +689,19 @@ namespace lsp
                         break;
                     }
 
+                    // Drag&Drop
+                    case UIE_DRAG_ENTER:
+                        pWinDisplay->set_drag_window(this);
+                        break;
+                    case UIE_DRAG_LEAVE:
+                        pWinDisplay->unset_drag_window(this);
+                        break;
+                    case UIE_DRAG_REQUEST:
+                        // Skip drag events which are not related to this window
+                        if (pWinDisplay->drag_window() != this)
+                            return STATUS_OK;
+                        break;
+
                     default:
                         break;
                 }
@@ -690,6 +735,21 @@ namespace lsp
             void *WinWindow::handle()
             {
                 return reinterpret_cast<void *>(hWindow);
+            }
+
+            HWND WinWindow::win_handle()
+            {
+                return hWindow;
+            }
+
+            WinDisplay *WinWindow::win_display()
+            {
+                return pWinDisplay;
+            }
+
+            WinDNDTarget *WinWindow::dnd_target()
+            {
+                return pDNDTarget;
             }
 
             ssize_t WinWindow::left()

@@ -2254,12 +2254,10 @@ namespace lsp
 
                         // Form the notification event
                         event_t ue;
+                        init_event(&ue);
                         ue.nType            = UIE_DRAG_REQUEST;
                         ue.nLeft            = cx;
                         ue.nTop             = cy;
-                        ue.nWidth           = 0;
-                        ue.nHeight          = 0;
-                        ue.nCode            = 0;
                         ue.nState           = DRAG_COPY;
 
                         // Decode action
@@ -2549,14 +2547,8 @@ namespace lsp
 
                 // Create DRAG_ENTER event
                 event_t ue;
+                init_event(&ue);
                 ue.nType        = UIE_DRAG_ENTER;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
 
                 // Pass event to the target window
                 return tgt->handle_event(&ue);
@@ -2615,14 +2607,8 @@ namespace lsp
                     return STATUS_NOT_FOUND;
 
                 event_t ue;
+                init_event(&ue);
                 ue.nType        = UIE_DRAG_LEAVE;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
 
                 return tgt->handle_event(&ue);
             }
@@ -2679,12 +2665,10 @@ namespace lsp
 
                 // Form the notification event
                 event_t ue;
+                init_event(&ue);
                 ue.nType            = UIE_DRAG_REQUEST;
                 ue.nLeft            = x;
                 ue.nTop             = y;
-                ue.nWidth           = 0;
-                ue.nHeight          = 0;
-                ue.nCode            = 0;
                 ue.nState           = DRAG_COPY;
 
                 // Decode action
@@ -2843,14 +2827,6 @@ namespace lsp
                 {
                     event_t ue;
                     ue.nType        = UIE_DRAG_LEAVE;
-                    ue.nLeft        = 0;
-                    ue.nTop         = 0;
-                    ue.nWidth       = 0;
-                    ue.nHeight      = 0;
-                    ue.nCode        = 0;
-                    ue.nState       = 0;
-                    ue.nTime        = 0;
-
                     tgt->handle_event(&ue);
                 }
 
