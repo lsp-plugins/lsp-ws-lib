@@ -27,6 +27,8 @@
 
 #include <private/win/util.h>
 
+#include <shlobj.h>
+
 namespace lsp
 {
     namespace ws
@@ -52,6 +54,24 @@ namespace lsp
             const char * const oem_mimes[] =
             {
                 "text/plain",
+                NULL
+            };
+
+            const char * const text_uri_list_mimes[] =
+            {
+                "text/uri-list",
+                NULL
+            };
+
+            const char * const filenamew_mimes[] =
+            {
+                "application/x-windows-filenamew",
+                NULL
+            };
+
+            const char * const filename_mimes[] =
+            {
+                "application/x-windows-filename",
                 NULL
             };
 
@@ -105,7 +125,7 @@ namespace lsp
                 }
             }
 
-            status_t sink_hglobal_contents(IDataSink *dst, HGLOBAL g, const char *mime)
+            status_t sink_hglobal_contents(IDataSink *dst, HGLOBAL g, UINT src_fmt, const char *mime)
             {
                 ssize_t index;
                 size_t n;
@@ -125,11 +145,11 @@ namespace lsp
                 lsp_finally{ GlobalUnlock(g); };
 
                 // Try unicode first
-                if ((index = index_of_mime(mime, unicode_mimes)) >= 0)
+                if ((src_fmt == CF_UNICODETEXT) && ((index = index_of_mime(mime, unicode_mimes)) >= 0))
                 {
                     // Unicode string
-                    WCHAR *s    = static_cast<WCHAR *>(ptr);
-                    n           = wcsnlen(s, gsize);
+                    const WCHAR *s  = static_cast<WCHAR *>(ptr);
+                    n               = wcsnlen(s, gsize);
                     if (!tmp.set_utf16(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
@@ -142,7 +162,7 @@ namespace lsp
                         case 1: // UTF-8
                         {
                             const char *xs  = tmp.get_utf8();
-                            return write_to_sink(dst, xs, tmp.temporal_size());
+                            return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(char));
                         }
                         case 2: // UTF-16LE
                         {
@@ -150,7 +170,7 @@ namespace lsp
                                 tmp.get_utf16(),
                                 reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16LE"))
                             );
-                            return write_to_sink(dst, xs, tmp.temporal_size());
+                            return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(WCHAR));
                         }
                         case 3: // UTF-16BE
                         {
@@ -158,7 +178,7 @@ namespace lsp
                                 reinterpret_cast<const lsp_utf16_t *>(tmp.get_native("UTF-16BE")),
                                 tmp.get_utf16()
                             );
-                            return write_to_sink(dst, xs, tmp.temporal_size());
+                            return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(WCHAR));
                         }
                         default:
                             break;
@@ -168,33 +188,80 @@ namespace lsp
                 }
 
                 // Try OEM text
-                if ((index = index_of_mime(mime, oem_mimes)) >= 0)
+                if ((src_fmt == CF_OEMTEXT) && ((index = index_of_mime(mime, oem_mimes)) >= 0))
                 {
                     // OEM string
-                    char *s     = static_cast<char *>(ptr);
-                    n           = strnlen(s, gsize);
+                    const char *s   = static_cast<char *>(ptr);
+                    n               = strnlen(s, gsize);
                     if (!tmp.set_native(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
                         return dst->close(STATUS_NO_MEM);
 
                     const char *xs  = tmp.get_native();
-                    return write_to_sink(dst, xs, tmp.temporal_size());
+                    return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(char));
                 }
 
                 // Try US-ASCII text
-                if ((index = index_of_mime(mime, ansi_mimes)) >= 0)
+                if ((src_fmt == CF_TEXT) && ((index = index_of_mime(mime, ansi_mimes)) >= 0))
                 {
                     // ANSI string
-                    char *s     = static_cast<char *>(ptr);
-                    n           = strnlen(s, gsize);
+                    const char *s   = static_cast<char *>(ptr);
+                    n               = strnlen(s, gsize);
                     if (!tmp.set_ascii(s, n))
                         return dst->close(STATUS_NO_MEM);
                     if (!tmp.to_unix())
                         return dst->close(STATUS_NO_MEM);
 
                     const char *xs  = tmp.get_ascii();
-                    return write_to_sink(dst, xs, tmp.temporal_size());
+                    return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(char));
+                }
+
+                // Try HDROP format
+                if ((src_fmt == CF_HDROP) && ((index = index_of_mime(mime, text_uri_list_mimes)) >= 0))
+                {
+                    const DROPFILES *df = static_cast<DROPFILES *>(ptr);
+                    const uint8_t *bptr = static_cast<uint8_t *>(ptr);
+                    const uint8_t *eptr = &bptr[gsize];
+                    if (df->fWide)
+                    {
+                        // Unicode format
+                        for (bptr = &bptr[df->pFiles]; bptr < eptr; )
+                        {
+                            const WCHAR *s      = reinterpret_cast<const WCHAR *>(bptr);
+                            if (*s == '\0')
+                                break;
+                            n                   = wcsnlen(s, (eptr - bptr)/sizeof(WCHAR));
+                            if (!tmp.append_ascii("file://"))
+                                return dst->close(STATUS_NO_MEM);
+                            if (!tmp.append_utf16(s, n))
+                                return dst->close(STATUS_NO_MEM);
+                            if (!tmp.append_ascii("\r\n"))
+                                return dst->close(STATUS_NO_MEM);
+                            bptr               += (n + 1) * sizeof(WCHAR);
+                        }
+                    }
+                    else
+                    {
+                        // ANSI format
+                        for (bptr = &bptr[df->pFiles]; bptr < eptr; )
+                        {
+                            const char *s       = reinterpret_cast<const char *>(bptr);
+                            if (*s == '\0')
+                                break;
+                            n                   = strnlen(s, (eptr - bptr)/sizeof(char));
+                            if (!tmp.append_ascii("file://"))
+                                return dst->close(STATUS_NO_MEM);
+                            if (!tmp.append_ascii(s, n))
+                                return dst->close(STATUS_NO_MEM);
+                            if (!tmp.append_ascii("\r\n"))
+                                return dst->close(STATUS_NO_MEM);
+                            bptr               += (n + 1) * sizeof(char);
+                        }
+                    }
+
+                    const char *xs  = tmp.get_utf8();
+                    return write_to_sink(dst, xs, tmp.temporal_size() - sizeof(char));
                 }
 
                 // Write Custom format

@@ -52,7 +52,6 @@ namespace lsp
                     IDataSink                  *pDataSink;
                     drag_t                      enAction;
                     bool                        bInternal;
-                    bool                        bUseRect;
                     rectangle_t                 sRect;
 
                     lltl::parray<char>          vFormatNames;
@@ -66,7 +65,7 @@ namespace lsp
                     void                create_builtin_format_mapping(FORMATETC *fmt, const char * const * mimes);
                     void                create_custom_format_mapping(FORMATETC *fmt, const char *name);
                     DWORD               get_drop_effect();
-                    void                translate_point(event_t *ev, const POINTL & pt);
+                    void                translate_point(POINT & dpt, const POINTL & pt);
 
                 public:
                     explicit WinDNDTarget(WinWindow *wnd);
@@ -80,7 +79,7 @@ namespace lsp
 
                 public:
                     const char *const * formats() const;
-                    status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                    status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r);
                     status_t            reject_drag();
             };
         }

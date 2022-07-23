@@ -41,6 +41,7 @@ namespace lsp
             extern const char * const unicode_mimes[];
             extern const char * const ansi_mimes[];
             extern const char * const oem_mimes[];
+            extern const char * const text_uri_list_mimes[];
 
             /**
              * Return the index of the MIME in the NULL-terminated list
@@ -62,10 +63,11 @@ namespace lsp
              * Read the contents of HGLOBAL variable and send it to the sink
              * @param dst destination sink to send data
              * @param g HGLOBAL object
+             * @param src_fmt clipboard format
              * @param mime the name of the MIME format
              * @return status of operation
              */
-            status_t    sink_hglobal_contents(IDataSink *dst, HGLOBAL g, const char *mime);
+            status_t    sink_hglobal_contents(IDataSink *dst, HGLOBAL g, UINT src_fmt, const char *mime);
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

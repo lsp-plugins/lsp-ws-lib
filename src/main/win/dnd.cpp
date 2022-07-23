@@ -39,8 +39,6 @@ namespace lsp
     {
         namespace win
         {
-            static const char *MIME_TEXT_HDROP      = "application/x-windows-hdrop";
-
             LSP_IUNKNOWN_IMPL(WinDNDTarget, IDropTarget)
 
             WinDNDTarget::WinDNDTarget(WinWindow *wnd)
@@ -51,7 +49,6 @@ namespace lsp
                 pDataSink       = NULL;
                 enAction        = DRAG_COPY;
                 bInternal       = false;
-                bUseRect        = false;
                 sRect.nLeft     = 0;
                 sRect.nTop      = 0;
                 sRect.nWidth    = 0;
@@ -86,7 +83,6 @@ namespace lsp
                 // Reset confirmation state
                 enAction        = DRAG_COPY;
                 bInternal       = false;
-                bUseRect        = false;
                 sRect.nLeft     = 0;
                 sRect.nTop      = 0;
                 sRect.nWidth    = 0;
@@ -98,7 +94,7 @@ namespace lsp
                 return (vFormatNames.size() > 0) ? vFormatNames.array() : NULL;
             }
 
-            status_t WinDNDTarget::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+            status_t WinDNDTarget::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
             {
                 if (sink == NULL)
                     return STATUS_BAD_ARGUMENTS;
@@ -114,9 +110,8 @@ namespace lsp
                 sink->acquire();
                 pDataSink       = sink;
                 enAction        = action;
-                bInternal       = internal;
-                bUseRect        = r != NULL;
-                if (bUseRect)
+                bInternal       = r != NULL;
+                if (bInternal)
                     sRect           = *r;
 
                 return STATUS_OK;
@@ -184,8 +179,6 @@ namespace lsp
                 // Enumerate formats
                 while ((hr = pFmtEnum->Next(1, &tmp, &fetched)) == S_OK)
                 {
-                    lsp_trace("FMT: fmt=%d, asp=%ld, lind=%ld, tymed=0x%lx",
-                        int(tmp.cfFormat), long(tmp.dwAspect), long(tmp.lindex), long(tmp.tymed));
                     if (tmp.tymed != TYMED_HGLOBAL)
                         continue;
 
@@ -201,7 +194,7 @@ namespace lsp
                             create_builtin_format_mapping(&tmp, ansi_mimes);
                             break;
                         case CF_HDROP:
-                            create_custom_format_mapping(&tmp, MIME_TEXT_HDROP);
+                            create_builtin_format_mapping(&tmp, text_uri_list_mimes);
                             break;
                         default:
                             // Read name of the clipboard format
@@ -209,6 +202,8 @@ namespace lsp
                                 break;
                             if (!fmt_name.prepend_ascii("application/x-windows-"))
                                 break;
+                            lsp_trace("FMT: fmt=%d, asp=%ld, lind=%ld, tymed=0x%lx name=%s",
+                                int(tmp.cfFormat), long(tmp.dwAspect), long(tmp.lindex), long(tmp.tymed), fmt_name.get_native());
                             create_custom_format_mapping(&tmp, fmt_name.get_utf8());
                             break;
                     }
@@ -246,22 +241,11 @@ namespace lsp
                 return DragOver(grfKeyState, pt, pdwEffect);
             }
 
-            void WinDNDTarget::translate_point(event_t *ev, const POINTL & pt)
+            void WinDNDTarget::translate_point(POINT & dpt, const POINTL & pt)
             {
-                POINT xpt;
-
-                xpt.x           = pt.x;
-                xpt.y           = pt.y;
-                if (ScreenToClient(pWindow->win_handle(), &xpt))
-                {
-                    ev->nLeft       = xpt.x;
-                    ev->nTop        = xpt.y;
-                }
-                else
-                {
-                    ev->nLeft       = pt.x;
-                    ev->nTop        = pt.y;
-                }
+                dpt.x           = pt.x;
+                dpt.y           = pt.y;
+                ScreenToClient(pWindow->win_handle(), &dpt);
             }
 
             HRESULT STDMETHODCALLTYPE WinDNDTarget::DragOver(DWORD grfKeyState, POINTL pt, DWORD *pdwEffect)
@@ -273,17 +257,21 @@ namespace lsp
                 reset_confirm_state();
 
                 // Create DRAG_REQUEST event and pass to window
+                POINT dpt;
+                translate_point(dpt, pt);
+
                 event_t ue;
                 init_event(&ue);
-
                 ue.nType        = UIE_DRAG_REQUEST;
                 ue.nState       = DRAG_COPY;
-                translate_point(&ue, pt);
+                ue.nLeft        = dpt.x;
+                ue.nTop         = dpt.y;
 
                 pWindow->handle_event(&ue);
 
                 // Return the drop effect
                 *pdwEffect      = get_drop_effect();
+                lsp_trace("drop effect = 0x%lx", long(*pdwEffect));
 
                 return S_OK;
             }
@@ -315,6 +303,16 @@ namespace lsp
                 if (pDataSink == NULL)
                     return S_OK;
 
+                // Check the rectangle
+                if (bInternal)
+                {
+                    POINT dpt;
+                    translate_point(dpt, pt);
+                    if ((dpt.x < sRect.nLeft) || (dpt.x >= (sRect.nLeft + sRect.nWidth )) ||
+                        (dpt.y < sRect.nTop)  || (dpt.y >= (sRect.nTop  + sRect.nHeight)))
+                        return DragLeave();
+                }
+
                 // Open data sink
                 ssize_t fmt_id  = pDataSink->open(vFormatNames.array());
                 if ((fmt_id < 0) || (fmt_id >= ssize_t(vFormatNames.size() - 1)))
@@ -345,13 +343,23 @@ namespace lsp
                     return S_OK;
                 }
 
+            #ifdef LSP_TRACE
+                LSPString fmt_oname;
+                if (read_clipboard_format_name(fmt->cfFormat, &fmt_oname) != STATUS_OK)
+                {
+                    if (fmt_oname.prepend_ascii("application/x-windows-"))
+                        lsp_trace("FMT: fmt=%d, asp=%ld, lind=%ld, tymed=0x%lx name=%s",
+                            int(fmt->cfFormat), long(fmt->dwAspect), long(fmt->lindex), long(fmt->tymed), fmt_oname.get_native());
+                }
+            #endif /* LSP_TRACE */
+
                 // Write data to the sink
-                status_t res    = sink_hglobal_contents(pDataSink, stg.hGlobal, fmt_name);
+                status_t res    = sink_hglobal_contents(pDataSink, stg.hGlobal, fmt->cfFormat, fmt_name);
 
                 // Return the drop effect
                 *pdwEffect      = (res == STATUS_OK) ? get_drop_effect() : DROPEFFECT_NONE;
 
-                return S_OK;
+                return DragLeave();
             }
         } // namespace win
     } // namespace ws

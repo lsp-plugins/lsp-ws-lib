@@ -550,10 +550,10 @@ namespace lsp
                 return (tgt != NULL) ? tgt->reject_drag() : STATUS_BAD_STATE;
             }
 
-            status_t WinDisplay::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+            status_t WinDisplay::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
             {
                 WinDNDTarget *tgt = (pDragWindow != NULL) ? pDragWindow->dnd_target() : NULL;
-                return (tgt != NULL) ? tgt->accept_drag(sink, action, internal, r) : STATUS_BAD_STATE;
+                return (tgt != NULL) ? tgt->accept_drag(sink, action, r) : STATUS_BAD_STATE;
             }
 
             status_t WinDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
@@ -2060,23 +2060,18 @@ namespace lsp
                     return -fmt_id;
 
                 // Determine what format has been selected
-                HGLOBAL g   = NULL;
                 if ((fmt_id >= unicode.first) && (fmt_id < (unicode.first + unicode.count)))
-                    // Unicode string
-                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_UNICODETEXT));
+                    fmt         = CF_UNICODETEXT;
                 else if ((fmt_id >= oem.first) && (fmt_id < (oem.first + oem.count)))
-                    // OEM string
-                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_OEMTEXT));
+                    fmt         = CF_OEMTEXT;
                 else if ((fmt_id >= ansi.first) && (fmt_id < (ansi.first + ansi.count)))
-                    // ANSI string
-                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(CF_TEXT));
-                else
-                    g           = reinterpret_cast<HGLOBAL>(GetClipboardData(fmt));
+                    fmt         = CF_TEXT;
 
+                HGLOBAL g       = reinterpret_cast<HGLOBAL>(GetClipboardData(fmt));
                 if (g == NULL)
                     return dst->close(STATUS_NO_MEM);
 
-                return sink_hglobal_contents(dst, g, mimes.uget(fmt_id));
+                return sink_hglobal_contents(dst, g, fmt, mimes.uget(fmt_id));
             }
 
             WinWindow *WinDisplay::set_drag_window(WinWindow *wnd)

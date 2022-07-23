@@ -33,6 +33,8 @@ namespace
         "text/x-moz-url",
         "application/x-kde4-urilist",
         "text/plain",
+        "application/x-windows-filenamew",
+        "application/x-windows-filename",
         NULL
     };
 }
@@ -72,7 +74,8 @@ MTEST_BEGIN("ws.display", dnd)
         public:
             ssize_t                 select_mime_type(const char * const *mime_types)
             {
-                for (const char * const *p = accept_mime; *p != NULL; ++p)
+                nCtype      = 0;
+                for (const char * const *p = accept_mime; *p != NULL; ++p, ++nCtype)
                 {
                     ssize_t idx = 0;
                     for (const char * const *q = mime_types; *q != NULL; ++q, ++idx)
@@ -87,12 +90,12 @@ MTEST_BEGIN("ws.display", dnd)
         public:
             virtual ssize_t         open(const char * const *mime_types) override
             {
-                nCtype  = select_mime_type(mime_types);
-                if (nCtype < 0)
+                ssize_t ctype   = select_mime_type(mime_types);
+                if (ctype < 0)
                     return -STATUS_UNSUPPORTED_FORMAT;
 
                 sOS.clear();
-                return STATUS_OK;
+                return ctype;
             }
 
             virtual status_t        write(const void *buf, size_t count) override
