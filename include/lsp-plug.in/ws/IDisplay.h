@@ -357,11 +357,10 @@ namespace lsp
                  * Accept drag request
                  * @param sink the sink that will handle data transfer
                  * @param action drag action
-                 * @param internal true if we want to receive notifications inside of the drag rectangle
-                 * @param r parameters of the drag rectangle, can be NULL
+                 * @param r parameters of the drag rectangle, optional, can be NULL
                  * @return status of operation
                  */
-                virtual status_t accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                virtual status_t accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL);
 
                 /**
                  * Get currently pending content type of a drag

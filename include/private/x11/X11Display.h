@@ -331,7 +331,7 @@ namespace lsp
                     virtual const char * const *get_drag_ctypes() override;
 
                     virtual status_t            reject_drag() override;
-                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r) override;
+                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL) override;
 
                     virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
 

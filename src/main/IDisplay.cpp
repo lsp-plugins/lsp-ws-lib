@@ -830,7 +830,7 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+        status_t IDisplay::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
         {
             return STATUS_NOT_IMPLEMENTED;
         }

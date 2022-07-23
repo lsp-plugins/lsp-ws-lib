@@ -182,7 +182,7 @@ MTEST_BEGIN("ws.display", dnd)
                                 r.nWidth    = w*2;
                                 r.nHeight   = h*2;
 
-                                dpy->accept_drag(pSink, ws::DRAG_COPY, true, &r);
+                                dpy->accept_drag(pSink, ws::DRAG_COPY, &r);
                                 pTest->printf("Accepted drag of %s\n", ctype[idx]);
                                 break;
                             }

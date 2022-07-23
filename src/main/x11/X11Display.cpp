@@ -2267,12 +2267,6 @@ namespace lsp
                             ue.nState           = DRAG_MOVE;
                         else if (act == sAtoms.X11_XdndActionLink)
                             ue.nState           = DRAG_LINK;
-                        else if (act == sAtoms.X11_XdndActionAsk)
-                            ue.nState           = DRAG_ASK;
-                        else if (act == sAtoms.X11_XdndActionPrivate)
-                            ue.nState           = DRAG_PRIVATE;
-                        else if (act == sAtoms.X11_XdndActionDirectSave)
-                            ue.nState           = DRAG_DIRECT_SAVE;
                         else
                             recv->hAction       = None;
 
@@ -2678,12 +2672,6 @@ namespace lsp
                     ue.nState           = DRAG_MOVE;
                 else if (act == sAtoms.X11_XdndActionLink)
                     ue.nState           = DRAG_LINK;
-                else if (act == sAtoms.X11_XdndActionAsk)
-                    ue.nState           = DRAG_ASK;
-                else if (act == sAtoms.X11_XdndActionPrivate)
-                    ue.nState           = DRAG_PRIVATE;
-                else if (act == sAtoms.X11_XdndActionDirectSave)
-                    ue.nState           = DRAG_DIRECT_SAVE;
                 else
                     task->hAction       = None;
 
@@ -3573,7 +3561,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+            status_t X11Display::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
             {
                 /**
                 XdndStatus
@@ -3606,31 +3594,18 @@ namespace lsp
                 Atom act            = None;
                 switch (action)
                 {
-                    case DRAG_COPY: act = sAtoms.X11_XdndActionCopy; break;
-                    case DRAG_PRIVATE: act = sAtoms.X11_XdndActionPrivate; break;
-
+                    case DRAG_COPY:
+                        act = sAtoms.X11_XdndActionCopy;
+                        break;
                     case DRAG_MOVE:
-                        if ((act = sAtoms.X11_XdndActionMove) != task->hAction)
-                            return STATUS_INVALID_VALUE;
+                        act = sAtoms.X11_XdndActionMove;
                         break;
                     case DRAG_LINK:
-                        if ((act = sAtoms.X11_XdndActionLink) != task->hAction)
-                            return STATUS_INVALID_VALUE;
-                        break;
-                    case DRAG_ASK:
-                        if ((act = sAtoms.X11_XdndActionLink) != task->hAction)
-                            return STATUS_INVALID_VALUE;
-                        break;
-                    case DRAG_DIRECT_SAVE:
-                        if ((act = sAtoms.X11_XdndActionDirectSave) != task->hAction)
-                            return STATUS_INVALID_VALUE;
+                        act = sAtoms.X11_XdndActionLink;
                         break;
                     default:
                         return STATUS_INVALID_VALUE;
                 }
-
-                if (r == NULL)
-                    internal            = false;
 
                 // Translate window coordinates
                 int x, y;
@@ -3658,7 +3633,7 @@ namespace lsp
                 ev->message_type    = sAtoms.X11_XdndStatus;
                 ev->format          = 32;
                 ev->data.l[0]       = target;
-                ev->data.l[1]       = 1 | ((internal) ? (1 << 1) : 0);
+                ev->data.l[1]       = 1 | ((r != NULL) ? (1 << 1) : 0);
                 if (r != NULL)
                 {
                     ev->data.l[2]       = (x << 16) | y;
