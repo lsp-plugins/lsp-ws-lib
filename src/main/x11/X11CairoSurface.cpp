@@ -334,6 +334,7 @@ namespace lsp
                 pFO             = ::cairo_font_options_create();
                 if (pFO == NULL)
                     return;
+                cairo_push_group(pCR);
 
                 // Initialize settings
                 ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_GOOD);
@@ -361,6 +362,8 @@ namespace lsp
                 }
                 if (pCR != NULL)
                 {
+                    cairo_pop_group_to_source(pCR);
+                    cairo_paint(pCR);
                     cairo_destroy(pCR);
                     pCR             = NULL;
                 }
