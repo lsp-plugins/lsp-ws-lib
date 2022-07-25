@@ -482,7 +482,7 @@ namespace lsp
         {
             status_t result = STATUS_OK;
 
-            while (true)
+            for (size_t i=0, n = sTasks.size(); i < n; ++i)
             {
                 // Get next task
                 dtask_t *t  = sTasks.first();

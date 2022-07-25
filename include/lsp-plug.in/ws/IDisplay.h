@@ -301,7 +301,8 @@ namespace lsp
                 virtual IWindow *wrap_window(void *handle);
 
                 /**
-                 * Create 3D backend for graphics
+                 * Create 3D backend for graphics. The backend should be destroyed and
+                 * deleted by the caller.
                  * @return pointer to created backend
                  */
                 virtual IR3DBackend *create_r3d_backend(IWindow *parent);
