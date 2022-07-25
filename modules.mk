@@ -61,6 +61,12 @@ LSP_R3D_GLX_LIB_TYPE       := src
 LSP_R3D_GLX_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 LSP_R3D_GLX_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_GLX_LIB_NAME).git
 
+LSP_R3D_WGL_LIB_VERSION    := 1.0.0
+LSP_R3D_WGL_LIB_NAME       := lsp-r3d-wgl-lib
+LSP_R3D_WGL_LIB_TYPE       := src
+LSP_R3D_WGL_LIB_URL_RO     := https://github.com/lsp-plugins/$(LSP_R3D_WGL_LIB_NAME).git
+LSP_R3D_WGL_LIB_URL_RW     := git@github.com:lsp-plugins/$(LSP_R3D_WGL_LIB_NAME).git
+
 # System libraries
 LIBCAIRO_VERSION           := system
 LIBCAIRO_NAME              := cairo
@@ -108,6 +114,11 @@ LIBOLE_VERSION             := system
 LIBOLE_NAME                := libole
 LIBOLE_TYPE                := opt
 LIBOLE_LDFLAGS             := -lole32
+
+LIBOPENGL32_VERSION        := system
+LIBOPENGL32_NAME           := libole
+LIBOPENGL32_TYPE           := opt
+LIBOPENGL32_LDFLAGS        := -lopengl32
 
 LIBPTHREAD_VERSION         := system
 LIBPTHREAD_NAME            := libpthread
