@@ -556,10 +556,10 @@ namespace lsp
 
             // Initialize backend
             void *handle = NULL;
-            status_t res = backend->init_offscreen(backend);
+            status_t res = (backend->init_offscreen) ? backend->init_offscreen(backend) : STATUS_NOT_SUPPORTED;
             if (res != STATUS_OK)
             {
-                res = backend->init_window(backend, &handle);
+                res = (backend->init_window) ? backend->init_window(backend, &handle) : STATUS_NOT_SUPPORTED;
                 if (res != STATUS_OK)
                 {
                     backend->destroy(backend);
