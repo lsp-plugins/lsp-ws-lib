@@ -26,6 +26,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/r3d/iface/backend.h>
 #include <lsp-plug.in/r3d/iface/factory.h>

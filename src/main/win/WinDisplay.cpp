@@ -89,6 +89,7 @@ namespace lsp
                 hClipWnd        = NULL;
                 pClipData       = NULL;
                 pDragWindow     = NULL;
+                pPingThread     = NULL;
             }
 
             WinDisplay::~WinDisplay()
@@ -195,14 +196,31 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
                 }
 
-                return STATUS_OK;
+                // Create pinging thread
+                pPingThread = new ipc::Thread(ping_proc, this);
+                if (pPingThread == NULL)
+                    return STATUS_UNKNOWN_ERR;
+                pPingThread->start();
+
+                return IDisplay::init(argc, argv);
             }
 
             void WinDisplay::do_destroy()
             {
+                // Terminate the ping thread
+                if (pPingThread != NULL)
+                {
+                    pPingThread->cancel();
+                    pPingThread->join();
+
+                    delete pPingThread;
+                    pPingThread = NULL;
+                }
+
                 // Destroy clipboard window
                 if (hClipWnd != NULL)
                 {
+                    // Destroy the window
                     DestroyWindow(hClipWnd);
                     hClipWnd            = NULL;
                 }
@@ -233,11 +251,6 @@ namespace lsp
                     vGrab[i].clear();
                 uninstall_windows_hooks();
 
-                // Destroy monitors
-                drop_monitors(&vMonitors);
-                drop_font_cache(&vFontCache);
-                remove_all_fonts();
-
                 // Release factories
                 safe_release( pDWriteFactory );
                 safe_release( pWICFactory );
@@ -245,11 +258,30 @@ namespace lsp
 
                 // Release clipboard data
                 destroy_clipboard();
+
+                // Destroy monitors
+                drop_monitors(&vMonitors);
+                drop_font_cache(&vFontCache);
+                remove_all_fonts();
             }
 
             void WinDisplay::destroy()
             {
                 do_destroy();
+                IDisplay::destroy();
+            }
+
+            status_t WinDisplay::ping_proc(void *arg)
+            {
+                WinDisplay *_this = static_cast<WinDisplay *>(arg);
+
+                while (!ipc::Thread::is_cancelled())
+                {
+                    SendMessageW(_this->hClipWnd, WM_USER, 0, 0);
+                    ipc::Thread::sleep(20);
+                }
+
+                return STATUS_OK;
             }
 
             LRESULT CALLBACK WinDisplay::window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -297,13 +329,10 @@ namespace lsp
 
             status_t WinDisplay::main()
             {
-                system::time_t ts;
-
                 while (!bExit)
                 {
                     // Get current time
-                    system::get_time(&ts);
-                    timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                    timestamp_t xts     = system::get_time_millis();
                     int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
 
                     // Poll for the new message
@@ -337,6 +366,7 @@ namespace lsp
             status_t WinDisplay::do_main_iteration(timestamp_t ts)
             {
                 // Process all pending messages.
+                size_t limit = 0;
                 do
                 {
                     if (sPendingMessage.message == WM_QUIT)
@@ -349,6 +379,8 @@ namespace lsp
                         TranslateMessage(&sPendingMessage);
                         DispatchMessageW(&sPendingMessage);
                     }
+                    if ((limit++) >= 0x20)
+                        break;
                 } while (PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE));
 
                 // At this moment, we don't have any pending messages for processing
@@ -369,9 +401,7 @@ namespace lsp
             status_t WinDisplay::main_iteration()
             {
                 // Get current time to determine if need perform a rendering
-                system::time_t ts;
-                system::get_time(&ts);
-                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                timestamp_t xts = system::get_time_millis();
 
                 // Do iteration
                 return do_main_iteration(xts);
@@ -388,9 +418,7 @@ namespace lsp
                     return STATUS_OK;
 
                 MSG message;
-                system::time_t ts;
-                system::get_time(&ts);
-                timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                timestamp_t xts     = system::get_time_millis();
                 int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
 
                 // Poll for the new message
@@ -1709,6 +1737,12 @@ namespace lsp
                         dpy->destroy_clipboard();
                         return 0;
                     }
+                    case WM_USER:
+                    {
+                        ws::timestamp_t ts  = system::get_time_millis();
+                        dpy->process_pending_tasks(ts);
+                        return 0;
+                    }
                     default:
                         break;
                 }
@@ -2092,6 +2126,14 @@ namespace lsp
             WinWindow *WinDisplay::drag_window()
             {
                 return pDragWindow;
+            }
+
+            bool WinDisplay::r3d_backend_supported(const r3d::backend_metadata_t *meta)
+            {
+                // WinDisplay display supports Windows window handles
+                if (meta->wnd_type == r3d::WND_HANDLE_WINDOWS)
+                    return true;
+                return IDisplay::r3d_backend_supported(meta);
             }
 
         } /* namespace win */

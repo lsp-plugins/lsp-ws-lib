@@ -117,6 +117,7 @@ namespace lsp
                     IDataSource                *pClipData;                  // Data source for clipboard
                     lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard
                     WinWindow                  *pDragWindow;                // Window which is currently acting in Drag&Drop action
+                    ipc::Thread                *pPingThread;                // Pinger thread
 
                 protected:
                     void                        do_destroy();
@@ -159,6 +160,10 @@ namespace lsp
                     static bool                 is_hookable_event(UINT uMsg);
                     static bool                 has_mime_types(const char * const * src_list, const char * const * check);
                     static size_t               append_mimes(lltl::parray<char> *list, const char * const * mimes);
+                    static status_t             ping_proc(void *arg);
+
+                protected:
+                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
 
                 public:
                     explicit WinDisplay();
