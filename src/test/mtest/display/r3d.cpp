@@ -125,7 +125,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
             {
                 uint32_t c      = s[i];
-                d[i]            = 0xff000000 | (c >> 8);
+                d[i]            = 0xff000000 | c;
             }
         }
     #else /* ARCH_BE */
@@ -137,7 +137,7 @@ namespace lsp
             for (size_t i=0; i<count; ++i)
             {
                 uint32_t c      = s[i];
-                d[i]            = 0x000000ff | (c << 8);
+                d[i]            = 0x000000ff | c;
             }
         }
     #endif
@@ -572,7 +572,7 @@ MTEST_BEGIN("ws.display", r3d)
                                 pBackend->begin_draw();
                                     draw(pBackend);
                                     pBackend->sync();
-                                    pBackend->read_pixels(buf, stride, r3d::PIXEL_RGBA);
+                                    pBackend->read_pixels(buf, stride, r3d::PIXEL_BGRA);
                                 pBackend->end_draw();
 
                                 // Draw the contents of the data read from the R3D content
