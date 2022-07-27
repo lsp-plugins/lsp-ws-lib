@@ -69,7 +69,7 @@ namespace lsp
 
                 status_t        begin_draw();
                 status_t        sync();
-                status_t        read_pixels(void *buf, size_t stride, r3d::pixel_format_t format);
+                status_t        read_pixels(void *buf, r3d::pixel_format_t format);
                 status_t        end_draw();
 
                 status_t        set_matrix(r3d::matrix_type_t type, const r3d::mat4_t *m);

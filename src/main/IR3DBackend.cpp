@@ -112,9 +112,9 @@ namespace lsp
             return (pBackend != NULL) ? pBackend->finish(pBackend) : STATUS_BAD_STATE;
         }
 
-        status_t IR3DBackend::read_pixels(void *buf, size_t stride, r3d::pixel_format_t format)
+        status_t IR3DBackend::read_pixels(void *buf, r3d::pixel_format_t format)
         {
-            return (pBackend != NULL) ? pBackend->read_pixels(pBackend, buf, stride, format) : STATUS_BAD_STATE;
+            return (pBackend != NULL) ? pBackend->read_pixels(pBackend, buf, format) : STATUS_BAD_STATE;
         }
 
         status_t IR3DBackend::set_matrix(r3d::matrix_type_t type, const r3d::mat4_t *m)

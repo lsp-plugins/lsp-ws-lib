@@ -572,7 +572,7 @@ MTEST_BEGIN("ws.display", r3d)
                                 pBackend->begin_draw();
                                     draw(pBackend);
                                     pBackend->sync();
-                                    pBackend->read_pixels(buf, stride, r3d::PIXEL_BGRA);
+                                    pBackend->read_pixels(buf, r3d::PIXEL_BGRA);
                                 pBackend->end_draw();
 
                                 // Draw the contents of the data read from the R3D content
