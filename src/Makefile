@@ -115,10 +115,12 @@ $(DEP_CXX): dep_clean
 depend: $(DEP_CXX)
 	$(foreach dep,$(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID),\
 	  $(if $($(dep)_INC), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_INC)" | sed "s/\\//\\\\\//g")/\$$$$\\($(dep)_INC\\)/g;)\
+	    $(eval REPLACEMENT = $(shell echo "$($(dep)_INC)" | sed -E "s/\//\\\\\\\\\//g")) \
+	    $(eval SED_RULES += s/$(REPLACEMENT)/\$$$$\\($(dep)_INC\\)/g;)\
 	  )\
 	  $(if $($(dep)_BIN), \
-	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
+	    $(eval REPLACEMENT = $(shell echo "$($(dep)_BIN)" | sed -E "s/\//\\\\\\\\\//g")) \
+	    $(eval SED_RULES += s/$(REPLACEMENT)/\\$$$$\\($(dep)_BIN\\)/g;)\
 	  )\
 	)
 	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.$(PLATFORM).d
