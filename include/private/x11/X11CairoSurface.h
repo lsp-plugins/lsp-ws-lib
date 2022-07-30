@@ -43,7 +43,7 @@ namespace lsp
     {
         namespace x11
         {
-            class LSP_SYMBOL_HIDDEN X11CairoSurface: public ISurface
+            class LSP_HIDDEN_MODIFIER X11CairoSurface: public ISurface
             {
                 protected:
                     cairo_surface_t        *pSurface;

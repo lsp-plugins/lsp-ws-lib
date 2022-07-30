@@ -46,7 +46,7 @@ namespace lsp
 
             constexpr const HWND INVALID_HWND       = HWND(nullptr);
 
-            class LSP_SYMBOL_HIDDEN WinWindow: public IWindow, public IEventHandler
+            class LSP_HIDDEN_MODIFIER WinWindow: public IWindow, public IEventHandler
             {
                 private:
                     friend class WinDisplay;

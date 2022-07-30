@@ -43,7 +43,7 @@ namespace lsp
         {
             class WinWindow;
 
-            class LSP_SYMBOL_HIDDEN WinDNDTarget: public IDropTarget
+            class LSP_HIDDEN_MODIFIER WinDNDTarget: public IDropTarget
             {
                 LSP_IUNKNOWN_IFACE
 

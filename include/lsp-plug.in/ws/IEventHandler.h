@@ -33,7 +33,7 @@ namespace lsp
         /** Windowing system's event handler
          *
          */
-        class IEventHandler
+        class LSP_WS_LIB_PUBLIC IEventHandler
         {
             private:
                 IEventHandler & operator = (const IEventHandler &);
@@ -51,7 +51,7 @@ namespace lsp
                  */
                 virtual status_t handle_event(const event_t *ev);
         };
-    } /* namespace tk */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_IEVENTHANDLER_H_ */

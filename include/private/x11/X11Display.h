@@ -67,7 +67,7 @@ namespace lsp
             class X11CairoSurface;
         #endif /* USE_LIBCAIRO */
 
-            class LSP_SYMBOL_HIDDEN X11Display: public IDisplay
+            class LSP_HIDDEN_MODIFIER X11Display: public IDisplay
             {
                 friend class X11Window;
 

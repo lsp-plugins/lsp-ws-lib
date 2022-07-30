@@ -37,7 +37,7 @@ namespace lsp
         /** Native window class
          *
          */
-        class IWindow
+        class LSP_WS_LIB_PUBLIC IWindow
         {
             protected:
                 IEventHandler  *pHandler;

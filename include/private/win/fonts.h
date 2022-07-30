@@ -50,7 +50,7 @@ namespace lsp
              * of fonts embedded in the application as resources. The font collection
              * key is an index in the WinCustomFonts collection.
              */
-            class LSP_SYMBOL_HIDDEN WinFontFileStream: public IDWriteFontFileStream
+            class LSP_HIDDEN_MODIFIER WinFontFileStream: public IDWriteFontFileStream
             {
                 LSP_IUNKNOWN_IFACE
 
@@ -79,7 +79,7 @@ namespace lsp
              * of fonts embedded in the application as resources. The font collection
              * key is an index in the WinCustomFonts collection.
              */
-            class LSP_SYMBOL_HIDDEN WinFontFileLoader: public IDWriteFontFileLoader
+            class LSP_HIDDEN_MODIFIER WinFontFileLoader: public IDWriteFontFileLoader
             {
                 LSP_IUNKNOWN_IFACE
 
@@ -106,7 +106,7 @@ namespace lsp
              * of fonts embedded in the application as resources. The font collection
              * key is a pointer to custom font loader.
              */
-            class LSP_SYMBOL_HIDDEN WinFontFileEnumerator: public IDWriteFontFileEnumerator
+            class LSP_HIDDEN_MODIFIER WinFontFileEnumerator: public IDWriteFontFileEnumerator
             {
                 LSP_IUNKNOWN_IFACE
 
@@ -130,7 +130,7 @@ namespace lsp
              * for collections of fonts embedded in the application as resources. The font
              * collection key is an array of resource IDs.
              */
-            class LSP_SYMBOL_HIDDEN WinFontCollectionLoader: public IDWriteFontCollectionLoader
+            class LSP_HIDDEN_MODIFIER WinFontCollectionLoader: public IDWriteFontCollectionLoader
             {
                 LSP_IUNKNOWN_IFACE
 

@@ -24,5 +24,4 @@ ARTIFACT_NAME               = lsp-ws-lib
 ARTIFACT_DESC               = LSP window subsystem core library
 ARTIFACT_HEADERS            = lsp-plug.in
 ARTIFACT_VERSION            = 1.0.4-devel
-ARTIFACT_EXPORT_SYMBOLS     = 1
 

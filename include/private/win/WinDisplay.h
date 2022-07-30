@@ -62,7 +62,7 @@ namespace lsp
             class WinWindow;
             class WinFontFileLoader;
 
-            class WinDisplay: public IDisplay
+            class LSP_HIDDEN_MODIFIER WinDisplay: public IDisplay
             {
                 private:
                     friend class WinWindow;

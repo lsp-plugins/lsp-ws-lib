@@ -20,18 +20,19 @@
 
 # List of dependencies
 DEPENDENCIES = \
-  LIBPTHREAD \
   LSP_COMMON_LIB \
   LSP_LLTL_LIB \
   LSP_R3D_IFACE \
   LSP_RUNTIME_LIB
 
 TEST_DEPENDENCIES = \
+  LSP_R3D_BASE_LIB \
   LSP_TEST_FW
 
 #------------------------------------------------------------------------------
 # Linux dependencies
 LINUX_DEPENDENCIES = \
+  LIBPTHREAD \
   LIBDL \
   LIBSNDFILE \
   LIBCAIRO \
@@ -40,7 +41,6 @@ LINUX_DEPENDENCIES = \
   LIBXRANDR
 
 LINUX_TEST_DEPENDENCIES = \
-  LSP_R3D_BASE_LIB \
   LSP_R3D_GLX_LIB \
   LIBGL
 
@@ -52,6 +52,7 @@ endif
 #------------------------------------------------------------------------------
 # BSD dependencies
 BSD_DEPENDENCIES = \
+  LIBPTHREAD \
   LIBDL \
   LIBSNDFILE \
   LIBICONV \
@@ -61,7 +62,6 @@ BSD_DEPENDENCIES = \
   LIBXRANDR
 
 BSD_TEST_DEPENDENCIES = \
-  LSP_R3D_BASE_LIB \
   LSP_R3D_GLX_LIB \
   LIBGL
 
@@ -80,12 +80,11 @@ WINDOWS_DEPENDENCIES = \
   LIBOLE \
   LIBWINCODEC \
   LIBDWRITE \
-  LIBGDI32 \
   LIBUUID
 
 WINDOWS_TEST_DEPENDENCIES = \
-  LSP_R3D_BASE_LIB \
   LSP_R3D_WGL_LIB \
+  LIBGDI32 \
   LIBOPENGL32
 
 ifeq ($(PLATFORM),Windows)

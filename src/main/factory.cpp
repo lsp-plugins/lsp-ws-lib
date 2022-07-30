@@ -33,45 +33,48 @@ namespace lsp
 {
     namespace ws
     {
-        LSP_WS_LIB_CEXPORT
-        IDisplay *lsp_ws_create_display(int argc, const char **argv)
+        extern "C"
         {
-        #if defined(PLATFORM_WINDOWS)
-            // Create Windows display
+            LSP_WS_LIB_PUBLIC
+            IDisplay *lsp_ws_create_display(int argc, const char **argv)
             {
-                win::WinDisplay *dpy = new win::WinDisplay();
-                if (dpy != NULL)
+            #if defined(PLATFORM_WINDOWS)
+                // Create Windows display
                 {
-                    status_t res = dpy->init(argc, argv);
-                    if (res == STATUS_OK)
-                        return dpy;
-                    lsp_ws_free_display(dpy);
+                    win::WinDisplay *dpy = new win::WinDisplay();
+                    if (dpy != NULL)
+                    {
+                        status_t res = dpy->init(argc, argv);
+                        if (res == STATUS_OK)
+                            return dpy;
+                        lsp_ws_free_display(dpy);
+                    }
                 }
-            }
-        #elif defined(USE_LIBX11)
-            // Create X11 display
-            {
-                x11::X11Display *dpy = new x11::X11Display();
-                if (dpy != NULL)
+            #elif defined(USE_LIBX11)
+                // Create X11 display
                 {
-                    status_t res = dpy->init(argc, argv);
-                    if (res == STATUS_OK)
-                        return dpy;
-                    lsp_ws_free_display(dpy);
+                    x11::X11Display *dpy = new x11::X11Display();
+                    if (dpy != NULL)
+                    {
+                        status_t res = dpy->init(argc, argv);
+                        if (res == STATUS_OK)
+                            return dpy;
+                        lsp_ws_free_display(dpy);
+                    }
                 }
+            #endif /* PLATFORM_WINDOWS, USE_LIBX11 */
+                return NULL;
             }
-        #endif /* PLATFORM_WINDOWS, USE_LIBX11 */
-            return NULL;
-        }
 
-        LSP_WS_LIB_CEXPORT
-        void lsp_ws_free_display(IDisplay *dpy)
-        {
-            if (dpy == NULL)
-                return;
-            dpy->destroy();
-            delete dpy;
+            LSP_WS_LIB_PUBLIC
+            void lsp_ws_free_display(IDisplay *dpy)
+            {
+                if (dpy == NULL)
+                    return;
+                dpy->destroy();
+                delete dpy;
+            }
         }
-    }
-}
+    } /* namespace ws */
+} /* namespace lsp */
 

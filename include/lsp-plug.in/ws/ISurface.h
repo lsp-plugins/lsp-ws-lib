@@ -55,7 +55,7 @@ namespace lsp
         /** Common drawing surface interface
          *
          */
-        class ISurface
+        class LSP_WS_LIB_PUBLIC ISurface
         {
             private:
                 ISurface & operator = (const ISurface &);
@@ -740,8 +740,8 @@ namespace lsp
                  */
                 virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
         };
-    }
 
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_ISURFACE_H_ */

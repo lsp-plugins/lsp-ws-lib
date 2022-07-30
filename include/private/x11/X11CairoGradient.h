@@ -37,7 +37,7 @@ namespace lsp
     {
         namespace x11
         {
-            class LSP_SYMBOL_HIDDEN X11CairoGradient: public IGradient
+            class LSP_HIDDEN_MODIFIER X11CairoGradient: public IGradient
             {
                 protected:
                     cairo_pattern_t *pCP;

@@ -43,20 +43,23 @@ namespace lsp
          */
         typedef void *(* display_finalizer_t)(IDisplay *dpy);
 
-        /**
-         * Display factory
-         * @param argc number of arguments
-         * @param argv list of arguments
-         * @return pointer to the display or NULL, returned object must be destructed by free_display call
-         */
-        LSP_WS_LIB_CIMPORT
-        IDisplay *lsp_ws_create_display(int argc, const char **argv);
+        extern "C"
+        {
+            /**
+             * Display factory
+             * @param argc number of arguments
+             * @param argv list of arguments
+             * @return pointer to the display or NULL, returned object must be destructed by free_display call
+             */
+            LSP_WS_LIB_PUBLIC
+            IDisplay *lsp_ws_create_display(int argc, const char **argv);
 
-        /**
-         * Display finalization routine
-         */
-        LSP_WS_LIB_CIMPORT
-        void lsp_ws_free_display(IDisplay *dpy);
+            /**
+             * Display finalization routine
+             */
+            LSP_WS_LIB_PUBLIC
+            void lsp_ws_free_display(IDisplay *dpy);
+        }
     }
 }
 

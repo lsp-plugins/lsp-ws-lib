@@ -41,7 +41,7 @@ namespace lsp
     {
         namespace win
         {
-            class LSP_SYMBOL_HIDDEN WinDDSurface: public ISurface
+            class LSP_HIDDEN_MODIFIER WinDDSurface: public ISurface
             {
                 protected:
                     WinDisplay                 *pDisplay;

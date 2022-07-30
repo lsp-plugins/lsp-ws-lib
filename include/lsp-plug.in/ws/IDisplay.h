@@ -65,7 +65,7 @@ namespace lsp
         /** Display
          *
          */
-        class IDisplay
+        class LSP_WS_LIB_PUBLIC IDisplay
         {
             private:
                 IDisplay & operator = (const IDisplay &);

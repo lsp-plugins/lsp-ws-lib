@@ -41,7 +41,7 @@ namespace lsp
     {
         namespace win
         {
-            class LSP_SYMBOL_HIDDEN WinDDGradient: public IGradient
+            class LSP_HIDDEN_MODIFIER WinDDGradient: public IGradient
             {
                 private:
                     WinDDGradient & operator = (const WinDDGradient &);

@@ -33,7 +33,7 @@ namespace lsp
         /**
          * This class is a wrapper around r3d_backend_t that allows dynamic change of backend
          */
-        class IR3DBackend
+        class LSP_WS_LIB_PUBLIC IR3DBackend
         {
             private:
                 IR3DBackend & operator = (const IR3DBackend &);
@@ -79,7 +79,7 @@ namespace lsp
                 status_t        set_bg_color(const r3d::color_t *color);
         };
     
-    } /* namespace io */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_IR3DBACKEND_H_ */

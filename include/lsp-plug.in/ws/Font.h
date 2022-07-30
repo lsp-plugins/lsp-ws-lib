@@ -34,7 +34,7 @@ namespace lsp
         /**
          * Font descriptor class
          */
-        class Font
+        class LSP_WS_LIB_PUBLIC Font
         {
             private:
                 Font & operator = (const Font &);

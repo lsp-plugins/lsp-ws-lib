@@ -29,7 +29,7 @@ namespace lsp
 {
     namespace ws
     {
-        class IGradient
+        class LSP_WS_LIB_PUBLIC IGradient
         {
             private:
                 IGradient & operator = (const IGradient &);

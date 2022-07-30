@@ -409,8 +409,10 @@ namespace lsp
          * Initialize empty event
          * @param ev event to initialize
          */
+        LSP_WS_LIB_PUBLIC
         void                init_event(event_t *ev);
-    }
-}
+
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_TYPES_H_ */
