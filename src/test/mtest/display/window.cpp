@@ -97,9 +97,9 @@ MTEST_BEGIN("ws.display", window)
 
     MTEST_MAIN
     {
-        ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
+        ws::IDisplay *dpy = ws::create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally { ws::lsp_ws_free_display(dpy); };
+        lsp_finally { ws::free_display(dpy); };
 
         // Enumerate list of displays
         printf("List of attached displays:\n");

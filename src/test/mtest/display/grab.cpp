@@ -172,9 +172,9 @@ MTEST_BEGIN("ws.display", grab)
 
     MTEST_MAIN
     {
-        ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
+        ws::IDisplay *dpy = ws::create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally { ws::lsp_ws_free_display(dpy); };
+        lsp_finally { ws::free_display(dpy); };
 
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));

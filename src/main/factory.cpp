@@ -33,47 +33,44 @@ namespace lsp
 {
     namespace ws
     {
-        extern "C"
+        LSP_WS_LIB_PUBLIC
+        IDisplay *create_display(int argc, const char **argv)
         {
-            LSP_WS_LIB_PUBLIC
-            IDisplay *lsp_ws_create_display(int argc, const char **argv)
+        #if defined(PLATFORM_WINDOWS)
+            // Create Windows display
             {
-            #if defined(PLATFORM_WINDOWS)
-                // Create Windows display
+                win::WinDisplay *dpy = new win::WinDisplay();
+                if (dpy != NULL)
                 {
-                    win::WinDisplay *dpy = new win::WinDisplay();
-                    if (dpy != NULL)
-                    {
-                        status_t res = dpy->init(argc, argv);
-                        if (res == STATUS_OK)
-                            return dpy;
-                        lsp_ws_free_display(dpy);
-                    }
+                    status_t res = dpy->init(argc, argv);
+                    if (res == STATUS_OK)
+                        return dpy;
+                    free_display(dpy);
                 }
-            #elif defined(USE_LIBX11)
-                // Create X11 display
-                {
-                    x11::X11Display *dpy = new x11::X11Display();
-                    if (dpy != NULL)
-                    {
-                        status_t res = dpy->init(argc, argv);
-                        if (res == STATUS_OK)
-                            return dpy;
-                        lsp_ws_free_display(dpy);
-                    }
-                }
-            #endif /* PLATFORM_WINDOWS, USE_LIBX11 */
-                return NULL;
             }
+        #elif defined(USE_LIBX11)
+            // Create X11 display
+            {
+                x11::X11Display *dpy = new x11::X11Display();
+                if (dpy != NULL)
+                {
+                    status_t res = dpy->init(argc, argv);
+                    if (res == STATUS_OK)
+                        return dpy;
+                    free_display(dpy);
+                }
+            }
+        #endif /* PLATFORM_WINDOWS, USE_LIBX11 */
+            return NULL;
+        }
 
-            LSP_WS_LIB_PUBLIC
-            void lsp_ws_free_display(IDisplay *dpy)
-            {
-                if (dpy == NULL)
-                    return;
-                dpy->destroy();
-                delete dpy;
-            }
+        LSP_WS_LIB_PUBLIC
+        void free_display(IDisplay *dpy)
+        {
+            if (dpy == NULL)
+                return;
+            dpy->destroy();
+            delete dpy;
         }
     } /* namespace ws */
 } /* namespace lsp */

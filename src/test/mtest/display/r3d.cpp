@@ -607,9 +607,9 @@ MTEST_BEGIN("ws.display", r3d)
 
     MTEST_MAIN
     {
-        ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
+        ws::IDisplay *dpy = ws::create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
-        lsp_finally { ws::lsp_ws_free_display(dpy); };
+        lsp_finally { ws::free_display(dpy); };
 
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
