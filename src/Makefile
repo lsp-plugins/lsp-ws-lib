@@ -121,7 +121,7 @@ depend: $(DEP_CXX)
 	    $(eval SED_RULES += s/$(shell echo "$($(dep)_BIN)" | sed "s/\\//\\\\\//g")/\\$$$$\\($(dep)_BIN\\)/g;)\
 	  )\
 	)
-	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
+	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.$(PLATFORM).d
 
 $(ARTIFACT_DEPS):
 	echo "make $(notdir $($(@)_OBJ))"
@@ -196,4 +196,4 @@ uninstall:
 	echo "Uninstall OK"
 
 # Dependencies
--include $(CURDIR)/Makefile.d
+-include $(CURDIR)/Makefile.$(PLATFORM).d
