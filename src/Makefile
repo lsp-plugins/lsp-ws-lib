@@ -44,6 +44,7 @@ endif
 ARTIFACT_NAME           = $($(ARTIFACT_ID)_NAME)
 ARTIFACT_VERSION        = $($(ARTIFACT_ID)_VERSION)
 ARTIFACT_DEPENDENCIES   = $(addprefix $(HOST),$(DEPENDENCIES))
+ARTIFACT_DEP_LIST       = $(addprefix $(HOST),$(call uniq, $(DEPENDENCIES) $(TEST_DEPENDENCIES) $(HOST)$(ARTIFACT_ID)))
 
 ARTIFACT_BIN            = $($(HOST)$(ARTIFACT_ID)_BIN)
 ARTIFACT_INC            = $($(HOST)$(ARTIFACT_ID)_INC)
@@ -59,6 +60,7 @@ ARTIFACT_SLIBLINK       = $(LIBRARY_PREFIX)$(ARTIFACT_NAME)$(STATICLIB_EXT)
 ARTIFACT_PC             = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)$(PKGCONFIG_EXT)
 ARTIFACT_DEPS           = $(call dquery, OBJ, $(ARTIFACT_DEPENDENCIES))
 ARTIFACT_CFLAGS         = $(call query, CFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
+ARTIFACT_DEPFLAGS       = $(call query, CFLAGS, $(ARTIFACT_DEP_LIST))
 ARTIFACT_LDFLAGS        = $(call query, LDFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 ARTIFACT_OBJFILES       = $(call query, OBJ, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 
@@ -84,11 +86,6 @@ CXX_FILE                = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
 CXX_HDR_PATHS           = $(foreach hdr,$(ARTIFACT_HEADERS),$(ARTIFACT_INC)/$(hdr))
 CXX_HEADERS             = $(foreach path,$(CXX_HDR_PATHS),$(call rwildcard, $(path), *.h))
 CXX_INSTHEADERS         = $(patsubst $(ARTIFACT_INC)/%,$(DESTDIR)$(INCDIR)/%,$(CXX_HEADERS))
-CXX_INSTALL_HEADERS     = 
-
-ifeq ($(HEADERS),1)
-  CXX_INSTALL_HEADERS     = 1
-endif
 
 BUILD_ALL               = $(ARTIFACT_LIB) $(ARTIFACT_SLIB) $(ARTIFACT_PC)
 
@@ -110,10 +107,10 @@ dep_clean:
 $(DEP_CXX): dep_clean
 	echo "  dep  [$(ARTIFACT_NAME)] $(DEP_CXX_FILE)"
 	mkdir -p $(dir $(@))
-	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS)
+	$(CXX) -MM -MT "\$$($(ARTIFACT_ID)_BIN)/$(DEP_DEP_FILE)" -MF $(@) $(DEP_CXX_FILE) $(CXXFLAGS) $(INCLUDE) $(ARTIFACT_DEPFLAGS)
 
 depend: $(DEP_CXX)
-	$(foreach dep,$(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID),\
+	$(foreach dep,$(ARTIFACT_DEP_LIST),\
 	  $(if $($(dep)_INC), \
 	    $(eval REPLACEMENT = $(shell echo "$($(dep)_INC)" | sed -E "s/\//\\\\\\\\\//g")) \
 	    $(eval SED_RULES += s/$(REPLACEMENT)/\$$$$\\($(dep)_INC\\)/g;)\
@@ -123,7 +120,7 @@ depend: $(DEP_CXX)
 	    $(eval SED_RULES += s/$(REPLACEMENT)/\\$$$$\\($(dep)_BIN\\)/g;)\
 	  )\
 	)
-	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.$(PLATFORM).d
+	cat $(DEP_CXX) | sed -E "$(SED_RULES)" >Makefile.d
 
 $(ARTIFACT_DEPS):
 	echo "make $(notdir $($(@)_OBJ))"
@@ -178,11 +175,11 @@ $(ARTIFACT_PC):
 install: all
 	echo "Installing $($(ARTIFACT_ID)_NAME)"
 	mkdir -p "$(DESTDIR)$(LIBDIR)/pkgconfig"
-	$(if $(CXX_INSTALL_HEADERS), mkdir -p "$(DESTDIR)$(INCDIR)")
-	$(if $(CXX_INSTALL_HEADERS), cp -r "$(CXX_HDR_PATHS)" "$(DESTDIR)$(INCDIR)/")
+	$(if $(filter $(INSTALL_HEADERS),1), mkdir -p "$(DESTDIR)$(INCDIR)")
+	$(if $(filter $(INSTALL_HEADERS),1), cp -r "$(CXX_HDR_PATHS)" "$(DESTDIR)$(INCDIR)/")
 	cp $(ARTIFACT_PC) "$(DESTDIR)$(LIBDIR)/pkgconfig/"
-	$(INSTALL) $(ARTIFACT_LIB) -t "$(DESTDIR)$(LIBDIR)/"
-	cp $(ARTIFACT_SLIB) -t "$(DESTDIR)$(LIBDIR)/"
+	$(INSTALL) $(ARTIFACT_LIB) "$(DESTDIR)$(LIBDIR)/"
+	cp $(ARTIFACT_SLIB) "$(DESTDIR)$(LIBDIR)/"
 	ln -sf $(notdir $(ARTIFACT_LIB)) "$(DESTDIR)$(LIBDIR)/$(ARTIFACT_LIBLINK)"
 	ln -sf $(notdir $(ARTIFACT_SLIB)) "$(DESTDIR)$(LIBDIR)/$(ARTIFACT_SLIBLINK)"
 	echo "Install OK"
