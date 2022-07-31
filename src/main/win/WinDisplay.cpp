@@ -1585,9 +1585,9 @@ namespace lsp
                 wParam  = kbd->vkCode;
                 lParam  = 1; // Repeat count
                 lParam |= ((kbd->scanCode & 0xff) << 16); // scan code
-                lParam |= (kbd->flags & LLKHF_EXTENDED) ? (1 << 24) : 0; // the extended key flag
-                lParam |= (kbd->flags & LLKHF_ALTDOWN) ? (1 << 29) : 0; // the context code
-                lParam |= (kbd->flags & LLKHF_UP) ? (1 << 31) : 0; // the transition state
+                lParam |= (kbd->flags & LLKHF_EXTENDED) ? (1L << 24) : 0; // the extended key flag
+                lParam |= (kbd->flags & LLKHF_ALTDOWN) ? (1L << 29) : 0; // the context code
+                lParam |= (kbd->flags & LLKHF_UP) ? (1L << 31) : 0; // the transition state
 
                 // Form list of targets
                 lsp_finally { sTargets.clear(); };

@@ -352,7 +352,13 @@ namespace lsp
             // Perform R3D interface version control
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_R3D_IFACE_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
-            if ((mversion == NULL) || (version_cmp(&r3d_iface_version, mversion) != 0))
+            if (mversion == NULL)
+            {
+                lsp_trace("    not provided R3D interface version");
+                lib.close();
+                return STATUS_INCOMPATIBLE;
+            }
+            else if (version_cmp(&r3d_iface_version, mversion) != 0)
             {
                 lsp_trace("    mismatched R3D interface version: %d.%d.%d-%s vs %d.%d.%d-%s",
                             r3d_iface_version.major, r3d_iface_version.minor, r3d_iface_version.micro, r3d_iface_version.branch,
