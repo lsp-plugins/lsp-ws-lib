@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.4 ===
+* Introduced support of Windows platform for window management.
 * Added support of modern C++ starting with C++ 11.
 * Method ws::IWindow::set_focus() replaced by ws::IWindow::take_focus().
 * Removed method ws::IWindow::toggle_focus().

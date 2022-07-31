@@ -305,22 +305,14 @@ namespace lsp
 
                 timestamp_t ts = GetMessageTime();
 
-                // Do not deliver several events to the window if it is grabbing events at this moment via hook
+                // Do not deliver several events to the window handler if it is grabbing events at this moment via hook
                 if (is_hookable_event(uMsg))
                 {
-                    if (wnd->is_grabbing_events())
+                    if (wnd->pWinDisplay->has_grabbing_events())
                     {
-                        wnd->tsMsgIgnore    = ts;
-                        return 0;
+                        if (!wnd->is_grabbing_events())
+                            return 0;
                     }
-
-                    wssize_t delta = ts - wnd->tsMsgIgnore;
-                    // Skip some side-effect messages after grabbing
-                    if (delta <= 0)
-                        return 0;
-                    // Reset ignore time if there is enough time gap
-                    if (delta > 5000)
-                        wnd->tsMsgIgnore    = 0;
                 }
 
                 // Deliver event to the window
@@ -1325,6 +1317,7 @@ namespace lsp
                 lock_handlers();
                 lsp_finally { unlock_handlers(); };
 
+                // Create mouse hook
                 if (hMouseHook == NULL)
                 {
                     hMouseHook = SetWindowsHookExW(
@@ -1338,6 +1331,8 @@ namespace lsp
                         return STATUS_UNKNOWN_ERR;
                     }
                 }
+
+                // Create keyboard hook
                 if (hKeyboardHook == NULL)
                 {
                     hKeyboardHook = SetWindowsHookExW(
@@ -1396,11 +1391,10 @@ namespace lsp
 
             LRESULT CALLBACK WinDisplay::mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                HHOOK hook = NULL;
+                LRESULT res = CallNextHookEx(hMouseHook, nCode, wParam, lParam);
                 {
                     lock_handlers();
                     lsp_finally { unlock_handlers(); };
-                    hook = hMouseHook;
 
                     if (nCode >= 0)
                     {
@@ -1415,16 +1409,15 @@ namespace lsp
                     }
                 }
 
-                return CallNextHookEx(hook, nCode, wParam, lParam);
+                return res;
             }
 
             LRESULT CALLBACK WinDisplay::keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                HHOOK hook = NULL;
+                LRESULT res = CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
                 {
                     lock_handlers();
                     lsp_finally { unlock_handlers(); };
-                    hook = hMouseHook;
 
                     if (nCode >= 0)
                     {
@@ -1438,7 +1431,8 @@ namespace lsp
                             handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
                     }
                 }
-                return CallNextHookEx(hook, nCode, wParam, lParam);
+
+                return res;
             }
 
             bool WinDisplay::fill_targets()
@@ -1471,6 +1465,17 @@ namespace lsp
                 return false;
             }
 
+            bool WinDisplay::has_grabbing_events()
+            {
+                for (ssize_t i=__GRAB_TOTAL-1; i>=0; --i)
+                {
+                    lltl::parray<WinWindow> &g = vGrab[i];
+                    if (g.size() > 0)
+                        return true;
+                }
+                return false;
+            }
+
             void WinDisplay::process_mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
                 /**
@@ -1481,7 +1486,7 @@ namespace lsp
                  *      WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_RBUTTONDOWN, or WM_RBUTTONUP
                  * @param lParam A pointer to a MSLLHOOKSTRUCT structure.
                  */
-                lsp_trace("mouse_hook");
+                // lsp_trace("mouse_hook");
 
                 if (nCode != HC_ACTION)
                     return;
@@ -1543,18 +1548,25 @@ namespace lsp
                      * @param pt The x- and y-coordinates of the cursor, in per-monitor-aware screen coordinates.
                      */
                     POINT pt    = mou->pt;
+                    RECT rect;
                     if (!ScreenToClient(wnd->hWindow, &pt))
                         continue;
-                    lParam      = MAKELONG(pt.x, pt.y);
+                    if (!GetClientRect(wnd->hWindow, &rect))
+                        continue;
 
-                    wnd->tsMsgIgnore    = mou->time;
+                    // Skip events that are inside of client area of the window. Process them as usual.
+                    if ((pt.x >= rect.left) && (pt.x <= rect.right) &&
+                        (pt.y >= rect.top) && (pt.y <= rect.bottom))
+                        continue;
+
+                    lParam      = MAKELONG(pt.x, pt.y);
                     wnd->process_event(uMsg, wParam, lParam, mou->time, true);
                 }
             }
 
             void WinDisplay::process_keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                lsp_trace("keyboard_hook");
+                // lsp_trace("keyboard_hook");
 
                 /**
                  * @param nCode A code that the hook procedure uses to determine how to process the message.
@@ -1599,10 +1611,7 @@ namespace lsp
                 {
                     WinWindow *wnd = sTargets.uget(i);
                     if (wnd != NULL)
-                    {
-                        wnd->tsMsgIgnore    = kbd->time;
                         wnd->process_event(uMsg, wParam, lParam, kbd->time, true);
-                    }
                 }
             }
 

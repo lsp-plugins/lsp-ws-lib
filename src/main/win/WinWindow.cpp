@@ -64,7 +64,6 @@ namespace lsp
                 bWrapper                = wrapper;
                 bMouseInside            = false;
                 bGrabbing               = false;
-                tsMsgIgnore             = 0;
                 nMouseCapture           = 0;
 
                 sSize.nLeft             = 0;
@@ -577,6 +576,10 @@ namespace lsp
                         break;
                 }
 
+                // Do not call default window procedure if it is a hook-based call
+                if (hook)
+                    return 0;
+
                 if (!bWrapper)
                     return DefWindowProcW(hWindow, uMsg, wParam, lParam);
 
@@ -974,8 +977,8 @@ namespace lsp
                 rectangle_t old = sSize;
                 apply_constraints(&sSize, realize);
 
-                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d",
-                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d",
+//                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 if ((old.nLeft == sSize.nLeft) &&
                     (old.nTop == sSize.nTop) &&

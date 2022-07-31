@@ -84,7 +84,6 @@ namespace lsp
                     bool                bWrapper;       // Indicates that window is a wrapper
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
                     bool                bGrabbing;      // Grabbing mouse and keyboard events
-                    timestamp_t         tsMsgIgnore;    // Timestamp of the event to ignore
                     size_t              nMouseCapture;  // Flag for capturing mouse
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints

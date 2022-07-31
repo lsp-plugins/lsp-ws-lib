@@ -139,6 +139,7 @@ namespace lsp
                     void                        process_mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     void                        process_keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     bool                        fill_targets();
+                    bool                        has_grabbing_events();
 
                     void                        destroy_clipboard();
                     void                        render_clipboard_format(UINT fmt);
