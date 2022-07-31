@@ -1269,7 +1269,7 @@ namespace lsp
 
                 // Create WIC bitmap
                 IWICBitmap *wic = NULL;
-                pDisplay->wic_factory()->CreateBitmapFromMemory(
+                hr = pDisplay->wic_factory()->CreateBitmapFromMemory(
                     width, height,
                     GUID_WICPixelFormat32bppPBGRA,
                     stride,
