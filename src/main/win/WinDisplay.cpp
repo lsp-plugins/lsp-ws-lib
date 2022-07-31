@@ -1245,7 +1245,7 @@ namespace lsp
                     TRC(MP_ARROW_DOWN, IDC_UPARROW)
                     TRC(MP_DRAG, IDC_ARROW)
                     TRC(MP_DRAW, IDC_ARROW)
-                    TRC(MP_PLUS, IDC_ARROW)
+                    TRC(MP_PLUS, IDC_CROSS)
                     TRC(MP_DANGER, IDC_NO)
                     TRC(MP_HSPLIT, IDC_NO)
                     TRC(MP_VSPLIT, IDC_NO)
