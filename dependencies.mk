@@ -18,7 +18,8 @@
 # along with lsp-ws-lib.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-# List of dependencies
+#------------------------------------------------------------------------------
+# List of common dependencies
 DEPENDENCIES = \
   LSP_COMMON_LIB \
   LSP_LLTL_LIB \
