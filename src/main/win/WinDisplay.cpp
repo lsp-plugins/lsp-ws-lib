@@ -1308,7 +1308,7 @@ namespace lsp
                 if (count > 0)
                     return STATUS_OK;
 
-                lsp_trace("Releasing grab for display=%d", this);
+                lsp_trace("Releasing grab for display=%p", this);
                 return uninstall_windows_hooks();
             }
 
@@ -1391,10 +1391,11 @@ namespace lsp
 
             LRESULT CALLBACK WinDisplay::mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                LRESULT res = CallNextHookEx(hMouseHook, nCode, wParam, lParam);
+                HHOOK hook = NULL;
                 {
                     lock_handlers();
                     lsp_finally { unlock_handlers(); };
+                    hook = hMouseHook;
 
                     if (nCode >= 0)
                     {
@@ -1409,15 +1410,16 @@ namespace lsp
                     }
                 }
 
-                return res;
+                return CallNextHookEx(hook, nCode, wParam, lParam);
             }
 
             LRESULT CALLBACK WinDisplay::keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                LRESULT res = CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+                HHOOK hook = NULL;
                 {
                     lock_handlers();
                     lsp_finally { unlock_handlers(); };
+                    hook = hKeyboardHook;
 
                     if (nCode >= 0)
                     {
@@ -1432,7 +1434,7 @@ namespace lsp
                     }
                 }
 
-                return res;
+                return CallNextHookEx(hook, nCode, wParam, lParam);
             }
 
             bool WinDisplay::fill_targets()
