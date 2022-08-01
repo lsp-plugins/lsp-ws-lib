@@ -55,9 +55,9 @@ namespace lsp
              * @return encoded keyboard state
              */
             WPARAM      encode_mouse_keystate(const BYTE *kState);
-        }
-    }
-}
+        } /* namespace win */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* PLATFORM_WINDOWS */
 

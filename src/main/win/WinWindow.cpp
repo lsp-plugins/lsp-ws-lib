@@ -555,16 +555,34 @@ namespace lsp
                     }
 
                     // Keyboard events
-                    case WM_KEYDOWN:
                     case WM_KEYUP:
                     case WM_SYSKEYUP:
-                    case WM_SYSKEYDOWN:
                     {
-                        ue.nType                = ((uMsg == WM_KEYDOWN) || (uMsg == WM_SYSKEYDOWN)) ? UIE_KEY_DOWN : UIE_KEY_UP;
+                        ue.nType                = UIE_KEY_UP;
                         if (process_virtual_key(&ue, wParam, lParam))
                             handle_event(&ue);
                         return 0;
                     }
+
+                    case WM_KEYDOWN:
+                    case WM_SYSKEYDOWN:
+                    {
+                        if (!process_virtual_key(&ue, wParam, lParam))
+                            return 0;
+
+                        // If the key was pressed, we need to simulate UIE_KEY_UP event
+                        if (lParam & (1 << 30))
+                        {
+                            ue.nType                = UIE_KEY_UP;
+                            handle_event(&ue);
+                        }
+
+                        // Now send KEY_DOWN event
+                        ue.nType                = ((uMsg == WM_KEYDOWN) || (uMsg == WM_SYSKEYDOWN)) ? UIE_KEY_DOWN : UIE_KEY_UP;
+                        handle_event(&ue);
+                        return 0;
+                    }
+
 //                    case WM_CHAR:
 //                        lsp_trace("WM_CHAR code=0x%x", wParam);
 //                        return 0;
@@ -1293,9 +1311,7 @@ namespace lsp
 
                 BYTE kState[256];
                 if (!GetKeyboardState(kState))
-                    return false;
-
-                ev->nState       = decode_kb_keystate(kState);
+                    return 0;
 
                 // lParam bit #29
                 // The context code. The value is 1 if the ALT key is down while the key is pressed;
@@ -1355,6 +1371,7 @@ namespace lsp
                     TRK(VK_LWIN, WSK_SUPER_L)
                     TRK(VK_RWIN, WSK_SUPER_R)
                     TRK(VK_APPS, WSK_MENU)
+//                    TRK(VK_SLEEP, WSK_HYPER_L) // TODO: check
                     TRK(VK_SLEEP, WSK_HYPER_R)  // TODO: check
 
                     TRK(VK_F1, WSK_F1)
@@ -1390,6 +1407,7 @@ namespace lsp
                     TRK(VK_LCONTROL, WSK_CONTROL_L)
                     TRK(VK_RCONTROL, WSK_CONTROL_R)
                     TRK(VK_LMENU, WSK_ALT_L)
+                    TRK(VK_RMENU, WSK_ALT_R)
 
                     TRX(VK_NUMPAD0, num, WSK_KEYPAD_0, WSK_KEYPAD_INSERT)
                     TRX(VK_NUMPAD1, num, WSK_KEYPAD_1, WSK_KEYPAD_END)

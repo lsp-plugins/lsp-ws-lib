@@ -279,7 +279,7 @@ namespace lsp
 
                 while (!ipc::Thread::is_cancelled())
                 {
-                    SendMessageW(_this->hClipWnd, WM_USER, 0, 0);
+                    PostMessageW(_this->hClipWnd, WM_USER, 0, 0);
                     ipc::Thread::sleep(20);
                 }
 
@@ -1590,8 +1590,7 @@ namespace lsp
                         continue;
 
                     lParam      = MAKELONG(pt.x, pt.y);
-                    SendMessageW(wnd->hWindow, uMsg, wParam, lParam);
-//                    wnd->process_event(uMsg, wParam, lParam, mou->time, true);
+                    PostMessageW(wnd->hWindow, uMsg, wParam, lParam);
                 }
             }
 
@@ -1637,13 +1636,18 @@ namespace lsp
                 if (!fill_targets())
                     return;
 
+                // Get focused window
+                HWND focused = GetFocus();
+
                 // Notify all targets
                 for (size_t i=0, n=sTargets.size(); i<n; ++i)
                 {
                     WinWindow *wnd = sTargets.uget(i);
-                    SendMessageW(wnd->hWindow, uMsg, wParam, lParam);
-//                    if (wnd != NULL)
-//                        wnd->process_event(uMsg, wParam, lParam, kbd->time, true);
+
+                    // Do not deliver messages to focused window
+                    if (wnd->hWindow == focused)
+                        continue;
+                    PostMessageW(wnd->hWindow, uMsg, wParam, lParam);
                 }
             }
 
