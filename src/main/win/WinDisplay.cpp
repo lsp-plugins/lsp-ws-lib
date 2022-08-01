@@ -210,8 +210,10 @@ namespace lsp
                 // Terminate the ping thread
                 if (pPingThread != NULL)
                 {
+                    lsp_trace("Stopping ping thread");
                     pPingThread->cancel();
                     pPingThread->join();
+                    lsp_trace("Stopped ping thread");
 
                     delete pPingThread;
                     pPingThread = NULL;
@@ -304,6 +306,31 @@ namespace lsp
                     return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 
                 timestamp_t ts = GetMessageTime();
+
+//                // Debug
+//                switch (uMsg)
+//                {
+//                    case WM_LBUTTONDOWN:
+//                    case WM_RBUTTONDOWN:
+//                    case WM_MBUTTONDOWN:
+//                    case WM_XBUTTONDOWN:
+//                        lsp_trace("MOUSE_DOWN hwnd=%p, uMsg=%d, wParam=0x%lx, lParam=0x%x",
+//                            hwnd, int(uMsg), long(wParam), long(lParam));
+//                        break;
+//                    case WM_LBUTTONUP:
+//                    case WM_RBUTTONUP:
+//                    case WM_MBUTTONUP:
+//                    case WM_XBUTTONUP:
+//                        lsp_trace("MOUSE_UP hwnd=%p, uMsg=%d, wParam=0x%lx, lParam=0x%x",
+//                            hwnd, int(uMsg), long(wParam), long(lParam));
+//                        break;
+//                    case WM_MOUSEMOVE:
+//                        lsp_trace("MOUSE_MOVE hwnd=%p, uMsg=%d, wParam=0x%lx, lParam=0x%x",
+//                            hwnd, int(uMsg), long(wParam), long(lParam));
+//                        break;
+//                    default:
+//                        break;
+//                }
 
                 // Do not deliver several events to the window handler if it is grabbing events at this moment via hook
                 if (is_hookable_event(uMsg))
@@ -1314,7 +1341,7 @@ namespace lsp
 
             status_t WinDisplay::install_windows_hooks()
             {
-                lock_handlers();
+                lock_handlers(true);
                 lsp_finally { unlock_handlers(); };
 
                 // Create mouse hook
@@ -1360,7 +1387,7 @@ namespace lsp
 
             status_t WinDisplay::uninstall_windows_hooks()
             {
-                lock_handlers();
+                lock_handlers(true);
                 lsp_finally { unlock_handlers(); };
 
                 // Remove self from the list
@@ -1391,50 +1418,44 @@ namespace lsp
 
             LRESULT CALLBACK WinDisplay::mouse_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                HHOOK hook = NULL;
+                lock_handlers(false);
+                lsp_finally { unlock_handlers(); };
+
+                LRESULT     res = CallNextHookEx(hMouseHook, nCode, wParam, lParam);
+
+                if (nCode >= 0)
                 {
-                    lock_handlers();
-                    lsp_finally { unlock_handlers(); };
-                    hook = hMouseHook;
+                    // Form the list of handlers
+                    lltl::parray<WinDisplay> handlers;
+                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                        handlers.add(dpy);
 
-                    if (nCode >= 0)
-                    {
-                        // Form the list of handlers
-                        lltl::parray<WinDisplay> handlers;
-                        for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
-                            handlers.add(dpy);
-
-                        // Process the event
-                        for (size_t i=0, n=handlers.size(); i<n; ++i)
-                            handlers[i]->process_mouse_hook(nCode, wParam, lParam);
-                    }
+                    // Process the event
+                    for (size_t i=0, n=handlers.size(); i<n; ++i)
+                        handlers[i]->process_mouse_hook(nCode, wParam, lParam);
                 }
-
-                return CallNextHookEx(hook, nCode, wParam, lParam);
+                return res;
             }
 
             LRESULT CALLBACK WinDisplay::keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam)
             {
-                HHOOK hook = NULL;
+                lock_handlers(false);
+                lsp_finally { unlock_handlers(); };
+
+                LRESULT     res = CallNextHookEx(hKeyboardHook, nCode, wParam, lParam);
+
+                if (nCode >= 0)
                 {
-                    lock_handlers();
-                    lsp_finally { unlock_handlers(); };
-                    hook = hKeyboardHook;
+                    // Form the list of handlers
+                    lltl::parray<WinDisplay> handlers;
+                    for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
+                        handlers.add(dpy);
 
-                    if (nCode >= 0)
-                    {
-                        // Form the list of handlers
-                        lltl::parray<WinDisplay> handlers;
-                        for (WinDisplay *dpy = pHandlers; dpy != NULL; dpy = dpy->pNextHandler)
-                            handlers.add(dpy);
-
-                        // Process the event
-                        for (size_t i=0, n=handlers.size(); i<n; ++i)
-                            handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
-                    }
+                    // Process the event
+                    for (size_t i=0, n=handlers.size(); i<n; ++i)
+                        handlers[i]->process_keyboard_hook(nCode, wParam, lParam);
                 }
-
-                return CallNextHookEx(hook, nCode, wParam, lParam);
+                return res;
             }
 
             bool WinDisplay::fill_targets()
@@ -1539,11 +1560,18 @@ namespace lsp
                 if (!fill_targets())
                     return;
 
-                 // Notify all targets
+                // Obtain mouse capture, do not deliver events
+                HWND capture = GetCapture();
+
+                // Notify all targets
                 for (size_t i=0, n=sTargets.size(); i<n; ++i)
                 {
                     WinWindow *wnd = sTargets.uget(i);
                     if ((wnd == NULL) || (wnd->hWindow == NULL))
+                        continue;
+
+                    // Do not deliver messages to the window which is currently capturing data
+                    if (wnd->hWindow == capture)
                         continue;
 
                     /**
@@ -1562,7 +1590,8 @@ namespace lsp
                         continue;
 
                     lParam      = MAKELONG(pt.x, pt.y);
-                    wnd->process_event(uMsg, wParam, lParam, mou->time, true);
+                    SendMessageW(wnd->hWindow, uMsg, wParam, lParam);
+//                    wnd->process_event(uMsg, wParam, lParam, mou->time, true);
                 }
             }
 
@@ -1612,12 +1641,13 @@ namespace lsp
                 for (size_t i=0, n=sTargets.size(); i<n; ++i)
                 {
                     WinWindow *wnd = sTargets.uget(i);
-                    if (wnd != NULL)
-                        wnd->process_event(uMsg, wParam, lParam, kbd->time, true);
+                    SendMessageW(wnd->hWindow, uMsg, wParam, lParam);
+//                    if (wnd != NULL)
+//                        wnd->process_event(uMsg, wParam, lParam, kbd->time, true);
                 }
             }
 
-            void WinDisplay::lock_handlers()
+            void WinDisplay::lock_handlers(bool preempt)
             {
                 // Check that we are already owner of the lock
                 DWORD thread_id = GetCurrentThreadId();
@@ -1625,7 +1655,9 @@ namespace lsp
                 {
                     // We're not owner of the lock.
                     // Perform the first lock when it will be available (zero)
-                    while (!atomic_cas(&hLock, 0, 1)) {  }
+                    while (!atomic_cas(&hLock, 0, 1)) {
+                        SwitchToThread();
+                    }
 
                     // Lock has been acquired, store us as the new owner
                     nThreadId   = thread_id;

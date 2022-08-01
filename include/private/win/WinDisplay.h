@@ -156,7 +156,7 @@ namespace lsp
                     static WINBOOL CALLBACK     enum_monitor_proc(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM dwParam);
                     static LRESULT CALLBACK     mouse_hook(int nCode, WPARAM wParam, LPARAM lParam);
                     static LRESULT CALLBACK     keyboard_hook(int nCode, WPARAM wParam, LPARAM lParam);
-                    static void                 lock_handlers();
+                    static void                 lock_handlers(bool preempt);
                     static void                 unlock_handlers();
                     static bool                 is_hookable_event(UINT uMsg);
                     static bool                 has_mime_types(const char * const * src_list, const char * const * check);
