@@ -145,11 +145,6 @@ namespace lsp
                     pOldUserData    = SetWindowLongPtrW(hWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
                 }
 
-                // Create surface
-                pSurface        = new WinDDSurface(pWinDisplay, hWindow, sSize.nWidth, sSize.nHeight);
-                if (pSurface == NULL)
-                    return STATUS_NO_MEM;
-
                 // Create Drag&Drop target
                 pDNDTarget      = new WinDNDTarget(this);
                 if (pDNDTarget == NULL)
@@ -391,6 +386,12 @@ namespace lsp
                     {
                         ue.nType                = (wParam == TRUE) ? UIE_SHOW : UIE_HIDE;
                         bMouseInside            = false;
+
+                        if (ue.nType == UIE_SHOW)
+                            pSurface        = new WinDDSurface(pWinDisplay, hWindow, sSize.nWidth, sSize.nHeight);
+                        else
+                            drop_surface();
+
                         handle_event(&ue);
                         return 0;
                     }
@@ -813,6 +814,16 @@ namespace lsp
                 return resize(sSize.nWidth, height);
             }
 
+            void WinWindow::drop_surface()
+            {
+                if (pSurface != NULL)
+                {
+                    pSurface->destroy();
+                    delete pSurface;
+                    pSurface = NULL;
+                }
+            }
+
             status_t WinWindow::hide()
             {
                 if (hWindow == NULL)
@@ -824,6 +835,7 @@ namespace lsp
                     bGrabbing = false;
                 }
 
+                drop_surface();
                 ShowWindow(hWindow, SW_HIDE);
                 return STATUS_OK;
             }
@@ -1095,7 +1107,8 @@ namespace lsp
                     case BS_POPUP:
                     case BS_COMBO:
                     case BS_DROPDOWN:
-                        ex_style    = WS_EX_TOPMOST;
+                        style       = WS_POPUP;
+                        ex_style    = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
                         break;
                     case BS_NONE:
                     default:

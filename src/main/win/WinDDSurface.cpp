@@ -148,8 +148,16 @@ namespace lsp
             #endif /* LSP_DEBUG */
 
                 HRESULT hr = pDC->EndDraw();
-                if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
-                    safe_release(pDC);
+                if ((hWindow != NULL) && (nType == ST_DDRAW))
+                {
+                    if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
+                        safe_release(pDC);
+                }
+                else
+                {
+                    if (FAILED(hr))
+                        lsp_trace("debug");
+                }
             }
 
             void WinDDSurface::sync_size()
@@ -1055,8 +1063,9 @@ namespace lsp
                     return;
 
                 // Create the clipping layer
-                ID2D1Layer *layer = NULL;
-                if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
+                ID2D1Layer *layer   = NULL;
+                HRESULT hr          = pDC->CreateLayer(NULL, &layer);
+                if ((FAILED(hr)) || (layer == NULL))
                     return;
                 lsp_finally{ safe_release(layer); };
 
