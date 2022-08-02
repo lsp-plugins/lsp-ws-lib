@@ -462,7 +462,7 @@ namespace lsp
                                                   MCB_MIDDLE;
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
-                        ue.nState               = decode_mouse_keystate(wParam);
+                        ue.nState               = decode_mouse_keystate(wParam) ^ (1 << ue.nCode);
 
                         // Set mouse capture
                         if (!nMouseCapture)
@@ -484,7 +484,7 @@ namespace lsp
 
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
-                        ue.nState               = decode_mouse_keystate(wParam);
+                        ue.nState               = decode_mouse_keystate(wParam) ^ (1 << ue.nCode);
 
                         // Set mouse capture
                         if (!nMouseCapture)
@@ -505,7 +505,7 @@ namespace lsp
                                                   MCB_MIDDLE;
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
-                        ue.nState               = decode_mouse_keystate(wParam);
+                        ue.nState               = decode_mouse_keystate(wParam) ^ (1 << ue.nCode);
 
                         // Reset capture if possible
                         nMouseCapture          &= ~(1 << ue.nCode);
@@ -527,7 +527,7 @@ namespace lsp
 
                         ue.nLeft                = GET_X_LPARAM(lParam);
                         ue.nTop                 = GET_Y_LPARAM(lParam);
-                        ue.nState               = decode_mouse_keystate(wParam);
+                        ue.nState               = decode_mouse_keystate(wParam) ^ (1 << ue.nCode);
 
                         // Reset capture if possible
                         nMouseCapture          &= ~(1 << ue.nCode);
