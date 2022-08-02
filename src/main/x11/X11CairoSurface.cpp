@@ -152,7 +152,7 @@ namespace lsp
                 destroy_context();
             }
 
-            bool X11CairoSurface::valid() const override
+            bool X11CairoSurface::valid() const
             {
                 return pSurface != NULL;
             }
