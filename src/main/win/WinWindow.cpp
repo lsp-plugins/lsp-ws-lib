@@ -145,6 +145,11 @@ namespace lsp
                     pOldUserData    = SetWindowLongPtrW(hWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
                 }
 
+                // Create Surface
+                pSurface        = new WinDDSurface(pWinDisplay, hWindow, sSize.nWidth, sSize.nHeight);
+                if (pSurface == NULL)
+                    return STATUS_NO_MEM;
+
                 // Create Drag&Drop target
                 pDNDTarget      = new WinDNDTarget(this);
                 if (pDNDTarget == NULL)
@@ -177,6 +182,14 @@ namespace lsp
 
                     pDNDTarget->Release();
                     pDNDTarget  = NULL;
+                }
+
+                // Surface related
+                if (pSurface != NULL)
+                {
+                    pSurface->destroy();
+                    delete pSurface;
+                    pSurface = NULL;
                 }
 
                 // Custom user data
@@ -387,11 +400,6 @@ namespace lsp
                         ue.nType                = (wParam == TRUE) ? UIE_SHOW : UIE_HIDE;
                         bMouseInside            = false;
 
-                        if (ue.nType == UIE_SHOW)
-                            pSurface        = new WinDDSurface(pWinDisplay, hWindow, sSize.nWidth, sSize.nHeight);
-                        else
-                            drop_surface();
-
                         handle_event(&ue);
                         return 0;
                     }
@@ -416,7 +424,10 @@ namespace lsp
                         ue.nWidth               = ps.rcPaint.right - ps.rcPaint.left;
                         ue.nHeight              = ps.rcPaint.bottom - ps.rcPaint.top;
 
+                        // Render and re-render if the surface is invalid
                         handle_event(&ue);
+                        if (!pSurface->valid())
+                            handle_event(&ue);
 
                         EndPaint(hWindow, &ps);
 
@@ -814,16 +825,6 @@ namespace lsp
                 return resize(sSize.nWidth, height);
             }
 
-            void WinWindow::drop_surface()
-            {
-                if (pSurface != NULL)
-                {
-                    pSurface->destroy();
-                    delete pSurface;
-                    pSurface = NULL;
-                }
-            }
-
             status_t WinWindow::hide()
             {
                 if (hWindow == NULL)
@@ -835,7 +836,6 @@ namespace lsp
                     bGrabbing = false;
                 }
 
-                drop_surface();
                 ShowWindow(hWindow, SW_HIDE);
                 return STATUS_OK;
             }

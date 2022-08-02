@@ -93,6 +93,8 @@ namespace lsp
 
                     virtual void destroy() override;
 
+                    virtual bool valid() const override;
+
                 public:
                     /** resize cairo surface if possible
                      *

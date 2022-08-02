@@ -43,6 +43,38 @@ namespace lsp
     {
         namespace win
         {
+            //-----------------------------------------------------------------
+            WinDDShared::WinDDShared(WinDisplay *dpy, HWND wnd)
+            {
+                nReferences     = 0;
+                nVersion        = 0;
+                pDisplay        = dpy;
+                hWindow         = wnd;
+            }
+
+            WinDDShared::~WinDDShared()
+            {
+            }
+
+            size_t WinDDShared::AddRef()
+            {
+                return ++nReferences;
+            }
+
+            size_t WinDDShared::Release()
+            {
+                size_t count = nReferences--;
+                if (count == 0)
+                    delete this;
+                return count;
+            }
+
+            void WinDDShared::Invalidate()
+            {
+                ++nVersion;
+            }
+
+            //-----------------------------------------------------------------
             static inline D2D_COLOR_F d2d_color(const Color &color)
             {
                 D2D_COLOR_F c;
@@ -60,51 +92,82 @@ namespace lsp
                 return r;
             }
 
-            WinDDSurface::WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height)
+            WinDDSurface::WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height):
+                ISurface(width, height, ST_DDRAW)
             {
-                pDisplay        = dpy;
-                hWindow         = hwnd;
-                pDC             = NULL;
+                // Create initial shared context
+                pShared             = safe_acquire(new WinDDShared(dpy, hwnd));
+                nVersion            = pShared->nVersion;
+                pDC                 = NULL;
 
-                nWidth          = width;
-                nHeight         = height;
-                nType           = ST_DDRAW;
             #ifdef LSP_DEBUG
-                nClipping       = 0;
+                nClipping           = 0;
             #endif /* LSP_DEBUG */
             }
 
-            WinDDSurface::WinDDSurface(WinDisplay *dpy, ID2D1RenderTarget *dc, size_t width, size_t height):
+            WinDDSurface::WinDDSurface(WinDDShared *shared, ID2D1RenderTarget *dc, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
-                pDisplay        = dpy;
-                hWindow         = NULL;
-                pDC             = dc;
+                pShared             = safe_acquire(shared);
+                nVersion            = pShared->nVersion;
+                pDC                 = dc;
 
             #ifdef LSP_DEBUG
-                nClipping       = 0;
+                nClipping           = 0;
             #endif /* LSP_DEBUG */
             }
 
             WinDDSurface::~WinDDSurface()
             {
+                do_destroy();
             }
 
             void WinDDSurface::destroy()
             {
+                do_destroy();
+            }
+
+            bool WinDDSurface::valid() const
+            {
+                return (pShared != NULL) && (nVersion == pShared->nVersion);
+            }
+
+            bool WinDDSurface::bad_state() const
+            {
+                return (pShared == NULL) || (pDC == NULL);
+            }
+
+            void WinDDSurface::do_destroy()
+            {
+                // Do some manipulations with data references
+                if (pShared != NULL)
+                {
+                    if (nType == ST_DDRAW)
+                        pShared->Invalidate();
+                    safe_release(pShared);
+                }
+
+                // Release drawing context
                 safe_release(pDC);
             }
 
             void WinDDSurface::begin()
             {
+                if (pShared == NULL)
+                    return;
+
+                // Release drawing context if the shared version has changed
+                if (nVersion != pShared->nVersion)
+                    safe_release(pDC);
+
                 // Create render target if necessary
-                if ((pDC == NULL) && (hWindow != NULL) && (nType == ST_DDRAW))
+                if ((pDC == NULL) && (nType == ST_DDRAW))
                 {
                     FLOAT dpi_x, dpi_y;
                     D2D1_RENDER_TARGET_PROPERTIES prop;
                     D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProp;
 
-                    pDisplay->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
+                    pShared->pDisplay->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
                     prop.type                   = D2D1_RENDER_TARGET_TYPE_DEFAULT;
                     prop.pixelFormat.format     = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -114,20 +177,21 @@ namespace lsp
                     prop.usage                  = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
                     prop.minLevel               = D2D1_FEATURE_LEVEL_DEFAULT;
 
-                    hwndProp.hwnd               = hWindow;
+                    hwndProp.hwnd               = pShared->hWindow;
                     hwndProp.pixelSize.width    = nWidth;
                     hwndProp.pixelSize.height   = nHeight;
                     hwndProp.presentOptions     = D2D1_PRESENT_OPTIONS_NONE;
 
                     ID2D1HwndRenderTarget *ht   = NULL;
-                    HRESULT hr                  = pDisplay->d2d_factory()->CreateHwndRenderTarget(prop, hwndProp, &ht);
+                    HRESULT hr                  = pShared->pDisplay->d2d_factory()->CreateHwndRenderTarget(prop, hwndProp, &ht);
                     if (FAILED(hr))
                     {
                         lsp_error("Error creating HWND render target: 0x%08lx", long(hr));
                         return;
                     }
 
-                    pDC         = ht;
+                    pDC                         = ht;
+                    nVersion                    = ++pShared->nVersion;
                 }
 
                 if (pDC != NULL)
@@ -139,7 +203,7 @@ namespace lsp
 
             void WinDDSurface::end()
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
             #ifdef LSP_DEBUG
@@ -148,26 +212,22 @@ namespace lsp
             #endif /* LSP_DEBUG */
 
                 HRESULT hr = pDC->EndDraw();
-                if ((hWindow != NULL) && (nType == ST_DDRAW))
+                if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
                 {
-                    if (FAILED(hr) || (hr == HRESULT(D2DERR_RECREATE_TARGET)))
-                        safe_release(pDC);
-                }
-                else
-                {
-                    if (FAILED(hr))
-                        lsp_trace("debug");
+                    // Invalidate shared context and release device context
+                    pShared->Invalidate();
+                    safe_release(pDC);
                 }
             }
 
             void WinDDSurface::sync_size()
             {
-                if (hWindow == NULL)
+                if ((pShared == NULL) || (pShared->hWindow == NULL))
                     return;
 
                 RECT rc;
                 D2D1_SIZE_U size;
-                GetClientRect(hWindow, &rc);
+                GetClientRect(pShared->hWindow, &rc);
 
                 nWidth      = rc.right - rc.left;
                 nHeight     = rc.bottom - rc.top;
@@ -184,7 +244,7 @@ namespace lsp
 
             void WinDDSurface::clear(const Color &color)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 D2D_COLOR_F c;
@@ -194,31 +254,35 @@ namespace lsp
 
             void WinDDSurface::clear_rgb(uint32_t color)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 D2D_COLOR_F c;
                 c.r     = ((color >> 16) & 0xff) / 255.0f;
                 c.g     = ((color >> 8) & 0xff) / 255.0f;
                 c.b     = (color & 0xff) / 255.0f;
-                c.a     = ((color >> 24) & 0xff) / 255.0f;
+                c.a     = 1.0f;
                 pDC->Clear(&c);
             }
 
             void WinDDSurface::clear_rgba(uint32_t color)
             {
+                if (bad_state())
+                    return;
+
                 D2D_COLOR_F c;
                 c.r     = ((color >> 16) & 0xff) / 255.0f;
                 c.g     = ((color >> 8) & 0xff) / 255.0f;
                 c.b     = (color & 0xff) / 255.0f;
-                c.a     = 0.0f;
+                c.a     = 1.0f - ((color >> 24) & 0xff) / 255.0f;
                 pDC->Clear(&c);
             }
 
             IGradient *WinDDSurface::linear_gradient(float x0, float y0, float x1, float y1)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return NULL;
+
                 return new WinDDGradient(
                     pDC,
                     D2D1::LinearGradientBrushProperties(
@@ -233,7 +297,7 @@ namespace lsp
                 float r
             )
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return NULL;
                 return new WinDDGradient(
                     pDC,
@@ -253,11 +317,12 @@ namespace lsp
                         pDC->FillRectangle(&rect, brush);
                     else
                         pDC->DrawRectangle(&rect, brush, line_width, NULL);
+                    return;
                 }
 
                 // Create geometry object
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -329,7 +394,7 @@ namespace lsp
 
             void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -350,7 +415,7 @@ namespace lsp
 
             void WinDDSurface::wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *r, float line_width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -371,7 +436,9 @@ namespace lsp
 
             void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -391,7 +458,9 @@ namespace lsp
 
             void WinDDSurface::wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *r, float line_width)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -411,7 +480,7 @@ namespace lsp
 
             void WinDDSurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -430,7 +499,7 @@ namespace lsp
 
             void WinDDSurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -449,7 +518,9 @@ namespace lsp
 
             void WinDDSurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -467,7 +538,9 @@ namespace lsp
 
             void WinDDSurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -485,7 +558,7 @@ namespace lsp
 
             void WinDDSurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -495,7 +568,7 @@ namespace lsp
 
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -530,7 +603,7 @@ namespace lsp
             {
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -556,7 +629,7 @@ namespace lsp
 
             void WinDDSurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -569,7 +642,7 @@ namespace lsp
 
             void WinDDSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -581,7 +654,7 @@ namespace lsp
 
             void WinDDSurface::fill_circle(const Color & c, float x, float y, float r)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -596,7 +669,9 @@ namespace lsp
 
             void WinDDSurface::fill_circle(IGradient *g, float x, float y, float r)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -610,7 +685,7 @@ namespace lsp
 
             void WinDDSurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -620,7 +695,7 @@ namespace lsp
 
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -653,7 +728,7 @@ namespace lsp
 
             void WinDDSurface::line(const Color &c, float x0, float y0, float x1, float y1, float width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -669,7 +744,9 @@ namespace lsp
 
             void WinDDSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
             {
-                if ((pDC == NULL) || (g == NULL))
+                if (bad_state())
+                    return;
+                if (g == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(g)->get_brush();
@@ -683,7 +760,7 @@ namespace lsp
 
             void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -705,7 +782,7 @@ namespace lsp
 
             void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -730,7 +807,9 @@ namespace lsp
                 float a1, float b1, float c1, float a2, float b2, float c2,
                 float left, float right, float top, float bottom)
             {
-                if ((pDC == NULL) || (gr == NULL))
+                if (bad_state())
+                    return;
+                if (gr == NULL)
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(gr)->get_brush();
@@ -739,7 +818,7 @@ namespace lsp
 
                 // Create geometry object
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -788,7 +867,7 @@ namespace lsp
             {
                 // Create geometry object
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -815,7 +894,9 @@ namespace lsp
 
             void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
             {
-                if ((pDC == NULL) || (n < 2))
+                if (bad_state())
+                    return;
+                if (n < 2)
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -828,7 +909,9 @@ namespace lsp
 
             void WinDDSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
             {
-                if ((pDC == NULL) || (gr == NULL) || (n < 2))
+                if (bad_state())
+                    return;
+                if ((gr == NULL) || (n < 2))
                     return;
 
                 ID2D1Brush *brush   = static_cast<WinDDGradient *>(gr)->get_brush();
@@ -840,7 +923,9 @@ namespace lsp
 
             void WinDDSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
             {
-                if ((pDC == NULL) || (n < 2))
+                if (bad_state())
+                    return;
+                if (n < 2)
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -853,7 +938,9 @@ namespace lsp
 
             void WinDDSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
-                if ((pDC == NULL) || (n < 2))
+                if (bad_state())
+                    return;
+                if (n < 2)
                     return;
 
                 // Create brushes
@@ -868,7 +955,7 @@ namespace lsp
 
                 // Create geometry object
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -895,7 +982,7 @@ namespace lsp
             {
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
-                if (FAILED(pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
                     return;
                 lsp_finally{ safe_release(g); };
 
@@ -933,7 +1020,7 @@ namespace lsp
                 float fx, float fy, float fw, float fh,
                 float ix, float iy, float iw, float ih)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 ID2D1SolidColorBrush *brush = NULL;
@@ -1059,7 +1146,7 @@ namespace lsp
 
             void WinDDSurface::clip_begin(float x, float y, float w, float h)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
                 // Create the clipping layer
@@ -1081,7 +1168,7 @@ namespace lsp
 
             void WinDDSurface::clip_end()
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
 
             #ifdef LSP_DEBUG
@@ -1098,12 +1185,12 @@ namespace lsp
 
             IDisplay *WinDDSurface::display()
             {
-                return pDisplay;
+                return (pShared != NULL) ? pShared->pDisplay : NULL;
             }
 
             ISurface *WinDDSurface::create(size_t width, size_t height)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return NULL;
 
                 D2D1_SIZE_F desiredSize = D2D1::SizeF(width, height);
@@ -1122,12 +1209,14 @@ namespace lsp
                 if (FAILED(hr))
                     return NULL;
 
-                return new WinDDSurface(pDisplay, dc, width, height);
+                return new WinDDSurface(pShared, dc, width, height);
             }
 
             ISurface *WinDDSurface::create_copy()
             {
-                if ((pDC == NULL) || (type() != ST_IMAGE))
+                if (bad_state())
+                    return NULL;
+                if (type() != ST_IMAGE)
                     return NULL;
 
                 // Get the bitmap of the surface
@@ -1145,7 +1234,7 @@ namespace lsp
                     D2D1_ALPHA_MODE_PREMULTIPLIED);
 
                 ID2D1BitmapRenderTarget *dc = NULL;
-                HRESULT hr = sdc->CreateCompatibleRenderTarget(
+                HRESULT hr = pDC->CreateCompatibleRenderTarget(
                     &desiredSize,
                     &desiredPixelSize,
                     &pixelFormat,
@@ -1164,12 +1253,12 @@ namespace lsp
                         D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
                 dc->EndDraw();
 
-                return new WinDDSurface(pDisplay, dc, nWidth, nHeight);
+                return new WinDDSurface(pShared, dc, nWidth, nHeight);
             }
 
             void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
                 if (s->type() != ST_IMAGE)
                     return;
@@ -1197,7 +1286,7 @@ namespace lsp
 
             void WinDDSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
                 if (s->type() != ST_IMAGE)
                     return;
@@ -1229,7 +1318,7 @@ namespace lsp
 
             void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
                 if (s->type() != ST_IMAGE)
                     return;
@@ -1274,11 +1363,14 @@ namespace lsp
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)
             {
+                if (bad_state())
+                    return;
+
                 HRESULT hr;
 
                 // Create WIC bitmap
                 IWICBitmap *wic = NULL;
-                hr = pDisplay->wic_factory()->CreateBitmapFromMemory(
+                hr = pShared->pDisplay->wic_factory()->CreateBitmapFromMemory(
                     width, height,
                     GUID_WICPixelFormat32bppPBGRA,
                     stride,
@@ -1307,13 +1399,13 @@ namespace lsp
             bool WinDDSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
                 // Redirect call to the display
-                return pDisplay->get_font_parameters(f, fp);
+                return (pShared != NULL) ? pShared->pDisplay->get_font_parameters(f, fp) : false;
             }
 
             bool WinDDSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
                 // Redirect call to the display
-                return pDisplay->get_text_parameters(f, tp, text, first, last);
+                return (pShared != NULL) ? pShared->pDisplay->get_text_parameters(f, tp, text, first, last) : false;
             }
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
@@ -1329,7 +1421,7 @@ namespace lsp
             bool WinDDSurface::try_out_text(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length)
             {
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
+                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally{ safe_release(tl); };
@@ -1366,7 +1458,7 @@ namespace lsp
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
                 const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
                 if (pText == NULL)
@@ -1376,7 +1468,7 @@ namespace lsp
                 // Obtain the font family
                 LSPString family_name;
                 WinDisplay::font_t *custom = NULL;
-                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
+                IDWriteFontFamily *ff   = pShared->pDisplay->get_font_family(f, &family_name, &custom);
                 lsp_finally{ safe_release(ff); };
 
                 if (custom != NULL)
@@ -1407,11 +1499,11 @@ namespace lsp
             {
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
-                if (!pDisplay->get_font_metrics(f, ff, &fm))
+                if (!pShared->pDisplay->get_font_metrics(f, ff, &fm))
                     return false;
 
                 // Create text layout
-                IDWriteTextLayout *tl   = pDisplay->create_text_layout(f, family, fc, ff, text, length);
+                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
                 lsp_finally{ safe_release(tl); };
@@ -1472,7 +1564,7 @@ namespace lsp
                 // Obtain the font family
                 LSPString family_name;
                 WinDisplay::font_t *custom = NULL;
-                IDWriteFontFamily *ff   = pDisplay->get_font_family(f, &family_name, &custom);
+                IDWriteFontFamily *ff   = pShared->pDisplay->get_font_family(f, &family_name, &custom);
                 lsp_finally{ safe_release(ff); };
 
 

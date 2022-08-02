@@ -30,6 +30,7 @@
 #include <lsp-plug.in/ws/ISurface.h>
 
 #include <private/win/WinDisplay.h>
+#include <private/win/com.h>
 
 #include <d2d1.h>
 #include <windows.h>
@@ -41,24 +42,47 @@ namespace lsp
     {
         namespace win
         {
+            // The shared context between surfaces. Controls the validity of the root drawing context
+            // by introducing the number of version of this context.
+            typedef struct LSP_HIDDEN_MODIFIER WinDDShared
+            {
+                size_t              nReferences;    // References to this shared object
+                size_t              nVersion;       // The version number of root drawing context
+                WinDisplay         *pDisplay;       // The pointer to the display
+                HWND                hWindow;        // The pointer to the window, owner of context
+
+                WinDDShared(WinDisplay *dpy, HWND wnd);
+                ~WinDDShared();
+
+                size_t              AddRef();
+                size_t              Release();
+                void                Invalidate();
+            } WinDDShared;
+
             class LSP_HIDDEN_MODIFIER WinDDSurface: public ISurface
             {
                 protected:
-                    WinDisplay                 *pDisplay;
-                    HWND                        hWindow;
-                    ID2D1RenderTarget          *pDC;
+                    WinDDShared                *pShared;        // Pointer to the shared drawing resource
+                    size_t                      nVersion;       // The version, for valid surface should match the shared version
+                    ID2D1RenderTarget          *pDC;            // Pointer to drawing context
+
                 #ifdef LSP_DEBUG
                     ssize_t                     nClipping;
                 #endif /* LSP_DEBUG */
 
                 public:
                     explicit WinDDSurface(WinDisplay *dpy, HWND hwnd, size_t width, size_t height);
-                    explicit WinDDSurface(WinDisplay *dpy, ID2D1RenderTarget *dc, size_t width, size_t height);
+                    explicit WinDDSurface(WinDDShared *shared, ID2D1RenderTarget *dc, size_t width, size_t height);
                     virtual ~WinDDSurface();
 
                     virtual void destroy() override;
 
+                    virtual bool valid() const override;
+
                 protected:
+                    inline bool bad_state() const;
+                    void    do_destroy();
+
                     void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
                     void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);

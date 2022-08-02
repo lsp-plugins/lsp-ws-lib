@@ -189,6 +189,11 @@ namespace lsp
         {
         }
 
+        bool ISurface::valid() const
+        {
+            return true;
+        }
+
         void ISurface::clear_rgb(uint32_t color)
         {
         }

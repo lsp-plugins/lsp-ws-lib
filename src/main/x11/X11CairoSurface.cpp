@@ -152,6 +152,11 @@ namespace lsp
                 destroy_context();
             }
 
+            bool X11CairoSurface::valid() const override
+            {
+                return pSurface != NULL;
+            }
+
             bool X11CairoSurface::resize(size_t width, size_t height)
             {
                 if (nType == ST_XLIB)

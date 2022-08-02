@@ -153,6 +153,12 @@ namespace lsp
                  */
                 virtual void end();
 
+                /**
+                 * Check that surface is valid
+                 * @return true if surface is valid
+                 */
+                virtual bool valid() const;
+
             public:
                 /** Draw surface with alpha blending
                  *
