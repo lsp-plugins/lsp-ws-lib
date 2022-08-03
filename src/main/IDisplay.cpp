@@ -719,7 +719,12 @@ namespace lsp
 
         status_t IDisplay::screen_size(size_t screen, ssize_t *w, ssize_t *h)
         {
-            return STATUS_BAD_ARGUMENTS;
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::work_area_geometry(ws::rectangle_t *r)
+        {
+            return STATUS_NOT_IMPLEMENTED;
         }
 
         IWindow *IDisplay::create_window()

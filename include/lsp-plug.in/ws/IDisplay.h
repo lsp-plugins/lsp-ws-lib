@@ -192,6 +192,14 @@ namespace lsp
                  */
                 virtual status_t    screen_size(size_t screen, ssize_t *w, ssize_t *h);
 
+                /**
+                 * Read the geometry of work area on the primary monitor which excludes
+                 * any dock panels, taskbars, etc.
+                 * @param r pointer to store the result
+                 * @return status of operation
+                 */
+                virtual status_t    work_area_geometry(ws::rectangle_t *r);
+
             public:
                 /**
                  * Enumerate backends

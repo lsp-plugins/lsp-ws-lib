@@ -191,6 +191,7 @@ namespace lsp
                     virtual size_t              screens() override;
                     virtual size_t              default_screen() override;
                     virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h) override;
+                    virtual status_t            work_area_geometry(ws::rectangle_t *r) override;
                     virtual const MonitorInfo  *enum_monitors(size_t *count) override;
 
                     // Clipboard management

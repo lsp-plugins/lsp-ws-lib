@@ -526,6 +526,23 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            status_t WinDisplay::work_area_geometry(ws::rectangle_t *r)
+            {
+                if (r == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                RECT rect;
+                if (!SystemParametersInfoW(SPI_GETWORKAREA, sizeof(r), &rect, 0))
+                    return STATUS_UNKNOWN_ERR;
+
+                r->nLeft    = rect.left;
+                r->nTop     = rect.top;
+                r->nWidth   = rect.right - rect.left;
+                r->nHeight  = rect.bottom - rect.top;
+
+                return STATUS_OK;
+            }
+
             void WinDisplay::drop_monitors(lltl::darray<MonitorInfo> *list)
             {
                 for (size_t i=0, n=list->size(); i<n; ++i)
