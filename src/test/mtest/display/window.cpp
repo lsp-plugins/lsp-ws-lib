@@ -103,7 +103,7 @@ MTEST_BEGIN("ws.display", window)
 
         // Enumerate list of displays
         printf("List of attached displays:\n");
-        printf("%2s %10s %10s %s %s\n", "id", "coord", "size", "p", "name");
+        printf("  %2s %10s %10s %s %s\n", "id", "coord", "size", "p", "name");
         size_t count;
         const ws::MonitorInfo *mi = dpy->enum_monitors(&count);
         MTEST_ASSERT(count > 0);
@@ -113,11 +113,18 @@ MTEST_BEGIN("ws.display", window)
             char pos[32], size[32];
             snprintf(pos, sizeof(pos), "%d,%d", int(mi->rect.nLeft), int(mi->rect.nTop));
             snprintf(size, sizeof(size), "%dx%d", int(mi->rect.nWidth), int(mi->rect.nHeight));
-            printf("%2d %10s %10s %c %s\n",
+            printf("  %2d %10s %10s %c %s\n",
                 int(i), pos, size, (mi->primary) ? '*' : ' ', mi->name.get_native());
         }
         printf("\n");
 
+        // Obtain the work area on the primary display
+        ws::rectangle_t r;
+        MTEST_ASSERT(dpy->work_area_geometry(&r) == STATUS_OK);
+        printf("Work area on the primary display:\n");
+        printf("  (%d,%d): %dx%d\n", int(r.nLeft), int(r.nTop), int(r.nWidth), int(r.nHeight));
+
+        // Create window and do the stuff
         ws::IWindow *wnd = dpy->create_window();
         MTEST_ASSERT(wnd != NULL);
         lsp_finally {

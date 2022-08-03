@@ -1049,6 +1049,10 @@ namespace lsp
                 uint8_t *data   = NULL;
                 size_t bytes    = 0;
                 Atom type       = None;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 switch (task->enState)
                 {
@@ -1087,10 +1091,6 @@ namespace lsp
                         break;
                 }
 
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
-
                 return res;
             }
 
@@ -1100,6 +1100,10 @@ namespace lsp
                 uint8_t *data   = NULL;
                 size_t bytes    = 0;
                 Atom type       = None;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 switch (task->enState)
                 {
@@ -1142,10 +1146,6 @@ namespace lsp
                     default:
                         break;
                 }
-
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
 
                 return res;
             }
@@ -1199,6 +1199,10 @@ namespace lsp
                 size_t bytes    = 0;
                 Atom type       = None;
                 status_t res    = STATUS_OK;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 // Analyze state
                 switch (task->enState)
@@ -1308,10 +1312,6 @@ namespace lsp
                         break;
                 }
 
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
-
                 return res;
             }
 
@@ -1321,6 +1321,10 @@ namespace lsp
                 size_t bytes    = 0;
                 Atom type       = None;
                 status_t res    = STATUS_OK;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 // Analyze state
                 switch (task->enState)
@@ -1397,10 +1401,6 @@ namespace lsp
                         res         = STATUS_IO_ERROR;
                         break;
                 }
-
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
 
                 return res;
             }
@@ -2955,6 +2955,38 @@ namespace lsp
                     *w = WidthOfScreen(s);
                 if (h != NULL)
                     *h = HeightOfScreen(s);
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::work_area_geometry(ws::rectangle_t *r)
+            {
+                if (r == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                uint8_t *v_value    = NULL;
+                size_t v_size       = 0;
+                Atom v_type         = None;
+                lsp_finally {
+                    if (v_value != NULL)
+                        free(v_value);
+                };
+
+                status_t res        = read_property(
+                    hRootWnd,
+                    sAtoms.X11__NET_WORKAREA,
+                    sAtoms.X11_XA_CARDINAL,
+                    &v_value,
+                    &v_size,
+                    &v_type);
+                if ((res != STATUS_OK) || (v_size < 4))
+                    return STATUS_UNKNOWN_ERR;
+
+                const int32_t *v    = reinterpret_cast<int32_t *>(v_value);
+                r->nLeft            = v[0];
+                r->nTop             = v[1];
+                r->nWidth           = v[2];
+                r->nHeight          = v[3];
 
                 return STATUS_OK;
             }
