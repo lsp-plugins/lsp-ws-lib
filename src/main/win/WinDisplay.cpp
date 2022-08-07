@@ -1275,17 +1275,17 @@ namespace lsp
                     TRC(MP_HELP, IDC_HELP)
 
                     // Not matching icons
-                    TRC(MP_ARROW_LEFT, IDC_UPARROW)
-                    TRC(MP_ARROW_RIGHT, IDC_UPARROW)
-                    TRC(MP_ARROW_UP, IDC_UPARROW)
-                    TRC(MP_ARROW_DOWN, IDC_UPARROW)
+                    TRC(MP_ARROW_LEFT, IDC_ARROW)
+                    TRC(MP_ARROW_RIGHT, IDC_ARROW)
+                    TRC(MP_ARROW_UP, IDC_ARROW)
+                    TRC(MP_ARROW_DOWN, IDC_ARROW)
                     TRC(MP_DRAG, IDC_ARROW)
                     TRC(MP_DRAW, IDC_ARROW)
                     TRC(MP_PLUS, IDC_CROSS)
-                    TRC(MP_DANGER, IDC_NO)
-                    TRC(MP_HSPLIT, IDC_NO)
-                    TRC(MP_VSPLIT, IDC_NO)
-                    TRC(MP_MULTIDRAG, IDC_NO)
+                    TRC(MP_DANGER, IDC_ARROW)
+                    TRC(MP_HSPLIT, IDC_ARROW)
+                    TRC(MP_VSPLIT, IDC_ARROW)
+                    TRC(MP_MULTIDRAG, IDC_ARROW)
 
                     default:
                         res     = LoadCursor(NULL, IDC_ARROW);
