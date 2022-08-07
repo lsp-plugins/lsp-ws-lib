@@ -253,11 +253,6 @@ namespace lsp
                     vGrab[i].clear();
                 uninstall_windows_hooks();
 
-                // Release factories
-                safe_release( pDWriteFactory );
-                safe_release( pWICFactory );
-                safe_release( pD2D1Factroy );
-
                 // Release clipboard data
                 destroy_clipboard();
 
@@ -265,6 +260,11 @@ namespace lsp
                 drop_monitors(&vMonitors);
                 drop_font_cache(&vFontCache);
                 remove_all_fonts();
+
+                // Release factories
+                safe_release( pDWriteFactory );
+                safe_release( pWICFactory );
+                safe_release( pD2D1Factroy );
             }
 
             void WinDisplay::destroy()
