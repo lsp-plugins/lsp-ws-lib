@@ -550,9 +550,16 @@ namespace lsp
                         else // uMsg == WM_MOUSEWHEEL
                             ue.nCode                = (delta > 0) ? MCD_UP : MCD_DOWN;
 
+                        // Convert screen coordinates into window coordinates
+                        POINT pt;
+                        pt.x                    = GET_X_LPARAM(lParam);
+                        pt.y                    = GET_Y_LPARAM(lParam);
+                        ScreenToClient(hWindow, &pt);
+
+                        // Generate the mouse event and process it
                         ue.nState               = decode_mouse_keystate(GET_KEYSTATE_WPARAM(wParam));
-                        ue.nLeft                = GET_X_LPARAM(lParam);
-                        ue.nTop                 = GET_Y_LPARAM(lParam);
+                        ue.nLeft                = pt.x;
+                        ue.nTop                 = pt.y;
 
                         process_mouse_event(ts, &ue);
                         handle_event(&ue);
