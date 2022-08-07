@@ -486,26 +486,31 @@ namespace lsp
 
         status_t IDisplay::process_pending_tasks(timestamp_t time)
         {
+            dtask_t task;
             status_t result = STATUS_OK;
 
             for (size_t i=0, n = sTasks.size(); i < n; ++i)
             {
-                // Get next task
-                dtask_t *t  = sTasks.first();
-                if ((t == NULL) || (t->nTime > time))
-                    break;
+                // Fetch new task from queue
+                {
+                    // Get next task
+                    dtask_t *t      = sTasks.first();
+                    if ((t == NULL) || (t->nTime > time))
+                        break;
+
+                    // Remove the task from the queue
+                    task = *t;
+                    if (!sTasks.shift())
+                    {
+                        result = STATUS_UNKNOWN_ERR;
+                        break;
+                    }
+                }
 
                 // Process the task
-                status_t hresult    = t->pHandler(t->nTime, time, t->pArg);
+                status_t hresult    = task.pHandler(task.nTime, time, task.pArg);
                 if (hresult != STATUS_OK)
                     result      = hresult;
-
-                // Remove the task from the queue
-                if (!sTasks.shift())
-                {
-                    result = STATUS_UNKNOWN_ERR;
-                    break;
-                }
             }
 
             return result;
