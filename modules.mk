@@ -159,4 +159,8 @@ LIBXRANDR_VERSION          := system
 LIBXRANDR_NAME             := xrandr
 LIBXRANDR_TYPE             := pkg
 
+LIBMPR_VERSION             := system
+LIBMPR_NAME                := libmpr
+LIBMPR_TYPE                := opt
+LIBMPR_LDFLAGS             := -lmpr
 
