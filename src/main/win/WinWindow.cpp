@@ -1337,6 +1337,7 @@ namespace lsp
                 // The context code. The value is 1 if the ALT key is down while the key is pressed;
                 // it is 0 if the WM_SYSKEYDOWN message is posted to the active window because no window
                 // has the keyboard focus.
+                ev->nState          = decode_kb_keystate(kState);
                 if (lParam & (1 << 29))
                     ev->nState     |= MCF_ALT;
 
@@ -1452,6 +1453,9 @@ namespace lsp
                 WCHAR buf[4];
                 UINT wScanCode = MapVirtualKeyW(wParam, MAPVK_VK_TO_VSC);
 
+                kState[VK_CONTROL]  = 0;
+                kState[VK_LCONTROL]  = 0;
+                kState[VK_RCONTROL]  = 0;
                 int res = ToUnicode(wParam, wScanCode, kState, buf, sizeof(buf)/sizeof(WCHAR), MAPVK_VK_TO_VSC);
                 if (res == 1)
                 {
