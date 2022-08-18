@@ -56,11 +56,11 @@ MTEST_BEGIN("ws.display", text)
 
                         // Draw the text
                         ws::Font f;
-                        f.set_name("arial");
+//                        f.set_name("arial");
                         f.set_size(32);
 
                         ws::font_parameters_t fp;
-                        ws::text_parameters_t tp;
+                        ws::text_parameters_t tp1, tp2;
 
                         for (size_t i=0; i<=0x07; ++i)
                         {
@@ -72,20 +72,22 @@ MTEST_BEGIN("ws.display", text)
                             float y = s->height() * ((i & 0x03) * 0.25f + 0.125f);
 
                             s->get_font_parameters(f, &fp);
-                            s->get_text_parameters(f, &tp, "Text");
+                            s->get_text_parameters(f, &tp1, "Text");
+                            s->get_text_parameters(f, &tp2, " Text");
 
+                            // Text bar 1
                             c.alpha(0.0f);
                             c.set_rgb24(0xffff00);
-                            s->fill_rect(c, SURFMASK_NONE, 0, x, y - fp.Ascent, tp.Width, fp.Height);
+                            s->fill_rect(c, SURFMASK_NONE, 0, x, y - fp.Ascent, tp1.Width, fp.Height);
 
                             c.set_rgb24(0xff0000);
-                            s->line(c, x + tp.XBearing, y - fp.Ascent, x + tp.XBearing, y + fp.Descent, 1.0f);
+                            s->line(c, x + tp1.XBearing, y - fp.Ascent, x + tp1.XBearing, y + fp.Descent, 1.0f);
                             c.set_rgb24(0x00cc00);
-                            s->line(c, x + tp.XAdvance, y - fp.Ascent, x + tp.XAdvance, y + fp.Descent, 1.0f);
+                            s->line(c, x + tp1.XAdvance, y - fp.Ascent, x + tp1.XAdvance, y + fp.Descent, 1.0f);
                             c.set_rgb24(0x0000ff);
-                            s->line(c, x + tp.XBearing, y + tp.YBearing, x + tp.XAdvance, y + tp.YBearing, 1.0f);
+                            s->line(c, x + tp1.XBearing, y + tp1.YBearing, x + tp1.XAdvance, y + tp1.YBearing, 1.0f);
                             c.set_rgb24(0x00ccff);
-                            s->line(c, x + tp.XBearing, y, x + tp.XAdvance, y, 1.0f);
+                            s->line(c, x + tp1.XBearing, y, x + tp1.XAdvance, y, 1.0f);
                             c.set_rgb24(0xffcc00);
                             s->line(c, x - 8, y - 8, x + 8, y + 8, 1.0f);
                             s->line(c, x - 8, y + 8, x + 8, y - 8, 1.0f);
@@ -94,6 +96,31 @@ MTEST_BEGIN("ws.display", text)
                             c.set_rgb24(0x000000);
                             c.alpha(0.25f);
                             s->out_text(f, c, x, y, "Text");
+
+                            // Update position
+                            y += 40;
+
+                            // Text bar 2
+                            c.alpha(0.0f);
+                            c.set_rgb24(0x00ffff);
+                            s->fill_rect(c, SURFMASK_NONE, 0, x, y - fp.Ascent, tp2.Width, fp.Height);
+
+                            c.set_rgb24(0xff0000);
+                            s->line(c, x + tp2.XBearing, y - fp.Ascent, x + tp2.XBearing, y + fp.Descent, 1.0f);
+                            c.set_rgb24(0x00cc00);
+                            s->line(c, x + tp2.XAdvance, y - fp.Ascent, x + tp2.XAdvance, y + fp.Descent, 1.0f);
+                            c.set_rgb24(0x0000ff);
+                            s->line(c, x + tp2.XBearing, y + tp2.YBearing, x + tp2.XAdvance, y + tp2.YBearing, 1.0f);
+                            c.set_rgb24(0x00ccff);
+                            s->line(c, x + tp2.XBearing, y, x + tp2.XAdvance, y, 1.0f);
+                            c.set_rgb24(0xffcc00);
+                            s->line(c, x - 8, y - 8, x + 8, y + 8, 1.0f);
+                            s->line(c, x - 8, y + 8, x + 8, y - 8, 1.0f);
+
+                            // Output text
+                            c.set_rgb24(0x000000);
+                            c.alpha(0.25f);
+                            s->out_text(f, c, x, y, " Text");
                         }
 
                         s->end();

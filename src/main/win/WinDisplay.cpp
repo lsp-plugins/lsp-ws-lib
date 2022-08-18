@@ -1201,9 +1201,9 @@ namespace lsp
                 tl->GetMetrics(&tm);
 
                 float ratio     = f.size() / float(fm.designUnitsPerEm);
-                tp->Width       = tm.width;
+                tp->Width       = tm.widthIncludingTrailingWhitespace;
                 tp->Height      = (fm.ascent + fm.descent + fm.lineGap) * ratio;
-                tp->XAdvance    = tm.width;
+                tp->XAdvance    = tm.widthIncludingTrailingWhitespace;
                 tp->YAdvance    = tp->Height;
                 tp->XBearing    = (f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f;
                 tp->YBearing    = - fm.capHeight * ratio;
