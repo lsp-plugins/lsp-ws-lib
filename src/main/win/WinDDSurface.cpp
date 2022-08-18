@@ -693,6 +693,17 @@ namespace lsp
                     return;
                 lsp_finally{ safe_release(brush); };
 
+                // Check if we need just to draw circle
+                if (fabs(a2 - a1) >= M_PI * 2.0f)
+                {
+                    pDC->DrawEllipse(
+                        D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
+                        brush,
+                        width,
+                        NULL);
+                    return;
+                }
+
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
                 if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
@@ -723,7 +734,7 @@ namespace lsp
                 s->Close();
 
                 // Draw the geometry
-                pDC->DrawGeometry(g, brush, width);
+                pDC->DrawGeometry(g, brush, width, NULL);
             }
 
             void WinDDSurface::line(const Color &c, float x0, float y0, float x1, float y1, float width)
@@ -887,9 +898,9 @@ namespace lsp
 
                 // Draw the geometry
                 if (width < 0.0f)
-                    pDC->FillGeometry(g, brush);
+                    pDC->FillGeometry(g, brush, NULL);
                 else
-                    pDC->DrawGeometry(g, brush, width);
+                    pDC->DrawGeometry(g, brush, width, NULL);
             }
 
             void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -974,8 +985,8 @@ namespace lsp
                 s->Close();
 
                 // Draw the geometry
-                pDC->FillGeometry(g, f_brush);
-                pDC->DrawGeometry(g, w_brush, width);
+                pDC->FillGeometry(g, f_brush, NULL);
+                pDC->DrawGeometry(g, w_brush, width, NULL);
             }
 
             void WinDDSurface::draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2)
