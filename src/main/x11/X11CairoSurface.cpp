@@ -683,8 +683,17 @@ namespace lsp
                     return;
 
                 setSourceRGBA(c);
-                cairo_move_to(pCR, cx, cy);
-                cairo_arc(pCR, cx, cy, radius, angle1, angle2);
+                if (fabs(angle2 - angle1) < 2.0f * M_PI)
+                {
+                    cairo_move_to(pCR, cx, cy);
+
+                    if (angle2 < angle1)
+                        cairo_arc_negative(pCR, cx, cy, radius, angle1, angle2);
+                    else
+                        cairo_arc(pCR, cx, cy, radius, angle1, angle2);
+                }
+                else
+                    cairo_arc(pCR, x, y, r, 0.0f, M_PI * 2.0f);
                 cairo_close_path(pCR);
                 cairo_fill(pCR);
             }
@@ -990,7 +999,12 @@ namespace lsp
                 r = lsp_max(0.0f, r - width * 0.5f);
                 setSourceRGBA(c);
                 cairo_set_line_width(pCR, width);
-                cairo_arc(pCR, x, y, r, a1, a2);
+                if (fabs(a2 - a1) >= 2.0f * M_PI)
+                    cairo_arc(pCR, x, y, r, 0.0f, 2.0f * M_PI);
+                else if (a2 < a1)
+                    cairo_arc_negative(pCR, x, y, r, a1, a2);
+                else
+                    cairo_arc(pCR, x, y, r, a1, a2);
                 cairo_stroke(pCR);
                 cairo_set_line_width(pCR, ow);
             }

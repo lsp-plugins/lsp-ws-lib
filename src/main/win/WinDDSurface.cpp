@@ -556,7 +556,7 @@ namespace lsp
                 draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
             }
 
-            void WinDDSurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
+            void WinDDSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
                 if (bad_state())
                     return;
@@ -565,6 +565,15 @@ namespace lsp
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(c), &brush)))
                     return;
                 lsp_finally{ safe_release(brush); };
+
+                // Check if we need just to draw circle
+                if (fabs(a2 - a1) >= M_PI * 2.0f)
+                {
+                    pDC->FillEllipse(
+                        D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
+                        brush);
+                    return;
+                }
 
                 // Create geometry object for the sector
                 ID2D1PathGeometry *g = NULL;
@@ -581,17 +590,39 @@ namespace lsp
 
                 // Draw the sector
                 s->BeginFigure(
-                    D2D1::Point2F(cx, cy),
+                    D2D1::Point2F(x, y),
                     D2D1_FIGURE_BEGIN_FILLED);
-                s->AddLine(D2D1::Point2F(cx + radius * cosf(angle1), cy + radius * sinf(angle1)));
-                s->AddArc(
-                    D2D1::ArcSegment(
-                        D2D1::Point2F(cx + radius * cosf(angle2), cy + radius * sinf(angle2)),
-                        D2D1::SizeF(radius, radius),
-                        0.0f,
-                        D2D1_SWEEP_DIRECTION_CLOCKWISE,
-                        (fabs(angle2 - angle1) >= M_PI) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL)
-                    );
+                s->AddLine(D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)));
+                if (a2 < a1)
+                {
+                    // Draw arc with 90-degree segments
+                    do
+                    {
+                        a1  = lsp_max(a1 - M_PI * 0.5f, a2);
+                        s->AddArc(
+                            D2D1::ArcSegment(
+                                D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
+                                D2D1::SizeF(r, r),
+                                0.0f,
+                                D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+                                D2D1_ARC_SIZE_SMALL));
+                    } while (a2 < a1);
+                }
+                else
+                {
+                    // Draw arc with 90-degree segments
+                    do
+                    {
+                        a1  = lsp_min(a1 + M_PI * 0.5f, a2);
+                        s->AddArc(
+                            D2D1::ArcSegment(
+                                D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
+                                D2D1::SizeF(r, r),
+                                0.0f,
+                                D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                                D2D1_ARC_SIZE_SMALL));
+                    } while (a2 > a1);
+                }
                 s->EndFigure(D2D1_FIGURE_END_CLOSED);
                 s->Close();
 
@@ -722,14 +753,36 @@ namespace lsp
                 s->BeginFigure(
                     D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
                     D2D1_FIGURE_BEGIN_HOLLOW);
-                s->AddArc(
-                    D2D1::ArcSegment(
-                        D2D1::Point2F(x + r * cosf(a2), y + r * sinf(a2)),
-                        D2D1::SizeF(r, r),
-                        0.0f,
-                        D2D1_SWEEP_DIRECTION_CLOCKWISE,
-                        (fabs(a2 - a1) >= M_PI) ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL)
-                    );
+                if (a2 < a1)
+                {
+                    // Draw arc with 90-degree segments
+                    do
+                    {
+                        a1  = lsp_max(a1 - M_PI * 0.5f, a2);
+                        s->AddArc(
+                            D2D1::ArcSegment(
+                                D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
+                                D2D1::SizeF(r, r),
+                                0.0f,
+                                D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE,
+                                D2D1_ARC_SIZE_SMALL));
+                    } while (a2 < a1);
+                }
+                else
+                {
+                    // Draw arc with 90-degree segments
+                    do
+                    {
+                        a1  = lsp_min(a1 + M_PI * 0.5f, a2);
+                        s->AddArc(
+                            D2D1::ArcSegment(
+                                D2D1::Point2F(x + r * cosf(a1), y + r * sinf(a1)),
+                                D2D1::SizeF(r, r),
+                                0.0f,
+                                D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                                D2D1_ARC_SIZE_SMALL));
+                    } while (a2 > a1);
+                }
                 s->EndFigure(D2D1_FIGURE_END_OPEN);
                 s->Close();
 

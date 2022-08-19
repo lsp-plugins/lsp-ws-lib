@@ -62,11 +62,21 @@ MTEST_BEGIN("ws.display", primitives)
                         {
                             c.alpha(i * 0.0625f);
                             s->fill_sector(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 8.0f);
+                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f);
                         }
                         y += 40;
 
-                        // Method 2: Filled solid triangles
+                        // Method 2: Filled solid sectors with reverse angle
+                        c.set_rgb24(0xff0000);
+                        for (size_t i=0; i<16; ++i)
+                        {
+                            c.alpha(i * 0.0625f);
+                            s->fill_sector(
+                                c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f);
+                        }
+                        y += 40;
+
+                        // Method 3: Filled solid triangles
                         c.set_rgb24(0x00ff00);
                         for (size_t i=0; i<16; ++i)
                         {
@@ -82,7 +92,7 @@ MTEST_BEGIN("ws.display", primitives)
                         }
                         y += 40;
 
-                        // Method 3: Filled gradient triangles
+                        // Method 4: Filled gradient triangles
                         c.set_rgb24(0x00ff00);
                         for (size_t i=0; i<16; ++i)
                         {
@@ -108,7 +118,7 @@ MTEST_BEGIN("ws.display", primitives)
                         }
                         y += 40;
 
-                        // Method 4: Filled solid circles
+                        // Method 5: Filled solid circles
                         c.set_rgb24(0xffffff);
                         for (size_t i=0; i<16; ++i)
                         {
@@ -118,7 +128,7 @@ MTEST_BEGIN("ws.display", primitives)
                         }
                         y += 40;
 
-                        // Method 5: Filled gradient circles
+                        // Method 6: Filled gradient circles
                         c.set_rgb24(0xff00ff);
                         for (size_t i=0; i<16; ++i)
                         {
@@ -138,7 +148,7 @@ MTEST_BEGIN("ws.display", primitives)
                         }
                         y += 40;
 
-                        // Method 6: Wired arcs
+                        // Method 7: Wired arcs
                         c.set_rgb24(0xff0000);
                         for (size_t i=0; i<16; ++i)
                         {
@@ -147,7 +157,20 @@ MTEST_BEGIN("ws.display", primitives)
 
                             float w = 1 + (i >> 2);
                             s->wire_arc(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 8.0f, w);
+                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f, w);
+                        }
+                        y += 40;
+
+                        // Method 8: Wired arcs with reverse angle
+                        c.set_rgb24(0xff0000);
+                        for (size_t i=0; i<16; ++i)
+                        {
+                            c.set_rgb24(0x000000);
+                            c.alpha(i * 0.0625f);
+
+                            float w = 1 + (i >> 2);
+                            s->wire_arc(
+                                c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f, w);
                         }
                         y += 40;
 
