@@ -99,6 +99,7 @@ namespace lsp
                 pShared             = safe_acquire(new WinDDShared(dpy, hwnd));
                 nVersion            = pShared->nVersion;
                 pDC                 = NULL;
+                pStrokeStyle        = NULL;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -111,6 +112,7 @@ namespace lsp
                 pShared             = safe_acquire(shared);
                 nVersion            = pShared->nVersion;
                 pDC                 = dc;
+                pStrokeStyle        = NULL;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -139,6 +141,9 @@ namespace lsp
 
             void WinDDSurface::do_destroy()
             {
+                // Release stroke style
+                safe_release(pStrokeStyle);
+
                 // Do some manipulations with data references
                 if (pShared != NULL)
                 {
@@ -731,7 +736,7 @@ namespace lsp
                         D2D1::Ellipse(D2D1::Point2F(x, y), r, r),
                         brush,
                         width,
-                        NULL);
+                        pStrokeStyle);
                     return;
                 }
 
@@ -787,7 +792,7 @@ namespace lsp
                 s->Close();
 
                 // Draw the geometry
-                pDC->DrawGeometry(g, brush, width, NULL);
+                pDC->DrawGeometry(g, brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::line(const Color &c, float x0, float y0, float x1, float y1, float width)
@@ -803,7 +808,7 @@ namespace lsp
                 pDC->DrawLine(
                     D2D1::Point2F(x0, y0),
                     D2D1::Point2F(x1, y1),
-                    brush, width, NULL);
+                    brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
@@ -819,7 +824,7 @@ namespace lsp
                 pDC->DrawLine(
                     D2D1::Point2F(x0, y0),
                     D2D1::Point2F(x1, y1),
-                    brush, width, NULL);
+                    brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float width)
@@ -836,12 +841,12 @@ namespace lsp
                     pDC->DrawLine(
                         D2D1::Point2F(- c / a, 0.0f),
                         D2D1::Point2F(-(c + b*nHeight)/a, nHeight),
-                        brush, width, NULL);
+                        brush, width, pStrokeStyle);
                 else
                     pDC->DrawLine(
                         D2D1::Point2F(0.0f, - c / b),
                         D2D1::Point2F(nWidth, -(c + a*nWidth)/b),
-                        brush, width, NULL);
+                        brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
@@ -858,12 +863,12 @@ namespace lsp
                     pDC->DrawLine(
                         D2D1::Point2F(roundf(-(c + b*top)/a), roundf(top)),
                         D2D1::Point2F(roundf(-(c + b*bottom)/a), roundf(bottom)),
-                        brush, width, NULL);
+                        brush, width, pStrokeStyle);
                 else
                     pDC->DrawLine(
                         D2D1::Point2F(roundf(left), roundf(-(c + a*left)/b)),
                         D2D1::Point2F(roundf(right), roundf(-(c + a*right)/b)),
-                        brush, width, NULL);
+                        brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::parametric_bar(
@@ -953,7 +958,7 @@ namespace lsp
                 if (width < 0.0f)
                     pDC->FillGeometry(g, brush, NULL);
                 else
-                    pDC->DrawGeometry(g, brush, width, NULL);
+                    pDC->DrawGeometry(g, brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -1039,7 +1044,7 @@ namespace lsp
 
                 // Draw the geometry
                 pDC->FillGeometry(g, f_brush, NULL);
-                pDC->DrawGeometry(g, w_brush, width, NULL);
+                pDC->DrawGeometry(g, w_brush, width, pStrokeStyle);
             }
 
             void WinDDSurface::draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -1474,7 +1479,9 @@ namespace lsp
 
             void WinDDSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
             {
-                if ((pDC == NULL) || (text == NULL))
+                if (bad_state())
+                    return;
+                if (text == NULL)
                     return;
 
                 LSPString tmp;
@@ -1549,7 +1556,9 @@ namespace lsp
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
             {
-                if ((pDC == NULL) || (text == NULL))
+                if (bad_state())
+                    return;
+                if (text == NULL)
                     return;
 
                 LSPString tmp;
@@ -1618,7 +1627,7 @@ namespace lsp
 
             void WinDDSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return;
                 const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
                 if (pText == NULL)
@@ -1646,14 +1655,14 @@ namespace lsp
 
             bool WinDDSurface::get_antialiasing()
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return false;
                 return pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
             }
 
             bool WinDDSurface::set_antialiasing(bool set)
             {
-                if (pDC == NULL)
+                if (bad_state())
                     return false;
                 bool old    = pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
                 pDC->SetAntialiasMode((set) ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
@@ -1662,12 +1671,51 @@ namespace lsp
 
             surf_line_cap_t WinDDSurface::get_line_cap()
             {
+                if (bad_state())
+                    return SURFLCAP_BUTT;
+
+                if (pStrokeStyle == NULL)
+                    return SURFLCAP_BUTT;
+                switch (pStrokeStyle->GetStartCap())
+                {
+                    case D2D1_CAP_STYLE_FLAT: return SURFLCAP_BUTT;
+                    case D2D1_CAP_STYLE_ROUND: return SURFLCAP_ROUND;
+                    case D2D1_CAP_STYLE_SQUARE: return SURFLCAP_SQUARE;
+                    default: break;
+                }
                 return SURFLCAP_BUTT;
             }
 
             surf_line_cap_t WinDDSurface::set_line_cap(surf_line_cap_t lc)
             {
-                return SURFLCAP_BUTT;
+                if (bad_state())
+                    return SURFLCAP_BUTT;
+
+                // Check that line cap has changed
+                surf_line_cap_t old_style = get_line_cap();
+                if (old_style == lc)
+                    return old_style;
+
+                // Create new stroke style
+                D2D1_CAP_STYLE cap_style;
+                switch (lc)
+                {
+                    case SURFLCAP_BUTT: cap_style = D2D1_CAP_STYLE_FLAT; break;
+                    case SURFLCAP_ROUND: cap_style = D2D1_CAP_STYLE_ROUND; break;
+                    case SURFLCAP_SQUARE: cap_style = D2D1_CAP_STYLE_SQUARE; break;
+                    default: cap_style = D2D1_CAP_STYLE_FLAT; break;
+                }
+
+                // Create new stroke style if needed
+                safe_release(pStrokeStyle);
+                pShared->pDisplay->d2d_factory()->CreateStrokeStyle(
+                    D2D1::StrokeStyleProperties(cap_style, cap_style),
+                    NULL,
+                    0,
+                    &pStrokeStyle);
+
+                // Return previous stroke style
+                return old_style;
             }
         } /* namespace win */
     } /* namespace ws */
