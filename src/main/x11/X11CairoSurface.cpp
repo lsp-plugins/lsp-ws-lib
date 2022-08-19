@@ -677,20 +677,20 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
+            void X11CairoSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
                 if (pCR == NULL)
                     return;
 
                 setSourceRGBA(c);
-                if (fabs(angle2 - angle1) < 2.0f * M_PI)
+                if (fabs(a2 - a1) < 2.0f * M_PI)
                 {
-                    cairo_move_to(pCR, cx, cy);
+                    cairo_move_to(pCR, x, y);
 
-                    if (angle2 < angle1)
-                        cairo_arc_negative(pCR, cx, cy, radius, angle1, angle2);
+                    if (a2 < a1)
+                        cairo_arc_negative(pCR, x, y, r, a1, a2);
                     else
-                        cairo_arc(pCR, cx, cy, radius, angle1, angle2);
+                        cairo_arc(pCR, x, y, r, a1, a2);
                 }
                 else
                     cairo_arc(pCR, x, y, r, 0.0f, M_PI * 2.0f);
