@@ -101,6 +101,15 @@ namespace lsp
 
             status_t X11Window::init()
             {
+                // Register the window
+                if (pX11Display == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Initialize parent class
+                status_t res = IWindow::init();
+                if (res != STATUS_OK)
+                    return res;
+
                 Display *dpy = pX11Display->x11display();
                 Atom dnd_version    = 5;    // Version 5 of protocol is supported
 
@@ -317,6 +326,9 @@ namespace lsp
                     hWindow = None;
                     hParent = None;
                 }
+
+                pX11Display = NULL;
+                IWindow::destroy();
             }
 
             void X11Window::calc_constraints(rectangle_t *dst, const rectangle_t *req)
@@ -338,6 +350,30 @@ namespace lsp
                 if (bWrapper)
                     return NULL;
                 return pSurface;
+            }
+
+            status_t X11Window::invalidate()
+            {
+                if ((pSurface == NULL) || (hWindow == None))
+                    return STATUS_BAD_STATE;
+
+                XEvent ev;
+                XExposeEvent *ex = &ev.xexpose;
+
+                ex->type        = Expose;
+                ex->serial      = 0;
+                ex->send_event  = True;
+                ex->display     = NULL;
+                ex->window      = hWindow;
+                ex->x           = sSize.nLeft;
+                ex->y           = sSize.nHeight;
+                ex->width       = sSize.nWidth;
+                ex->height      = sSize.nHeight;
+                ex->count       = 0;
+
+                ::XSendEvent(pX11Display->x11display(), hWindow, False, NoEventMask, &ev);
+                pX11Display->flush();
+                return STATUS_OK;
             }
 
             status_t X11Window::do_update_constraints(bool disable)
@@ -437,7 +473,7 @@ namespace lsp
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)
-                            set_focus(true);
+                            take_focus();
                         break;
                     }
 
@@ -930,19 +966,34 @@ namespace lsp
 
             status_t X11Window::ungrab_events()
             {
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
                 if (!(nFlags & F_GRABBING))
                     return STATUS_NO_GRAB;
-                return pX11Display->ungrab_events(this);
+
+                status_t res = pX11Display->ungrab_events(this);
+                nFlags &= ~F_GRABBING;
+                return res;
             }
 
             status_t X11Window::grab_events(grab_t group)
             {
-                if (!(nFlags & F_GRABBING))
-                {
-                    pX11Display->grab_events(this, group);
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
+
+                if (nFlags & F_GRABBING)
+                    return STATUS_OK;
+
+                status_t res = pX11Display->grab_events(this, group);
+                if (res == STATUS_OK)
                     nFlags |= F_GRABBING;
-                }
-                return STATUS_OK;
+
+                return res;
+            }
+
+            bool X11Window::is_grabbing_events() const
+            {
+                return nFlags & F_GRABBING;
             }
 
             status_t X11Window::show(IWindow *over)
@@ -1040,23 +1091,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::check_constraints()
-            {
-                rectangle_t rs;
-
-                calc_constraints(&rs, &sSize);
-                if ((rs.nWidth == sSize.nWidth) && (rs.nHeight == sSize.nHeight))
-                    return STATUS_OK;
-
-//                lsp_trace("width=%d, height=%d", int(sSize.nWidth), int(sSize.nHeight));
-
-                XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
-//                if (hParent > 0)
-//                    XResizeWindow(pX11Display->x11display(), hParent, sSize.nWidth, sSize.nHeight);
-                pX11Display->flush();
-                return STATUS_OK;
-            }
-
             void X11Window::send_focus_event()
             {
                 Display *dpy = pX11Display->x11display();
@@ -1078,14 +1112,11 @@ namespace lsp
                 ::XSendEvent(dpy, pX11Display->hRootWnd, True, NoEventMask, &ev);
             }
 
-            status_t X11Window::set_focus(bool focus)
+            status_t X11Window::take_focus()
             {
                 if ((hWindow == 0) || (!bVisible))
                 {
-                    if (focus)
-                        pX11Display->pFocusWindow   = this;
-                    else if (pX11Display->pFocusWindow == this)
-                        pX11Display->pFocusWindow   = NULL;
+                    pX11Display->pFocusWindow   = this;
                     return STATUS_OK;
                 }
 
@@ -1094,59 +1125,76 @@ namespace lsp
                     pX11Display->pFocusWindow   = NULL;
 
                 pX11Display->sync();
-                if (focus)
-                {
-                    XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
-                    send_focus_event();
-                }
-                else
-                    XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
+                XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                send_focus_event();
 
                 pX11Display->sync();
                 return STATUS_OK;
             }
 
-            status_t X11Window::toggle_focus()
+            status_t X11Window::set_caption(const char *caption)
             {
-                if ((pSurface == NULL) || (!bVisible))
-                {
-                    pX11Display->pFocusWindow   = (pX11Display->pFocusWindow != this) ? this : NULL;
-                    return STATUS_OK;
-                }
-
-                Window wnd;
-                int ret;
-
-                pX11Display->sync();
-                if (pX11Display->pFocusWindow == this)
-                    pX11Display->pFocusWindow   = NULL;
-                XGetInputFocus(pX11Display->x11display(), &wnd, &ret);
-
-                if (wnd != hWindow)
-                {
-                    XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
-                    send_focus_event();
-                }
-                else
-                    XSetInputFocus(pX11Display->x11display(), PointerRoot,  RevertToPointerRoot, CurrentTime);
-
-                pX11Display->sync();
-                return STATUS_OK;
-            }
-
-
-            status_t X11Window::set_caption(const char *ascii, const char *utf8)
-            {
-                if (ascii == NULL)
+                if (caption == NULL)
                     return STATUS_BAD_ARGUMENTS;
                 if (hWindow == None)
-                    return STATUS_OK;
+                    return STATUS_BAD_STATE;
 
-                if (utf8 == NULL)
-                    utf8 = ascii;
+                // Set legacy property
+                const x11_atoms_t &a = pX11Display->atoms();
+                LSPString text;
+                if (text.set_utf8(caption))
+                {
+                    const char *ascii = text.get_ascii();
+                    ::XChangeProperty(
+                        pX11Display->x11display(),
+                        hWindow,
+                        a.X11_XA_WM_NAME,
+                        a.X11_XA_STRING,
+                        8,
+                        PropModeReplace,
+                        reinterpret_cast<const unsigned char *>(ascii),
+                        ::strlen(ascii)
+                    );
+                }
+
+                // Set modern property for window manager
+                ::XChangeProperty(
+                    pX11Display->x11display(),
+                    hWindow,
+                    a.X11__NET_WM_NAME,
+                    a.X11_UTF8_STRING,
+                    8,
+                    PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(caption),
+                    ::strlen(caption)
+                );
+                ::XChangeProperty(
+                    pX11Display->x11display(),
+                    hWindow,
+                    a.X11__NET_WM_ICON_NAME,
+                    a.X11_UTF8_STRING,
+                    8,
+                    PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(caption),
+                    ::strlen(caption)
+                );
+
+                pX11Display->flush();
+
+                return STATUS_OK;
+            }
+
+            status_t X11Window::set_caption(const LSPString *caption)
+            {
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
+                // Set legacy property
+                const char *ascii = caption->get_ascii();
                 ::XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -1157,6 +1205,9 @@ namespace lsp
                     reinterpret_cast<const unsigned char *>(ascii),
                     ::strlen(ascii)
                 );
+
+                // Set modern property for window manager
+                const char *utf8 = caption->get_utf8();
                 ::XChangeProperty(
                     pX11Display->x11display(),
                     hWindow,
@@ -1185,8 +1236,12 @@ namespace lsp
 
             status_t X11Window::get_caption(char *text, size_t len)
             {
+                if (text == NULL)
+                    return STATUS_BAD_ARGUMENTS;
                 if (len < 1)
                     return STATUS_TOO_BIG;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
                 unsigned long count = 0, left = 0;
                 Atom ret;
@@ -1228,6 +1283,51 @@ namespace lsp
                 memcpy(text, data, count);
                 text[count] = '\0';
                 return STATUS_OK;
+            }
+
+            status_t X11Window::get_caption(LSPString *caption)
+            {
+                if (caption == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
+
+                unsigned long count = 0, left = 0;
+                Atom ret;
+                int fmt;
+                unsigned char* data;
+
+                const x11_atoms_t &a = pX11Display->atoms();
+
+                int result = XGetWindowProperty(
+                    pX11Display->x11display() /* display */,
+                    hWindow /* window */,
+                    a.X11__NET_WM_NAME /* property */,
+                    0           /* long_offset */,
+                    ~0L         /* long_length */,
+                    False       /* delete */,
+                    a.X11_UTF8_STRING  /* req_type */,
+                    &ret        /* actual_type_return */,
+                    &fmt        /* actual_format_return */,
+                    &count      /* nitems_return */,
+                    &left       /* bytes_after_return */,
+                    &data       /* prop_return */
+                );
+
+                if (result != Success)
+                    return STATUS_UNKNOWN_ERR;
+                lsp_finally{
+                    if (data != NULL)
+                        XFree(data);
+                };
+
+                if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
+                {
+                    caption->clear();
+                    return STATUS_OK;
+                }
+
+                return (caption->set_utf8(reinterpret_cast<char *>(data), count)) ? STATUS_OK : STATUS_NO_MEM;
             }
 
             status_t X11Window::set_icon(const void *bgra, size_t width, size_t height)

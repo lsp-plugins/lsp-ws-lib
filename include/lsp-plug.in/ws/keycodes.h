@@ -31,10 +31,10 @@ namespace lsp
     {
         enum keycode_t
         {
-            WSK_FIRST                   = 0x80000000,
+            WSK_KEYSETS_FIRST           = 0x80000000,
 
             // Function keys
-            WSK_KEYSET_FUNCTION_FIRST   = WSK_FIRST + 0,
+            WSK_KEYSET_FUNCTION_FIRST   = WSK_KEYSETS_FIRST + 0,
             WSK_BACKSPACE               = WSK_KEYSET_FUNCTION_FIRST + 0,
             WSK_TAB                     = WSK_KEYSET_FUNCTION_FIRST + 1,
             WSK_LINEFEED                = WSK_KEYSET_FUNCTION_FIRST + 2,
@@ -48,7 +48,7 @@ namespace lsp
             WSK_KEYSET_FUNCTION_LAST    = WSK_DELETE,
 
             // Cursor control & motion
-            WSK_KEYSET_CONTROL_FIRST    = WSK_FIRST + 10,
+            WSK_KEYSET_CONTROL_FIRST    = WSK_KEYSETS_FIRST + 10,
             WSK_HOME                    = WSK_KEYSET_CONTROL_FIRST + 0,
             WSK_END                     = WSK_KEYSET_CONTROL_FIRST + 1,
             WSK_LEFT                    = WSK_KEYSET_CONTROL_FIRST + 2,
@@ -78,7 +78,7 @@ namespace lsp
             WSK_KEYSET_CONTROL_LAST     = WSK_NUM_LOCK,
 
             // Keypad keys
-            WSK_KEYSET_KEYPAD_FIRST     = WSK_FIRST + 30,
+            WSK_KEYSET_KEYPAD_FIRST     = WSK_KEYSETS_FIRST + 30,
             WSK_KEYPAD_SPACE            = WSK_KEYSET_KEYPAD_FIRST + 0,
             WSK_KEYPAD_TAB              = WSK_KEYSET_KEYPAD_FIRST + 1,
             WSK_KEYPAD_ENTER            = WSK_KEYSET_KEYPAD_FIRST + 2,
@@ -121,42 +121,42 @@ namespace lsp
             WSK_KEYSET_KEYPAD_LAST      = WSK_KEYPAD_9,
 
             // Auxiliary functions
-            WSK_AUX_FUNCTION_FIRST      = WSK_FIRST + 70,
-            WSK_F1                      = WSK_AUX_FUNCTION_FIRST + 0,
-            WSK_F2                      = WSK_AUX_FUNCTION_FIRST + 1,
-            WSK_F3                      = WSK_AUX_FUNCTION_FIRST + 2,
-            WSK_F4                      = WSK_AUX_FUNCTION_FIRST + 3,
-            WSK_F5                      = WSK_AUX_FUNCTION_FIRST + 4,
-            WSK_F6                      = WSK_AUX_FUNCTION_FIRST + 5,
-            WSK_F7                      = WSK_AUX_FUNCTION_FIRST + 6,
-            WSK_F8                      = WSK_AUX_FUNCTION_FIRST + 7,
-            WSK_F9                      = WSK_AUX_FUNCTION_FIRST + 8,
-            WSK_F10                     = WSK_AUX_FUNCTION_FIRST + 9,
-            WSK_F11                     = WSK_AUX_FUNCTION_FIRST + 10,
-            WSK_F12                     = WSK_AUX_FUNCTION_FIRST + 11,
-            WSK_F13                     = WSK_AUX_FUNCTION_FIRST + 12,
-            WSK_F14                     = WSK_AUX_FUNCTION_FIRST + 13,
-            WSK_F15                     = WSK_AUX_FUNCTION_FIRST + 14,
-            WSK_F16                     = WSK_AUX_FUNCTION_FIRST + 15,
-            WSK_F17                     = WSK_AUX_FUNCTION_FIRST + 16,
-            WSK_F18                     = WSK_AUX_FUNCTION_FIRST + 17,
-            WSK_F19                     = WSK_AUX_FUNCTION_FIRST + 18,
-            WSK_F20                     = WSK_AUX_FUNCTION_FIRST + 19,
-            WSK_F21                     = WSK_AUX_FUNCTION_FIRST + 20,
-            WSK_F22                     = WSK_AUX_FUNCTION_FIRST + 21,
-            WSK_F23                     = WSK_AUX_FUNCTION_FIRST + 22,
-            WSK_F24                     = WSK_AUX_FUNCTION_FIRST + 23,
-            WSK_F25                     = WSK_AUX_FUNCTION_FIRST + 24,
-            WSK_F26                     = WSK_AUX_FUNCTION_FIRST + 25,
-            WSK_F27                     = WSK_AUX_FUNCTION_FIRST + 26,
-            WSK_F28                     = WSK_AUX_FUNCTION_FIRST + 27,
-            WSK_F29                     = WSK_AUX_FUNCTION_FIRST + 28,
-            WSK_F30                     = WSK_AUX_FUNCTION_FIRST + 29,
-            WSK_F31                     = WSK_AUX_FUNCTION_FIRST + 30,
-            WSK_F32                     = WSK_AUX_FUNCTION_FIRST + 31,
-            WSK_F33                     = WSK_AUX_FUNCTION_FIRST + 32,
-            WSK_F34                     = WSK_AUX_FUNCTION_FIRST + 33,
-            WSK_F35                     = WSK_AUX_FUNCTION_FIRST + 34,
+            WSK_KEYSET_AUX_FIRST        = WSK_KEYSETS_FIRST + 70,
+            WSK_F1                      = WSK_KEYSET_AUX_FIRST + 0,
+            WSK_F2                      = WSK_KEYSET_AUX_FIRST + 1,
+            WSK_F3                      = WSK_KEYSET_AUX_FIRST + 2,
+            WSK_F4                      = WSK_KEYSET_AUX_FIRST + 3,
+            WSK_F5                      = WSK_KEYSET_AUX_FIRST + 4,
+            WSK_F6                      = WSK_KEYSET_AUX_FIRST + 5,
+            WSK_F7                      = WSK_KEYSET_AUX_FIRST + 6,
+            WSK_F8                      = WSK_KEYSET_AUX_FIRST + 7,
+            WSK_F9                      = WSK_KEYSET_AUX_FIRST + 8,
+            WSK_F10                     = WSK_KEYSET_AUX_FIRST + 9,
+            WSK_F11                     = WSK_KEYSET_AUX_FIRST + 10,
+            WSK_F12                     = WSK_KEYSET_AUX_FIRST + 11,
+            WSK_F13                     = WSK_KEYSET_AUX_FIRST + 12,
+            WSK_F14                     = WSK_KEYSET_AUX_FIRST + 13,
+            WSK_F15                     = WSK_KEYSET_AUX_FIRST + 14,
+            WSK_F16                     = WSK_KEYSET_AUX_FIRST + 15,
+            WSK_F17                     = WSK_KEYSET_AUX_FIRST + 16,
+            WSK_F18                     = WSK_KEYSET_AUX_FIRST + 17,
+            WSK_F19                     = WSK_KEYSET_AUX_FIRST + 18,
+            WSK_F20                     = WSK_KEYSET_AUX_FIRST + 19,
+            WSK_F21                     = WSK_KEYSET_AUX_FIRST + 20,
+            WSK_F22                     = WSK_KEYSET_AUX_FIRST + 21,
+            WSK_F23                     = WSK_KEYSET_AUX_FIRST + 22,
+            WSK_F24                     = WSK_KEYSET_AUX_FIRST + 23,
+            WSK_F25                     = WSK_KEYSET_AUX_FIRST + 24,
+            WSK_F26                     = WSK_KEYSET_AUX_FIRST + 25,
+            WSK_F27                     = WSK_KEYSET_AUX_FIRST + 26,
+            WSK_F28                     = WSK_KEYSET_AUX_FIRST + 27,
+            WSK_F29                     = WSK_KEYSET_AUX_FIRST + 28,
+            WSK_F30                     = WSK_KEYSET_AUX_FIRST + 29,
+            WSK_F31                     = WSK_KEYSET_AUX_FIRST + 30,
+            WSK_F32                     = WSK_KEYSET_AUX_FIRST + 31,
+            WSK_F33                     = WSK_KEYSET_AUX_FIRST + 32,
+            WSK_F34                     = WSK_KEYSET_AUX_FIRST + 33,
+            WSK_F35                     = WSK_KEYSET_AUX_FIRST + 34,
 
             WSK_L1                      = WSK_F11,
             WSK_L2                      = WSK_F12,
@@ -185,10 +185,10 @@ namespace lsp
             WSK_R14                     = WSK_F34,
             WSK_R15                     = WSK_F35,
 
-            WSK_AUX_FUNCTION_LAST       = WSK_F35,
+            WSK_KEYSET_AUX_LAST         = WSK_F35,
 
             // Modifiers
-            WSK_KEYSET_MODIFIERS_FIRST  = WSK_FIRST + 110,
+            WSK_KEYSET_MODIFIERS_FIRST  = WSK_KEYSETS_FIRST + 110,
             WSK_SHIFT_L                 = WSK_KEYSET_MODIFIERS_FIRST + 0,
             WSK_SHIFT_R                 = WSK_KEYSET_MODIFIERS_FIRST + 1,
             WSK_CONTROL_L               = WSK_KEYSET_MODIFIERS_FIRST + 2,
@@ -207,47 +207,47 @@ namespace lsp
 
             WSK_KEYSET_MODIFIERS_LAST   = WSK_HYPER_R,
 
-            WSK_LAST                    = 0x800000ff,
+            WSK_KEYSETS_LAST            = 0x800000ff,
 
             WSK_UNKNOWN                 = 0xffffffff
         };
 
-        inline bool is_character_key(code_t key)
+        constexpr inline bool is_character_key(code_t key)
         {
-            return key < WSK_FIRST;
+            return key < WSK_KEYSETS_FIRST;
         }
 
-        inline bool is_special_key(code_t key)
+        constexpr inline bool is_special_key(code_t key)
         {
-            return (key >= WSK_FIRST) && (key <= WSK_LAST);
+            return (key >= WSK_KEYSETS_FIRST) && (key <= WSK_KEYSETS_LAST);
         }
 
-        inline bool is_unknown_key(code_t key)
+        constexpr inline bool is_unknown_key(code_t key)
         {
-            return (key > WSK_LAST);
+            return (key > WSK_KEYSETS_LAST);
         }
 
-        inline bool is_function_key(code_t key)
+        constexpr inline bool is_function_key(code_t key)
         {
             return (key >= WSK_KEYSET_FUNCTION_FIRST) && (key <= WSK_KEYSET_FUNCTION_LAST);
         }
 
-        inline bool is_control_key(code_t key)
+        constexpr inline bool is_control_key(code_t key)
         {
             return (key >= WSK_KEYSET_CONTROL_FIRST) && (key <= WSK_KEYSET_CONTROL_LAST);
         }
 
-        inline bool is_keypad_key(code_t key)
+        constexpr inline bool is_keypad_key(code_t key)
         {
             return (key >= WSK_KEYSET_KEYPAD_FIRST) && (key <= WSK_KEYSET_KEYPAD_LAST);
         }
 
-        inline bool is_aux_key(code_t key)
+        constexpr inline bool is_aux_key(code_t key)
         {
-            return (key >= WSK_AUX_FUNCTION_FIRST) && (key <= WSK_AUX_FUNCTION_LAST);
+            return (key >= WSK_KEYSET_AUX_FIRST) && (key <= WSK_KEYSET_AUX_LAST);
         }
 
-        inline bool is_modifier_key(code_t key)
+        constexpr inline bool is_modifier_key(code_t key)
         {
             return (key >= WSK_KEYSET_MODIFIERS_FIRST) && (key <= WSK_KEYSET_MODIFIERS_LAST);
         }

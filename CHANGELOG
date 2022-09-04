@@ -2,6 +2,17 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.4 ===
+* Introduced support of Windows platform for window management.
+* Added support of modern C++ starting with C++ 11.
+* Method ws::IWindow::set_focus() replaced by ws::IWindow::take_focus().
+* Removed method ws::IWindow::toggle_focus().
+* Removed method ws::IWindow::check_constraints().
+* Changed the ws::IWindow::set_caption() method signature.
+* Changed the values for ws::MP_DEFAULT mouse cursor constant.
+* Changed set of methods and signature of methods for the ws::ISurface.
+* Updated build scripts.
+
 === 1.0.3 ===
 * Added IWindow::has_parent() method to check that window is embedded into another window.
 * Added IDisplay::enum_monitors() method to query current state of connected monitors.

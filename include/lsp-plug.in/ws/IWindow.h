@@ -26,6 +26,8 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 
+#include <lsp-plug.in/runtime/LSPString.h>
+
 namespace lsp
 {
     namespace ws
@@ -35,7 +37,7 @@ namespace lsp
         /** Native window class
          *
          */
-        class IWindow
+        class LSP_WS_LIB_PUBLIC IWindow
         {
             protected:
                 IEventHandler  *pHandler;
@@ -79,6 +81,12 @@ namespace lsp
                  */
                 virtual ISurface *get_surface();
 
+                /**
+                 * Invalidate contents of the window and issue it's redraw.
+                 * @return status of operation
+                 */
+                virtual status_t invalidate();
+
                 /** Get left coordinate of window
                  *
                  * @return value
@@ -117,11 +125,11 @@ namespace lsp
 
                 /** Set caption of the window
                  *
-                 * @param ascii ASCII-encoded caption
-                 * @param utf8 UTF-8-encoded caption
+                 * @param caption UTF-8-encoded NULL-terminated caption string
                  * @return status of operation
                  */
-                virtual status_t set_caption(const char *ascii, const char *utf8);
+                virtual status_t set_caption(const char *caption);
+                virtual status_t set_caption(const LSPString *caption);
 
             public:
                 /** Get native handle of the window
@@ -182,13 +190,15 @@ namespace lsp
                  */
                 virtual status_t get_border_style(border_style_t *style);
 
-                /** Get window geometry
+                /** Get window geometry. Obtains the size of the client area
+                 * of the window and it's location relative to the parent window.
                  *
                  * @return window geometry
                  */
                 virtual status_t get_geometry(rectangle_t *size);
 
-                /** Get absolute window's geometry
+                /** Get absolute window's geometry. Obtains the size of the whole window
+                 * and it's location relative to the screen.
                  *
                  * @param size pointer to structure to store data
                  * @return status of operation
@@ -197,11 +207,18 @@ namespace lsp
 
                 /** Get caption
                  *
-                 * @param text pointer to store data
+                 * @param text pointer to store data (buffer for UTF-8 string)
                  * @param len number of characters
                  * @return status of operation
                  */
                 virtual status_t get_caption(char *text, size_t len);
+
+                /** Get caption
+                 *
+                 * @param text pointer to store data (buffer for UTF-8 string)
+                 * @return status of operation
+                 */
+                virtual status_t get_caption(LSPString *text);
 
                 /** Hide window
                  *
@@ -281,12 +298,6 @@ namespace lsp
                  */
                 virtual status_t set_size_constraints(ssize_t min_width, ssize_t min_height, ssize_t max_width, ssize_t max_height);
 
-                /** Check constraints
-                 *
-                 * @return status of operation
-                 */
-                virtual status_t check_constraints();
-
                 /** Set minimum width
                  *
                  * @param value minimum width
@@ -331,18 +342,10 @@ namespace lsp
                  */
                 virtual status_t set_max_size(ssize_t width, ssize_t height);
 
-                /** Set focus
-                 *
-                 * @param focus set/unset focus flag
+                /** Take the focus by window
                  * @return status of operation
                  */
-                virtual status_t set_focus(bool focus);
-
-                /** Toggle focus state
-                 *
-                 * @return status of operation
-                 */
-                virtual status_t toggle_focus();
+                virtual status_t take_focus();
 
                 /** Set window icon
                  *
@@ -395,6 +398,12 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t ungrab_events();
+
+                /**
+                 * Check whether window is currently grabbing events
+                 * @return true if window is currently grabbing events
+                 */
+                virtual bool is_grabbing_events() const;
 
                 /**
                  * Set window class

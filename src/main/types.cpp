@@ -25,6 +25,7 @@ namespace lsp
 {
     namespace ws
     {
+        LSP_WS_LIB_PUBLIC
         void init_event(event_t *ev)
         {
             ev->nType       = UIE_UNKNOWN;

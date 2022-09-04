@@ -33,7 +33,7 @@ namespace lsp
         /**
          * This class is a wrapper around r3d_backend_t that allows dynamic change of backend
          */
-        class IR3DBackend
+        class LSP_WS_LIB_PUBLIC IR3DBackend
         {
             private:
                 IR3DBackend & operator = (const IR3DBackend &);
@@ -69,7 +69,7 @@ namespace lsp
 
                 status_t        begin_draw();
                 status_t        sync();
-                status_t        read_pixels(void *buf, size_t stride, r3d::pixel_format_t format);
+                status_t        read_pixels(void *buf, r3d::pixel_format_t format);
                 status_t        end_draw();
 
                 status_t        set_matrix(r3d::matrix_type_t type, const r3d::mat4_t *m);
@@ -79,7 +79,7 @@ namespace lsp
                 status_t        set_bg_color(const r3d::color_t *color);
         };
     
-    } /* namespace io */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_IR3DBACKEND_H_ */

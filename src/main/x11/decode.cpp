@@ -19,12 +19,12 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <lsp-plug.in/common/types.h>
-
 #ifdef USE_LIBX11
 
+#include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
 #include <lsp-plug.in/ws/x11/decode.h>
+
 #include <X11/Xlib.h>
 
 namespace lsp
@@ -803,7 +803,7 @@ namespace lsp
                 { 0x20ac, 0x20ac }
             };
 
-            #define XWSK(code) (WSK_ ## code - WSK_FIRST)
+            #define XWSK(code) (WSK_ ## code - WSK_KEYSETS_FIRST)
 
             uint8_t ctltable[] =
             {
@@ -869,7 +869,7 @@ namespace lsp
                 XWSK(KEYPAD_PAGE_UP), // 0x9a
                 XWSK(KEYPAD_PAGE_DOWN), // 0x9b
                 XWSK(KEYPAD_END), // 0x9c
-                XWSK(KEYPAD_BEGIN), // 0x9d
+                XWSK(CLEAR), // 0x9d
                 XWSK(KEYPAD_INSERT), // 0x9e
                 XWSK(KEYPAD_DELETE), // 0x9f
 
@@ -1030,7 +1030,7 @@ namespace lsp
                 {
                     // Contol keys
                     code_t result = ctltable[code & 0xff];
-                    return (result != 0xff) ? result + WSK_FIRST : WSK_UNKNOWN;
+                    return (result != 0xff) ? result + WSK_KEYSETS_FIRST : WSK_UNKNOWN;
                 }
 
                 // Lookup character table

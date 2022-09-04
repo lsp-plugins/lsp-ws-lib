@@ -49,15 +49,15 @@ namespace lsp
          * @param argv list of arguments
          * @return pointer to the display or NULL, returned object must be destructed by free_display call
          */
-        LSP_WS_LIB_CIMPORT
-        IDisplay *lsp_ws_create_display(int argc, const char **argv);
+        LSP_WS_LIB_PUBLIC
+        IDisplay *create_display(int argc, const char **argv);
 
         /**
          * Display finalization routine
          */
-        LSP_WS_LIB_CIMPORT
-        void lsp_ws_free_display(IDisplay *dpy);
-    }
-}
+        LSP_WS_LIB_PUBLIC
+        void free_display(IDisplay *dpy);
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_FACTORY_H_ */

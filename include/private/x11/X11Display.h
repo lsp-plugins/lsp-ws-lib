@@ -23,14 +23,15 @@
 #define UI_X11_X11DISPLAY_H_
 
 #include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/ws/version.h>
-#include <lsp-plug.in/ws/IDisplay.h>
+
+#ifdef USE_LIBX11
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/lltl/pphash.h>
+#include <lsp-plug.in/ws/IDisplay.h>
 
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
@@ -66,7 +67,7 @@ namespace lsp
             class X11CairoSurface;
         #endif /* USE_LIBCAIRO */
 
-            class X11Display: public IDisplay
+            class LSP_HIDDEN_MODIFIER X11Display: public IDisplay
             {
                 friend class X11Window;
 
@@ -222,7 +223,6 @@ namespace lsp
                     cairo_user_data_key_t       sCairoUserDataKey;
                 #endif /* USE_LIBCAIRO */
 
-                    lltl::darray<dtask_t>       sPending;
                     lltl::darray<x11_screen_t>  vScreens;
                     lltl::parray<X11Window>     vWindows;
                     lltl::parray<X11Window>     vGrab[__GRAB_TOTAL];
@@ -234,6 +234,8 @@ namespace lsp
                     xtranslate_t                sTranslateReq;
 
                     lltl::darray<MonitorInfo>   vMonitors;
+
+                    ISurface                   *pEstimation;        // Estimation surface
 
                 protected:
                     void            handle_event(XEvent *ev);
@@ -296,55 +298,60 @@ namespace lsp
 
                     bool            translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return);
 
-                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta);
-
                     static void                 drop_monitors(lltl::darray<MonitorInfo> *list);
+
+                protected:
+                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
 
                 public:
                     explicit X11Display();
                     virtual ~X11Display();
 
-                    virtual status_t            init(int argc, const char **argv);
-                    virtual void                destroy();
+                    virtual status_t            init(int argc, const char **argv) override;
+                    virtual void                destroy() override;
 
                 public:
-                    virtual IWindow            *create_window();
-                    virtual IWindow            *create_window(size_t screen);
-                    virtual IWindow            *create_window(void *handle);
-                    virtual IWindow            *wrap_window(void *handle);
-                    virtual ISurface           *create_surface(size_t width, size_t height);
+                    virtual IWindow            *create_window() override;
+                    virtual IWindow            *create_window(size_t screen) override;
+                    virtual IWindow            *create_window(void *handle) override;
+                    virtual IWindow            *wrap_window(void *handle) override;
+                    virtual ISurface           *create_surface(size_t width, size_t height) override;
 
-                    virtual status_t            main();
-                    virtual status_t            main_iteration();
-                    virtual void                quit_main();
-                    virtual status_t            wait_events(wssize_t millis);
+                    virtual status_t            main() override;
+                    virtual status_t            main_iteration() override;
+                    virtual void                quit_main() override;
+                    virtual status_t            wait_events(wssize_t millis) override;
 
-                    virtual size_t              screens();
-                    virtual size_t              default_screen();
-                    virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h);
+                    virtual size_t              screens() override;
+                    virtual size_t              default_screen() override;
+                    virtual status_t            screen_size(size_t screen, ssize_t *w, ssize_t *h) override;
+                    virtual status_t            work_area_geometry(ws::rectangle_t *r) override;
 
-                    virtual status_t            set_clipboard(size_t id, IDataSource *ds);
-                    virtual status_t            get_clipboard(size_t id, IDataSink *dst);
-                    virtual const char * const *get_drag_ctypes();
+                    virtual status_t            set_clipboard(size_t id, IDataSource *ds) override;
+                    virtual status_t            get_clipboard(size_t id, IDataSink *dst) override;
+                    virtual const char * const *get_drag_ctypes() override;
 
-                    virtual status_t            reject_drag();
-                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                    virtual status_t            reject_drag() override;
+                    virtual status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL) override;
 
+                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
+
+                    virtual status_t            add_font(const char *name, io::IInStream *is) override;
+                    virtual status_t            add_font_alias(const char *name, const char *alias) override;
+                    virtual status_t            remove_font(const char *name) override;
+                    virtual void                remove_all_fonts() override;
+
+                    virtual bool                get_font_parameters(const Font &f, font_parameters_t *fp) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
+
+                    virtual const MonitorInfo  *enum_monitors(size_t *count) override;
+
+                    virtual void                sync() override;
+
+                public:
                     void                        handle_error(XErrorEvent *ev);
 
-                    virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top);
-
-                    virtual status_t            add_font(const char *name, const char *path);
-                    virtual status_t            add_font(const char *name, const io::Path *path);
-                    virtual status_t            add_font(const char *name, const LSPString *path);
-                    virtual status_t            add_font(const char *name, io::IInStream *is);
-                    virtual status_t            add_font_alias(const char *name, const char *alias);
-                    virtual status_t            remove_font(const char *name);
-                    virtual void                remove_all_fonts();
-
-                    virtual const MonitorInfo  *enum_monitors(size_t *count);
-
-                public:
                     bool                        add_window(X11Window *wnd);
                     bool                        remove_window(X11Window *wnd);
 
@@ -363,14 +370,15 @@ namespace lsp
 
                     font_t                     *get_font(const char *name);
 
-                    virtual void                sync();
                     void                        flush();
 
                 public:
                     static const char          *event_name(int xev_code);
             };
-        }
-    }
-}
+        } /* namespace x11 */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* USE_LIBX11 */
 
 #endif /* UI_X11_X11DISPLAY_H_ */

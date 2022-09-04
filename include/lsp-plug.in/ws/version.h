@@ -24,19 +24,14 @@
 
 #define LSP_WS_LIB_MAJOR            1
 #define LSP_WS_LIB_MINOR            0
-#define LSP_WS_LIB_MICRO            3
+#define LSP_WS_LIB_MICRO            4
 
-#ifdef LSP_WS_LIB_BUILTIN
-    #define LSP_WS_LIB_EXPORT
-    #define LSP_WS_LIB_CEXPORT
-    #define LSP_WS_LIB_IMPORT           LSP_SYMBOL_IMPORT
-    #define LSP_WS_LIB_CIMPORT
+#if defined(LSP_WS_LIB_PUBLISHER)
+    #define LSP_WS_LIB_PUBLIC               LSP_EXPORT_MODIFIER
+#elif defined(LSP_WS_LIB_BUILTIN) || defined(LSP_IDE_DEBUG)
+    #define LSP_WS_LIB_PUBLIC
 #else
-    #define LSP_WS_LIB_EXPORT           LSP_SYMBOL_EXPORT
-    #define LSP_WS_LIB_CEXPORT          LSP_CSYMBOL_EXPORT
-    #define LSP_WS_LIB_IMPORT           LSP_SYMBOL_IMPORT
-    #define LSP_WS_LIB_CIMPORT          LSP_CSYMBOL_IMPORT
+    #define LSP_WS_LIB_PUBLIC               LSP_IMPORT_MODIFIER
 #endif
-
 
 #endif /* LSP_PLUG_IN_WS_VERSION_H_ */

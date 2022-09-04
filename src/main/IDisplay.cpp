@@ -26,6 +26,7 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IR3DBackend.h>
 #include <lsp-plug.in/io/Dir.h>
+#include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/ipc/Library.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/IWindow.h>
@@ -103,7 +104,6 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
-            pEstimation         = NULL;
         }
 
         IDisplay::~IDisplay()
@@ -263,6 +263,21 @@ namespace lsp
             return false;
         }
 
+        int IDisplay::compute_poll_delay(timestamp_t ts, int poll_delay)
+        {
+            if (sTasks.size() <= 0)
+                return poll_delay;
+
+            dtask_t *t          = sTasks.first();
+            ssize_t delta       = t->nTime - ts;
+            if (delta <= 0)
+                return 0;
+            else if (delta <= poll_delay)
+                return delta;
+
+            return poll_delay;
+        }
+
         status_t IDisplay::commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion)
         {
             for (size_t id=0; ; ++id)
@@ -337,7 +352,13 @@ namespace lsp
             // Perform R3D interface version control
             module_version_t vfunc = reinterpret_cast<module_version_t>(lib.import(LSP_R3D_IFACE_VERSION_FUNC_NAME));
             const version_t *mversion = (vfunc != NULL) ? vfunc() : NULL; // Obtain interface version
-            if ((mversion == NULL) || (version_cmp(&r3d_iface_version, mversion) != 0))
+            if (mversion == NULL)
+            {
+                lsp_trace("    not provided R3D interface version");
+                lib.close();
+                return STATUS_INCOMPATIBLE;
+            }
+            else if (version_cmp(&r3d_iface_version, mversion) != 0)
             {
                 lsp_trace("    mismatched R3D interface version: %d.%d.%d-%s vs %d.%d.%d-%s",
                             r3d_iface_version.major, r3d_iface_version.minor, r3d_iface_version.micro, r3d_iface_version.branch,
@@ -418,14 +439,6 @@ namespace lsp
 
         void IDisplay::destroy()
         {
-            // Destroy estimation surface
-            if (pEstimation != NULL)
-            {
-                pEstimation->destroy();
-                delete pEstimation;
-                pEstimation     = NULL;
-            }
-
             // Destroy all backends
             for (size_t j=0,m=s3DBackends.size(); j<m;++j)
             {
@@ -469,6 +482,38 @@ namespace lsp
         {
             if (sMainTask.pHandler != NULL)
                 sMainTask.pHandler(time, time, sMainTask.pArg);
+        }
+
+        status_t IDisplay::process_pending_tasks(timestamp_t time)
+        {
+            dtask_t task;
+            status_t result = STATUS_OK;
+
+            for (size_t i=0, n = sTasks.size(); i < n; ++i)
+            {
+                // Fetch new task from queue
+                {
+                    // Get next task
+                    dtask_t *t      = sTasks.first();
+                    if ((t == NULL) || (t->nTime > time))
+                        break;
+
+                    // Remove the task from the queue
+                    task = *t;
+                    if (!sTasks.shift())
+                    {
+                        result = STATUS_UNKNOWN_ERR;
+                        break;
+                    }
+                }
+
+                // Process the task
+                status_t hresult    = task.pHandler(task.nTime, time, task.pArg);
+                if (hresult != STATUS_OK)
+                    result      = hresult;
+            }
+
+            return result;
         }
 
         status_t IDisplay::main()
@@ -522,10 +567,10 @@ namespace lsp
 
             // Initialize backend
             void *handle = NULL;
-            status_t res = backend->init_offscreen(backend);
+            status_t res = (backend->init_offscreen) ? backend->init_offscreen(backend) : STATUS_NOT_SUPPORTED;
             if (res != STATUS_OK)
             {
-                res = backend->init_window(backend, &handle);
+                res = (backend->init_window) ? backend->init_window(backend, &handle) : STATUS_NOT_SUPPORTED;
                 if (res != STATUS_OK)
                 {
                     backend->destroy(backend);
@@ -679,7 +724,12 @@ namespace lsp
 
         status_t IDisplay::screen_size(size_t screen, ssize_t *w, ssize_t *h)
         {
-            return STATUS_BAD_ARGUMENTS;
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IDisplay::work_area_geometry(ws::rectangle_t *r)
+        {
+            return STATUS_NOT_IMPLEMENTED;
         }
 
         IWindow *IDisplay::create_window()
@@ -705,13 +755,6 @@ namespace lsp
         ISurface *IDisplay::create_surface(size_t width, size_t height)
         {
             return NULL;
-        }
-
-        ISurface *IDisplay::estimation_surface()
-        {
-            if (pEstimation != NULL)
-                return pEstimation;
-            return pEstimation  = create_surface(1, 1);
         }
     
         bool IDisplay::taskid_exists(taskid_t id)
@@ -803,7 +846,7 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IDisplay::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+        status_t IDisplay::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
         {
             return STATUS_NOT_IMPLEMENTED;
         }
@@ -826,17 +869,38 @@ namespace lsp
 
         status_t IDisplay::add_font(const char *name, const char *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if ((name == NULL) || (path == NULL))
+                return STATUS_BAD_ARGUMENTS;
+
+            LSPString tmp;
+            if (!tmp.set_utf8(path))
+                return STATUS_NO_MEM;
+
+            return add_font(name, &tmp);
         }
 
         status_t IDisplay::add_font(const char *name, const io::Path *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if ((name == NULL) || (path == NULL))
+                return STATUS_BAD_ARGUMENTS;
+            return add_font(name, path->as_utf8());
         }
 
         status_t IDisplay::add_font(const char *name, const LSPString *path)
         {
-            return STATUS_NOT_IMPLEMENTED;
+            if (name == NULL)
+                return STATUS_BAD_ARGUMENTS;
+
+            io::InFileStream ifs;
+            status_t res = ifs.open(path);
+            if (res != STATUS_OK)
+                return res;
+
+            lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
+            res = add_font(name, &ifs);
+            status_t res2 = ifs.close();
+
+            return (res == STATUS_OK) ? res2 : res;
         }
 
         status_t IDisplay::add_font(const char *name, io::IInStream *is)
@@ -856,6 +920,40 @@ namespace lsp
 
         void IDisplay::remove_all_fonts()
         {
+        }
+
+        bool IDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
+        {
+            return false;
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+        {
+            if (text == NULL)
+                return false;
+            LSPString tmp;
+            if (!tmp.set_utf8(text))
+                return false;
+            return get_text_parameters(f, tp, &tmp, 0, tmp.length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, 0, text->length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first)
+        {
+            if (text == NULL)
+                return false;
+            return get_text_parameters(f, tp, text, first, text->length());
+        }
+
+        bool IDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+        {
+            return false;
         }
 
         const MonitorInfo *IDisplay::enum_monitors(size_t *count)

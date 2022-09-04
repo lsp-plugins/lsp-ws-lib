@@ -23,7 +23,7 @@
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/test-fw/mtest.h>
 
-MTEST_BEGIN("ws", display)
+MTEST_BEGIN("ws.display", window)
 
     class Handler: public ws::IEventHandler
     {
@@ -58,34 +58,13 @@ MTEST_BEGIN("ws", display)
                     {
                         Color c(0.0f, 0.5f, 0.75f);
                         ws::ISurface *s = pWnd->get_surface();
-                        if (s != NULL)
-                        {
-                            s->begin();
-                            s->clear(c);
+                        if (s == NULL)
+                            return STATUS_OK;
 
-                            ws::Font f;
-                            ws::font_parameters_t fp;
-                            ws::text_parameters_t tp;
-                            f.set_name("example");
-                            f.set_size(64);
-
-                            s->get_font_parameters(f, &fp);
-                            s->get_text_parameters(f, &tp, "A");
-
-                            ssize_t x   = (pWnd->width()  - ssize_t(tp.Width)*2)  >> 1;
-                            ssize_t y   = (pWnd->height() - ssize_t(fp.Height)) >> 1;
-
-                            c.set_rgb24(0xffff00);
-                            f.set_antialiasing(ws::FA_ENABLED);
-                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-                            x += tp.Width;
-
-                            c.set_rgb24(0x00ffff);
-                            f.set_antialiasing(ws::FA_DISABLED);
-                            s->out_text(f, c, x + tp.XBearing, y + fp.Ascent, "A");
-
-                            s->end();
-                        }
+                        // Perform drawing
+                        s->begin();
+                        s->clear(c);
+                        s->end();
 
                         return STATUS_OK;
                     }
@@ -96,7 +75,8 @@ MTEST_BEGIN("ws", display)
                         ssize_t left, top;
 
                         if (pWnd->display()->get_pointer_location(&screen, &left, &top) == STATUS_OK)
-                            pTest->printf("Pointer location: screen=%d, left=%d, top=%d\n", int(screen), int(left), int(top));
+                            pTest->printf("Pointer location: local=(%d, %d), screen=(%d, %d, %d)\n",
+                                int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen));
                         return STATUS_OK;
                     };
 
@@ -117,36 +97,68 @@ MTEST_BEGIN("ws", display)
 
     MTEST_MAIN
     {
-        ws::IDisplay *dpy = ws::lsp_ws_create_display(0, NULL);
+        ws::IDisplay *dpy = ws::create_display(0, NULL);
         MTEST_ASSERT(dpy != NULL);
+        lsp_finally { ws::free_display(dpy); };
 
-        io::Path font;
-        MTEST_ASSERT(font.fmt("%s/font/example.ttf", resources()));
-        MTEST_ASSERT(dpy->add_font("example", &font) == STATUS_OK);
+        // Enumerate list of displays
+        printf("List of attached displays:\n");
+        printf("  %2s %10s %10s %s %s\n", "id", "coord", "size", "p", "name");
+        size_t count;
+        const ws::MonitorInfo *mi = dpy->enum_monitors(&count);
+        MTEST_ASSERT(count > 0);
+        MTEST_ASSERT(mi != NULL);
+        for (size_t i=0; i < count; ++i, ++mi)
+        {
+            char pos[32], size[32];
+            snprintf(pos, sizeof(pos), "%d,%d", int(mi->rect.nLeft), int(mi->rect.nTop));
+            snprintf(size, sizeof(size), "%dx%d", int(mi->rect.nWidth), int(mi->rect.nHeight));
+            printf("  %2d %10s %10s %c %s\n",
+                int(i), pos, size, (mi->primary) ? '*' : ' ', mi->name.get_native());
+        }
+        printf("\n");
 
+        // Obtain the work area on the primary display
+        ws::rectangle_t r;
+        MTEST_ASSERT(dpy->work_area_geometry(&r) == STATUS_OK);
+        printf("Work area on the primary display:\n");
+        printf("  (%d,%d): %dx%d\n", int(r.nLeft), int(r.nTop), int(r.nWidth), int(r.nHeight));
+
+        // Create window and do the stuff
         ws::IWindow *wnd = dpy->create_window();
+        MTEST_ASSERT(wnd != NULL);
+        lsp_finally {
+            wnd->destroy();
+            delete wnd;
+        };
         MTEST_ASSERT(wnd->init() == STATUS_OK);
-        MTEST_ASSERT(wnd->set_caption("Test window", "Test window") == STATUS_OK);
+        MTEST_ASSERT(wnd->set_mouse_pointer(ws::MP_HAND) == STATUS_OK);
+        MTEST_ASSERT(wnd->get_mouse_pointer() == ws::MP_HAND);
+
+        LSPString dst;
+        MTEST_ASSERT(wnd->set_caption("Test window") == STATUS_OK);
+        MTEST_ASSERT(wnd->get_caption(&dst) == STATUS_OK);
+        MTEST_ASSERT(dst.equals_ascii("Test window"));
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
+
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);
 
         size_t screen = wnd->screen();
         ssize_t sw, sh;
+        ws::rectangle_t wr;
         MTEST_ASSERT(dpy->screen_size(screen, &sw, &sh) == STATUS_OK);
-        wnd->move((sw - wnd->width()) >> 1, (sh - wnd->height()) >> 1);
-
-        MTEST_ASSERT(wnd->show() == STATUS_OK);
+        MTEST_ASSERT(wnd->get_absolute_geometry(&wr) == STATUS_OK);
+        wnd->move((sw - wr.nWidth) / 2, (sh - wr.nHeight) / 2);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
-        MTEST_ASSERT(dpy->main() == STATUS_OK);
+        MTEST_ASSERT(wnd->show() == STATUS_OK);
+        MTEST_ASSERT(!wnd->has_parent());
 
-        wnd->destroy();
-        delete wnd;
-        ws::lsp_ws_free_display(dpy);
+        MTEST_ASSERT(dpy->main() == STATUS_OK);
     }
 
 MTEST_END

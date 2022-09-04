@@ -40,8 +40,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
-#include <X11/extensions/Xrandr.h>
 
+#ifdef USE_LIBXRANDR
+    #include <X11/extensions/Xrandr.h>
+#endif /* USE_LIBXRANDR */
 
 #ifdef USE_LIBCAIRO
     #include <cairo.h>
@@ -64,6 +66,7 @@ namespace lsp
         {
             static int cursor_shapes[] =
             {
+                XC_left_ptr,                // MP_DEFAULT
                 -1,                         // MP_NONE
                 XC_left_ptr,                // MP_ARROW
                 XC_sb_left_arrow,           // MP_ARROW_LEFT
@@ -163,6 +166,8 @@ namespace lsp
                 sTranslateReq.bSuccess  = false;
 
                 bzero(&sCairoUserDataKey, sizeof(sCairoUserDataKey));
+
+                pEstimation     = NULL;
             }
 
             X11Display::~X11Display()
@@ -264,19 +269,24 @@ namespace lsp
                         vCursors[i] = ::XCreateFontCursor(pDisplay, id);
                 }
 
+                // Create estimation surface
+                pEstimation     = create_surface(1, 1);
+                if (pEstimation == NULL)
+                    return STATUS_NO_MEM;
+
                 return IDisplay::init(argc, argv);
             }
 
             int X11Display::x11_error_handler(Display *dpy, XErrorEvent *ev)
             {
                 while (!atomic_cas(&hLock, 0, 1)) { /* Wait */ }
+                lsp_finally { hLock = 0; };
 
                 // Dispatch errors between Displays
                 for (X11Display *dp = pHandlers; dp != NULL; dp = dp->pNextHandler)
                     if (dp->pDisplay == dpy)
                         dp->handle_error(ev);
 
-                hLock   = 0;
                 return 0;
             }
 
@@ -350,7 +360,6 @@ namespace lsp
                 }
 
                 vWindows.flush();
-                sPending.flush();
                 for (size_t i=0; i<__GRAB_TOTAL; ++i)
                     vGrab[i].clear();
                 sTargets.clear();
@@ -410,6 +419,14 @@ namespace lsp
                 {
                     FT_Done_FreeType(hFtLibrary);
                     hFtLibrary      = NULL;
+                }
+
+                // Destroy estimation surface
+                if (pEstimation != NULL)
+                {
+                    pEstimation->destroy();
+                    delete pEstimation;
+                    pEstimation     = NULL;
                 }
             }
 
@@ -505,19 +522,9 @@ namespace lsp
                     // Get current time
                     system::get_time(&ts);
                     timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
-                    int wtime           = 50; // How many milliseconds to wait
 
-                    if (sTasks.size() > 0)
-                    {
-                        dtask_t *t          = sTasks.first();
-                        ssize_t delta       = t->nTime - xts;
-                        if (delta <= 0)
-                            wtime               = -1;
-                        else if (delta <= wtime)
-                            wtime               = delta;
-                    }
-                    else if (::XPending(pDisplay) > 0)
-                        wtime               = 0;
+                    // Compute how many milliseconds to wait for the event
+                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, 50);
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
@@ -536,9 +543,7 @@ namespace lsp
                     else if ((wtime <= 0) || ((poll_res > 0) && (x11_poll.events > 0)))
                     {
                         // Do iteration
-                        status_t result = IDisplay::main_iteration();
-                        if (result == STATUS_OK)
-                            result = do_main_iteration(xts);
+                        status_t result = do_main_iteration(xts);
                         if (result != STATUS_OK)
                             return result;
                     }
@@ -565,18 +570,10 @@ namespace lsp
                 do
                 {
                     wssize_t wtime      = deadline - xts; // How many milliseconds to wait
-
-                    if (sTasks.size() > 0)
-                    {
-                        dtask_t *t          = sTasks.first();
-                        ssize_t delta       = t->nTime - xts;
-                        if (delta <= 0)
-                            wtime               = -1;
-                        else if (delta <= wtime)
-                            wtime               = delta;
-                    }
-                    else if (::XPending(pDisplay) > 0)
+                    if (::XPending(pDisplay) > 0)
                         wtime               = 0;
+                    else
+                        wtime               = compute_poll_delay(xts, wtime);
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
@@ -607,7 +604,6 @@ namespace lsp
             {
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
-                status_t result = STATUS_OK;
 
                 // Process pending x11 events
                 for (int i=0; i<pending; i++)
@@ -621,47 +617,13 @@ namespace lsp
                     handle_event(&event);
                 }
 
-                // Generate list of tasks for processing
-                sPending.clear();
-
-                while (true)
-                {
-                    // Get next task
-                    dtask_t *t  = sTasks.first();
-                    if (t == NULL)
-                        break;
-
-                    // Do we need to process this task ?
-                    if (t->nTime > ts)
-                        break;
-
-                    // Allocate task in pending queue
-                    t   = sPending.append();
-                    if (t == NULL)
-                        return STATUS_NO_MEM;
-
-                    // Remove the task from the queue
-                    if (!sTasks.remove(0, t))
-                    {
-                        result = STATUS_UNKNOWN_ERR;
-                        break;
-                    }
-                }
+                // Call parent class for iteration
+                status_t result = IDisplay::main_iteration();
+                if (result != STATUS_OK)
+                    return result;
 
                 // Process pending tasks
-                if (result == STATUS_OK)
-                {
-                    // Execute all tasks in pending queue
-                    for (size_t i=0; i<sPending.size(); ++i)
-                    {
-                        dtask_t *t  = sPending.uget(i);
-
-                        // Process task
-                        result  = t->pHandler(t->nTime, ts, t->pArg);
-                        if (result != STATUS_OK)
-                            break;
-                    }
-                }
+                result  = process_pending_tasks(ts);
 
                 // Flush & sync display
                 ::XFlush(pDisplay);
@@ -691,11 +653,6 @@ namespace lsp
 
             status_t X11Display::main_iteration()
             {
-                // Call parent class for iteration
-                status_t result = IDisplay::main_iteration();
-                if (result != STATUS_OK)
-                    return result;
-
                 // Get current time to determine if need perform a rendering
                 system::time_t ts;
                 system::get_time(&ts);
@@ -1092,6 +1049,10 @@ namespace lsp
                 uint8_t *data   = NULL;
                 size_t bytes    = 0;
                 Atom type       = None;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 switch (task->enState)
                 {
@@ -1130,10 +1091,6 @@ namespace lsp
                         break;
                 }
 
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
-
                 return res;
             }
 
@@ -1143,6 +1100,10 @@ namespace lsp
                 uint8_t *data   = NULL;
                 size_t bytes    = 0;
                 Atom type       = None;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 switch (task->enState)
                 {
@@ -1185,10 +1146,6 @@ namespace lsp
                     default:
                         break;
                 }
-
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
 
                 return res;
             }
@@ -1242,6 +1199,10 @@ namespace lsp
                 size_t bytes    = 0;
                 Atom type       = None;
                 status_t res    = STATUS_OK;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 // Analyze state
                 switch (task->enState)
@@ -1351,10 +1312,6 @@ namespace lsp
                         break;
                 }
 
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
-
                 return res;
             }
 
@@ -1364,6 +1321,10 @@ namespace lsp
                 size_t bytes    = 0;
                 Atom type       = None;
                 status_t res    = STATUS_OK;
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
 
                 // Analyze state
                 switch (task->enState)
@@ -1440,10 +1401,6 @@ namespace lsp
                         res         = STATUS_IO_ERROR;
                         break;
                 }
-
-                // Free allocated data
-                if (data != NULL)
-                    ::free(data);
 
                 return res;
             }
@@ -1880,7 +1837,7 @@ namespace lsp
                     event_t se          = ue;
 
                     // Clear the collection
-                    sTargets.clear();
+                    lsp_finally { sTargets.clear(); };
 
                     switch (se.nType)
                     {
@@ -1905,16 +1862,16 @@ namespace lsp
                                     continue;
 
                                 // Add listeners from grabbing windows
-                                for (size_t i=0; i<g.size();)
+                                for (size_t j=0; j<g.size();)
                                 {
-                                    X11Window *wnd = g.uget(i);
+                                    X11Window *wnd = g.uget(j);
                                     if ((wnd == NULL) || (vWindows.index_of(wnd) < 0))
                                     {
                                         g.remove(i);
                                         continue;
                                     }
                                     sTargets.add(wnd);
-                                    ++i;
+                                    ++j;
                                 }
 
                                 // Finally, break if there are target windows
@@ -2297,12 +2254,10 @@ namespace lsp
 
                         // Form the notification event
                         event_t ue;
+                        init_event(&ue);
                         ue.nType            = UIE_DRAG_REQUEST;
                         ue.nLeft            = cx;
                         ue.nTop             = cy;
-                        ue.nWidth           = 0;
-                        ue.nHeight          = 0;
-                        ue.nCode            = 0;
                         ue.nState           = DRAG_COPY;
 
                         // Decode action
@@ -2312,12 +2267,6 @@ namespace lsp
                             ue.nState           = DRAG_MOVE;
                         else if (act == sAtoms.X11_XdndActionLink)
                             ue.nState           = DRAG_LINK;
-                        else if (act == sAtoms.X11_XdndActionAsk)
-                            ue.nState           = DRAG_ASK;
-                        else if (act == sAtoms.X11_XdndActionPrivate)
-                            ue.nState           = DRAG_PRIVATE;
-                        else if (act == sAtoms.X11_XdndActionDirectSave)
-                            ue.nState           = DRAG_DIRECT_SAVE;
                         else
                             recv->hAction       = None;
 
@@ -2592,14 +2541,8 @@ namespace lsp
 
                 // Create DRAG_ENTER event
                 event_t ue;
+                init_event(&ue);
                 ue.nType        = UIE_DRAG_ENTER;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
 
                 // Pass event to the target window
                 return tgt->handle_event(&ue);
@@ -2658,14 +2601,8 @@ namespace lsp
                     return STATUS_NOT_FOUND;
 
                 event_t ue;
+                init_event(&ue);
                 ue.nType        = UIE_DRAG_LEAVE;
-                ue.nLeft        = 0;
-                ue.nTop         = 0;
-                ue.nWidth       = 0;
-                ue.nHeight      = 0;
-                ue.nCode        = 0;
-                ue.nState       = 0;
-                ue.nTime        = 0;
 
                 return tgt->handle_event(&ue);
             }
@@ -2722,12 +2659,10 @@ namespace lsp
 
                 // Form the notification event
                 event_t ue;
+                init_event(&ue);
                 ue.nType            = UIE_DRAG_REQUEST;
                 ue.nLeft            = x;
                 ue.nTop             = y;
-                ue.nWidth           = 0;
-                ue.nHeight          = 0;
-                ue.nCode            = 0;
                 ue.nState           = DRAG_COPY;
 
                 // Decode action
@@ -2737,12 +2672,6 @@ namespace lsp
                     ue.nState           = DRAG_MOVE;
                 else if (act == sAtoms.X11_XdndActionLink)
                     ue.nState           = DRAG_LINK;
-                else if (act == sAtoms.X11_XdndActionAsk)
-                    ue.nState           = DRAG_ASK;
-                else if (act == sAtoms.X11_XdndActionPrivate)
-                    ue.nState           = DRAG_PRIVATE;
-                else if (act == sAtoms.X11_XdndActionDirectSave)
-                    ue.nState           = DRAG_DIRECT_SAVE;
                 else
                     task->hAction       = None;
 
@@ -2882,7 +2811,14 @@ namespace lsp
                     complete_dnd_transfer(task, false);
                     return STATUS_NOT_FOUND;
                 }
+                else
+                {
+                    event_t ue;
+                    ue.nType        = UIE_DRAG_LEAVE;
+                    tgt->handle_event(&ue);
+                }
 
+                // Process the event
                 status_t res        = STATUS_OK;
                 ssize_t index       = task->pSink->open(vDndMimeTypes.array());
                 if (index >= 0)
@@ -3019,6 +2955,38 @@ namespace lsp
                     *w = WidthOfScreen(s);
                 if (h != NULL)
                     *h = HeightOfScreen(s);
+
+                return STATUS_OK;
+            }
+
+            status_t X11Display::work_area_geometry(ws::rectangle_t *r)
+            {
+                if (r == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                uint8_t *v_value    = NULL;
+                size_t v_size       = 0;
+                Atom v_type         = None;
+                lsp_finally {
+                    if (v_value != NULL)
+                        free(v_value);
+                };
+
+                status_t res        = read_property(
+                    hRootWnd,
+                    sAtoms.X11__NET_WORKAREA,
+                    sAtoms.X11_XA_CARDINAL,
+                    &v_value,
+                    &v_size,
+                    &v_type);
+                if ((res != STATUS_OK) || (v_size < 4))
+                    return STATUS_UNKNOWN_ERR;
+
+                const int32_t *v    = reinterpret_cast<int32_t *>(v_value);
+                r->nLeft            = v[0];
+                r->nTop             = v[1];
+                r->nWidth           = v[2];
+                r->nHeight          = v[3];
 
                 return STATUS_OK;
             }
@@ -3265,9 +3233,7 @@ namespace lsp
 
             Cursor X11Display::get_cursor(mouse_pointer_t pointer)
             {
-                if (pointer == MP_DEFAULT)
-                    pointer = MP_ARROW;
-                else if ((pointer < 0) || (pointer > __MP_COUNT))
+                if ((pointer < 0) || (pointer >= __MP_COUNT))
                     pointer = MP_NONE;
 
                 return vCursors[pointer];
@@ -3627,7 +3593,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r)
+            status_t X11Display::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
             {
                 /**
                 XdndStatus
@@ -3660,31 +3626,18 @@ namespace lsp
                 Atom act            = None;
                 switch (action)
                 {
-                    case DRAG_COPY: act = sAtoms.X11_XdndActionCopy; break;
-                    case DRAG_PRIVATE: act = sAtoms.X11_XdndActionPrivate; break;
-
+                    case DRAG_COPY:
+                        act = sAtoms.X11_XdndActionCopy;
+                        break;
                     case DRAG_MOVE:
-                        if ((act = sAtoms.X11_XdndActionMove) != task->hAction)
-                            return STATUS_INVALID_VALUE;
+                        act = sAtoms.X11_XdndActionMove;
                         break;
                     case DRAG_LINK:
-                        if ((act = sAtoms.X11_XdndActionLink) != task->hAction)
-                            return STATUS_INVALID_VALUE;
-                        break;
-                    case DRAG_ASK:
-                        if ((act = sAtoms.X11_XdndActionLink) != task->hAction)
-                            return STATUS_INVALID_VALUE;
-                        break;
-                    case DRAG_DIRECT_SAVE:
-                        if ((act = sAtoms.X11_XdndActionDirectSave) != task->hAction)
-                            return STATUS_INVALID_VALUE;
+                        act = sAtoms.X11_XdndActionLink;
                         break;
                     default:
                         return STATUS_INVALID_VALUE;
                 }
-
-                if (r == NULL)
-                    internal            = false;
 
                 // Translate window coordinates
                 int x, y;
@@ -3712,7 +3665,7 @@ namespace lsp
                 ev->message_type    = sAtoms.X11_XdndStatus;
                 ev->format          = 32;
                 ev->data.l[0]       = target;
-                ev->data.l[1]       = 1 | ((internal) ? (1 << 1) : 0);
+                ev->data.l[1]       = 1 | ((r != NULL) ? (1 << 1) : 0);
                 if (r != NULL)
                 {
                     ev->data.l[2]       = (x << 16) | y;
@@ -3829,25 +3782,6 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Display::add_font(const char *name, const char *path)
-            {
-                if ((name == NULL) || (path == NULL))
-                    return STATUS_BAD_ARGUMENTS;
-
-                LSPString tmp;
-                if (!tmp.set_utf8(path))
-                    return STATUS_NO_MEM;
-
-                return add_font(name, &tmp);
-            }
-
-            status_t X11Display::add_font(const char *name, const io::Path *path)
-            {
-                if ((name == NULL) || (path == NULL))
-                    return STATUS_BAD_ARGUMENTS;
-                return add_font(name, path->as_utf8());
-            }
-
             X11Display::font_t *X11Display::alloc_font_object(const char *name)
             {
                 font_t *f       = static_cast<font_t *>(malloc(sizeof(font_t)));
@@ -3872,23 +3806,6 @@ namespace lsp
             #endif /* USE_LIBCAIRO */
 
                 return f;
-            }
-
-            status_t X11Display::add_font(const char *name, const LSPString *path)
-            {
-                if (name == NULL)
-                    return STATUS_BAD_ARGUMENTS;
-
-                io::InFileStream ifs;
-                status_t res = ifs.open(path);
-                if (res != STATUS_OK)
-                    return res;
-
-                lsp_trace("Loading font '%s' from file '%s'", name, path->get_native());
-                res = add_font(name, &ifs);
-                status_t res2 = ifs.close();
-
-                return (res == STATUS_OK) ? res2 : res;
             }
 
             status_t X11Display::add_font(const char *name, io::IInStream *is)
@@ -4014,6 +3931,30 @@ namespace lsp
                 list->flush();
             }
 
+            bool X11Display::get_font_parameters(const Font &f, font_parameters_t *fp)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_font_parameters(f, fp);
+            }
+
+            bool X11Display::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_text_parameters(f, tp, text);
+            }
+
+            bool X11Display::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_text_parameters(f, tp, text, first, last);
+            }
+
             const MonitorInfo *X11Display::enum_monitors(size_t *count)
             {
             #ifdef USE_LIBXRANDR
@@ -4024,14 +3965,23 @@ namespace lsp
                 XRRMonitorInfo *info = XRRGetMonitors(pDisplay, hRootWnd, True, &nmonitors);
                 if (info != NULL)
                 {
+                    // Create records
                     MonitorInfo *items = result.add_n(nmonitors);
+                    if (items == NULL)
+                        return NULL;
+                    for (int i=0; i<nmonitors; ++i)
+                    {
+                        MonitorInfo *di = &items[i];
+                        new (static_cast<void *>(&di->name)) LSPString;
+                    }
+
+                    // Translate records
                     for (int i=0; i<nmonitors; ++i)
                     {
                         const XRRMonitorInfo *si = &info[i];
                         MonitorInfo *di          = &items[i];
 
                         // Save the name of monitor
-                        new (static_cast<void *>(&di->name)) LSPString;
                         char *a_name    = ::XGetAtomName(pDisplay, si->name);
                         if (a_name != NULL)
                         {

@@ -29,7 +29,7 @@ namespace lsp
 {
     namespace ws
     {
-        class IGradient
+        class LSP_WS_LIB_PUBLIC IGradient
         {
             private:
                 IGradient & operator = (const IGradient &);
@@ -42,13 +42,13 @@ namespace lsp
             public:
                 virtual void add_color(float offset, float r, float g, float b, float a=0.0f);
 
-                void add_color(float offset, const Color &c);
+                virtual void add_color(float offset, const Color &c);
 
-                void add_color(float offset, const Color &c, float a);
+                virtual void add_color(float offset, const Color &c, float a);
 
-                void add_color_rgb(float offset, uint32_t color);
+                virtual void add_color_rgb(float offset, uint32_t color);
 
-                void add_color_rgba(float offset, uint32_t color);
+                virtual void add_color_rgba(float offset, uint32_t color);
         };
     }
 }

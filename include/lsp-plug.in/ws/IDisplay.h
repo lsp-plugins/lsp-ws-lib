@@ -26,6 +26,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/r3d/iface/backend.h>
 #include <lsp-plug.in/r3d/iface/factory.h>
@@ -64,7 +65,7 @@ namespace lsp
         /** Display
          *
          */
-        class IDisplay
+        class LSP_WS_LIB_PUBLIC IDisplay
         {
             private:
                 IDisplay & operator = (const IDisplay &);
@@ -96,7 +97,6 @@ namespace lsp
                 r3d::factory_t             *p3DFactory;         // Pointer to the factory object
                 ssize_t                     nCurrent3D;         // Current 3D backend
                 ssize_t                     nPending3D;         // Pending 3D backend
-                ISurface                   *pEstimation;        // Estimation surface
 
             protected:
                 friend class IR3DBackend;
@@ -107,9 +107,19 @@ namespace lsp
                 status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
+                status_t            process_pending_tasks(timestamp_t time);
                 virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
                 static void         drop_r3d_lib(r3d_lib_t *lib);
                 bool                check_duplicate(const r3d_lib_t *lib);
+
+                /**
+                 * Estimate the delay for the first scheduled task and reduce the passed polling delay
+                 * if there is pending scheduled task
+                 * @param ts current timestamp
+                 * @param poll_delay the estimated polling delay
+                 * @return the updated polling delay
+                 */
+                int                 compute_poll_delay(timestamp_t ts, int poll_delay);
 
             public:
                 explicit IDisplay();
@@ -181,6 +191,14 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t    screen_size(size_t screen, ssize_t *w, ssize_t *h);
+
+                /**
+                 * Read the geometry of work area on the primary monitor which excludes
+                 * any dock panels, taskbars, etc.
+                 * @param r pointer to store the result
+                 * @return status of operation
+                 */
+                virtual status_t    work_area_geometry(ws::rectangle_t *r);
 
             public:
                 /**
@@ -292,7 +310,8 @@ namespace lsp
                 virtual IWindow *wrap_window(void *handle);
 
                 /**
-                 * Create 3D backend for graphics
+                 * Create 3D backend for graphics. The backend should be destroyed and
+                 * deleted by the caller.
                  * @return pointer to created backend
                  */
                 virtual IR3DBackend *create_r3d_backend(IWindow *parent);
@@ -304,14 +323,6 @@ namespace lsp
                  * @return surface or NULL on error
                  */
                 virtual ISurface *create_surface(size_t width, size_t height);
-
-                /**
-                 * Get estimation surface. This surface is not for drawing but
-                 * for estimating additional parameters like text parameters, etc.
-                 *
-                 * @return pointer to estimation surface
-                 */
-                virtual ISurface *estimation_surface();
 
                 /** Submit task for execution
                  *
@@ -356,11 +367,10 @@ namespace lsp
                  * Accept drag request
                  * @param sink the sink that will handle data transfer
                  * @param action drag action
-                 * @param internal true if we want to receive notifications inside of the drag rectangle
-                 * @param r parameters of the drag rectangle, can be NULL
+                 * @param r parameters of the drag rectangle, optional, can be NULL
                  * @return status of operation
                  */
-                virtual status_t accept_drag(IDataSink *sink, drag_t action, bool internal, const rectangle_t *r);
+                virtual status_t accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL);
 
                 /**
                  * Get currently pending content type of a drag
@@ -436,6 +446,53 @@ namespace lsp
                  * Remove all previously loaded custom fonts and aliases
                  */
                 virtual void remove_all_fonts();
+
+                /** Get font parameters
+                 *
+                 * @param f font
+                 * @param fp font parameters to store
+                 * @return status of operation
+                 */
+                virtual bool get_font_parameters(const Font &f, font_parameters_t *fp);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first);
+
+                /** Get text parameters
+                 *
+                 * @param f font
+                 * @param tp text parameters to store
+                 * @param text text to analyze
+                 * @param first first character
+                 * @param last last character
+                 * @return status of operation
+                 */
+                virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                 /**
                  * Enumerate list of mointors and return the pointer to the list of monitors.

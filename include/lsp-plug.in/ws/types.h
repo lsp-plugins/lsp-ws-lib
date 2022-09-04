@@ -132,14 +132,12 @@ namespace lsp
         {
             DRAG_COPY           = 0,//!< DRAG_COPY
             DRAG_MOVE           = 1,//!< DRAG_MOVE
-            DRAG_LINK           = 2,//!< DRAG_LINK
-            DRAG_ASK            = 3,//!< DRAG_ASK
-            DRAG_PRIVATE        = 4,//!< DRAG_PRIVATE
-            DRAG_DIRECT_SAVE    = 5 //!< DRAG_DIRECT_SAVE
+            DRAG_LINK           = 2
         };
 
         enum mouse_pointer_t
         {
+            MP_DEFAULT,         // Default cursor
             MP_NONE,            // No cursor
             MP_ARROW,           // Standard arrow
             MP_ARROW_LEFT,      // Arrow left
@@ -179,15 +177,16 @@ namespace lsp
             MP_ARROW_WAIT   = MP_APP_START,
             MP_HYPERLINK    = MP_HAND,
             MP_PENCIL       = MP_DRAW,
-            MP_TABLE_CELL   = MP_PLUS,
-            MP_DEFAULT      = -1
+            MP_TABLE_CELL   = MP_PLUS
         };
 
         enum ui_event_type_t
         {
             UIE_UNKNOWN,
+            // Keyboard events
             UIE_KEY_DOWN,
             UIE_KEY_UP,
+            // Mouse events
             UIE_MOUSE_DOWN,
             UIE_MOUSE_UP,
             UIE_MOUSE_MOVE,
@@ -197,6 +196,7 @@ namespace lsp
             UIE_MOUSE_TRI_CLICK,
             UIE_MOUSE_IN,
             UIE_MOUSE_OUT,
+            // Window events
             UIE_REDRAW,
             UIE_RENDER,
             UIE_SIZE_REQUEST,
@@ -206,11 +206,11 @@ namespace lsp
             UIE_CLOSE,
             UIE_FOCUS_IN,
             UIE_FOCUS_OUT,
-
+            // Drag&Drop events
             UIE_DRAG_ENTER,
             UIE_DRAG_LEAVE,
             UIE_DRAG_REQUEST,
-
+            // Supplementary constants
             UIE_TOTAL,
             UIE_FIRST = UIE_KEY_DOWN,
             UIE_LAST = UIE_CLOSE,
@@ -320,10 +320,10 @@ namespace lsp
 
         enum surface_type_t
         {
-            ST_UNKNOWN,
-            ST_IMAGE,
-            ST_XLIB,
-            ST_PROXY
+            ST_UNKNOWN,         // Unknown surface type
+            ST_IMAGE,           // Image surface
+            ST_XLIB,            // Surface created by XLIB extension (X.11 Linux/FreeBSD)
+            ST_DDRAW,           // Surface created by DirectDraw factory (Windows)
         };
 
         typedef struct font_parameters_t
@@ -331,8 +331,6 @@ namespace lsp
             float Ascent;       // The distance that the font extends above the baseline
             float Descent;      // The distance that the font extends below the baseline
             float Height;       // The recommended vertical distance between baselines when setting consecutive lines of text with the font
-            float MaxXAdvance;  // The maximum distance in the X direction that the origin is advanced for any glyph in the font
-            float MaxYAdvance;  // The maximum distance in the Y direction that the origin is advanced for any glyph in the font
         } font_parameters_t;
 
         typedef struct text_parameters_t
@@ -411,8 +409,10 @@ namespace lsp
          * Initialize empty event
          * @param ev event to initialize
          */
+        LSP_WS_LIB_PUBLIC
         void                init_event(event_t *ev);
-    }
-}
+
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_TYPES_H_ */

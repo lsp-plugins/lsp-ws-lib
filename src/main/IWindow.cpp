@@ -250,11 +250,6 @@ namespace lsp
             return set_size_constraints(&sr);
         }
 
-        status_t IWindow::check_constraints()
-        {
-            return STATUS_OK;
-        }
-
         status_t IWindow::get_size_constraints(size_limit_t *c)
         {
             return STATUS_NOT_IMPLEMENTED;
@@ -323,19 +318,18 @@ namespace lsp
         }
 
 
-        status_t IWindow::set_focus(bool focus)
+        status_t IWindow::take_focus()
         {
             lsp_error("not implemented");
             return STATUS_NOT_IMPLEMENTED;
         }
 
-        status_t IWindow::toggle_focus()
+        status_t IWindow::set_caption(const LSPString *caption)
         {
-            lsp_error("not implemented");
-            return STATUS_NOT_IMPLEMENTED;
+            return set_caption(caption->get_utf8());
         }
 
-        status_t IWindow::set_caption(const char *ascii, const char *utf8)
+        status_t IWindow::set_caption(const char *caption)
         {
             return STATUS_OK;
         }
@@ -345,6 +339,12 @@ namespace lsp
             if (len < 1)
                 return STATUS_TOO_BIG;
             text[0] = '\0';
+            return STATUS_OK;
+        }
+
+        status_t IWindow::get_caption(LSPString *text)
+        {
+            text->clear();
             return STATUS_OK;
         }
 
@@ -387,6 +387,11 @@ namespace lsp
             return STATUS_NO_GRAB;
         }
 
+        bool IWindow::is_grabbing_events() const
+        {
+            return false;
+        }
+
         status_t IWindow::set_class(const char *instance, const char *wclass)
         {
             return STATUS_OK;
@@ -400,6 +405,11 @@ namespace lsp
         bool IWindow::has_parent() const
         {
             return false;
+        }
+
+        status_t IWindow::invalidate()
+        {
+            return STATUS_NOT_IMPLEMENTED;
         }
     } /* namespace ws */
 } /* namespace lsp */

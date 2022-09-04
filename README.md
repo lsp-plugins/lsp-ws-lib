@@ -120,7 +120,7 @@ class Handler: public ws::IEventHandler
 int main(int argc, const char **argv)
 {
 	// Create display
-    ws::IDisplay *dpy = ws::lsp_create_display(argc, &argv[1]);
+    ws::IDisplay *dpy = ws::create_display(argc, &argv[1]);
     
     // Create window and initialize
     ws::IWindow *wnd = dpy->create_window();
@@ -148,7 +148,7 @@ int main(int argc, const char **argv)
     // Destroy window and display
     wnd->destroy();
     delete wnd;
-    ws::lsp_free_display(dpy);
+    ws::free_display(dpy);
 }
     
 ```

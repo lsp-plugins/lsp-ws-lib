@@ -40,7 +40,7 @@ namespace lsp
          *
          * IDataSource should ALWAYS implement fetch() and sink() methods, not one of them.
          */
-        class IDataSource
+        class LSP_WS_LIB_PUBLIC IDataSource
         {
             private:
                 IDataSource & operator = (const IDataSource &);

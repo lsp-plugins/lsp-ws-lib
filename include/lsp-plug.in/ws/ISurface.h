@@ -27,6 +27,8 @@
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/IGradient.h>
 
+#define SURFMASK_NONE           0x00
+#define SURFMASK_NO_CORNER      0x00
 #define SURFMASK_LT_CORNER      0x01
 #define SURFMASK_RT_CORNER      0x02
 #define SURFMASK_RB_CORNER      0x04
@@ -41,6 +43,8 @@ namespace lsp
 {
     namespace ws
     {
+        class IDisplay;
+
         enum surf_line_cap_t
         {
             SURFLCAP_BUTT,
@@ -51,7 +55,7 @@ namespace lsp
         /** Common drawing surface interface
          *
          */
-        class ISurface
+        class LSP_WS_LIB_PUBLIC ISurface
         {
             private:
                 ISurface & operator = (const ISurface &);
@@ -60,8 +64,6 @@ namespace lsp
             protected:
                 size_t          nWidth;
                 size_t          nHeight;
-                size_t          nStride;
-                uint8_t        *pData;
                 surface_type_t  nType;
 
             protected:
@@ -91,6 +93,12 @@ namespace lsp
                 inline surface_type_t type()  const { return nType; }
 
             public:
+                /**
+                 * Return pointer to the owner's display
+                 * @return pointer to the owner's display
+                 */
+                virtual IDisplay *display();
+
                 /** Create child surface for drawing
                  * @param width surface width
                  * @param height surface height
@@ -106,28 +114,28 @@ namespace lsp
 
                 /** Create linear gradient
                  *
-                 * @param x0
-                 * @param y0
-                 * @param x1
-                 * @param y1
-                 * @return
+                 * @param x0 x coordinate of the first point
+                 * @param y0 y coordinate of the first point
+                 * @param x1 x coordinate of the second point
+                 * @param y1 y coordinate of the second point
+                 * @return pointer to the gradient object or NULL on error
                  */
                 virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1);
 
                 /** Create radial gradient
                  *
-                 * @param cx0
-                 * @param cy0
-                 * @param r0
-                 * @param cx1
-                 * @param cy1
-                 * @param r1
-                 * @return
+                 * @param cx0 x coordinate of the center of the blink
+                 * @param cy0 y coordinate of the center of the blink
+                 * @param cx1 x coordinate of the center of the radial gradient
+                 * @param cy1 y coordinate of the center of the radial gradient
+                 * @param r
+                 * @return pointer to the gradient object or NULL on error
                  */
                 virtual IGradient *radial_gradient
                 (
-                    float cx0, float cy0, float r0,
-                    float cx1, float cy1, float r1
+                    float cx0, float cy0,
+                    float cx1, float cy1,
+                    float r
                 );
 
                 /** Destroy surface
@@ -145,32 +153,13 @@ namespace lsp
                  */
                 virtual void end();
 
-            public:
-                /** Draw surface
-                 *
-                 * @param s surface to draw
-                 * @param x offset from left
-                 * @param y offset from top
-                 */
-                virtual void draw(ISurface *s, float x, float y);
-
-                /** Draw surface
-                 *
-                 * @param s surface to draw
-                 * @param x offset from left
-                 * @param y offset from top
-                 * @param sx surface scale x
-                 * @param sy surface scale y
-                 */
-                virtual void draw(ISurface *s, float x, float y, float sx, float sy);
-
                 /**
-                 * Draw surface
-                 * @param s surface to draw
-                 * @param r the rectangle to place the surface
+                 * Check that surface is valid
+                 * @return true if surface is valid
                  */
-                virtual void draw(ISurface *s, const ws::rectangle_t *r);
+                virtual bool valid() const;
 
+            public:
                 /** Draw surface with alpha blending
                  *
                  * @param s surface to draw
@@ -180,7 +169,7 @@ namespace lsp
                  * @param sy surface scale y
                  * @param a alpha
                  */
-                virtual void draw_alpha(ISurface *s, float x, float y, float sx, float sy, float a);
+                virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a);
 
                 /** Draw surface with alpha blending and rotating
                  *
@@ -192,7 +181,7 @@ namespace lsp
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */
-                virtual void draw_rotate_alpha(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
+                virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
 
                 /** Draw clipped surface
                  *
@@ -203,126 +192,27 @@ namespace lsp
                  * @param sy source surface starting position
                  * @param sw source surface width
                  * @param sh source surface height
+                 * @param a alpha
                  */
-                virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh);
+                virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a);
 
-                /** Draw filled rectangle
+                /** Draw surface from BGRA32 memory chunk where alpha is premultiplied.
+                 * That means that alpha of 0xff defines fully opaque color and 0x00
+                 * defines fully transient color.
                  *
-                 * @param color color of rectangle
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
+                 * @param data pointer to data array
+                 * @param width the width of the image
+                 * @param height the height of the image
+                 * @param strid the size of the row in bytes
+                 * @param x offset from left
+                 * @param y offset from top
+                 * @param sx surface scale x
+                 * @param sy surface scale y
+                 * @param a alpha
                  */
-                virtual void fill_rect(const Color &color, float left, float top, float width, float height);
-
-                /** Draw filled rectangle
-                 *
-                 * @param color color of rectangle
-                 * @param r rectangle to fill
-                 */
-                virtual void fill_rect(const Color &color, const ws::rectangle_t *r);
-
-                /** Draw filled rectangle
-                 *
-                 * @param g gradient to use
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 */
-                virtual void fill_rect(IGradient *g, float left, float top, float width, float height);
-
-                /** Draw filled rectangle
-                 *
-                 * @param g gradient to use
-                 * @param r rectangle to fill
-                 */
-                virtual void fill_rect(IGradient *g, const ws::rectangle_t *r);
-
-                /** Draw wired rectangle
-                 *
-                 * @param color color of rectangle
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 */
-                virtual void wire_rect(const Color &color, float left, float top, float width, float height, float line_width);
-
-                /**
-                 * Draw wired rectangle
-                 * @param g gradient to use
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 */
-                virtual void wire_rect(IGradient *g, float left, float top, float width, float height, float line_width);
-
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param color rectangle color
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param radius the corner radius
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 */
-                virtual void wire_round_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param color rectangle color
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param radius the corner radius
-                 * @param rect rectangle parameters
-                 * @param line_width width of line
-                 */
-                virtual void wire_round_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
-
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param g gradient to use
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param radius the corner radius
-                 * @param left left-top corner x coordinate
-                 * @param top left-top corner y coordinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 */
-                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
-
-                /** Wire rectangle with rounded corners
-                 *
-                 * @param g gradient to use
-                 * @param mask the corner mask:
-                 *      0x01 - left-top corner is rounded
-                 *      0x02 - right-top corner is rounded
-                 *      0x04 - right-bottom corner is rounded
-                 *      0x08 - left-bottom corner is rounded
-                 * @param radius the corner radius
-                 * @param rect rectangle parameters
-                 * @param line_width width of line
-                 */
-                virtual void wire_round_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
+                virtual void draw_raw(
+                    const void *data, size_t width, size_t height, size_t stride,
+                    float x, float y, float sx, float sy, float a);
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
@@ -339,7 +229,7 @@ namespace lsp
                  * @param height height of rectangle
                  * @param line_width width of line
                  */
-                virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+                virtual void wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
@@ -353,7 +243,7 @@ namespace lsp
                  * @param rect rectangle parameters
                  * @param line_width width of line
                  */
-                virtual void wire_round_rect_inside(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
+                virtual void wire_rect(const Color &c, size_t mask, float radius, const rectangle_t *rect, float line_width);
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
@@ -370,7 +260,7 @@ namespace lsp
                  * @param height height of rectangle
                  * @param line_width width of line
                  */
-                virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+                virtual void wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width);
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
@@ -384,7 +274,7 @@ namespace lsp
                  * @param rect rectangle parameters
                  * @param line_width width of line
                  */
-                virtual void wire_round_rect_inside(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
+                virtual void wire_rect(IGradient *g, size_t mask, float radius, const rectangle_t *rect, float line_width);
 
                 /** Fill rectangle with rounded corners
                  *
@@ -400,7 +290,7 @@ namespace lsp
                  * @param width width of rectangle
                  * @param height height of rectangle
                  */
-                virtual void fill_round_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
+                virtual void fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height);
 
                 /** Fill rectangle with rounded corners
                  *
@@ -413,7 +303,7 @@ namespace lsp
                  *      0x08 - left-bottom corner is rounded
                  * @param r rectangle descriptor
                  */
-                virtual void fill_round_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
+                virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r);
 
                 /** Fill rectangle with rounded corners
                  *
@@ -429,7 +319,7 @@ namespace lsp
                  * @param width width of rectangle
                  * @param height height of rectangle
                  */
-                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
+                virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height);
 
                 /** Fill rectangle with rounded corners
                  *
@@ -442,53 +332,72 @@ namespace lsp
                  *      0x08 - left-bottom corner is rounded
                  * @param r rectangle descriptor
                  */
-                virtual void fill_round_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
-
-                /** Draw full rectangle
-                 *
-                 * @param left left-top corner x coorinate
-                 * @param top left-top corner y coorinate
-                 * @param width width of rectangle
-                 * @param height height of rectangle
-                 * @param line_width width of line
-                 * @param color color of rectangle
-                 */
-                virtual void full_rect(float left, float top, float width, float height, float line_width, const Color &color);
+                virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
                 /** Fill sector of the round
                  *
+                 * @param c color
                  * @param cx center of the round x coordinate
                  * @param cy center of the round y coordinate
                  * @param radius the radius of the round
                  * @param angle1 starting angle of the sector
                  * @param angle2 end angle of the sector
-                 * @param color color
                  */
-                virtual void fill_sector(float cx, float cy, float radius, float angle1, float angle2, const Color &color);
+                virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2);
 
-                /** Fill rectangle
+                /** Draw arc line
                  *
-                 * @param x0 vertex 0 x-coordinate
-                 * @param y0 vertex 0 y-coordinate
-                 * @param x1 vertex 1 x-coordinate
-                 * @param y1 vertex 1 y-coordinate
-                 * @param x2 vertex 2 x-coordinate
-                 * @param y2 vertex 2 y-coordinate
+                 * @param c line color
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 * @param a1 angle 1
+                 * @param a2 angle 2
+                 * @param width line width
+                 */
+                virtual void wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width);
+
+                /** Fill triangle
+                 *
                  * @param g gradient
-                 */
-                virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, IGradient *g);
-
-                /** Fill rectangle
-                 *
                  * @param x0 vertex 0 x-coordinate
                  * @param y0 vertex 0 y-coordinate
                  * @param x1 vertex 1 x-coordinate
                  * @param y1 vertex 1 y-coordinate
                  * @param x2 vertex 2 x-coordinate
                  * @param y2 vertex 2 y-coordinate
-                 * @param c color
                  */
-                virtual void fill_triangle(float x0, float y0, float x1, float y1, float x2, float y2, const Color &color);
+                virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2);
+
+                /** Fill triangle
+                 *
+                 * @param c color
+                 * @param x0 vertex 0 x-coordinate
+                 * @param y0 vertex 0 y-coordinate
+                 * @param x1 vertex 1 x-coordinate
+                 * @param y1 vertex 1 y-coordinate
+                 * @param x2 vertex 2 x-coordinate
+                 * @param y2 vertex 2 y-coordinate
+                 */
+                virtual void fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2);
+
+                /** Fill circle
+                 *
+                 * @param c color
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 */
+                virtual void fill_circle(const Color &c, float x, float y, float r);
+
+                /** Fill circle
+                 *
+                 * @param g gradient
+                 * @param x center x
+                 * @param y center y
+                 * @param r radius
+                 */
+                virtual void fill_circle(IGradient *g, float x, float y, float r);
 
                 /** Get font parameters
                  *
@@ -649,61 +558,42 @@ namespace lsp
                  */
                 virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last);
 
-                /**
-                 * Draw square dot
-                 * @param x dot location X
-                 * @param y dot location Y
-                 * @param width dot width
-                 * @param color dot color
-                 */
-                virtual void square_dot(float x, float y, float width, const Color &color);
-
-                /**
-                 * Draw square dot
-                 * @param x dot location X
-                 * @param y dot location Y
-                 * @param width dot width
-                 * @param r red
-                 * @param g green
-                 * @param b blue
-                 * @param a alpha
-                 */
-                virtual void square_dot(float x, float y, float width, float r, float g, float b, float a);
-
                 /** Draw line
                  *
+                 * @param c line color
                  * @param x0 first point x coordinate
                  * @param y0 first point y coordinate
                  * @param x1 second point x coordinate
                  * @param y1 second point y coordinate
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void line(float x0, float y0, float x1, float y1, float width, const Color &color);
+                virtual void line(const Color &c, float x0, float y0, float x1, float y1, float width);
 
                 /** Draw line
                  *
-                 * @param x0 first point x coordinate
-                 * @param y0 first point y coordinate
-                 * @param x1 second point x coordinate
-                 * @param y1 second point y coordinate
-                 * @param width line width
                  * @param g gradient
+                 * @param x0 first point x coordinate
+                 * @param y0 first point y coordinate
+                 * @param x1 second point x coordinate
+                 * @param y1 second point y coordinate
+                 * @param width line width
                  */
-                virtual void line(float x0, float y0, float x1, float y1, float width, IGradient *g);
+                virtual void line(IGradient *g, float x0, float y0, float x1, float y1, float width);
 
                 /** Draw parametric line defined by equation a*x + b*y + c = 0
                  *
+                 * @param color line color
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void parametric_line(float a, float b, float c, float width, const Color &color);
+                virtual void parametric_line(const Color &color, float a, float b, float c, float width);
 
-                /** Draw parameteric line defined by equation a*x + b*y + c = 0 and cull it by specified boundaries
+                /** Draw parameteric line defined by equation a*x + b*y + c = 0 and cull it by two of
+                 * specified boundaries which are selected depending on the slope of the line.
                  *
+                 * @param color line color
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
@@ -712,12 +602,12 @@ namespace lsp
                  * @param top
                  * @param bottom
                  * @param width line width
-                 * @param color line color
                  */
-                virtual void parametric_line(float a, float b, float c, float left, float right, float top, float bottom, float width, const Color &color);
+                virtual void parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width);
 
                 /** Draw parametric bar defined by two line equations
                  *
+                 * @param gr gradient to fill bar
                  * @param a1 the x multiplier 1
                  * @param b1 the y multiplier 1
                  * @param c1 the shift 1
@@ -728,41 +618,48 @@ namespace lsp
                  * @param right
                  * @param top
                  * @param bottom
-                 * @param gr gradient to fill bar
                  */
-                virtual void parametric_bar(float a1, float b1, float c1, float a2, float b2, float c2,
-                        float left, float right, float top, float bottom, IGradient *gr);
+                virtual void parametric_bar(
+                    IGradient *gr,
+                    float a1, float b1, float c1, float a2, float b2, float c2,
+                    float left, float right, float top, float bottom);
 
-                /** Draw arc
+                /**
+                 * Draw the rectangle with the rectangle hole inside. The rectangle hole
+                 * additionally allows to round corners.
                  *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param a1 angle 1
-                 * @param a2 angle 2
-                 * @param width line width
-                 * @param color line color
+                 * @param color color of the rectangle
+                 * @param flags flags that indicate the rounding of the corresponding corner
+                 * @param radius the radius of the rounding for all corners
+                 * @param fx the left coordinate of the outer rectangle
+                 * @param fy the top coordinate of the outer rectangle
+                 * @param fw the width of the outer rectangle
+                 * @param fh the height of the outer rectangle
+                 * @param ix the left coordinate of the inner rectangle
+                 * @param iy the top coordinate of the inner rectangle
+                 * @param iw the width of the inner rectangle
+                 * @param ih the height of the inner rectangle
                  */
-                virtual void wire_arc(float x, float y, float r, float a1, float a2, float width, const Color &color);
+                virtual void fill_frame(
+                    const Color &color,
+                    size_t flags, float radius,
+                    float fx, float fy, float fw, float fh,
+                    float ix, float iy, float iw, float ih);
 
-                virtual void fill_frame(const Color &color,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                        );
-
-                virtual void fill_frame(const Color &color, const ws::rectangle_t *out, const ws::rectangle_t *in);
-
-                virtual void fill_round_frame(
-                        const Color &color,
-                        float radius, size_t flags,
-                        float fx, float fy, float fw, float fh,
-                        float ix, float iy, float iw, float ih
-                    );
-
-                virtual void fill_round_frame(
-                        const Color &color, float radius, size_t flags,
-                        const ws::rectangle_t *out, const ws::rectangle_t *in
-                    );
+                /**
+                 * Draw the rectangle with the rectangle hole inside. The rectangle hole
+                 * additionally allows to round corners.
+                 *
+                 * @param color color of the rectangle
+                 * @param flags flags that indicate the rounding of the corresponding corner
+                 * @param radius the radius of the rounding for all corners
+                 * @param out the parameters of the outer rectangle
+                 * @param in the parameters of the inner rectangle
+                 */
+                virtual void fill_frame(
+                    const Color &color,
+                    size_t flags, float radius,
+                    const ws::rectangle_t *out, const ws::rectangle_t *in);
 
                 /** Draw polygon
                  *
@@ -802,24 +699,6 @@ namespace lsp
                  * @param width line width
                  */
                 virtual void draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n);
-
-                /** Fill circle
-                 *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param color color
-                 */
-                virtual void fill_circle(float x, float y, float r, const Color & color);
-
-                /** Fill circle
-                 *
-                 * @param x center x
-                 * @param y center y
-                 * @param r radius
-                 * @param g gradient
-                 */
-                virtual void fill_circle(float x, float y, float r, IGradient *g);
 
                 /**
                  * Begin clipping of the rectangle area
@@ -866,39 +745,9 @@ namespace lsp
                  * @return line cap
                  */
                 virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
-
-                /** Return difference (in bytes) between two sequential rows
-                 *
-                 * @return stride between rows
-                 */
-                virtual     size_t stride();
-
-                /**
-                 * Return raw buffer data
-                 *
-                 * @return raw buffer data
-                 */
-                virtual     void *data();
-
-                /**
-                 * Return pointer to the beginning of the specified row
-                 * @param row row number
-                 */
-                virtual     void *row(size_t row);
-
-                /**
-                 * Start direct access to the surface
-                 * @return pointer to surface buffer or NULL if error/not possible
-                 */
-                virtual     void *start_direct();
-
-                /**
-                 * End direct access to the surface
-                 */
-                virtual     void end_direct();
         };
-    }
 
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_ISURFACE_H_ */

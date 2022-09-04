@@ -18,64 +18,88 @@
 # along with lsp-ws-lib.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-# List of dependencies
+#------------------------------------------------------------------------------
+# List of common dependencies
 DEPENDENCIES = \
-  LIBPTHREAD \
-  LIBDL \
   LSP_COMMON_LIB \
   LSP_LLTL_LIB \
   LSP_R3D_IFACE \
   LSP_RUNTIME_LIB
 
 TEST_DEPENDENCIES = \
+  LSP_R3D_BASE_LIB \
   LSP_TEST_FW
 
-ifeq ($(PLATFORM),Linux)
-  DEPENDENCIES             += \
-    LIBSNDFILE \
-    LIBCAIRO \
-    LIBFREETYPE \
-    LIBX11 \
-    LIBXRANDR
+#------------------------------------------------------------------------------
+# Linux dependencies
+LINUX_DEPENDENCIES = \
+  LIBPTHREAD \
+  LIBDL \
+  LIBSNDFILE \
+  LIBCAIRO \
+  LIBFREETYPE \
+  LIBX11 \
+  LIBXRANDR
 
-  TEST_DEPENDENCIES        += \
-    LSP_R3D_BASE_LIB \
-    LSP_R3D_GLX_LIB \
-    LIBGL
+LINUX_TEST_DEPENDENCIES = \
+  LSP_R3D_GLX_LIB \
+  LIBGL
+
+ifeq ($(PLATFORM),Linux)
+  DEPENDENCIES             += $(LINUX_DEPENDENCIES)
+  TEST_DEPENDENCIES        += $(LINUX_TEST_DEPENDENCIES)
 endif
+
+#------------------------------------------------------------------------------
+# BSD dependencies
+BSD_DEPENDENCIES = \
+  LIBPTHREAD \
+  LIBDL \
+  LIBSNDFILE \
+  LIBICONV \
+  LIBCAIRO \
+  LIBFREETYPE \
+  LIBX11 \
+  LIBXRANDR
+
+BSD_TEST_DEPENDENCIES = \
+  LSP_R3D_GLX_LIB \
+  LIBGL
 
 ifeq ($(PLATFORM),BSD)
-  DEPENDENCIES             += \
-    LIBSNDFILE \
-    LIBICONV \
-    LIBCAIRO \
-    LIBFREETYPE \
-    LIBX11 \
-    LIBXRANDR
-
-  TEST_DEPENDENCIES        += \
-    LSP_R3D_BASE_LIB \
-    LSP_R3D_GLX_LIB \
-    LIBGL
+  DEPENDENCIES             += $(BSD_DEPENDENCIES)
+  TEST_DEPENDENCIES        += $(BSD_TEST_DEPENDENCIES)
 endif
 
+#------------------------------------------------------------------------------
+# Windows dependencies
+WINDOWS_DEPENDENCIES = \
+  LIBSHLWAPI \
+  LIBWINMM \
+  LIBMSACM \
+  LIBMPR \
+  LIBGDI32 \
+  LIBD2D1 \
+  LIBOLE \
+  LIBWINCODEC \
+  LIBDWRITE \
+  LIBUUID
+
+WINDOWS_TEST_DEPENDENCIES = \
+  LSP_R3D_WGL_LIB \
+  LIBOPENGL32
+
 ifeq ($(PLATFORM),Windows)
-  DEPENDENCIES             += \
-    LIBSHLWAPI \
-    LIBWINMM \
-    LIBMSACM
+  DEPENDENCIES             += $(WINDOWS_DEPENDENCIES)
+  TEST_DEPENDENCIES        += $(WINDOWS_TEST_DEPENDENCIES)
 endif
 
 ALL_DEPENDENCIES = \
   $(DEPENDENCIES) \
+  $(LINUX_DEPENDENCIES) \
+  $(BSD_DEPENDENCIES) \
+  $(WINDOWS_DEPENDENCIES) \
   $(TEST_DEPENDENCIES) \
-  LIBSNDFILE \
-  LIBCAIRO \
-  LIBFREETYPE \
-  LIBICONV \
-  LIBX11 \
-  LIBXRANDR \
-  LIBGL \
-  LIBSHLWAPI \
-  LIBWINMM \
-  LIBMSACM
+  $(TEST_LINUX_DEPENDENCIES) \
+  $(TEST_WINDOWS_DEPENDENCIES) \
+  $(TEST_BSD_DEPENDENCIES)

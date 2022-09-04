@@ -33,7 +33,7 @@ namespace lsp
         /**
          * Data sink interface for asynchronous receive of binary data
          */
-        class IDataSink
+        class LSP_WS_LIB_PUBLIC IDataSink
         {
             private:
                 IDataSink & operator = (const IDataSink &);
