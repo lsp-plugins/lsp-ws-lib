@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.5 ===
+* Updated build scripts.
+
 === 1.0.4 ===
 * Introduced support of Windows platform for window management.
 * Added support of modern C++ starting with C++ 11.
