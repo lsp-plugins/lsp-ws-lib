@@ -954,6 +954,7 @@ namespace lsp
 
             #undef XWSK
 
+            LSP_WS_LIB_PUBLIC
             mcb_t decode_mcb(size_t code)
             {
                 if ((code >= 1) && (code <= 7))
@@ -961,6 +962,7 @@ namespace lsp
                 return MCB_NONE;
             }
 
+            LSP_WS_LIB_PUBLIC
             mcd_t decode_mcd(size_t code)
             {
                 if ((code >= 4) && (code <= 7))
@@ -968,6 +970,7 @@ namespace lsp
                 return MCD_NONE;
             }
 
+            LSP_WS_LIB_PUBLIC
             size_t decode_state(size_t code)
             {
                 size_t result = 0;
@@ -995,6 +998,7 @@ namespace lsp
                 return result;
             }
 
+            LSP_WS_LIB_PUBLIC
             code_t decode_keycode(unsigned long code)
             {
                 /* FROM <x11/keysymdef.h>:

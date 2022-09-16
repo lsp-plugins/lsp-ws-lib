@@ -33,12 +33,16 @@ namespace lsp
     {
         namespace x11
         {
+            LSP_WS_LIB_PUBLIC
             mcb_t       decode_mcb(size_t code);
 
+            LSP_WS_LIB_PUBLIC
             mcd_t       decode_mcd(size_t code);
 
+            LSP_WS_LIB_PUBLIC
             size_t      decode_state(size_t code);
 
+            LSP_WS_LIB_PUBLIC
             code_t      decode_keycode(unsigned long code);
         }
     }
