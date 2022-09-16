@@ -64,7 +64,7 @@ namespace lsp
     {
         namespace x11
         {
-            static int cursor_shapes[] =
+            static const int cursor_shapes[] =
             {
                 XC_left_ptr,                // MP_DEFAULT
                 -1,                         // MP_NONE

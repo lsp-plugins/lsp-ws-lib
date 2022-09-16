@@ -41,7 +41,7 @@ namespace lsp
             } keymappint_t;
         #pragma pack(pop)
 
-            keymapping_t keytable[] =
+            static const keymapping_t keytable[] =
             {
                 { 0x01a1, 0x0104 },
                 { 0x01a2, 0x02d8 },
@@ -805,7 +805,7 @@ namespace lsp
 
             #define XWSK(code) (WSK_ ## code - WSK_KEYSETS_FIRST)
 
-            uint8_t ctltable[] =
+            static const uint8_t ctltable[] =
             {
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // 0x00 - 0x07
                 XWSK(BACKSPACE), // 0x08
@@ -1050,8 +1050,8 @@ namespace lsp
 
                 return WSK_UNKNOWN;
             }
-        }
-    }
-}
+        } /* namespace x11 */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* USE_LIBX11 */
