@@ -149,6 +149,7 @@ namespace lsp
                 hRootWnd        = -1;
                 hClipWnd        = None;
                 pFocusWindow    = NULL;
+                nWakeupMessage  = 0;
                 nBlackColor     = 0;
                 nWhiteColor     = 0;
                 nIOBufSize      = X11IOBUF_SIZE;
@@ -193,11 +194,15 @@ namespace lsp
                 }
 
                 // Open the display
-                pDisplay        = ::XOpenDisplay(NULL);
-                if (pDisplay == NULL)
+                sTasksLock.lock();
                 {
-                    lsp_error("Can not open display");
-                    return STATUS_NO_DEVICE;
+                    lsp_finally { sTasksLock.unlock(); };
+                    pDisplay        = ::XOpenDisplay(NULL);
+                    if (pDisplay == NULL)
+                    {
+                        lsp_error("Can not open display");
+                        return STATUS_NO_DEVICE;
+                    }
                 }
 
                 // Get Root window and screen
@@ -268,6 +273,9 @@ namespace lsp
                     else
                         vCursors[i] = ::XCreateFontCursor(pDisplay, id);
                 }
+
+                // Get wakeup message atom
+                nWakeupMessage  = XInternAtom(pDisplay, "lsp::ws::wakeup", False);
 
                 // Create estimation surface
                 pEstimation     = create_surface(1, 1);
@@ -443,7 +451,11 @@ namespace lsp
 
             void X11Display::destroy()
             {
-                do_destroy();
+                {
+                    sTasksLock.lock();
+                    lsp_finally { sTasksLock.unlock(); };
+                    do_destroy();
+                }
                 IDisplay::destroy();
             }
 
@@ -1815,7 +1827,7 @@ namespace lsp
                                 #endif /* LSP_TRACE */
                             }
                         }
-                        else
+                        else if (ev->xclient.message_type != nWakeupMessage)
                         {
                             #ifdef LSP_TRACE
                             char *a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
@@ -4008,6 +4020,30 @@ namespace lsp
                 if (count != NULL)
                     *count = vMonitors.size();
                 return vMonitors.array();
+            }
+
+            void X11Display::task_queue_changed()
+            {
+                if (pDisplay == NULL)
+                    return;
+
+                XEvent event;
+                XClientMessageEvent *ev = &event.xclient;
+
+                ev->type        = ClientMessage;
+                ev->send_event  = True;
+                ev->display     = pDisplay;
+                ev->window      = hClipWnd;
+                ev->message_type= nWakeupMessage;
+                ev->format      = 32;
+                ev->data.l[0]   = 0;
+                ev->data.l[1]   = 0;
+                ev->data.l[2]   = 0;
+                ev->data.l[3]   = 0;
+                ev->data.l[4]   = 0;
+
+                XSendEvent(pDisplay, hClipWnd, True, NoEventMask, &event);
+                XFlush(pDisplay);
             }
 
         } /* namespace x11 */

@@ -26,6 +26,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ipc/Library.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/r3d/iface/backend.h>
@@ -90,6 +91,8 @@ namespace lsp
             protected:
                 taskid_t                    nTaskID;
                 lltl::darray<dtask_t>       sTasks;
+                ipc::Mutex                  sTasksLock;         // Mutex to allow multithreaded access to the queue
+                size_t                      nTaskChanges;       // Number of task changes committed by the display
                 dtask_t                     sMainTask;
                 lltl::parray<r3d_lib_t>     s3DLibs;            // List of libraries that provide 3D backends
                 lltl::parray<IR3DBackend>   s3DBackends;        // List of all 3D backend instances
@@ -108,7 +111,6 @@ namespace lsp
                 void                detach_r3d_backends();
                 void                call_main_task(timestamp_t time);
                 status_t            process_pending_tasks(timestamp_t time);
-                virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
                 static void         drop_r3d_lib(r3d_lib_t *lib);
                 bool                check_duplicate(const r3d_lib_t *lib);
 
@@ -120,6 +122,17 @@ namespace lsp
                  * @return the updated polling delay
                  */
                 int                 compute_poll_delay(timestamp_t ts, int poll_delay);
+
+
+            protected:
+                virtual bool        r3d_backend_supported(const r3d::backend_metadata_t *meta);
+
+                /**
+                 * Callback function that triggers the underlying displayy to wake up if the state
+                 * of task queue haas changed. Is sent once on the first change. The next time
+                 * it will trigger only after process_pending_tasks() call.
+                 */
+                virtual void        task_queue_changed();
 
             public:
                 explicit IDisplay();
@@ -324,7 +337,8 @@ namespace lsp
                  */
                 virtual ISurface *create_surface(size_t width, size_t height);
 
-                /** Submit task for execution
+                /** Submit task for execution. The implementation MUST be thread safe and allow
+                 * to submit tasks from ANY thread at ANY time.
                  *
                  * @param time time when the task should be triggered (timestamp in milliseconds)
                  * @param handler task handler
