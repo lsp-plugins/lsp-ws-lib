@@ -83,6 +83,9 @@ $(LSP_WS_LIB_BIN)/main/IWindow.o: main/IWindow.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -116,6 +119,9 @@ $(LSP_WS_LIB_BIN)/main/ISurface.o: main/ISurface.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -153,6 +159,9 @@ $(LSP_WS_LIB_BIN)/main/IR3DBackend.o: main/IR3DBackend.cpp \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -213,6 +222,9 @@ $(LSP_WS_LIB_BIN)/main/IDisplay.o: main/IDisplay.cpp \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -283,6 +295,9 @@ $(LSP_WS_LIB_BIN)/main/factory.o: main/factory.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -318,6 +333,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/window.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -360,6 +378,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/text.o: test/mtest/display/text.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -404,6 +425,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/surface.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -448,6 +472,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/rtext.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -492,6 +519,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/rectangles.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -534,6 +564,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/r3d.o: test/mtest/display/r3d.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -579,6 +612,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/primitives.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -623,6 +659,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/graph.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -675,6 +714,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/grab.o: test/mtest/display/grab.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -710,6 +752,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/frames.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -752,6 +797,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/font.o: test/mtest/display/font.cpp \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -804,6 +852,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/events.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -850,6 +901,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/dsurface.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -895,6 +949,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/dnd.o: test/mtest/display/dnd.cpp \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -930,6 +987,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/clipping.o: \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -987,6 +1047,9 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/clipboard.o: \
  $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
  $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
@@ -1004,6 +1067,53 @@ $(LSP_WS_LIB_BIN)/test/mtest/display/clipboard.o: \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IWindow.h \
  $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h
+$(LSP_WS_LIB_BIN)/test/mtest/display/async_tasks.o: \
+ test/mtest/display/async_tasks.cpp \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/factory.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/types.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/version.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/finally.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/version.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDisplay.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/LSPString.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/version.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/string.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/types.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/version.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/spec.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Library.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/status.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/Path.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Mutex.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/atomic.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/common/arch/x86/atomic.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/Thread.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/ipc/IRunnable.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/types.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/io/IInStream.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/backend.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/version.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/types.h \
+ $(LSP_R3D_IFACE_INC)/lsp-plug.in/r3d/iface/factory.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/darray.h \
+ $(LSP_LLTL_LIB_INC)/lsp-plug.in/lltl/parray.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/ISurface.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/Font.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IGradient.h \
+ $(LSP_RUNTIME_LIB_INC)/lsp-plug.in/runtime/Color.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSink.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IDataSource.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IWindow.h \
+ $(LSP_WS_LIB_INC)/lsp-plug.in/ws/IEventHandler.h \
+ $(LSP_COMMON_LIB_INC)/lsp-plug.in/stdlib/math.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/mtest.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/version.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/test.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/env.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main/config.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main/dynarray.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/types.h \
+ $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main/status.h
 $(LSP_WS_LIB_BIN)/test/main.o: test/main.cpp \
  $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/main.h \
  $(LSP_TEST_FW_INC)/lsp-plug.in/test-fw/version.h \
