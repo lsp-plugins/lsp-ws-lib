@@ -211,6 +211,7 @@ namespace lsp
                     Window                      hRootWnd;           // Root window of the display
                     Window                      hClipWnd;           // Unmapped clipboard window
                     X11Window                  *pFocusWindow;       // Focus window after show
+                    Atom                        nWakeupMessage;     // Wakeup message type
                     int                         nBlackColor;
                     int                         nWhiteColor;
                     x11_atoms_t                 sAtoms;
@@ -302,6 +303,7 @@ namespace lsp
 
                 protected:
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
+                    virtual void                task_queue_changed() override;
 
                 public:
                     explicit X11Display();

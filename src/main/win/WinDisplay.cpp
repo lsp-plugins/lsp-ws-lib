@@ -2200,6 +2200,12 @@ namespace lsp
                 return IDisplay::r3d_backend_supported(meta);
             }
 
+            void WinDisplay::task_queue_changed()
+            {
+                if (hClipWnd != NULL)
+                    PostMessageW(hClipWnd, WM_USER, 0, 0);
+            }
+
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

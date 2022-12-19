@@ -97,6 +97,7 @@ namespace lsp
         IDisplay::IDisplay()
         {
             nTaskID             = 0;
+            nTaskChanges        = 0;
             p3DFactory          = NULL;
             nCurrent3D          = 0;
             nPending3D          = 0;
@@ -265,6 +266,11 @@ namespace lsp
 
         int IDisplay::compute_poll_delay(timestamp_t ts, int poll_delay)
         {
+            // Lock the mutex
+            sTasksLock.lock();
+            lsp_finally { sTasksLock.unlock(); };
+
+            // Perform operations
             if (sTasks.size() <= 0)
                 return poll_delay;
 
@@ -484,10 +490,17 @@ namespace lsp
                 sMainTask.pHandler(time, time, sMainTask.pArg);
         }
 
+        void IDisplay::task_queue_changed()
+        {
+        }
+
         status_t IDisplay::process_pending_tasks(timestamp_t time)
         {
             dtask_t task;
             status_t result = STATUS_OK;
+
+            sTasksLock.lock();
+            lsp_finally { sTasksLock.unlock(); };
 
             for (size_t i=0, n = sTasks.size(); i < n; ++i)
             {
@@ -507,11 +520,19 @@ namespace lsp
                     }
                 }
 
-                // Process the task
-                status_t hresult    = task.pHandler(task.nTime, time, task.pArg);
-                if (hresult != STATUS_OK)
-                    result      = hresult;
+                // Process the task with unlocked task queue
+                sTasksLock.unlock();
+                {
+                    status_t hresult    = task.pHandler(task.nTime, time, task.pArg);
+                    if (hresult != STATUS_OK)
+                        result      = hresult;
+                }
+                sTasksLock.lock();
             }
+
+            // Reset the number of changes for tasks so the task_queue_changed()
+            // call becomes possible again
+            nTaskChanges        = 0;
 
             return result;
         }
@@ -775,6 +796,9 @@ namespace lsp
             if (handler == NULL)
                 return -STATUS_BAD_ARGUMENTS;
 
+            sTasksLock.lock();
+            lsp_finally { sTasksLock.unlock(); };
+
             ssize_t first = 0, last = sTasks.size() - 1;
 
             // Find the place to add the task
@@ -804,6 +828,10 @@ namespace lsp
             t->pHandler     = handler;
             t->pArg         = arg;
 
+            // Trigger the queue if task has been submitted
+            if (nTaskChanges++ == 0)
+                task_queue_changed();
+
             return t->nID;
         }
 
@@ -811,6 +839,9 @@ namespace lsp
         {
             if (id < 0)
                 return STATUS_INVALID_UID;
+
+            sTasksLock.lock();
+            lsp_finally { sTasksLock.unlock(); };
 
             // Remove task from the queue
             for (size_t i=0; i<sTasks.size(); ++i)

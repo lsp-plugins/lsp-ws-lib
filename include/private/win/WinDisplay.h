@@ -165,6 +165,7 @@ namespace lsp
 
                 protected:
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
+                    virtual void                task_queue_changed() override;
 
                 public:
                     explicit WinDisplay();

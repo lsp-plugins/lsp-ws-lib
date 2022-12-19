@@ -41,7 +41,7 @@ namespace lsp
             } keymappint_t;
         #pragma pack(pop)
 
-            keymapping_t keytable[] =
+            static const keymapping_t keytable[] =
             {
                 { 0x01a1, 0x0104 },
                 { 0x01a2, 0x02d8 },
@@ -805,7 +805,7 @@ namespace lsp
 
             #define XWSK(code) (WSK_ ## code - WSK_KEYSETS_FIRST)
 
-            uint8_t ctltable[] =
+            static const uint8_t ctltable[] =
             {
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // 0x00 - 0x07
                 XWSK(BACKSPACE), // 0x08
@@ -954,6 +954,7 @@ namespace lsp
 
             #undef XWSK
 
+            LSP_WS_LIB_PUBLIC
             mcb_t decode_mcb(size_t code)
             {
                 if ((code >= 1) && (code <= 7))
@@ -961,6 +962,7 @@ namespace lsp
                 return MCB_NONE;
             }
 
+            LSP_WS_LIB_PUBLIC
             mcd_t decode_mcd(size_t code)
             {
                 if ((code >= 4) && (code <= 7))
@@ -968,6 +970,7 @@ namespace lsp
                 return MCD_NONE;
             }
 
+            LSP_WS_LIB_PUBLIC
             size_t decode_state(size_t code)
             {
                 size_t result = 0;
@@ -995,6 +998,7 @@ namespace lsp
                 return result;
             }
 
+            LSP_WS_LIB_PUBLIC
             code_t decode_keycode(unsigned long code)
             {
                 /* FROM <x11/keysymdef.h>:
@@ -1050,8 +1054,8 @@ namespace lsp
 
                 return WSK_UNKNOWN;
             }
-        }
-    }
-}
+        } /* namespace x11 */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* USE_LIBX11 */
