@@ -876,20 +876,20 @@ namespace lsp
                     char *a_name = ::XGetAtomName(pDisplay, list[i]);
                     if (a_name == NULL)
                         continue;
+                    lsp_finally { ::XFree(a_name); };
+
                     char *a_dup = ::strdup(a_name);
                     if (a_dup == NULL)
-                    {
-                        ::XFree(a_name);
                         return STATUS_NO_MEM;
-                    }
-
                     if (!ctype->add(a_dup))
                     {
-                        ::XFree(a_name);
                         ::free(a_dup);
                         return STATUS_NO_MEM;
                     }
                 }
+
+                if (!ctype->add(static_cast<char *>(NULL)))
+                    return STATUS_NO_MEM;
 
                 return STATUS_OK;
             }
@@ -1228,6 +1228,8 @@ namespace lsp
                             // Decode list of mime types and pass to sink
                             lltl::parray<char> mimes;
                             res = decode_mime_types(&mimes, data, bytes);
+                            lsp_finally { drop_mime_types(&mimes); };
+
                             if (res == STATUS_OK)
                             {
                                 ssize_t idx = task->pSink->open(mimes.array());
@@ -1254,7 +1256,6 @@ namespace lsp
                                 else
                                     res = -idx;
                             }
-                            drop_mime_types(&mimes);
                         }
                         else
                             res = STATUS_BAD_FORMAT;
