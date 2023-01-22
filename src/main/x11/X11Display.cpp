@@ -1860,6 +1860,8 @@ namespace lsp
 
                         case UIE_MOUSE_DOWN:
                         case UIE_MOUSE_UP:
+                        case UIE_MOUSE_IN:
+                        case UIE_MOUSE_OUT:
                         case UIE_MOUSE_SCROLL:
                         case UIE_MOUSE_MOVE:
                         case UIE_KEY_DOWN:
@@ -1918,6 +1920,8 @@ namespace lsp
                                 if (wnd != redirect)
                                 {
 //                                    lsp_trace("Redirect window: %p", wnd);
+                                    if ((se.nType == UIE_MOUSE_IN) || (se.nType == UIE_MOUSE_OUT))
+                                        redirect    = NULL;
                                     sTargets.set(i, redirect);
                                 }
                             }
@@ -1934,6 +1938,8 @@ namespace lsp
                     for (size_t i=0, nwnd = sTargets.size(); i<nwnd; ++i)
                     {
                         X11Window *wnd = sTargets.uget(i);
+                        if (wnd == NULL)
+                            continue;
 
                         // Translate coordinates if originating and target window differs
                         int x, y;

@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.7 ===
-
+* Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
 
 === 1.0.6 ===
 * Updated build scripts.
