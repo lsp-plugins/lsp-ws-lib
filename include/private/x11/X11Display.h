@@ -239,6 +239,7 @@ namespace lsp
                     ISurface                   *pEstimation;        // Estimation surface
 
                 protected:
+                    void            decode_event(event_t *ue, XEvent *ev);
                     void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);

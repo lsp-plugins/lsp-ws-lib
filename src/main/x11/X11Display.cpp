@@ -1618,6 +1618,172 @@ namespace lsp
                 return res;
             }
 
+            void X11Display::decode_event(event_t *ue, XEvent *ev)
+            {
+                init_event(ue);
+
+                // Decode event
+                switch (ev->type)
+                {
+                    case KeyPress:
+                    case KeyRelease:
+                    {
+                        char ret[32];
+                        KeySym ksym;
+                        XComposeStatus status;
+
+                        XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
+                        code_t key   = decode_keycode(ksym);
+
+                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
+
+                        if (key != WSK_UNKNOWN)
+                        {
+                            ue->nType       = (ev->type == KeyPress) ? UIE_KEY_DOWN : UIE_KEY_UP;
+                            ue->nLeft       = ev->xkey.x;
+                            ue->nTop        = ev->xkey.y;
+                            ue->nCode       = key;
+                            ue->nRawCode    = ksym;
+                            ue->nState      = decode_state(ev->xkey.state);
+                            ue->nTime       = ev->xkey.time;
+                        }
+                        break;
+                    }
+
+                    case ButtonPress:
+                    case ButtonRelease:
+//                        lsp_trace("button time = %ld, x=%d, y=%d up=%s", long(ev->xbutton.time),
+//                            int(ev->xbutton.x), int(ev->xbutton.y),
+//                            (ev->type == ButtonRelease) ? "true" : "false");
+
+                        // Check that it is a scrolling
+                        ue->nCode       = decode_mcd(ev->xbutton.button);
+                        if (ue->nCode != MCD_NONE)
+                        {
+                            // Skip ButtonRelease
+                            if (ev->type == ButtonPress)
+                            {
+                                ue->nType       = UIE_MOUSE_SCROLL;
+                                ue->nLeft       = ev->xbutton.x;
+                                ue->nTop        = ev->xbutton.y;
+                                ue->nState      = decode_state(ev->xbutton.state);
+                                ue->nTime       = ev->xbutton.time;
+                            }
+                            break;
+                        }
+
+                        // Check if it is a button press/release
+                        ue->nCode        = decode_mcb(ev->xbutton.button);
+                        if (ue->nCode != MCB_NONE)
+                        {
+                            ue->nType       = (ev->type == ButtonPress) ? UIE_MOUSE_DOWN : UIE_MOUSE_UP;
+                            ue->nLeft       = ev->xbutton.x;
+                            ue->nTop        = ev->xbutton.y;
+                            ue->nState      = decode_state(ev->xbutton.state);
+                            ue->nTime       = ev->xbutton.time;
+                            break;
+                        }
+
+                        // Unknown button
+                        break;
+
+                    case MotionNotify:
+                        ue->nType       = UIE_MOUSE_MOVE;
+                        ue->nLeft       = ev->xmotion.x;
+                        ue->nTop        = ev->xmotion.y;
+                        ue->nState      = decode_state(ev->xmotion.state);
+                        ue->nTime       = ev->xmotion.time;
+                        break;
+
+                    case Expose:
+                        ue->nType       = UIE_REDRAW;
+                        ue->nLeft       = ev->xexpose.x;
+                        ue->nTop        = ev->xexpose.y;
+                        ue->nWidth      = ev->xexpose.width;
+                        ue->nHeight     = ev->xexpose.height;
+                        break;
+
+                    case ResizeRequest:
+                        ue->nType       = UIE_SIZE_REQUEST;
+                        ue->nWidth      = ev->xresizerequest.width;
+                        ue->nHeight     = ev->xresizerequest.height;
+                        break;
+
+                    case ConfigureNotify:
+                        ue->nType       = UIE_RESIZE;
+                        ue->nLeft       = ev->xconfigure.x;
+                        ue->nTop        = ev->xconfigure.y;
+                        ue->nWidth      = ev->xconfigure.width;
+                        ue->nHeight     = ev->xconfigure.height;
+                        break;
+
+                    case MapNotify:
+                        ue->nType       = UIE_SHOW;
+                        break;
+                    case UnmapNotify:
+                        ue->nType       = UIE_HIDE;
+                        break;
+
+                    case EnterNotify:
+                    case LeaveNotify:
+                        ue->nType       = (ev->type == EnterNotify) ? UIE_MOUSE_IN : UIE_MOUSE_OUT;
+                        ue->nLeft       = ev->xcrossing.x;
+                        ue->nTop        = ev->xcrossing.y;
+                        break;
+
+                    case FocusIn:
+                    case FocusOut:
+                        ue->nType       = (ev->type == FocusIn) ? UIE_FOCUS_IN : UIE_FOCUS_OUT;
+                        // TODO: maybe useful could be decoding of mode and detail
+                        break;
+
+                    case KeymapNotify:
+                        //lsp_trace("The keyboard state was changed!");
+                        break;
+
+                    case MappingNotify:
+                        if ((ev->xmapping.request == MappingKeyboard) || (ev->xmapping.request == MappingModifier))
+                        {
+                            lsp_trace("The keyboard mapping was changed!");
+                            XRefreshKeyboardMapping(&ev->xmapping);
+                        }
+
+                        break;
+
+                    case ClientMessage:
+                    {
+                        XClientMessageEvent *ce = &ev->xclient;
+                        Atom type = ce->message_type;
+
+                        if (type == sAtoms.X11_WM_PROTOCOLS)
+                        {
+                            if (ce->data.l[0] == long(sAtoms.X11_WM_DELETE_WINDOW))
+                                ue->nType        = UIE_CLOSE;
+                            else
+                            {
+                                #ifdef LSP_TRACE
+                                char *name = ::XGetAtomName(pDisplay, ce->data.l[0]);
+                                lsp_trace("received client WM_PROTOCOLS message with argument %s", name);
+                                ::XFree(name);
+                                #endif /* LSP_TRACE */
+                            }
+                        }
+                        else if (ev->xclient.message_type != nWakeupMessage)
+                        {
+                            #ifdef LSP_TRACE
+                            char *a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
+                            lsp_trace("received client message of type %s", a_name);
+                            ::XFree(a_name);
+                            #endif
+                        }
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+            }
+
             void X11Display::handle_event(XEvent *ev)
             {
                 if (ev->type > LASTEvent)
@@ -1678,283 +1844,121 @@ namespace lsp
 //                    }
                 }
 
-                event_t ue;
-                init_event(&ue);
-
-                // Decode event
-                switch (ev->type)
-                {
-                    case KeyPress:
-                    case KeyRelease:
-                    {
-                        char ret[32];
-                        KeySym ksym;
-                        XComposeStatus status;
-
-                        XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
-                        code_t key   = decode_keycode(ksym);
-
-                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
-
-                        if (key != WSK_UNKNOWN)
-                        {
-                            ue.nType        = (ev->type == KeyPress) ? UIE_KEY_DOWN : UIE_KEY_UP;
-                            ue.nLeft        = ev->xkey.x;
-                            ue.nTop         = ev->xkey.y;
-                            ue.nCode        = key;
-                            ue.nRawCode     = ksym;
-                            ue.nState       = decode_state(ev->xkey.state);
-                            ue.nTime        = ev->xkey.time;
-                        }
-                        break;
-                    }
-
-                    case ButtonPress:
-                    case ButtonRelease:
-//                        lsp_trace("button time = %ld, x=%d, y=%d up=%s", long(ev->xbutton.time),
-//                            int(ev->xbutton.x), int(ev->xbutton.y),
-//                            (ev->type == ButtonRelease) ? "true" : "false");
-
-                        // Check that it is a scrolling
-                        ue.nCode        = decode_mcd(ev->xbutton.button);
-                        if (ue.nCode != MCD_NONE)
-                        {
-                            // Skip ButtonRelease
-                            if (ev->type == ButtonPress)
-                            {
-                                ue.nType        = UIE_MOUSE_SCROLL;
-                                ue.nLeft        = ev->xbutton.x;
-                                ue.nTop         = ev->xbutton.y;
-                                ue.nState       = decode_state(ev->xbutton.state);
-                                ue.nTime        = ev->xbutton.time;
-                            }
-                            break;
-                        }
-
-                        // Check if it is a button press/release
-                        ue.nCode        = decode_mcb(ev->xbutton.button);
-                        if (ue.nCode != MCB_NONE)
-                        {
-                            ue.nType        = (ev->type == ButtonPress) ? UIE_MOUSE_DOWN : UIE_MOUSE_UP;
-                            ue.nLeft        = ev->xbutton.x;
-                            ue.nTop         = ev->xbutton.y;
-                            ue.nState       = decode_state(ev->xbutton.state);
-                            ue.nTime        = ev->xbutton.time;
-                            break;
-                        }
-
-                        // Unknown button
-                        break;
-
-                    case MotionNotify:
-                        ue.nType        = UIE_MOUSE_MOVE;
-                        ue.nLeft        = ev->xmotion.x;
-                        ue.nTop         = ev->xmotion.y;
-                        ue.nState       = decode_state(ev->xmotion.state);
-                        ue.nTime        = ev->xmotion.time;
-                        break;
-
-                    case Expose:
-                        ue.nType        = UIE_REDRAW;
-                        ue.nLeft        = ev->xexpose.x;
-                        ue.nTop         = ev->xexpose.y;
-                        ue.nWidth       = ev->xexpose.width;
-                        ue.nHeight      = ev->xexpose.height;
-                        break;
-
-                    case ResizeRequest:
-                        ue.nType        = UIE_SIZE_REQUEST;
-                        ue.nWidth       = ev->xresizerequest.width;
-                        ue.nHeight      = ev->xresizerequest.height;
-                        break;
-
-                    case ConfigureNotify:
-                        ue.nType        = UIE_RESIZE;
-                        ue.nLeft        = ev->xconfigure.x;
-                        ue.nTop         = ev->xconfigure.y;
-                        ue.nWidth       = ev->xconfigure.width;
-                        ue.nHeight      = ev->xconfigure.height;
-                        break;
-
-                    case MapNotify:
-                        ue.nType        = UIE_SHOW;
-                        break;
-                    case UnmapNotify:
-                        ue.nType        = UIE_HIDE;
-                        break;
-
-                    case EnterNotify:
-                    case LeaveNotify:
-                        ue.nType        = (ev->type == EnterNotify) ? UIE_MOUSE_IN : UIE_MOUSE_OUT;
-                        ue.nLeft        = ev->xcrossing.x;
-                        ue.nTop         = ev->xcrossing.y;
-                        break;
-
-                    case FocusIn:
-                    case FocusOut:
-                        ue.nType        = (ev->type == FocusIn) ? UIE_FOCUS_IN : UIE_FOCUS_OUT;
-                        // TODO: maybe useful could be decoding of mode and detail
-                        break;
-
-                    case KeymapNotify:
-                        //lsp_trace("The keyboard state was changed!");
-                        break;
-
-                    case MappingNotify:
-                        if ((ev->xmapping.request == MappingKeyboard) || (ev->xmapping.request == MappingModifier))
-                        {
-                            lsp_trace("The keyboard mapping was changed!");
-                            XRefreshKeyboardMapping(&ev->xmapping);
-                        }
-
-                        break;
-
-                    case ClientMessage:
-                    {
-                        XClientMessageEvent *ce = &ev->xclient;
-                        Atom type = ce->message_type;
-
-                        if (type == sAtoms.X11_WM_PROTOCOLS)
-                        {
-                            if (ce->data.l[0] == long(sAtoms.X11_WM_DELETE_WINDOW))
-                                ue.nType        = UIE_CLOSE;
-                            else
-                            {
-                                #ifdef LSP_TRACE
-                                char *name = ::XGetAtomName(pDisplay, ce->data.l[0]);
-                                lsp_trace("received client WM_PROTOCOLS message with argument %s", name);
-                                ::XFree(name);
-                                #endif /* LSP_TRACE */
-                            }
-                        }
-                        else if (ev->xclient.message_type != nWakeupMessage)
-                        {
-                            #ifdef LSP_TRACE
-                            char *a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
-                            lsp_trace("received client message of type %s", a_name);
-                            ::XFree(a_name);
-                            #endif
-                        }
-                        break;
-                    }
-
-                    default:
-                        return;
-                }
-
                 // Analyze event type
-                if (ue.nType != UIE_UNKNOWN)
+                event_t ue;
+                decode_event(&ue, ev);
+                if (ue.nType == UIE_UNKNOWN)
+                    return;
+
+                Window child        = None;
+                event_t se          = ue;
+
+                // Clear the collection
+                lsp_finally { sTargets.clear(); };
+
+                switch (se.nType)
                 {
-                    Window child        = None;
-                    event_t se          = ue;
+                    case UIE_CLOSE:
+                        if ((target != NULL) && (get_locked(target) == NULL))
+                            sTargets.add(target);
+                        break;
 
-                    // Clear the collection
-                    lsp_finally { sTargets.clear(); };
-
-                    switch (se.nType)
+                    case UIE_MOUSE_DOWN:
+                    case UIE_MOUSE_UP:
+                    case UIE_MOUSE_IN:
+                    case UIE_MOUSE_OUT:
+                    case UIE_MOUSE_SCROLL:
+                    case UIE_MOUSE_MOVE:
+                    case UIE_KEY_DOWN:
+                    case UIE_KEY_UP:
                     {
-                        case UIE_CLOSE:
-                            if ((target != NULL) && (get_locked(target) == NULL))
-                                sTargets.add(target);
-                            break;
-
-                        case UIE_MOUSE_DOWN:
-                        case UIE_MOUSE_UP:
-                        case UIE_MOUSE_IN:
-                        case UIE_MOUSE_OUT:
-                        case UIE_MOUSE_SCROLL:
-                        case UIE_MOUSE_MOVE:
-                        case UIE_KEY_DOWN:
-                        case UIE_KEY_UP:
+                        // Check if there is grab enabled and obtain list of receivers
+                        bool has_grab = false;
+                        for (ssize_t i=__GRAB_TOTAL-1; i>=0; --i)
                         {
-                            // Check if there is grab enabled and obtain list of receivers
-                            bool has_grab = false;
-                            for (ssize_t i=__GRAB_TOTAL-1; i>=0; --i)
+                            lltl::parray<X11Window> &g = vGrab[i];
+                            if (g.size() <= 0)
+                                continue;
+
+                            // Add listeners from grabbing windows
+                            for (size_t j=0; j<g.size();)
                             {
-                                lltl::parray<X11Window> &g = vGrab[i];
-                                if (g.size() <= 0)
+                                X11Window *wnd = g.uget(j);
+                                if ((wnd == NULL) || (vWindows.index_of(wnd) < 0))
+                                {
+                                    g.remove(i);
                                     continue;
-
-                                // Add listeners from grabbing windows
-                                for (size_t j=0; j<g.size();)
-                                {
-                                    X11Window *wnd = g.uget(j);
-                                    if ((wnd == NULL) || (vWindows.index_of(wnd) < 0))
-                                    {
-                                        g.remove(i);
-                                        continue;
-                                    }
-                                    sTargets.add(wnd);
-                                    ++j;
                                 }
-
-                                // Finally, break if there are target windows
-                                if (sTargets.size() > 0)
-                                {
-                                    has_grab = true;
-                                    break;
-                                }
+                                sTargets.add(wnd);
+                                ++j;
                             }
 
-                            if (has_grab)
+                            // Finally, break if there are target windows
+                            if (sTargets.size() > 0)
                             {
-                                // Allow event replay
-                                if ((se.nType == UIE_KEY_DOWN) || (se.nType == UIE_KEY_UP))
-                                    ::XAllowEvents(pDisplay, ReplayKeyboard, CurrentTime);
-                                else if (se.nType != UIE_CLOSE)
-                                    ::XAllowEvents(pDisplay, ReplayPointer, CurrentTime);
+                                has_grab = true;
+                                break;
                             }
-                            else if (target != NULL)
-                                sTargets.add(target);
-
-                            // Get the final window
-                            for (size_t i=0, nwnd=sTargets.size(); i<nwnd; ++i)
-                            {
-                                // Get target window
-                                X11Window *wnd = sTargets.uget(i);
-                                if (wnd == NULL)
-                                    continue;
-
-                                // Get the locking window
-                                X11Window *redirect = get_redirect(wnd);
-                                if (wnd != redirect)
-                                {
-//                                    lsp_trace("Redirect window: %p", wnd);
-                                    if ((se.nType == UIE_MOUSE_IN) || (se.nType == UIE_MOUSE_OUT))
-                                        redirect    = NULL;
-                                    sTargets.set(i, redirect);
-                                }
-                            }
-
-                            break;
                         }
-                        default:
-                            if (target != NULL)
-                                sTargets.add(target);
-                            break;
-                    } // switch(se.nType)
 
-                    // Deliver the message to target windows
-                    for (size_t i=0, nwnd = sTargets.size(); i<nwnd; ++i)
-                    {
-                        X11Window *wnd = sTargets.uget(i);
-                        if (wnd == NULL)
-                            continue;
+                        if (has_grab)
+                        {
+                            // Allow event replay
+                            if ((se.nType == UIE_KEY_DOWN) || (se.nType == UIE_KEY_UP))
+                                ::XAllowEvents(pDisplay, ReplayKeyboard, CurrentTime);
+                            else if (se.nType != UIE_CLOSE)
+                                ::XAllowEvents(pDisplay, ReplayPointer, CurrentTime);
+                        }
+                        else if (target != NULL)
+                            sTargets.add(target);
 
-                        // Translate coordinates if originating and target window differs
-                        int x, y;
-                        if (!translate_coordinates(
-                            ev->xany.window, wnd->x11handle(),
-                            ue.nLeft, ue.nTop,
-                            &x, &y, &child))
-                            break;
+                        // Get the final window
+                        for (size_t i=0, nwnd=sTargets.size(); i<nwnd; ++i)
+                        {
+                            // Get target window
+                            X11Window *wnd = sTargets.uget(i);
+                            if (wnd == NULL)
+                                continue;
 
-                        se.nLeft    = x;
-                        se.nTop     = y;
+                            // Get the locking window
+                            X11Window *redirect = get_redirect(wnd);
+                            if (wnd != redirect)
+                            {
+//                                    lsp_trace("Redirect window: %p", wnd);
+                                if ((se.nType == UIE_MOUSE_IN) || (se.nType == UIE_MOUSE_OUT))
+                                    redirect    = NULL;
+                                sTargets.set(i, redirect);
+                            }
+                        }
 
-//                        lsp_trace("Sending event to target=%p", wnd);
-                        wnd->handle_event(&se);
+                        break;
                     }
+                    default:
+                        if (target != NULL)
+                            sTargets.add(target);
+                        break;
+                } // switch(se.nType)
+
+                // Deliver the message to target windows
+                for (size_t i=0, nwnd = sTargets.size(); i<nwnd; ++i)
+                {
+                    X11Window *wnd = sTargets.uget(i);
+                    if (wnd == NULL)
+                        continue;
+
+                    // Translate coordinates if originating and target window differs
+                    int x, y;
+                    if (!translate_coordinates(
+                        ev->xany.window, wnd->x11handle(),
+                        ue.nLeft, ue.nTop,
+                        &x, &y, &child))
+                        break;
+
+                    se.nLeft    = x;
+                    se.nTop     = y;
+
+//                    lsp_trace("Sending event to target=%p", wnd);
+                    wnd->handle_event(&se);
                 }
             }
 
