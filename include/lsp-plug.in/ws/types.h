@@ -213,7 +213,7 @@ namespace lsp
             // Supplementary constants
             UIE_TOTAL,
             UIE_FIRST = UIE_KEY_DOWN,
-            UIE_LAST = UIE_CLOSE,
+            UIE_LAST = UIE_DRAG_REQUEST,
             UIE_END = UIE_UNKNOWN
         };
 
