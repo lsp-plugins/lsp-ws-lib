@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.8 ===
+
+
 === 1.0.7 ===
 * Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
 * Fixed memory issues related to X11 Mime read support.
