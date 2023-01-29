@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.8 ===
-
+* Fix GetLastError not being called in several functions for Windows
+  (contributed by Imre Gera).
 
 === 1.0.7 ===
 * Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
