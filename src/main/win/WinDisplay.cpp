@@ -117,7 +117,7 @@ namespace lsp
 
                 if (!(hWindowClass = RegisterClassW(&wc)))
                 {
-                    lsp_error("Error registering window class: %ld", long(GetLastError));
+                    lsp_error("Error registering window class: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
 
@@ -130,7 +130,7 @@ namespace lsp
 
                 if (!(hClipClass = RegisterClassW(&wc)))
                 {
-                    lsp_error("Error registering clipboard window class: %ld", long(GetLastError));
+                    lsp_error("Error registering clipboard window class: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
 
