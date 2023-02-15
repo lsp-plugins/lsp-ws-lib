@@ -5,6 +5,7 @@
 === 1.0.8 ===
 * Fix GetLastError not being called in several functions for Windows
   (contributed by Imre Gera).
+* Fixed bug related to improper behaviour of X11CairoSurface::draw_raw function.
 * Updated dependencies file.
 
 === 1.0.7 ===
