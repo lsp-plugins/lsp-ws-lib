@@ -7,6 +7,7 @@
   (contributed by Imre Gera).
 * Fixed bug related to improper behaviour of X11CairoSurface::draw_raw function.
 * Updated dependencies file.
+* Added test build for Windows using MSYS2.
 
 === 1.0.7 ===
 * Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
