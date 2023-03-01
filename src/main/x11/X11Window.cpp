@@ -1008,7 +1008,9 @@ namespace lsp
                 if (over != NULL)
                 {
                     wnd = static_cast<X11Window *>(over);
-                    if (wnd->hWindow > 0)
+                    if (wnd->hParent != None)
+                        transient_for = wnd->hParent;
+                    else if (wnd->hWindow > 0)
                         transient_for = wnd->hWindow;
                 }
                 hTransientFor   = transient_for;

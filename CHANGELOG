@@ -8,6 +8,7 @@
 * Fixed bug related to improper behaviour of X11CairoSurface::draw_raw function.
 * Updated dependencies file.
 * Added test build for Windows using MSYS2.
+* More accurate TRANSIENT_FOR hint setting for X11.
 * Updated build scripts.
 
 === 1.0.7 ===
