@@ -10,6 +10,7 @@
 * Added test build for Windows using MSYS2.
 * More accurate TRANSIENT_FOR hint setting for X11.
 * Updated build scripts.
+* Updated module versions in dependencies.
 
 === 1.0.7 ===
 * Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
