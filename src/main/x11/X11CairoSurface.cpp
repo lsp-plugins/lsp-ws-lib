@@ -213,6 +213,8 @@ namespace lsp
                 // Draw one surface on another
                 float sw = fabs(sx * s->width()), sh = fabs(sy * s->height());
                 ::cairo_save(pCR);
+                lsp_finally { ::cairo_restore(pCR); };
+
                 ::cairo_rectangle(pCR, x, y, sw, sh);
                 ::cairo_clip(pCR);
 
@@ -235,8 +237,6 @@ namespace lsp
                     ::cairo_paint_with_alpha(pCR, 1.0f - a);
                 else
                     ::cairo_paint(pCR);
-
-                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
@@ -276,6 +276,8 @@ namespace lsp
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
+                lsp_finally { ::cairo_restore(pCR); };
+
                 ::cairo_rectangle(pCR, x, y, sw, sh);
                 ::cairo_clip(pCR);
                 ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
@@ -283,7 +285,6 @@ namespace lsp
                     ::cairo_paint_with_alpha(pCR, 1.0f - a);
                 else
                     ::cairo_paint(pCR);
-                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::draw_raw(
@@ -303,6 +304,7 @@ namespace lsp
 
                 // Draw one surface on another
                 ::cairo_save(pCR);
+                lsp_finally { ::cairo_restore(pCR); };
 
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
@@ -323,8 +325,6 @@ namespace lsp
                     ::cairo_paint_with_alpha(pCR, 1.0f - a);
                 else
                     ::cairo_paint(pCR);
-
-                ::cairo_restore(pCR);
             }
 
             void X11CairoSurface::begin()
@@ -339,7 +339,6 @@ namespace lsp
                 pFO             = ::cairo_font_options_create();
                 if (pFO == NULL)
                     return;
-                cairo_push_group(pCR);
 
                 // Initialize settings
                 ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_GOOD);
@@ -367,8 +366,6 @@ namespace lsp
                 }
                 if (pCR != NULL)
                 {
-                    cairo_pop_group_to_source(pCR);
-                    cairo_paint(pCR);
                     cairo_destroy(pCR);
                     pCR             = NULL;
                 }

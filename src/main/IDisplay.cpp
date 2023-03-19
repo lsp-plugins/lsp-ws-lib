@@ -522,12 +522,12 @@ namespace lsp
 
                 // Process the task with unlocked task queue
                 sTasksLock.unlock();
+                lsp_finally { sTasksLock.lock(); };
                 {
                     status_t hresult    = task.pHandler(task.nTime, time, task.pArg);
                     if (hresult != STATUS_OK)
                         result      = hresult;
                 }
-                sTasksLock.lock();
             }
 
             // Reset the number of changes for tasks so the task_queue_changed()

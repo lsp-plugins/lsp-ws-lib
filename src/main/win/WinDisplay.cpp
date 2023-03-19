@@ -117,7 +117,7 @@ namespace lsp
 
                 if (!(hWindowClass = RegisterClassW(&wc)))
                 {
-                    lsp_error("Error registering window class: %ld", long(GetLastError));
+                    lsp_error("Error registering window class: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
 
@@ -130,7 +130,7 @@ namespace lsp
 
                 if (!(hClipClass = RegisterClassW(&wc)))
                 {
-                    lsp_error("Error registering clipboard window class: %ld", long(GetLastError));
+                    lsp_error("Error registering clipboard window class: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
 
@@ -1344,7 +1344,7 @@ namespace lsp
                 // Return error if not found
                 if (!found)
                 {
-                    lsp_trace("No grab found for window %p (%lx)", wnd, long(wnd->hWindow));
+                    lsp_trace("No grab found for window %p (%p)", wnd, reinterpret_cast<void *>(wnd->hWindow));
                     return STATUS_NO_GRAB;
                 }
 

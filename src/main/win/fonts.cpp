@@ -61,7 +61,7 @@ namespace lsp
             {
                 // Validate the position
                 wssize_t end    = fileOffset + fragmentSize;
-                if (end <= pLoader->nSize)
+                if (end <= wssize_t(pLoader->nSize))
                 {
                     // Return the pointer
                     *fragmentStart      = &pLoader->pData[fileOffset];

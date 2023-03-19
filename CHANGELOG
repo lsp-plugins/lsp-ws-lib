@@ -2,6 +2,16 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.8 ===
+* Fix GetLastError not being called in several functions for Windows
+  (contributed by Imre Gera).
+* Fixed bug related to improper behaviour of X11CairoSurface::draw_raw function.
+* Updated dependencies file.
+* Added test build for Windows using MSYS2.
+* More accurate TRANSIENT_FOR hint setting for X11.
+* Updated build scripts.
+* Updated module versions in dependencies.
+
 === 1.0.7 ===
 * Fixed UIE_MOUSE_IN and UIE_MOUSE_OUT event handling for locked X11 windows.
 * Fixed memory issues related to X11 Mime read support.

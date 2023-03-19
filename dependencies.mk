@@ -94,12 +94,14 @@ ifeq ($(PLATFORM),Windows)
   TEST_DEPENDENCIES        += $(WINDOWS_TEST_DEPENDENCIES)
 endif
 
+#------------------------------------------------------------------------------
+# All possible dependencies
 ALL_DEPENDENCIES = \
   $(DEPENDENCIES) \
   $(LINUX_DEPENDENCIES) \
   $(BSD_DEPENDENCIES) \
   $(WINDOWS_DEPENDENCIES) \
   $(TEST_DEPENDENCIES) \
-  $(TEST_LINUX_DEPENDENCIES) \
-  $(TEST_WINDOWS_DEPENDENCIES) \
-  $(TEST_BSD_DEPENDENCIES)
+  $(LINUX_TEST_DEPENDENCIES) \
+  $(BSD_TEST_DEPENDENCIES) \
+  $(WINDOWS_TEST_DEPENDENCIES)

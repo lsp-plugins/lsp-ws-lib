@@ -410,9 +410,9 @@ namespace lsp
                     sz.max_height   = sSize.nHeight;
                 }
 
-                lsp_trace("Window constraints: min_width=%d, min_height=%d, max_width=%d, max_height=%d",
-                        int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
-                    );
+//                lsp_trace("Window constraints: min_width=%d, min_height=%d, max_width=%d, max_height=%d",
+//                        int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
+//                    );
 
                 XSetWMNormalHints(pX11Display->x11display(), hWindow, &sz);
 //                pX11Display->sync();
@@ -1008,7 +1008,9 @@ namespace lsp
                 if (over != NULL)
                 {
                     wnd = static_cast<X11Window *>(over);
-                    if (wnd->hWindow > 0)
+                    if (wnd->hParent != None)
+                        transient_for = wnd->hParent;
+                    else if (wnd->hWindow > 0)
                         transient_for = wnd->hWindow;
                 }
                 hTransientFor   = transient_for;
