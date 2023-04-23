@@ -46,9 +46,19 @@ namespace lsp
 
             typedef uint32_t            f24p6_t;
 
-            static constexpr float      f24p6_divider           = 1.0f / 64.0f;
-            static constexpr float      f24p6_multiplier        = 64.0f;
-            static constexpr f24p6_t    f24p6_face_slant_shift  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
+            /**
+             * The default minimum font cache size for the font manager
+             */
+            constexpr size_t            default_min_font_cache_size     = 8 * 1024 * 1024;
+
+            /**
+             * The default maximum font cache size for the font manager
+             */
+            constexpr size_t            default_max_font_cache_size     = 2 * default_min_font_cache_size;
+
+            constexpr float             f24p6_divider           = 1.0f / 64.0f;
+            constexpr float             f24p6_multiplier        = 64.0f;
+            constexpr f24p6_t           f24p6_face_slant_shift  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
 
             /**
              * The font data

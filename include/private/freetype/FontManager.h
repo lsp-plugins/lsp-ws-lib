@@ -55,14 +55,20 @@ namespace lsp
                     } font_t;
 
                 private:
+                    lltl::parray<font_t>                vCustomFonts;
+                    lltl::pphash<Font, face_t>          vFontMapping;
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
                     size_t                              nMaxCacheSize;
-                    lltl::darray<font_t>                vCustomFonts;
-                    lltl::pphash<Font, face_t>          vFontMapping;
+                    glyph_t                            *pHead;      // Head in the LRU cache
+                    glyph_t                            *pTail;      // Tail in the LRU cache
 
                 protected:
                     glyph_t            *get_glyph(face_t *face, lsp_wchar_t ch);
+                    inline void         lru_remove_glyph(glyph_t *glyph);
+                    inline glyph_t     *lru_remove_last();
+                    inline glyph_t     *lru_add_first(glyph_t *glyph);
+                    inline glyph_t     *lru_touch(glyph_t *glyph);
 
                 public:
                     FontManager();
@@ -75,12 +81,13 @@ namespace lsp
                     void                clear();
                     void                gc();
 
-                    size_t              set_cache_size(size_t min, size_t max);
+                    void                set_cache_limits(size_t min, size_t max);
                     size_t              set_min_cache_size(size_t min);
                     size_t              set_max_cache_size(size_t max);
 
                     size_t              min_cache_size() const;
                     size_t              max_cache_size() const;
+                    size_t              used_cache_size() const;
 
                     /**
                      * Get font parameters
@@ -89,6 +96,17 @@ namespace lsp
                      * @return true if corresponding font has been found
                      */
                     bool                get_font_parameters(const Font *f, font_parameters_t *fp);
+
+                    /**
+                     * Get text paramerers
+                     * @param f font descriptor
+                     * @param tp pointer to store text parameters
+                     * @param text the text to estimate parameters
+                     * @param first first character of substring in the string
+                     * @param last last character of substring in the string
+                     * @return true if corresponding font has been found and text has been processed
+                     */
+                    bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                     /**
                      * Render text to bitmap
