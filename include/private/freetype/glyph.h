@@ -22,9 +22,9 @@
 #ifndef PRIVATE_FREETYPE_GLYPH_H_
 #define PRIVATE_FREETYPE_GLYPH_H_
 
-#include <private/freetype/types.h>
-
 #ifdef USE_LIBFREETYPE
+
+#include <private/freetype/types.h>
 
 namespace lsp
 {
@@ -32,13 +32,73 @@ namespace lsp
     {
         namespace ft
         {
+            struct face_t;
+
             /**
-             * Make glyph from the freetype glyph slot
-             * @param face the font face to make the glyph
-             * @param ch UTF-32 codepoint to make the glyph
+             * Number of bits per pixel for a glyph
+             */
+            enum glyph_format_t
+            {
+                FMT_1_BPP       = 0,
+                FMT_2_BPP       = 1,
+                FMT_4_BPP       = 2,
+                FMT_8_BPP       = 3,
+            };
+
+            /**
+             * The glyph data for rendering
+             */
+            typedef struct glyph_t
+            {
+                glyph_t        *next;       // Pointer to next glyph in the LRU cache
+                glyph_t        *prev;       // Pointer to previous glyph in the LRU cache
+
+                face_t         *face;       // The pointer to the font face
+                lsp_wchar_t     codepoint;  // UTF-32 codepoint associated with the glyph
+                size_t          szof;       // Size of memory used for this glyph
+
+                f24p6_t         x_advance;  // Advance by X
+                f24p6_t         y_advance;  // Advance by Y
+                int32_t         x_bearing;  // Bearing by X
+                int32_t         y_bearing;  // Bearing by Y
+
+                uint32_t        format;     // Bits per pixel, format
+                dsp::bitmap_t   bitmap;     // The bitmap that stores the glyph data
+            } glyph_t;
+
+            /**
+             * Glyph hashing interface
+             */
+            struct glyph_hash_iface: public lltl::hash_iface
+            {
+                static size_t hash_func(const void *ptr, size_t size);
+
+                explicit inline glyph_hash_iface()
+                {
+                    hash        = hash_func;
+                }
+            };
+
+            /**
+             * Glyph comparison interface
+             */
+            struct glyph_compare_iface: public lltl::compare_iface
+            {
+                static ssize_t cmp_func(const void *a, const void *b, size_t size);
+
+                explicit inline glyph_compare_iface()
+                {
+                    compare     = cmp_func;
+                }
+            };
+
+            /**
+             * Use the font face to load glyph and render it
+             * @param face the font face to load the glyph
+             * @param ch UTF-32 codepoint of the glyph
              * @return pointer to allocated glyph or NULL if no memory is available
              */
-            glyph_t *make_glyph(face_t *face, lsp_wchar_t ch);
+            glyph_t *render_glyph(face_t *face, lsp_wchar_t ch);
 
             /**
              * Free the glyph and data associated with it

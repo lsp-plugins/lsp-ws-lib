@@ -20,33 +20,43 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef USE_LIBFREETYPE
+
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 
+#include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
-
-#ifdef USE_LIBFREETYPE
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 namespace lsp
 {
     namespace ws
     {
-        static constexpr int32_t face_slant  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
-
         namespace ft
         {
-            glyph_t *make_glyph(face_t *face, lsp_wchar_t ch)
+            size_t glyph_hash_iface::hash_func(const void *ptr, size_t /* size */)
+            {
+                const glyph_t *g    = static_cast<const glyph_t *>(ptr);
+                return g->codepoint;
+            }
+
+            ssize_t glyph_compare_iface::cmp_func(const void *a, const void *b, size_t /* size */)
+            {
+                const glyph_t *ga   = static_cast<const glyph_t *>(a);
+                const glyph_t *gb   = static_cast<const glyph_t *>(b);
+
+                return ssize_t(ga->codepoint) - ssize_t(gb->codepoint);
+            }
+
+            glyph_t *render_glyph(face_t *face, lsp_wchar_t ch)
             {
                 int error;
 
                 // Set transformation matrix
                 FT_Matrix mt;
                 mt.xx   = 1 * 0x10000;
-                mt.xy   = (face->flags & FACE_SLANT) ? face_slant : 0;
+                mt.xy   = ((face->flags & FACE_SLANT) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f24p6_face_slant_shift : 0;
                 mt.yx   = 0;
                 mt.yy   = 1 * 0x10000;
 
@@ -97,6 +107,8 @@ namespace lsp
                     return NULL;
                 glyph_t *res        = reinterpret_cast<glyph_t *>(buf);
 
+                res->prev           = NULL;
+                res->next           = NULL;
                 res->face           = face;
                 res->codepoint      = ch;
                 res->szof           = to_alloc;
@@ -129,11 +141,36 @@ namespace lsp
                 // Return result
                 return res;
             }
+//
+//            glyph_t *get_glyph(face_t *face, lsp_wchar_t ch)
+//            {
+//                glyph_t key;
+//                key.codepoint   = ch;
+//
+//                // Try to obtain glyph from cache
+//                glyph_t *glyph  = face->cache.get(&key);
+//                if (glyph != NULL)
+//                    return glyph;
+//
+//                // There was no glyph present, create new glyph
+//                glyph           = render_glyph(face, ch);
+//                if (glyph == NULL)
+//                    return NULL;
+//
+//                // Add glyph to the face cache
+//                if (face->cache.create(glyph))
+//                    return glyph;
+//
+//                // Failed to add glyph
+//                free_glyph(glyph);
+//                return NULL;
+//            }
 
             void free_glyph(glyph_t *glyph)
             {
-                if (glyph->face != NULL)
-                    --glyph->face->references;
+                if (glyph == NULL)
+                    return;
+
                 free(glyph);
             }
         } /* namespace ft */
