@@ -40,8 +40,6 @@ namespace lsp
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;
-                pHead           = NULL;
-                pTail           = NULL;
             }
 
             FontManager::~FontManager()
@@ -77,7 +75,7 @@ namespace lsp
                 while (nCacheSize <= nMaxCacheSize)
                 {
                     // Remove glyph from LRU cache
-                    glyph_t *glyph  = lru_remove_last();
+                    glyph_t *glyph      = sLRU.remove_last();
                     if (glyph == NULL)
                         break;
 
@@ -94,82 +92,6 @@ namespace lsp
                 }
             }
 
-            void FontManager::lru_remove_glyph(glyph_t *glyph)
-            {
-            }
-
-            glyph_t *FontManager::lru_remove_last()
-            {
-                if (pTail == NULL)
-                    return NULL;
-
-                // Remove glyph from the LRU list
-                glyph_t *glyph  = pTail;
-
-                pTail           = glyph->prev;
-                if (glyph->prev != NULL)
-                    glyph->prev->next   = NULL;
-                else
-                    pHead               = NULL;
-
-                // Clear links to other glyphs
-                glyph->prev     = NULL;
-                glyph->next     = NULL;
-
-                return glyph;
-            }
-
-            glyph_t *FontManager::lru_add_first(glyph_t *glyph)
-            {
-                if (pHead != NULL)
-                {
-                    glyph->next     = pHead;
-                    glyph->prev     = NULL;
-                    pHead->prev     = glyph;
-                    pHead           = glyph;
-                    return glyph;
-                }
-
-                glyph->next     = NULL;
-                glyph->prev     = NULL;
-                pHead           = glyph;
-                pTail           = glyph;
-
-                return glyph;
-            }
-
-            glyph_t *FontManager::lru_touch(glyph_t *glyph)
-            {
-                // Check that it is not the first glyph in the list
-                glyph_t *prev   = glyph->prev;
-                if (prev == NULL)
-                    return glyph;
-
-                // Remove glyph from the list
-                lru_remove_glyph(glyph);
-
-                // Add the glyph again
-                prev    = prev->prev;
-                if (prev != NULL)
-                {
-                    // Add before the previous element
-                    glyph->next         = prev->next;
-                    glyph->next->prev   = glyph;
-                    glyph->prev         = prev;
-                    glyph->prev->next   = glyph;
-                }
-                else
-                {
-                    // Add to the head of queue
-                    glyph->next         = pHead;
-                    glyph->prev         = NULL;
-                    pHead->prev         = glyph;
-                    pHead               = glyph;
-                }
-
-                return glyph;
-            }
-
             glyph_t *FontManager::get_glyph(face_t *face, lsp_wchar_t ch)
             {
                 glyph_t key;
@@ -178,7 +100,7 @@ namespace lsp
                 // Try to obtain glyph from cache
                 glyph_t *glyph  = face->cache.get(&key);
                 if (glyph != NULL)
-                    return lru_touch(glyph); // Move glyph to the beginning of the LRU cache
+                    return sLRU.touch(glyph); // Move glyph to the beginning of the LRU cache
 
                 // There was no glyph present, create new glyph
                 glyph           = render_glyph(face, ch);
@@ -188,12 +110,15 @@ namespace lsp
                 // Add glyph to the face cache
                 if (face->cache.create(glyph))
                 {
+                    // Call the garbage collector to collect the garbage
+                    gc();
+
                     // Update cache statistics
                     face->cache_size   += glyph->szof;
                     nCacheSize         += glyph->szof;
 
                     // Add glyph to the LRU cache
-                    return lru_add_first(glyph);
+                    return sLRU.add_first(glyph);
                 }
 
                 // Failed to add glyph

@@ -31,6 +31,7 @@
 #include <private/freetype/types.h>
 #include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
+#include <private/freetype/LRUCache.h>
 
 namespace lsp
 {
@@ -60,15 +61,10 @@ namespace lsp
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
                     size_t                              nMaxCacheSize;
-                    glyph_t                            *pHead;      // Head in the LRU cache
-                    glyph_t                            *pTail;      // Tail in the LRU cache
+                    LRUCache                            sLRU;
 
                 protected:
                     glyph_t            *get_glyph(face_t *face, lsp_wchar_t ch);
-                    inline void         lru_remove_glyph(glyph_t *glyph);
-                    inline glyph_t     *lru_remove_last();
-                    inline glyph_t     *lru_add_first(glyph_t *glyph);
-                    inline glyph_t     *lru_touch(glyph_t *glyph);
 
                 public:
                     FontManager();
