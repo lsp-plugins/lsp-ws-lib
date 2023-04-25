@@ -43,7 +43,7 @@ namespace lsp
 
                 public:
                     void         clear();
-                    void         remove_glyph(glyph_t *glyph);
+                    void         remove(glyph_t *glyph);
                     glyph_t     *remove_last();
                     glyph_t     *add_first(glyph_t *glyph);
                     glyph_t     *touch(glyph_t *glyph);

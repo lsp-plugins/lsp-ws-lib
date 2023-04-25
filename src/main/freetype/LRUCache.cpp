@@ -47,7 +47,7 @@ namespace lsp
                 pTail       = NULL;
             }
 
-            void LRUCache::remove_glyph(glyph_t *glyph)
+            void LRUCache::remove(glyph_t *glyph)
             {
                 if (glyph->prev != NULL)
                     glyph->prev->next   = glyph->next;
@@ -105,32 +105,22 @@ namespace lsp
 
             glyph_t *LRUCache::touch(glyph_t *glyph)
             {
-                // Check that it is not the first glyph in the list
-                glyph_t *prev   = glyph->prev;
-                if (prev == NULL)
+                // Remove glyph from the list
+                if (glyph->prev != NULL)
+                    glyph->prev->next   = glyph->next;
+                else
                     return glyph;
 
-                // Remove glyph from the list
-                remove_glyph(glyph);
-
-                // Add the glyph again
-                glyph_t *head   = prev->prev;
-                if (head != NULL)
-                {
-                    // Add before the previous element
-                    glyph->next         = prev;
-                    prev->prev          = glyph;
-                    glyph->prev         = head;
-                    head->next          = glyph;
-                }
+                if (glyph->next != NULL)
+                    glyph->next->prev   = glyph->prev;
                 else
-                {
-                    // Add to the head of queue
-                    glyph->next         = pHead;
-                    glyph->prev         = NULL;
-                    pHead->prev         = glyph;
-                    pHead               = glyph;
-                }
+                    pTail               = glyph->prev;
+
+                // Add glyph to the head
+                glyph->next     = pHead;
+                glyph->prev     = NULL;
+                pHead->prev     = glyph;
+                pHead           = glyph;
 
                 return glyph;
             }
