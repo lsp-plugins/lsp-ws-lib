@@ -45,17 +45,16 @@ namespace lsp
             class FontManager
             {
                 private:
-                    typedef struct font_t
+                    typedef struct font_entry_t
                     {
-                        size_t          references; // Number of references
                         uint8_t        *data;       // The actual data for the font stored in memory
-                        FT_Face         ft_face;    // The font face associated with the data
+                        face_t          face;       // Created font face
                         const char     *family;     // Font family
                         const char     *style;      // Font style
-                        const char     *name;       // The font name in the system
-                    } font_t;
+                    } font_entry_t;
 
                 private:
+                    FT_Library                          hLibrary;
                     lltl::parray<font_t>                vCustomFonts;
                     lltl::pphash<Font, face_t>          vFontMapping;
                     size_t                              nCacheSize;
@@ -67,7 +66,7 @@ namespace lsp
                     glyph_t            *get_glyph(face_t *face, lsp_wchar_t ch);
 
                 public:
-                    FontManager();
+                    FontManager(FT_Library library);
                     ~FontManager();
 
                 public:

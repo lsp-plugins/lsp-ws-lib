@@ -66,11 +66,8 @@ namespace lsp
             typedef struct font_t
             {
                 size_t          references; // Number of references
+                size_t          size;       // The size of the font data
                 uint8_t        *data;       // The actual data for the font stored in memory
-                FT_Face         ft_face;    // The font face associated with the data
-                const char     *family;     // Font family
-                const char     *style;      // Font style
-                const char     *name;       // The font name in the system
             } font_t;
 
             /**

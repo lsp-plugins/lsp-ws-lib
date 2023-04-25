@@ -30,13 +30,14 @@ namespace lsp
     {
         namespace ft
         {
-            FontManager::FontManager():
+            FontManager::FontManager(FT_Library library):
                 vCustomFonts(),
                 vFontMapping(
                     font_hash_iface(),
                     font_compare_iface(),
                     font_allocator_iface())
             {
+                hLibrary        = library;
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;

@@ -19,13 +19,15 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef INCLUDE_PRIVATE_FREETYPE_FACE_H_
-#define INCLUDE_PRIVATE_FREETYPE_FACE_H_
+#ifndef PRIVATE_FREETYPE_FACE_H_
+#define PRIVATE_FREETYPE_FACE_H_
 
 #ifdef USE_LIBFREETYPE
 
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/io/IInStream.h>
+#include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/lltl/phashset.h>
 
 #include <ft2build.h>
@@ -57,6 +59,7 @@ namespace lsp
                 size_t      references;         // Number of references
                 size_t      cache_size;         // The amount of memory used by glyphs in cache
                 FT_Face     ft_face;            // The font face
+                font_t     *font;               // The font data
 
                 uint32_t    flags;              // Face flags
                 f24p6_t     h_size;             // The horizontal character size
@@ -73,22 +76,44 @@ namespace lsp
              * @param f font specification
              * @return font face flags
              */
-            size_t make_face_flags(const Font *f);
+            size_t      make_face_flags(const Font *f);
+
+            /**
+             * Load font face
+             * @param faces array to store all loaded font faces
+             * @param ft the FreeType library handle
+             * @param is input stream with the font data
+             * @return status of operation
+             */
+            status_t    load_face(lltl::parray<face_t> *faces, FT_Library ft, io::IInStream *is);
 
             /**
              * Create font face
              * @param ft_face freetype font face to use as a reference
-             * @param size font size
              * @param flags font face flags
              * @return pointer to font face
              */
-            face_t *create_face(FT_Face ft_face, float size, uint32_t flags);
+            face_t     *clone_face(face_t *src, uint32_t flags);
 
             /**
              * Destroy the font face
              * @param face the font face to destroy
              */
-            void    destroy_face(face_t *face);
+            void        destroy_face(face_t *face);
+
+            /**
+             * Destroy the list of font faces
+             * @param face the font face to destroy
+             */
+            void        destroy_faces(lltl::parray<face_t> *faces);
+
+            /**
+             * Start text processing using the selected face
+             * @param face face object
+             * @param size the font size of the face
+             * @return status of operation
+             */
+            status_t    select_face(face_t *face, float size);
 
         } /* namespace ft */
     } /* namespace ws */
@@ -96,4 +121,4 @@ namespace lsp
 
 #endif /* USE_LIBFREETYPE */
 
-#endif /* INCLUDE_PRIVATE_FREETYPE_FACE_H_ */
+#endif /* PRIVATE_FREETYPE_FACE_H_ */
