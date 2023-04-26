@@ -25,6 +25,8 @@
 
 #include <private/freetype/FontManager.h>
 #include <private/freetype/FontSpec.h>
+#include <private/freetype/face.h>
+#include <private/freetype/glyph.h>
 
 namespace lsp
 {
@@ -48,6 +50,14 @@ namespace lsp
             FontManager::~FontManager()
             {
                 clear();
+            }
+
+            void FontManager::dereference(face_t *face)
+            {
+                if (face == NULL)
+                    return;
+                if ((--face->references) <= 0)
+                    destroy_face(face);
             }
 
             bool FontManager::add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face)
@@ -123,7 +133,7 @@ namespace lsp
                 {
                     font_entry_t *entry = entries.uget(i);
                     if (entry != NULL)
-                        invalidate_face(entry->name);
+                        invalidate_faces(entry->name);
                 }
 
                 // Prevent from destroying temporary data structures
@@ -166,7 +176,7 @@ namespace lsp
                     return STATUS_NO_MEM;
 
                 // Invalidate face
-                invalidate_face(entry.name);
+                invalidate_faces(entry.name);
 
                 // Commit result and return
                 entry.name      = NULL;
@@ -175,12 +185,56 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void FontManager::invalidate_face(const char *name)
+            void FontManager::invalidate_face(face_t *face)
             {
+                // Obtain the list of all glyphs in the face
+                lltl::parray<glyph_t> glyphs;
+                if (!face->cache.values(&glyphs))
+                    return;
+                lsp_finally { face->cache.flush(); };
+
+                // Remove all glyphs from LRU cache
+                for (size_t i=0, n=glyphs.size(); i<n; ++i)
+                {
+                    glyph_t *glyph  = glyphs.uget(i);
+                    if (glyph != NULL)
+                    {
+                        sLRU.remove(glyph);
+                        free_glyph(glyph);
+                    }
+                }
+
+                // Update counters
+                nCacheSize         -= face->cache_size;
+                face->cache_size    = 0;
+            }
+
+            void FontManager::invalidate_faces(const char *name)
+            {
+                // Ensure that the argument is correct
                 if (name == NULL)
                     return;
 
-                // TODO: remove all records from the cache with the same face name
+                // Obtain the list of fonts and faces
+                lltl::parray<Font> fonts;
+                if (!vFontMapping.keys(&fonts))
+                    return;
+
+                // Remove all elements with the same font name
+                face_t *face = NULL;
+                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                {
+                    Font *f = fonts.uget(i);
+                    if ((f != NULL) && (strcmp(f->name(), name) == 0))
+                    {
+                        if (vFontMapping.remove(f, &face))
+                        {
+                            // Invalidate face and dereference it
+                            invalidate_face(face);
+                            dereference(face);
+                        }
+                    }
+                }
             }
 
             status_t FontManager::remove_font(const char *name)
@@ -210,9 +264,6 @@ namespace lsp
                     return STATUS_OK;
                 }
 
-                // Invalidate the corresponding font face
-                invalidate_face(fe->name);
-
                 // Drop all entries with the same font face
                 face_t *face        = fe->face;
                 for (size_t i=0, n=vLoadedFaces.size(); i<n;)
@@ -225,6 +276,9 @@ namespace lsp
                         continue;
                     }
 
+                    // Invalidate the corresponding font face
+                    invalidate_faces(entry->name);
+
                     // Remove the entry
                     if (entry->name != NULL)
                         free(entry->name);
@@ -235,19 +289,47 @@ namespace lsp
                 }
 
                 // Destroy the corresponding face
-                if (face->references > 0)
-                {
-                    lsp_error("Malformed face state");
-                    return STATUS_CORRUPTED;
-                }
                 destroy_face(face);
 
                 return STATUS_OK;
             }
 
-            void FontManager::clear()
+            status_t FontManager::clear()
             {
-                // TODO
+                // Invalidate all faces
+                lltl::parray<face_t> fonts;
+                if (!vFontMapping.values(&fonts))
+                    return STATUS_NO_MEM;
+                vFontMapping.flush();
+
+                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                {
+                    face_t *face = fonts.uget(i);
+                    if (face != NULL)
+                    {
+                        if ((--face->references) <= 0)
+                            destroy_face(face);
+                    }
+                }
+                fonts.flush();
+
+                // Cleanup all fonts
+                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                {
+                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    if (entry != NULL)
+                    {
+                        if (entry->name != NULL)
+                            free(entry->name);
+                        if (entry->aliased != NULL)
+                            free(entry->aliased);
+                        if ((--entry->face->references) <= 0)
+                            destroy_face(entry->face);
+                    }
+                }
+                vLoadedFaces.flush();
+
+                return STATUS_OK;
             }
 
             void FontManager::gc()

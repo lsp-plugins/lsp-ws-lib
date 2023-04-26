@@ -63,8 +63,10 @@ namespace lsp
 
                 protected:
                     glyph_t                *get_glyph(face_t *face, lsp_wchar_t ch);
-                    void                    invalidate_face(const char *name);
+                    void                    invalidate_faces(const char *name);
+                    void                    invalidate_face(face_t *face);
                     static bool             add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face);
+                    static void             dereference(face_t *face);
 
                 public:
                     FontManager(FT_Library library);
@@ -74,7 +76,7 @@ namespace lsp
                     status_t                add_font(const char *name, io::IInStream *is);
                     status_t                add_font_alias(const char *name, const char *alias);
                     status_t                remove_font(const char *name);
-                    void                    clear();
+                    status_t                clear();
                     void                    gc();
 
                     void                    set_cache_limits(size_t min, size_t max);
