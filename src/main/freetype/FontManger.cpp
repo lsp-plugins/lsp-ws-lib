@@ -21,6 +21,8 @@
 
 #ifdef USE_LIBFREETYPE
 
+#include <lsp-plug.in/common/debug.h>
+
 #include <private/freetype/FontManager.h>
 #include <private/freetype/FontSpec.h>
 
@@ -31,7 +33,7 @@ namespace lsp
         namespace ft
         {
             FontManager::FontManager(FT_Library library):
-                vCustomFonts(),
+                vLoadedFaces(),
                 vFontMapping(
                     font_hash_iface(),
                     font_compare_iface(),
@@ -48,22 +50,199 @@ namespace lsp
                 clear();
             }
 
+            bool FontManager::add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face)
+            {
+                // Add font entry by font's family name
+                font_entry_t *entry = entries->add();
+                if (entry == NULL)
+                    return false;
+
+                entry->name         = NULL;
+                entry->face         = face;
+                entry->aliased      = NULL;
+                ++face->references;
+
+                // Copy face name
+                if ((entry->name = strdup(name)) == NULL)
+                    return false;
+
+                return true;
+            }
+
             status_t FontManager::add_font(const char *name, io::IInStream *is)
             {
-                // TODO
-                return STATUS_NOT_IMPLEMENTED;
+                status_t res;
+                lltl::parray<face_t> faces;
+
+                // Load font faces
+                if ((res = load_face(&faces, hLibrary, is)) != STATUS_OK)
+                    return res;
+                lsp_finally { destroy_faces(&faces); };
+
+                // Make list of faces
+                lltl::darray<font_entry_t> entries;
+                if (!entries.reserve(faces.size() + 1))
+                    return STATUS_NO_MEM;
+                lsp_finally {
+                    for (size_t i=0, n=entries.size(); i<n; ++i)
+                    {
+                        font_entry_t *e = entries.uget(i);
+                        if (e == NULL)
+                            continue;
+                        if (e->name != NULL)
+                            free(e->name);
+                        if (e->aliased != NULL)
+                            free(e->aliased);
+                    }
+                    entries.flush();
+                };
+
+                // Create font entries
+                for (size_t i=0, n=faces.size(); i<n; ++i)
+                {
+                    face_t *face        = faces.uget(i);
+
+                    // Add font entry by font's family name
+                    if (!add_font_face(&entries, face->ft_face->family_name, face))
+                        return STATUS_NO_MEM;
+
+                    // Add font entry by font's name
+                    if ((i == 0) && (name != NULL))
+                    {
+                        if (!add_font_face(&entries, name, face))
+                            return STATUS_NO_MEM;
+                    }
+                }
+
+                // Deploy loaded font entries to the list of loaded faces
+                if (!vLoadedFaces.insert(0, &entries))
+                    return STATUS_NO_MEM;
+
+                // Invalidate the face cache entries
+                for (size_t i=0, n=entries.size(); i<n; ++i)
+                {
+                    font_entry_t *entry = entries.uget(i);
+                    if (entry != NULL)
+                        invalidate_face(entry->name);
+                }
+
+                // Prevent from destroying temporary data structures
+                entries.flush();
+                faces.flush();
+
+                return STATUS_OK;
             }
 
             status_t FontManager::add_font_alias(const char *name, const char *alias)
             {
-                // TODO
-                return STATUS_NOT_IMPLEMENTED;
+                // Check that alias not exists
+                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                {
+                    font_entry_t *fe = vLoadedFaces.uget(i);
+                    if ((fe != NULL) && (strcmp(fe->name, name) == 0))
+                        return STATUS_ALREADY_EXISTS;
+                }
+
+                // Create new entry
+                font_entry_t entry;
+                entry.name      = NULL;
+                entry.face      = NULL;
+                entry.aliased   = NULL;
+                lsp_finally {
+                    if (entry.name != NULL)
+                        free(entry.name);
+                    if (entry.aliased != NULL)
+                        free(entry.aliased);
+                };
+
+                // Copy name and alias
+                if ((entry.name = strdup(name)) == NULL)
+                    return STATUS_NO_MEM;
+                if ((entry.aliased = strdup(alias)) == NULL)
+                    return STATUS_NO_MEM;
+
+                // Allocate place in the font list
+                if (!vLoadedFaces.insert(0, entry))
+                    return STATUS_NO_MEM;
+
+                // Invalidate face
+                invalidate_face(entry.name);
+
+                // Commit result and return
+                entry.name      = NULL;
+                entry.aliased   = NULL;
+
+                return STATUS_OK;
+            }
+
+            void FontManager::invalidate_face(const char *name)
+            {
+                if (name == NULL)
+                    return;
+
+                // TODO: remove all records from the cache with the same face name
             }
 
             status_t FontManager::remove_font(const char *name)
             {
-                // TODO
-                return STATUS_NOT_IMPLEMENTED;
+                // Step 1: Find font face with corresponding name
+                font_entry_t *fe    = NULL;
+                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                {
+                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    if ((entry != NULL) && (strcmp(entry->name, name) == 0))
+                    {
+                        fe              = entry;
+                        break;
+                    }
+                }
+                if (fe == NULL)
+                    return STATUS_NOT_FOUND;
+
+                // Step 2: just remove entry if it is an alias
+                if (fe->face == NULL)
+                {
+                    // Drop the entry and exit
+                    free(fe->name);
+                    if (fe->aliased == NULL)
+                        free(fe->aliased);
+                    vLoadedFaces.premove(fe);
+                    return STATUS_OK;
+                }
+
+                // Invalidate the corresponding font face
+                invalidate_face(fe->name);
+
+                // Drop all entries with the same font face
+                face_t *face        = fe->face;
+                for (size_t i=0, n=vLoadedFaces.size(); i<n;)
+                {
+                    // Get the item
+                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    if (entry->face != face)
+                    {
+                        ++i;
+                        continue;
+                    }
+
+                    // Remove the entry
+                    if (entry->name != NULL)
+                        free(entry->name);
+                    if (entry->aliased != NULL)
+                        free(entry->aliased);
+                    --face->references;
+                    vLoadedFaces.remove(i);
+                }
+
+                // Destroy the corresponding face
+                if (face->references > 0)
+                {
+                    lsp_error("Malformed face state");
+                    return STATUS_CORRUPTED;
+                }
+                destroy_face(face);
+
+                return STATUS_OK;
             }
 
             void FontManager::clear()

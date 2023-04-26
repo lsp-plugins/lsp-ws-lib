@@ -22,6 +22,7 @@
 #ifdef USE_LIBFREETYPE
 
 #include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/lltl/phashset.h>
@@ -57,6 +58,8 @@ namespace lsp
                 if ((--font->references) > 0)
                     return;
 
+                lsp_trace("Dealocated font data %p, size=%d, content=%p", font, int(font->size), font->data);
+
                 free(font->data);
 
                 font->size          = 0;
@@ -84,6 +87,8 @@ namespace lsp
                 font->references    = 1;
                 font->size          = os.size();
                 font->data          = os.release();
+
+                lsp_trace("Allocated font data %p, size=%d, content=%p", font, int(font->size), font->data);
 
                 return font;
             }

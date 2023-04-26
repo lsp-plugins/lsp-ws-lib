@@ -47,15 +47,14 @@ namespace lsp
                 private:
                     typedef struct font_entry_t
                     {
-                        uint8_t        *data;       // The actual data for the font stored in memory
-                        face_t          face;       // Created font face
-                        const char     *family;     // Font family
-                        const char     *style;      // Font style
+                        char           *name;       // The name of font entry
+                        face_t         *face;       // The pointer to the face
+                        char           *aliased;    // The name of the original font
                     } font_entry_t;
 
                 private:
                     FT_Library                          hLibrary;
-                    lltl::parray<font_t>                vCustomFonts;
+                    lltl::darray<font_entry_t>          vLoadedFaces;
                     lltl::pphash<Font, face_t>          vFontMapping;
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
@@ -63,26 +62,28 @@ namespace lsp
                     LRUCache                            sLRU;
 
                 protected:
-                    glyph_t            *get_glyph(face_t *face, lsp_wchar_t ch);
+                    glyph_t                *get_glyph(face_t *face, lsp_wchar_t ch);
+                    void                    invalidate_face(const char *name);
+                    static bool             add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face);
 
                 public:
                     FontManager(FT_Library library);
                     ~FontManager();
 
                 public:
-                    status_t            add_font(const char *name, io::IInStream *is);
-                    status_t            add_font_alias(const char *name, const char *alias);
-                    status_t            remove_font(const char *name);
-                    void                clear();
-                    void                gc();
+                    status_t                add_font(const char *name, io::IInStream *is);
+                    status_t                add_font_alias(const char *name, const char *alias);
+                    status_t                remove_font(const char *name);
+                    void                    clear();
+                    void                    gc();
 
-                    void                set_cache_limits(size_t min, size_t max);
-                    size_t              set_min_cache_size(size_t min);
-                    size_t              set_max_cache_size(size_t max);
+                    void                    set_cache_limits(size_t min, size_t max);
+                    size_t                  set_min_cache_size(size_t min);
+                    size_t                  set_max_cache_size(size_t max);
 
-                    size_t              min_cache_size() const;
-                    size_t              max_cache_size() const;
-                    size_t              used_cache_size() const;
+                    size_t                  min_cache_size() const;
+                    size_t                  max_cache_size() const;
+                    size_t                  used_cache_size() const;
 
                     /**
                      * Get font parameters
@@ -90,7 +91,7 @@ namespace lsp
                      * @param fp pointer to store font parameters
                      * @return true if corresponding font has been found
                      */
-                    bool                get_font_parameters(const Font *f, font_parameters_t *fp);
+                    bool                    get_font_parameters(const Font *f, font_parameters_t *fp);
 
                     /**
                      * Get text paramerers
@@ -101,7 +102,7 @@ namespace lsp
                      * @param last last character of substring in the string
                      * @return true if corresponding font has been found and text has been processed
                      */
-                    bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+                    bool                    get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                     /**
                      * Render text to bitmap
@@ -110,7 +111,7 @@ namespace lsp
                      * @param last last character of substring in the string
                      * @return pointer to bitmap or NULL if corresponding font has not been found
                      */
-                    dsp::bitmap_t      *render_text(const LSPString *text, size_t first, size_t last);
+                    dsp::bitmap_t          *render_text(const LSPString *text, size_t first, size_t last);
 
             };
 
