@@ -49,13 +49,13 @@ namespace lsp
                     {
                         char           *name;       // The name of font entry
                         face_t         *face;       // The pointer to the face
-                        char           *aliased;    // The name of the original font
                     } font_entry_t;
 
                 private:
                     FT_Library                          hLibrary;
-                    lltl::darray<font_entry_t>          vLoadedFaces;
-                    lltl::pphash<Font, face_t>          vFontMapping;
+                    lltl::darray<font_entry_t>          vFaces;
+                    lltl::pphash<Font, face_t>          vFontCache;
+                    lltl::pphash<char, char>            vAliases;
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
                     size_t                              nMaxCacheSize;
@@ -69,13 +69,19 @@ namespace lsp
                     static void             dereference(face_t *face);
 
                 public:
-                    FontManager(FT_Library library);
+                    FontManager();
                     ~FontManager();
 
+                    status_t                init();
+                    void                    destroy();
+
                 public:
-                    status_t                add_font(const char *name, io::IInStream *is);
-                    status_t                add_font_alias(const char *name, const char *alias);
-                    status_t                remove_font(const char *name);
+                    status_t                add_font(const char *name, const char *path);
+                    status_t                add_font(const char *name, const io::Path *path);
+                    status_t                add_font(const char *name, const LSPString *path);
+                    status_t                add(const char *name, io::IInStream *is);
+                    status_t                add_alias(const char *name, const char *alias);
+                    status_t                remove(const char *name);
                     status_t                clear();
                     void                    gc();
 

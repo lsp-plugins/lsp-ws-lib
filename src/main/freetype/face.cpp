@@ -70,13 +70,12 @@ namespace lsp
 
             static font_t *create_font_data(io::IInStream *is)
             {
-                status_t res;
-
                 // Make memory chunk from the input stream
                 io::OutMemoryStream os;
                 if (is->avail() > 0)
                     os.reserve(is->avail());
-                if ((res = is->sink(&os)) != STATUS_OK)
+                wssize_t count = is->sink(&os);
+                if (count <= 0)
                     return NULL;
 
                 // Create font data object
@@ -264,6 +263,10 @@ namespace lsp
                         free_glyph(vv.uget(i));
                 }
                 face->cache.flush();
+                face->cache.~phashset<glyph_t>();
+
+                // Free memory allocated by the face
+                free(face);
             }
 
             status_t select_face(face_t *face, float size)

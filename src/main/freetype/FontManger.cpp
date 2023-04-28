@@ -22,6 +22,7 @@
 #ifdef USE_LIBFREETYPE
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/io/InFileStream.h>
 
 #include <private/freetype/FontManager.h>
 #include <private/freetype/FontSpec.h>
@@ -34,14 +35,14 @@ namespace lsp
     {
         namespace ft
         {
-            FontManager::FontManager(FT_Library library):
-                vLoadedFaces(),
-                vFontMapping(
+            FontManager::FontManager():
+                vFaces(),
+                vFontCache(
                     font_hash_iface(),
                     font_compare_iface(),
                     font_allocator_iface())
             {
-                hLibrary        = library;
+                hLibrary        = NULL;
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;
@@ -49,7 +50,30 @@ namespace lsp
 
             FontManager::~FontManager()
             {
+                destroy();
+            }
+
+            status_t FontManager::init()
+            {
+                if (hLibrary != NULL)
+                    return STATUS_BAD_STATE;
+
+                FT_Error error;
+                if ((error = FT_Init_FreeType(&hLibrary)) != FT_Err_Ok)
+                    return STATUS_UNKNOWN_ERR;
+
+                return STATUS_OK;
+            }
+
+            void FontManager::destroy()
+            {
                 clear();
+
+                if (hLibrary != NULL)
+                {
+                    FT_Done_FreeType(hLibrary);
+                    hLibrary    = NULL;
+                }
             }
 
             void FontManager::dereference(face_t *face)
@@ -69,7 +93,6 @@ namespace lsp
 
                 entry->name         = NULL;
                 entry->face         = face;
-                entry->aliased      = NULL;
                 ++face->references;
 
                 // Copy face name
@@ -79,8 +102,50 @@ namespace lsp
                 return true;
             }
 
-            status_t FontManager::add_font(const char *name, io::IInStream *is)
+            status_t FontManager::add_font(const char *name, const char *path)
             {
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
+                io::InFileStream ifs;
+                status_t res    = ifs.open(path);
+                if (res == STATUS_OK)
+                    res         = add(name, &ifs);
+                status_t res2   = ifs.close();
+                return (res == STATUS_OK) ? res2 : res;
+            }
+
+            status_t FontManager::add_font(const char *name, const io::Path *path)
+            {
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
+                io::InFileStream ifs;
+                status_t res    = ifs.open(path);
+                if (res == STATUS_OK)
+                    res         = add(name, &ifs);
+                status_t res2   = ifs.close();
+                return (res == STATUS_OK) ? res2 : res;
+            }
+
+            status_t FontManager::add_font(const char *name, const LSPString *path)
+            {
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
+                io::InFileStream ifs;
+                status_t res    = ifs.open(path);
+                if (res == STATUS_OK)
+                    res         = add(name, &ifs);
+                status_t res2   = ifs.close();
+                return (res == STATUS_OK) ? res2 : res;
+            }
+
+            status_t FontManager::add(const char *name, io::IInStream *is)
+            {
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
                 status_t res;
                 lltl::parray<face_t> faces;
 
@@ -101,8 +166,6 @@ namespace lsp
                             continue;
                         if (e->name != NULL)
                             free(e->name);
-                        if (e->aliased != NULL)
-                            free(e->aliased);
                     }
                     entries.flush();
                 };
@@ -125,10 +188,10 @@ namespace lsp
                 }
 
                 // Deploy loaded font entries to the list of loaded faces
-                if (!vLoadedFaces.insert(0, &entries))
+                if (!vFaces.insert(0, &entries))
                     return STATUS_NO_MEM;
 
-                // Invalidate the face cache entries
+                // Invalidate the face cache entries and update mapping
                 for (size_t i=0, n=entries.size(); i<n; ++i)
                 {
                     font_entry_t *entry = entries.uget(i);
@@ -143,44 +206,31 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t FontManager::add_font_alias(const char *name, const char *alias)
+            status_t FontManager::add_alias(const char *name, const char *alias)
             {
-                // Check that alias not exists
-                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Check that alias does not exists
+                if (vAliases.get(name) != NULL)
+                    return STATUS_ALREADY_EXISTS;
+
+                // Ensure that there is no such font
+                for (size_t i=0, n=vFaces.size(); i<n; ++i)
                 {
-                    font_entry_t *fe = vLoadedFaces.uget(i);
+                    font_entry_t *fe = vFaces.uget(i);
                     if ((fe != NULL) && (strcmp(fe->name, name) == 0))
                         return STATUS_ALREADY_EXISTS;
                 }
 
-                // Create new entry
-                font_entry_t entry;
-                entry.name      = NULL;
-                entry.face      = NULL;
-                entry.aliased   = NULL;
-                lsp_finally {
-                    if (entry.name != NULL)
-                        free(entry.name);
-                    if (entry.aliased != NULL)
-                        free(entry.aliased);
-                };
-
-                // Copy name and alias
-                if ((entry.name = strdup(name)) == NULL)
-                    return STATUS_NO_MEM;
-                if ((entry.aliased = strdup(alias)) == NULL)
+                // Copy the alias name
+                char *aliased = strdup(alias);
+                if (aliased == NULL)
                     return STATUS_NO_MEM;
 
-                // Allocate place in the font list
-                if (!vLoadedFaces.insert(0, entry))
+                // Allocate place in the alias list
+                if (!vAliases.create(name, aliased))
                     return STATUS_NO_MEM;
-
-                // Invalidate face
-                invalidate_faces(entry.name);
-
-                // Commit result and return
-                entry.name      = NULL;
-                entry.aliased   = NULL;
 
                 return STATUS_OK;
             }
@@ -217,7 +267,7 @@ namespace lsp
 
                 // Obtain the list of fonts and faces
                 lltl::parray<Font> fonts;
-                if (!vFontMapping.keys(&fonts))
+                if (!vFontCache.keys(&fonts))
                     return;
 
                 // Remove all elements with the same font name
@@ -227,7 +277,7 @@ namespace lsp
                     Font *f = fonts.uget(i);
                     if ((f != NULL) && (strcmp(f->name(), name) == 0))
                     {
-                        if (vFontMapping.remove(f, &face))
+                        if (vFontCache.remove(f, &face))
                         {
                             // Invalidate face and dereference it
                             invalidate_face(face);
@@ -237,13 +287,24 @@ namespace lsp
                 }
             }
 
-            status_t FontManager::remove_font(const char *name)
+            status_t FontManager::remove(const char *name)
             {
-                // Step 1: Find font face with corresponding name
-                font_entry_t *fe    = NULL;
-                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Step 1: Find alias and remove it
+                char *alias = NULL;
+                if (vAliases.remove(name, &alias))
                 {
-                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    free(alias);
+                    return STATUS_OK;
+                }
+
+                // Step 2: Find font face with corresponding name
+                font_entry_t *fe    = NULL;
+                for (size_t i=0, n=vFaces.size(); i<n; ++i)
+                {
+                    font_entry_t *entry = vFaces.uget(i);
                     if ((entry != NULL) && (strcmp(entry->name, name) == 0))
                     {
                         fe              = entry;
@@ -253,23 +314,12 @@ namespace lsp
                 if (fe == NULL)
                     return STATUS_NOT_FOUND;
 
-                // Step 2: just remove entry if it is an alias
-                if (fe->face == NULL)
-                {
-                    // Drop the entry and exit
-                    free(fe->name);
-                    if (fe->aliased == NULL)
-                        free(fe->aliased);
-                    vLoadedFaces.premove(fe);
-                    return STATUS_OK;
-                }
-
-                // Drop all entries with the same font face
+                // Step 3: Drop all entries with the same font face
                 face_t *face        = fe->face;
-                for (size_t i=0, n=vLoadedFaces.size(); i<n;)
+                for (size_t i=0; i<vFaces.size();)
                 {
                     // Get the item
-                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    font_entry_t *entry = vFaces.uget(i);
                     if (entry->face != face)
                     {
                         ++i;
@@ -282,25 +332,23 @@ namespace lsp
                     // Remove the entry
                     if (entry->name != NULL)
                         free(entry->name);
-                    if (entry->aliased != NULL)
-                        free(entry->aliased);
-                    --face->references;
-                    vLoadedFaces.remove(i);
+                    dereference(face);
+                    vFaces.remove(i);
                 }
-
-                // Destroy the corresponding face
-                destroy_face(face);
 
                 return STATUS_OK;
             }
 
             status_t FontManager::clear()
             {
+                if (hLibrary == NULL)
+                    return STATUS_BAD_STATE;
+
                 // Invalidate all faces
                 lltl::parray<face_t> fonts;
-                if (!vFontMapping.values(&fonts))
+                if (!vFontCache.values(&fonts))
                     return STATUS_NO_MEM;
-                vFontMapping.flush();
+                vFontCache.flush();
 
                 for (size_t i=0, n=fonts.size(); i<n; ++i)
                 {
@@ -314,26 +362,27 @@ namespace lsp
                 fonts.flush();
 
                 // Cleanup all fonts
-                for (size_t i=0, n=vLoadedFaces.size(); i<n; ++i)
+                for (size_t i=0, n=vFaces.size(); i<n; ++i)
                 {
-                    font_entry_t *entry = vLoadedFaces.uget(i);
+                    font_entry_t *entry = vFaces.uget(i);
                     if (entry != NULL)
                     {
                         if (entry->name != NULL)
                             free(entry->name);
-                        if (entry->aliased != NULL)
-                            free(entry->aliased);
                         if ((--entry->face->references) <= 0)
                             destroy_face(entry->face);
                     }
                 }
-                vLoadedFaces.flush();
+                vFaces.flush();
 
                 return STATUS_OK;
             }
 
             void FontManager::gc()
             {
+                if (hLibrary == NULL)
+                    return;
+
                 while (nCacheSize <= nMaxCacheSize)
                 {
                     // Remove glyph from LRU cache
