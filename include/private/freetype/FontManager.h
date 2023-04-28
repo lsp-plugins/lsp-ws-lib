@@ -30,6 +30,7 @@
 
 #include <private/freetype/types.h>
 #include <private/freetype/face.h>
+#include <private/freetype/face_id.h>
 #include <private/freetype/glyph.h>
 #include <private/freetype/LRUCache.h>
 
@@ -54,7 +55,7 @@ namespace lsp
                 private:
                     FT_Library                          hLibrary;
                     lltl::darray<font_entry_t>          vFaces;
-                    lltl::pphash<Font, face_t>          vFontCache;
+                    lltl::pphash<face_id_t, face_t>     vFontCache;
                     lltl::pphash<char, char>            vAliases;
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;

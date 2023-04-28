@@ -25,7 +25,7 @@
 #include <lsp-plug.in/io/InFileStream.h>
 
 #include <private/freetype/FontManager.h>
-#include <private/freetype/FontSpec.h>
+#include <private/freetype/face_id.h>
 #include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
 
@@ -35,12 +35,7 @@ namespace lsp
     {
         namespace ft
         {
-            FontManager::FontManager():
-                vFaces(),
-                vFontCache(
-                    font_hash_iface(),
-                    font_compare_iface(),
-                    font_allocator_iface())
+            FontManager::FontManager()
             {
                 hLibrary        = NULL;
                 nCacheSize      = 0;
@@ -266,16 +261,16 @@ namespace lsp
                     return;
 
                 // Obtain the list of fonts and faces
-                lltl::parray<Font> fonts;
-                if (!vFontCache.keys(&fonts))
+                lltl::parray<face_id_t> face_ids;
+                if (!vFontCache.keys(&face_ids))
                     return;
 
                 // Remove all elements with the same font name
                 face_t *face = NULL;
-                for (size_t i=0, n=fonts.size(); i<n; ++i)
+                for (size_t i=0, n=face_ids.size(); i<n; ++i)
                 {
-                    Font *f = fonts.uget(i);
-                    if ((f != NULL) && (strcmp(f->name(), name) == 0))
+                    face_id_t *f = face_ids.uget(i);
+                    if ((f != NULL) && (strcmp(f->name, name) == 0))
                     {
                         if (vFontCache.remove(f, &face))
                         {
