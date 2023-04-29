@@ -41,9 +41,10 @@ namespace lsp
                 FID_BOLD        = 1 << 0,
                 FID_ITALIC      = 1 << 1,
                 FID_ANTIALIAS   = 1 << 2,
+                FID_SYNTHETIC   = 1 << 3,
 
                 FID_ALL         = FID_BOLD | FID_ITALIC | FID_ANTIALIAS,
-                FID_SHIFT       = 1 << 3
+                FID_SHIFT       = 1 << 4
             };
 
             typedef struct face_id_t
@@ -57,6 +58,7 @@ namespace lsp
             size_t          face_id_hash(const face_id_t *hash);
             face_id_t      *make_face_id(const char *name, f24p6_t size, size_t flags);
             void            free_face_id(face_id_t *id);
+            size_t          make_face_id_flags(const Font *f);
 
         } /* namespace ft */
     } /* namespace ws */

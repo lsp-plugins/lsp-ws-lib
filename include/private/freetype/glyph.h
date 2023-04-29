@@ -57,6 +57,8 @@ namespace lsp
                 lsp_wchar_t     codepoint;  // UTF-32 codepoint associated with the glyph
                 size_t          szof;       // Size of memory used for this glyph
 
+                f24p6_t         width;      // Glyph width
+                f24p6_t         height;     // Glyph height
                 f24p6_t         x_advance;  // Advance by X
                 f24p6_t         y_advance;  // Advance by Y
                 int32_t         x_bearing;  // Bearing by X

@@ -63,6 +63,16 @@ namespace lsp
                     free(id);
             }
 
+            size_t make_face_id_flags(const Font *f)
+            {
+                size_t flags    = (f->bold()) ? FID_BOLD : 0;
+                if (f->italic())
+                    flags          |= FID_ITALIC;
+                if (f->antialias() != FA_DISABLED)
+                    flags          |= FID_ANTIALIAS;
+                return flags;
+            }
+
         } /* namespace ft */
     } /* namespace ws */
 

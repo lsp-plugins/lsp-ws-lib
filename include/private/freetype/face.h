@@ -33,6 +33,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <private/freetype/face_id.h>
 #include <private/freetype/types.h>
 
 namespace lsp
@@ -42,14 +43,6 @@ namespace lsp
         namespace ft
         {
             struct glyph_t;
-
-            enum face_flags_t
-            {
-                FACE_SLANT      = 1 << 0,
-                FACE_BOLD       = 1 << 1,
-                FACE_ANTIALIAS  = 1 << 2,
-                FACE_SYNTHETIC  = 1 << 3
-            };
 
             /**
              * The font face
@@ -61,22 +54,16 @@ namespace lsp
                 FT_Face     ft_face;            // The font face
                 font_t     *font;               // The font data
 
-                uint32_t    flags;              // Face flags
+                size_t      flags;              // Face flags
                 f24p6_t     h_size;             // The horizontal character size
                 f24p6_t     v_size;             // The verical character size
+                FT_Matrix   matrix;             // Matrix
                 f24p6_t     height;             // The height of the font
                 f24p6_t     ascend;             // The ascender
                 f24p6_t     descend;            // The descender
 
                 lltl::phashset<glyph_t> cache;  // Glyph cache
             } face_t;
-
-            /**
-             * Make font face flags
-             * @param f font specification
-             * @return font face flags
-             */
-            size_t      make_face_flags(const Font *f);
 
             /**
              * Load font face
@@ -93,7 +80,7 @@ namespace lsp
              * @param flags font face flags
              * @return pointer to font face
              */
-            face_t     *clone_face(face_t *src, uint32_t flags);
+            face_t     *clone_face(face_t *src);
 
             /**
              * Destroy the font face
@@ -111,9 +98,10 @@ namespace lsp
              * Start text processing using the selected face
              * @param face face object
              * @param size the font size of the face
+             * @param id_flags the flags to set while selecting the font face
              * @return status of operation
              */
-            status_t    select_face(face_t *face, float size);
+            status_t    select_face(face_t *face);
 
         } /* namespace ft */
     } /* namespace ws */

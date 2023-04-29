@@ -68,6 +68,8 @@ namespace lsp
                     void                    invalidate_face(face_t *face);
                     static bool             add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face);
                     static void             dereference(face_t *face);
+                    face_t                 *select_font_face(const Font *f);
+                    face_t                 *find_face(const face_id_t *id);
 
                 public:
                     FontManager();
@@ -111,16 +113,17 @@ namespace lsp
                      * @param last last character of substring in the string
                      * @return true if corresponding font has been found and text has been processed
                      */
-                    bool                    get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+                    bool                    get_text_parameters(const Font *f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                     /**
                      * Render text to bitmap
+                     * @param f font descriptor
                      * @param text text to render
                      * @param first first character of substring in the string
                      * @param last last character of substring in the string
                      * @return pointer to bitmap or NULL if corresponding font has not been found
                      */
-                    dsp::bitmap_t          *render_text(const LSPString *text, size_t first, size_t last);
+                    dsp::bitmap_t          *render_text(const Font *f, const LSPString *text, size_t first, size_t last);
 
             };
 

@@ -56,6 +56,7 @@ namespace lsp
              */
             constexpr size_t            default_max_font_cache_size     = 2 * default_min_font_cache_size;
 
+            constexpr f24p6_t           f24p6_one               = 64;
             constexpr float             f24p6_divider           = 1.0f / 64.0f;
             constexpr float             f24p6_multiplier        = 64.0f;
             constexpr f24p6_t           f24p6_face_slant_shift  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
@@ -78,6 +79,16 @@ namespace lsp
             inline float f24p6_to_float(f24p6_t value)
             {
                 return value * f24p6_divider;
+            }
+
+            /**
+             * Convert f24p6_t value to float with rounding to the upper value
+             * @param value value to convert
+             * @return converted floating-point value
+             */
+            inline float f24p6_ceil_to_float(f24p6_t value)
+            {
+                return (value + f24p6_one - 1) / f24p6_one;
             }
 
             /**

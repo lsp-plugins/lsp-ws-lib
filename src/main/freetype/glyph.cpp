@@ -54,25 +54,19 @@ namespace lsp
                 int error;
 
                 // Set transformation matrix
-                FT_Matrix mt;
-                mt.xx   = 1 * 0x10000;
-                mt.xy   = ((face->flags & FACE_SLANT) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f24p6_face_slant_shift : 0;
-                mt.yx   = 0;
-                mt.yy   = 1 * 0x10000;
-
-                FT_Set_Transform(face->ft_face, &mt, NULL);
+                FT_Set_Transform(face->ft_face, &face->matrix, NULL);
 
                 // Obtain the glyph index
                 FT_UInt glyph_index = FT_Get_Char_Index(face->ft_face, ch);
 
                 // Load glyph
-                size_t load_flags   = (face->flags & FACE_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
+                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
                 if ((error = FT_Load_Glyph(face->ft_face, glyph_index, load_flags )) != FT_Err_Ok)
                     return NULL;
 
                 // Render the glyph
                 FT_GlyphSlot glyph  = face->ft_face->glyph;
-                FT_Render_Mode render_mode  = (face->flags & FACE_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
                 if ((error = FT_Render_Glyph(glyph, render_mode )) != FT_Err_Ok)
                     return NULL;
 
@@ -112,6 +106,8 @@ namespace lsp
                 res->face           = face;
                 res->codepoint      = ch;
                 res->szof           = to_alloc;
+                res->width          = glyph->metrics.width;
+                res->height         = glyph->metrics.height;
                 res->x_advance      = glyph->advance.x;
                 res->y_advance      = glyph->advance.y;
                 res->x_bearing      = glyph->bitmap_left;
@@ -141,30 +137,6 @@ namespace lsp
                 // Return result
                 return res;
             }
-//
-//            glyph_t *get_glyph(face_t *face, lsp_wchar_t ch)
-//            {
-//                glyph_t key;
-//                key.codepoint   = ch;
-//
-//                // Try to obtain glyph from cache
-//                glyph_t *glyph  = face->cache.get(&key);
-//                if (glyph != NULL)
-//                    return glyph;
-//
-//                // There was no glyph present, create new glyph
-//                glyph           = render_glyph(face, ch);
-//                if (glyph == NULL)
-//                    return NULL;
-//
-//                // Add glyph to the face cache
-//                if (face->cache.create(glyph))
-//                    return glyph;
-//
-//                // Failed to add glyph
-//                free_glyph(glyph);
-//                return NULL;
-//            }
 
             void free_glyph(glyph_t *glyph)
             {

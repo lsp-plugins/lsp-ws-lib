@@ -348,11 +348,7 @@ namespace lsp
                 for (size_t i=0, n=fonts.size(); i<n; ++i)
                 {
                     face_t *face = fonts.uget(i);
-                    if (face != NULL)
-                    {
-                        if ((--face->references) <= 0)
-                            destroy_face(face);
-                    }
+                    dereference(face);
                 }
                 fonts.flush();
 
@@ -364,8 +360,7 @@ namespace lsp
                     {
                         if (entry->name != NULL)
                             free(entry->name);
-                        if ((--entry->face->references) <= 0)
-                            destroy_face(entry->face);
+                        dereference(entry->face);
                     }
                 }
                 vFaces.flush();
@@ -473,19 +468,203 @@ namespace lsp
                 return nCacheSize;
             }
 
+            face_t *FontManager::find_face(const face_id_t *id)
+            {
+                size_t selector = id->flags & (FID_BOLD | FID_ITALIC);
+
+                for (size_t i=0, n=vFaces.size(); i<n; ++i)
+                {
+                    font_entry_t *fe = vFaces.uget(i);
+                    if ((fe != NULL) && (fe->face->flags == selector))
+                    {
+                        if (!strcmp(fe->name, id->name))
+                            return fe->face;
+                    }
+                }
+
+                return NULL;
+            }
+
+            face_t *FontManager::select_font_face(const Font *f)
+            {
+                // Walk through aliases and get the real face name
+                const char *name = f->name();
+                if (name == NULL)
+                    return NULL;
+
+                while (true)
+                {
+                    const char *aliased = vAliases.get(name);
+                    if (aliased == NULL)
+                        break;
+                    name    = aliased;
+                }
+
+                // Now we have non-aliased name, let's look up into the cache for such font
+                // (first non-synthetic, then for synthetic)
+                face_id_t id;
+                face_t *face    = NULL;
+                size_t flags    = make_face_id_flags(f);
+                id.name         = name;
+                id.size         = float_to_f24p6(f->size());
+
+                id.flags        = flags;
+                if ((face = vFontCache.get(&id)) != NULL)
+                    return face;
+                id.flags        = flags | FID_SYNTHETIC;
+                if ((face = vFontCache.get(&id)) != NULL)
+                    return face;
+
+                // Face was not found. Try to synthesize new face
+                switch (flags & (FID_BOLD | FID_ITALIC))
+                {
+                    case FID_BOLD:
+                    case FID_ITALIC:
+                        // Try to lookup the face with desired flags first
+                        id.flags    = flags;
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+
+                        // Try to lookup regular face to synthesize bold or italic one
+                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+                        break;
+
+                    case FID_BOLD | FID_ITALIC:
+                    {
+                        // Try to lookup the face with desired flags first
+                        id.flags    = flags;
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+
+                        // Try to lookup without BOLD first
+                        id.flags    = flags & (~FID_BOLD);
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+
+                        // Then try to lookup without ITALIC first
+                        id.flags    = flags & (~FID_ITALIC);
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+
+                        // Then try to lookup regular one
+                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+                        break;
+                    }
+
+                    default:
+                    case 0:
+                        // Try to lookup regular face
+                        id.flags    = flags;
+                        if ((face = find_face(&id)) != NULL)
+                            break;
+                        break;
+                }
+
+                // Return if no face was found
+                if (face == NULL)
+                    return NULL;
+
+                // Synthesize new face
+                if ((face = clone_face(face)) == NULL)
+                    return NULL;
+                ++face->references;
+                lsp_finally { dereference(face); };
+
+                // Initialize synthesized face and add to the mapping
+                f24p6_t h_size      = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? float_to_f24p6(id.size) : 0;
+                f24p6_t v_size      = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : float_to_f24p6(id.size);
+
+                id.flags            = flags | FID_SYNTHETIC;
+                face->flags         = id.flags;
+                face->matrix.xx     = 1 * 0x10000;
+                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f24p6_face_slant_shift : 0;
+                face->matrix.yx     = 0;
+                face->matrix.yy     = 1 * 0x10000;
+
+                if (!vFontCache.create(&id, face))
+                    return NULL;
+                ++face->references;
+
+                return face;
+            }
+
             bool FontManager::get_font_parameters(const Font *f, font_parameters_t *fp)
             {
-                // TODO
-                return false;
+                // Select the font face
+                face_t *face    = select_font_face(f);
+                if (face == NULL)
+                    return false;
+
+                status_t res = select_face(face);
+                if (res != STATUS_OK)
+                    return false;
+
+                if (fp != NULL)
+                {
+                    fp->Ascent  = f24p6_to_float(face->ascend);
+                    fp->Descent = f24p6_to_float(face->descend);
+                    fp->Height  = f24p6_to_float(face->height);
+                }
+
+                return true;
             }
 
-            bool FontManager::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            bool FontManager::get_text_parameters(const Font *f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                // TODO
-                return false;
+                if ((text == NULL) || (first > last))
+                    return false;
+
+                // Select the font face
+                face_t *face    = select_font_face(f);
+                if (face == NULL)
+                    return false;
+                lsp_finally { gc(); };
+
+                // Estimate the text parameters
+                lsp_wchar_t ch      = text->char_at(first);
+                glyph_t *glyph      = get_glyph(face, ch);
+                if (glyph == NULL)
+                    return false;
+
+                ssize_t x_bearing   = glyph->x_bearing;
+                ssize_t y_bearing   = glyph->y_bearing;
+                ssize_t width       = glyph->x_advance - glyph->x_bearing;
+                ssize_t height      = glyph->height;
+                ssize_t x_advance   = glyph->x_advance;
+                ssize_t y_advance   = glyph->y_advance;
+
+                for (ssize_t i = first+1; i<last; ++i)
+                {
+                    lsp_wchar_t ch = text->char_at(i);
+                    glyph_t *glyph = get_glyph(face, ch);
+                    if (glyph == NULL)
+                        return false;
+
+                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
+                    width              += glyph->x_advance;
+                    height              = lsp_max(height, glyph->height);
+                    x_advance          += glyph->x_advance;
+                    y_advance          += glyph->y_advance;
+                }
+
+                if (tp != NULL)
+                {
+                    tp->XBearing    = f24p6_ceil_to_float(x_bearing);
+                    tp->YBearing    = f24p6_ceil_to_float(y_bearing);
+                    tp->Width       = f24p6_ceil_to_float(width);
+                    tp->Height      = f24p6_ceil_to_float(height);
+                    tp->XAdvance    = f24p6_ceil_to_float(x_advance);
+                    tp->YAdvance    = f24p6_ceil_to_float(y_advance);
+                }
+
+                return true;
             }
 
-            dsp::bitmap_t *FontManager::render_text(const LSPString *text, size_t first, size_t last)
+            dsp::bitmap_t *FontManager::render_text(const Font *f, const LSPString *text, size_t first, size_t last)
             {
                 // TODO
                 return NULL;

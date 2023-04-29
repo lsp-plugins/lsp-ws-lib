@@ -43,16 +43,6 @@ namespace lsp
     {
         namespace ft
         {
-            size_t make_face_flags(const Font *f)
-            {
-                size_t flags    = (f->italic()) ? FACE_SLANT : 0;
-                if (f->bold())
-                    flags          |= FACE_BOLD;
-                if (f->antialias() != FA_DISABLED)
-                    flags          |= FACE_ANTIALIAS;
-                return flags;
-            }
-
             static void release_font_data(font_t *font)
             {
                 if ((--font->references) > 0)
@@ -158,12 +148,6 @@ namespace lsp
                     face->ft_face       = ft_face;
                     face->font          = data;
 
-                    face->flags         = 0;
-                    if (ft_face->style_flags & FT_STYLE_FLAG_ITALIC)
-                        face->flags        |= FACE_SLANT;
-                    if (ft_face->style_flags & FT_STYLE_FLAG_BOLD)
-                        face->flags        |= FACE_BOLD;
-
                     face->h_size        = 0;
                     face->v_size        = 0;
                     face->height        = 0;
@@ -189,7 +173,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            face_t *clone_face(face_t *src, uint32_t flags)
+            face_t *clone_face(face_t *src)
             {
                 FT_Error error;
 
@@ -212,7 +196,6 @@ namespace lsp
                 face->ft_face       = src->ft_face;
                 face->font          = src->font;
 
-                face->flags         = flags;
                 face->h_size        = 0;
                 face->v_size        = 0;
                 face->height        = 0;
@@ -269,20 +252,19 @@ namespace lsp
                 free(face);
             }
 
-            status_t select_face(face_t *face, float size)
+            status_t select_face(face_t *face)
             {
                 FT_Error error;
                 FT_Face ft_face     = face->ft_face;
 
                 // Select the font size
-                f24p6_t h_size      = (ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? float_to_f24p6(size) : 0;
-                f24p6_t v_size      = (ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : float_to_f24p6(size);
-                if ((error = FT_Set_Char_Size(ft_face, h_size, v_size, 0, 0)) != FT_Err_Ok)
+                if ((error = FT_Set_Char_Size(ft_face, face->h_size, face->v_size, 0, 0)) != FT_Err_Ok)
                     return STATUS_UNKNOWN_ERR;
 
+                // Set transformation matrix
+                FT_Set_Transform(face->ft_face, &face->matrix, NULL);
+
                 // Update the font metrics for the face
-                face->h_size        = h_size;
-                face->v_size        = v_size;
                 face->height        = ft_face->size->metrics.height;
                 face->ascend        = ft_face->size->metrics.ascender;
                 face->descend       = ft_face->size->metrics.descender;
