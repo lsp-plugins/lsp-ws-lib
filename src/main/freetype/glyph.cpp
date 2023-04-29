@@ -91,7 +91,7 @@ namespace lsp
 
                 // Copy the glyph data
                 FT_Bitmap *bitmap   = &glyph->bitmap;
-                size_t szof_glyph   = align_size(sizeof(glyph_t), sizeof(size_t));
+                size_t szof_glyph   = sizeof(glyph_t) + DEFAULT_ALIGN;
                 size_t stride       = lsp_abs(bitmap->pitch);
                 size_t bytes        = bitmap->rows * stride;
                 size_t to_alloc     = szof_glyph + bytes;
@@ -116,7 +116,7 @@ namespace lsp
                 res->bitmap.width   = bitmap->width;
                 res->bitmap.height  = bitmap->rows;
                 res->bitmap.stride  = stride;
-                res->bitmap.data    = &buf[szof_glyph];
+                res->bitmap.data    = align_ptr(&buf[sizeof(glyph_t)], DEFAULT_ALIGN);
                 res->format         = format;
 
                 // Copy the bitmap data of the glyph

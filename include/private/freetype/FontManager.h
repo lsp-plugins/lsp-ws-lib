@@ -113,7 +113,7 @@ namespace lsp
                      * @param last last character of substring in the string
                      * @return true if corresponding font has been found and text has been processed
                      */
-                    bool                    get_text_parameters(const Font *f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+                    bool                    get_text_parameters(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
                     /**
                      * Render text to bitmap
@@ -123,7 +123,7 @@ namespace lsp
                      * @param last last character of substring in the string
                      * @return pointer to bitmap or NULL if corresponding font has not been found
                      */
-                    dsp::bitmap_t          *render_text(const Font *f, const LSPString *text, size_t first, size_t last);
+                    dsp::bitmap_t          *render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last);
 
             };
 

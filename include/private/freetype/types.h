@@ -71,6 +71,16 @@ namespace lsp
                 uint8_t        *data;       // The actual data for the font stored in memory
             } font_t;
 
+            typedef struct text_range_t
+            {
+                ssize_t         x_bearing;
+                ssize_t         y_bearing;
+                ssize_t         width;
+                ssize_t         height;
+                ssize_t         x_advance;
+                ssize_t         y_advance;
+            } text_range_t;
+
             /**
              * Convert f24p6_t value to float
              * @param value value to convert
@@ -86,9 +96,19 @@ namespace lsp
              * @param value value to convert
              * @return converted floating-point value
              */
-            inline float f24p6_ceil_to_float(f24p6_t value)
+            inline ssize_t f24p6_ceil_to_int(f24p6_t value)
             {
                 return (value + f24p6_one - 1) / f24p6_one;
+            }
+
+            /**
+             * Convert f24p6_t value to float with rounding to the lower value
+             * @param value value to convert
+             * @return converted floating-point value
+             */
+            inline ssize_t f24p6_floor_to_int(f24p6_t value)
+            {
+                return value / f24p6_one;
             }
 
             /**

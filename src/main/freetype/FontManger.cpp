@@ -25,9 +25,11 @@
 #include <lsp-plug.in/io/InFileStream.h>
 
 #include <private/freetype/FontManager.h>
+#include <private/freetype/bitmap.h>
 #include <private/freetype/face_id.h>
 #include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
+#include <private/freetype/types.h>
 
 namespace lsp
 {
@@ -580,6 +582,8 @@ namespace lsp
 
                 id.flags            = flags | FID_SYNTHETIC;
                 face->flags         = id.flags;
+                face->h_size        = h_size;
+                face->v_size        = v_size;
                 face->matrix.xx     = 1 * 0x10000;
                 face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f24p6_face_slant_shift : 0;
                 face->matrix.yx     = 0;
@@ -613,7 +617,7 @@ namespace lsp
                 return true;
             }
 
-            bool FontManager::get_text_parameters(const Font *f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            bool FontManager::get_text_parameters(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if ((text == NULL) || (first > last))
                     return false;
@@ -653,21 +657,109 @@ namespace lsp
 
                 if (tp != NULL)
                 {
-                    tp->XBearing    = f24p6_ceil_to_float(x_bearing);
-                    tp->YBearing    = f24p6_ceil_to_float(y_bearing);
-                    tp->Width       = f24p6_ceil_to_float(width);
-                    tp->Height      = f24p6_ceil_to_float(height);
-                    tp->XAdvance    = f24p6_ceil_to_float(x_advance);
-                    tp->YAdvance    = f24p6_ceil_to_float(y_advance);
+                    tp->x_bearing   = x_bearing;
+                    tp->y_bearing   = y_bearing;
+                    tp->width       = f24p6_ceil_to_int(width);
+                    tp->height      = f24p6_ceil_to_int(height);
+                    tp->x_advance   = f24p6_ceil_to_int(x_advance);
+                    tp->y_advance   = f24p6_ceil_to_int(y_advance);
                 }
 
                 return true;
             }
 
-            dsp::bitmap_t *FontManager::render_text(const Font *f, const LSPString *text, size_t first, size_t last)
+            dsp::bitmap_t *FontManager::render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                // TODO
-                return NULL;
+                if ((text == NULL) || (first > last))
+                    return NULL;
+
+                // Select the font face
+                face_t *face    = select_font_face(f);
+                if (face == NULL)
+                    return NULL;
+                lsp_finally { gc(); };
+
+                // Estimate the text parameters
+                lsp_wchar_t ch      = text->char_at(first);
+                glyph_t *glyph      = get_glyph(face, ch);
+                if (glyph == NULL)
+                    return NULL;
+
+                ssize_t x_bearing   = glyph->x_bearing;
+                ssize_t y_bearing   = glyph->y_bearing;
+                ssize_t width       = glyph->x_advance - glyph->x_bearing;
+                ssize_t height      = glyph->height;
+
+                for (ssize_t i = first+1; i<last; ++i)
+                {
+                    lsp_wchar_t ch = text->char_at(i);
+                    glyph_t *glyph = get_glyph(face, ch);
+                    if (glyph == NULL)
+                        return NULL;
+
+                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
+                    width              += glyph->x_advance;
+                    height              = lsp_max(height, glyph->height);
+                }
+
+                // Allocate the bitmap
+                width               = f24p6_ceil_to_int(width);
+                height              = f24p6_ceil_to_int(height);
+
+                dsp::bitmap_t *bitmap   = create_bitmap(width, height);
+                if (bitmap == NULL)
+                    return NULL;
+
+                // Render the contents to the bitmap
+                ssize_t x           = 0;
+                ssize_t y           = y_bearing - face->ascend;
+
+                for (ssize_t i = first; i<last; ++i)
+                {
+                    lsp_wchar_t ch = text->char_at(i);
+                    glyph_t *glyph = get_glyph(face, ch);
+                    if (glyph == NULL)
+                        return NULL;
+
+                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
+                    width              += glyph->x_advance;
+                    height              = lsp_max(height, glyph->height);
+
+                    ssize_t cx          = (x / 64) + glyph->x_bearing - x_bearing;
+                    ssize_t cy          = (y / 64) - glyph->y_bearing;
+
+                    switch (glyph->format)
+                    {
+                        case FMT_1_BPP:
+                            dsp::bitmap_max_b1b8(bitmap, &glyph->bitmap, cx, cy);
+                            break;
+                        case FMT_2_BPP:
+                            dsp::bitmap_max_b2b8(bitmap, &glyph->bitmap, cx, cy);
+                            break;
+                        case FMT_4_BPP:
+                            dsp::bitmap_max_b4b8(bitmap, &glyph->bitmap, cx, cy);
+                            break;
+                        case FMT_8_BPP:
+                        default:
+                            dsp::bitmap_max_b8b8(bitmap, &glyph->bitmap, cx, cy);
+                            break;
+                    }
+
+                    x      += glyph->x_advance;
+                    y      += glyph->y_advance;
+                }
+
+                if (tp != NULL)
+                {
+                    tp->x_bearing   = x_bearing;
+                    tp->y_bearing   = y_bearing;
+                    tp->width       = f24p6_ceil_to_int(width);
+                    tp->height      = f24p6_ceil_to_int(height);
+                    tp->x_advance   = f24p6_ceil_to_int(x);
+                    tp->y_advance   = f24p6_ceil_to_int(y);
+                }
+
+                return bitmap;
             }
         } /* namespace ft */
     } /* namespace ws */
