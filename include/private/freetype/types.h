@@ -44,7 +44,7 @@ namespace lsp
             {
             } allocator_tag_t;
 
-            typedef uint32_t            f24p6_t;
+            typedef int32_t             f26p6_t;
 
             /**
              * The default minimum font cache size for the font manager
@@ -56,10 +56,10 @@ namespace lsp
              */
             constexpr size_t            default_max_font_cache_size     = 2 * default_min_font_cache_size;
 
-            constexpr f24p6_t           f24p6_one               = 64;
-            constexpr float             f24p6_divider           = 1.0f / 64.0f;
-            constexpr float             f24p6_multiplier        = 64.0f;
-            constexpr f24p6_t           f24p6_face_slant_shift  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
+            constexpr f26p6_t           f26p6_one               = 64;
+            constexpr float             f26p6_divider           = 1.0f / 64.0f;
+            constexpr float             f26p6_multiplier        = 64.0f;
+            constexpr f26p6_t           f26p6_face_slant_shift  = 180; // sinf(M_PI * 9.0f / 180.0f) * 0x10000
 
             /**
              * The font data
@@ -82,43 +82,53 @@ namespace lsp
             } text_range_t;
 
             /**
-             * Convert f24p6_t value to float
+             * Convert f26p6_t value to float
              * @param value value to convert
              * @return converted floating-point value
              */
-            inline float f24p6_to_float(f24p6_t value)
+            inline float f26p6_to_float(f26p6_t value)
             {
-                return value * f24p6_divider;
+                return value * f26p6_divider;
             }
 
             /**
-             * Convert f24p6_t value to float with rounding to the upper value
+             * Convert f26p6_t value to float with rounding to the upper value
              * @param value value to convert
              * @return converted floating-point value
              */
-            inline ssize_t f24p6_ceil_to_int(f24p6_t value)
+            inline ssize_t f26p6_ceil_to_int(f26p6_t value)
             {
-                return (value + f24p6_one - 1) / f24p6_one;
+                return (value + f26p6_one - 1) / f26p6_one;
             }
 
             /**
-             * Convert f24p6_t value to float with rounding to the lower value
+             * Convert f26p6_t value to float with rounding to the lower value
              * @param value value to convert
              * @return converted floating-point value
              */
-            inline ssize_t f24p6_floor_to_int(f24p6_t value)
+            inline ssize_t f26p6_floor_to_int(f26p6_t value)
             {
-                return value / f24p6_one;
+                return value / f26p6_one;
             }
 
             /**
-             * Convert float to f24p6_t value
+             * Convert float to f26p6_t value
              * @param value value to convert
-             * @return converted f24p6 value
+             * @return converted f26p6 value
              */
-            inline f24p6_t float_to_f24p6(float value)
+            inline f26p6_t float_to_f26p6(float value)
             {
-                return value * f24p6_multiplier;
+                return value * f26p6_multiplier;
+            }
+
+            /**
+             * Convert float to f26p6_t value
+             * @param value value to convert
+             * @return converted f26p6 value
+             */
+            inline f26p6_t int_to_f26p6(ssize_t value)
+            {
+                return value * f26p6_one;
             }
 
         } /* namespace ft */

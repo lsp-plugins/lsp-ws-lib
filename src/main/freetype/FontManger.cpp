@@ -374,8 +374,11 @@ namespace lsp
             {
                 if (hLibrary == NULL)
                     return;
+                if (nCacheSize <= nMaxCacheSize)
+                    return;
+                size_t cache_size = lsp_min(nMinCacheSize, nMaxCacheSize);
 
-                while (nCacheSize <= nMaxCacheSize)
+                while (nCacheSize > cache_size)
                 {
                     // Remove glyph from LRU cache
                     glyph_t *glyph      = sLRU.remove_last();
@@ -508,7 +511,7 @@ namespace lsp
                 face_t *face    = NULL;
                 size_t flags    = make_face_id_flags(f);
                 id.name         = name;
-                id.size         = float_to_f24p6(f->size());
+                id.size         = float_to_f26p6(f->size());
 
                 id.flags        = flags;
                 if ((face = vFontCache.get(&id)) != NULL)
@@ -577,15 +580,12 @@ namespace lsp
                 lsp_finally { dereference(face); };
 
                 // Initialize synthesized face and add to the mapping
-                f24p6_t h_size      = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? float_to_f24p6(id.size) : 0;
-                f24p6_t v_size      = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : float_to_f24p6(id.size);
-
                 id.flags            = flags | FID_SYNTHETIC;
                 face->flags         = id.flags;
-                face->h_size        = h_size;
-                face->v_size        = v_size;
+                face->h_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? id.size : 0;
+                face->v_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : id.size;
                 face->matrix.xx     = 1 * 0x10000;
-                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f24p6_face_slant_shift : 0;
+                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f26p6_face_slant_shift : 0;
                 face->matrix.yx     = 0;
                 face->matrix.yy     = 1 * 0x10000;
 
@@ -593,7 +593,9 @@ namespace lsp
                     return NULL;
                 ++face->references;
 
-                return face;
+                // Select font face
+                status_t res = select_face(face);
+                return (res == STATUS_OK) ? face : NULL;
             }
 
             bool FontManager::get_font_parameters(const Font *f, font_parameters_t *fp)
@@ -603,15 +605,11 @@ namespace lsp
                 if (face == NULL)
                     return false;
 
-                status_t res = select_face(face);
-                if (res != STATUS_OK)
-                    return false;
-
                 if (fp != NULL)
                 {
-                    fp->Ascent  = f24p6_to_float(face->ascend);
-                    fp->Descent = f24p6_to_float(face->descend);
-                    fp->Height  = f24p6_to_float(face->height);
+                    fp->Ascent  = f26p6_to_float(face->ascent);
+                    fp->Descent = f26p6_to_float(face->descent);
+                    fp->Height  = f26p6_to_float(face->height);
                 }
 
                 return true;
@@ -623,10 +621,9 @@ namespace lsp
                     return false;
 
                 // Select the font face
-                face_t *face    = select_font_face(f);
+                face_t *face        = select_font_face(f);
                 if (face == NULL)
                     return false;
-                lsp_finally { gc(); };
 
                 // Estimate the text parameters
                 lsp_wchar_t ch      = text->char_at(first);
@@ -643,12 +640,12 @@ namespace lsp
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
-                    lsp_wchar_t ch = text->char_at(i);
-                    glyph_t *glyph = get_glyph(face, ch);
+                    lsp_wchar_t ch      = text->char_at(i);
+                    glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
                         return false;
 
-                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
+                    y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     width              += glyph->x_advance;
                     height              = lsp_max(height, glyph->height);
                     x_advance          += glyph->x_advance;
@@ -659,10 +656,10 @@ namespace lsp
                 {
                     tp->x_bearing   = x_bearing;
                     tp->y_bearing   = y_bearing;
-                    tp->width       = f24p6_ceil_to_int(width);
-                    tp->height      = f24p6_ceil_to_int(height);
-                    tp->x_advance   = f24p6_ceil_to_int(x_advance);
-                    tp->y_advance   = f24p6_ceil_to_int(y_advance);
+                    tp->width       = f26p6_ceil_to_int(width);
+                    tp->height      = f26p6_ceil_to_int(height);
+                    tp->x_advance   = f26p6_ceil_to_int(x_advance);
+                    tp->y_advance   = f26p6_ceil_to_int(y_advance);
                 }
 
                 return true;
@@ -674,10 +671,9 @@ namespace lsp
                     return NULL;
 
                 // Select the font face
-                face_t *face    = select_font_face(f);
+                face_t *face        = select_font_face(f);
                 if (face == NULL)
                     return NULL;
-                lsp_finally { gc(); };
 
                 // Estimate the text parameters
                 lsp_wchar_t ch      = text->char_at(first);
@@ -688,23 +684,23 @@ namespace lsp
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
                 ssize_t width       = glyph->x_advance - glyph->x_bearing;
-                ssize_t height      = glyph->height;
+                ssize_t height      = face->height;
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
-                    lsp_wchar_t ch = text->char_at(i);
-                    glyph_t *glyph = get_glyph(face, ch);
+                    lsp_wchar_t ch      = text->char_at(i);
+                    glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
                         return NULL;
 
-                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
+                    y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     width              += glyph->x_advance;
                     height              = lsp_max(height, glyph->height);
                 }
 
                 // Allocate the bitmap
-                width               = f24p6_ceil_to_int(width);
-                height              = f24p6_ceil_to_int(height);
+                width               = f26p6_ceil_to_int(width);
+                height              = f26p6_ceil_to_int(height);
 
                 dsp::bitmap_t *bitmap   = create_bitmap(width, height);
                 if (bitmap == NULL)
@@ -712,7 +708,7 @@ namespace lsp
 
                 // Render the contents to the bitmap
                 ssize_t x           = 0;
-                ssize_t y           = y_bearing - face->ascend;
+                ssize_t y           = face->ascent;
 
                 for (ssize_t i = first; i<last; ++i)
                 {
@@ -721,12 +717,11 @@ namespace lsp
                     if (glyph == NULL)
                         return NULL;
 
-                    y_bearing           = lsp_max(glyph->y_bearing, glyph->y_bearing);
                     width              += glyph->x_advance;
                     height              = lsp_max(height, glyph->height);
 
-                    ssize_t cx          = (x / 64) + glyph->x_bearing - x_bearing;
-                    ssize_t cy          = (y / 64) - glyph->y_bearing;
+                    ssize_t cx          = f26p6_ceil_to_int(x) + glyph->x_bearing - x_bearing;
+                    ssize_t cy          = f26p6_ceil_to_int(y) - glyph->y_bearing;
 
                     switch (glyph->format)
                     {
@@ -753,10 +748,10 @@ namespace lsp
                 {
                     tp->x_bearing   = x_bearing;
                     tp->y_bearing   = y_bearing;
-                    tp->width       = f24p6_ceil_to_int(width);
-                    tp->height      = f24p6_ceil_to_int(height);
-                    tp->x_advance   = f24p6_ceil_to_int(x);
-                    tp->y_advance   = f24p6_ceil_to_int(y);
+                    tp->width       = f26p6_ceil_to_int(width);
+                    tp->height      = f26p6_ceil_to_int(height);
+                    tp->x_advance   = f26p6_ceil_to_int(x);
+                    tp->y_advance   = f26p6_ceil_to_int(y);
                 }
 
                 return bitmap;

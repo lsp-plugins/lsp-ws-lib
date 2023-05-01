@@ -38,7 +38,7 @@ namespace lsp
                 return hash ^ (face_id->flags | (face_id->size << FID_SHIFT));
             }
 
-            face_id_t *make_face_id(const char *name, f24p6_t size, size_t flags)
+            face_id_t *make_face_id(const char *name, f26p6_t size, size_t flags)
             {
                 size_t len      = strlen(name) + 1;
                 size_t szof     = align_size(sizeof(face_id_t), DEFAULT_ALIGN);

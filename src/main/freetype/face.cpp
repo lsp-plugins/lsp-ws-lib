@@ -151,8 +151,8 @@ namespace lsp
                     face->h_size        = 0;
                     face->v_size        = 0;
                     face->height        = 0;
-                    face->ascend        = 0;
-                    face->descend       = 0;
+                    face->ascent        = 0;
+                    face->descent       = 0;
 
                     allocator_tag_t tag;
                     new (&face->cache, tag) lltl::phashset<glyph_t>(glyph_hash_iface(), glyph_compare_iface());
@@ -199,8 +199,8 @@ namespace lsp
                 face->h_size        = 0;
                 face->v_size        = 0;
                 face->height        = 0;
-                face->ascend        = 0;
-                face->descend       = 0;
+                face->ascent        = 0;
+                face->descent       = 0;
 
                 allocator_tag_t tag;
                 new (&face->cache, tag) lltl::phashset<glyph_t>(glyph_hash_iface(), glyph_compare_iface());
@@ -266,8 +266,8 @@ namespace lsp
 
                 // Update the font metrics for the face
                 face->height        = ft_face->size->metrics.height;
-                face->ascend        = ft_face->size->metrics.ascender;
-                face->descend       = ft_face->size->metrics.descender;
+                face->ascent        = ft_face->size->metrics.ascender;
+                face->descent       = ft_face->size->metrics.descender;
 
                 return STATUS_OK;
             }

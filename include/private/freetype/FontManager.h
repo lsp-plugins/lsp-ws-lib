@@ -29,6 +29,7 @@
 #include <lsp-plug.in/lltl/phashset.h>
 
 #include <private/freetype/types.h>
+#include <private/freetype/bitmap.h>
 #include <private/freetype/face.h>
 #include <private/freetype/face_id.h>
 #include <private/freetype/glyph.h>
@@ -124,7 +125,6 @@ namespace lsp
                      * @return pointer to bitmap or NULL if corresponding font has not been found
                      */
                     dsp::bitmap_t          *render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last);
-
             };
 
         } /* namespace ft */

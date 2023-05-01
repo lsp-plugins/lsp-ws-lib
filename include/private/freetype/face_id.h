@@ -50,13 +50,13 @@ namespace lsp
             typedef struct face_id_t
             {
                 const char *name;           // The name of Face ID
-                f24p6_t     size;           // The size of the font face
+                f26p6_t     size;           // The size of the font face
                 size_t      flags;          // The flags of Face ID
             } face_id_t;
 
 
             size_t          face_id_hash(const face_id_t *hash);
-            face_id_t      *make_face_id(const char *name, f24p6_t size, size_t flags);
+            face_id_t      *make_face_id(const char *name, f26p6_t size, size_t flags);
             void            free_face_id(face_id_t *id);
             size_t          make_face_id_flags(const Font *f);
 

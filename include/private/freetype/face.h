@@ -55,12 +55,12 @@ namespace lsp
                 font_t     *font;               // The font data
 
                 size_t      flags;              // Face flags
-                f24p6_t     h_size;             // The horizontal character size
-                f24p6_t     v_size;             // The verical character size
+                f26p6_t     h_size;             // The horizontal character size
+                f26p6_t     v_size;             // The verical character size
                 FT_Matrix   matrix;             // Matrix
-                f24p6_t     height;             // The height of the font
-                f24p6_t     ascend;             // The ascender
-                f24p6_t     descend;            // The descender
+                f26p6_t     height;             // The height of the font
+                f26p6_t     ascent;             // The ascender
+                f26p6_t     descent;            // The descender
 
                 lltl::phashset<glyph_t> cache;  // Glyph cache
             } face_t;

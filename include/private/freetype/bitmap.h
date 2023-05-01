@@ -36,6 +36,13 @@ namespace lsp
         namespace ft
         {
             /**
+             * Compute optimal stride between rows in bytes for monochrome bitmap with 8 bits per pixel
+             * @param width width of the bitmap
+             * @return stride of the bitmap in bytes
+             */
+            size_t compute_bitmap_stride(size_t width);
+
+            /**
              * Create bitmap, 1 byte per pixel
              * @param width width of the bitmap
              * @param height height of the bitmap

@@ -40,7 +40,7 @@ namespace lsp
     {
         namespace ft
         {
-            inline size_t compute_stride(size_t width)
+            size_t compute_bitmap_stride(size_t width)
             {
             #if defined(USE_LIBCAIRO)
                 return cairo_format_stride_for_width(CAIRO_FORMAT_A8, width);
@@ -51,7 +51,7 @@ namespace lsp
 
             dsp::bitmap_t *create_bitmap(size_t width, size_t height)
             {
-                size_t stride       = compute_stride(width);
+                size_t stride       = compute_bitmap_stride(width);
                 size_t szof_bitmap  = sizeof(dsp::bitmap_t) + DEFAULT_ALIGN;
                 size_t buf_size     = stride * height;
 
