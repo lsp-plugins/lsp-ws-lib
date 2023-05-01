@@ -624,43 +624,43 @@ namespace lsp
                 face_t *face        = select_font_face(f);
                 if (face == NULL)
                     return false;
+                if (tp == NULL)
+                    return true;
 
                 // Estimate the text parameters
                 lsp_wchar_t ch      = text->char_at(first);
                 glyph_t *glyph      = get_glyph(face, ch);
                 if (glyph == NULL)
-                    return false;
+                    return NULL;
 
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
+                ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
                 ssize_t width       = glyph->x_advance - glyph->x_bearing;
-                ssize_t height      = glyph->height;
-                ssize_t x_advance   = glyph->x_advance;
-                ssize_t y_advance   = glyph->y_advance;
+                ssize_t height      = 0;
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
-                    lsp_wchar_t ch      = text->char_at(i);
+                    ch                  = text->char_at(i);
                     glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
-                        return false;
+                        return NULL;
 
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
+                    y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
                     width              += glyph->x_advance;
-                    height              = lsp_max(height, glyph->height);
-                    x_advance          += glyph->x_advance;
-                    y_advance          += glyph->y_advance;
                 }
 
-                if (tp != NULL)
-                {
-                    tp->x_bearing   = x_bearing;
-                    tp->y_bearing   = y_bearing;
-                    tp->width       = f26p6_ceil_to_int(width);
-                    tp->height      = f26p6_ceil_to_int(height);
-                    tp->x_advance   = f26p6_ceil_to_int(x_advance);
-                    tp->y_advance   = f26p6_ceil_to_int(y_advance);
-                }
+                // Output the result
+                width               = f26p6_ceil_to_int(width);
+                height              = y_max + y_bearing;
+
+                tp->x_bearing       = x_bearing;
+                tp->y_bearing       = -y_bearing;
+                tp->width           = width;
+                tp->height          = height;
+                tp->x_advance       = width + x_bearing;
+                tp->y_advance       = y_max + y_bearing;
 
                 return true;
             }
@@ -683,24 +683,25 @@ namespace lsp
 
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
+                ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
                 ssize_t width       = glyph->x_advance - glyph->x_bearing;
-                ssize_t height      = face->height;
+                ssize_t height      = 0;
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
-                    lsp_wchar_t ch      = text->char_at(i);
+                    ch                  = text->char_at(i);
                     glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
                         return NULL;
 
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
+                    y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
                     width              += glyph->x_advance;
-                    height              = lsp_max(height, glyph->height);
                 }
 
                 // Allocate the bitmap
                 width               = f26p6_ceil_to_int(width);
-                height              = f26p6_ceil_to_int(height);
+                height              = y_max + y_bearing;
 
                 dsp::bitmap_t *bitmap   = create_bitmap(width, height);
                 if (bitmap == NULL)
@@ -708,20 +709,16 @@ namespace lsp
 
                 // Render the contents to the bitmap
                 ssize_t x           = 0;
-                ssize_t y           = face->ascent;
 
                 for (ssize_t i = first; i<last; ++i)
                 {
-                    lsp_wchar_t ch = text->char_at(i);
-                    glyph_t *glyph = get_glyph(face, ch);
+                    ch                  = text->char_at(i);
+                    glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
                         return NULL;
 
-                    width              += glyph->x_advance;
-                    height              = lsp_max(height, glyph->height);
-
-                    ssize_t cx          = f26p6_ceil_to_int(x) + glyph->x_bearing - x_bearing;
-                    ssize_t cy          = f26p6_ceil_to_int(y) - glyph->y_bearing;
+                    ssize_t cx          = f26p6_floor_to_int(x) + glyph->x_bearing - x_bearing;
+                    ssize_t cy          = y_bearing - glyph->y_bearing;
 
                     switch (glyph->format)
                     {
@@ -741,17 +738,16 @@ namespace lsp
                     }
 
                     x      += glyph->x_advance;
-                    y      += glyph->y_advance;
                 }
 
                 if (tp != NULL)
                 {
-                    tp->x_bearing   = x_bearing;
-                    tp->y_bearing   = y_bearing;
-                    tp->width       = f26p6_ceil_to_int(width);
-                    tp->height      = f26p6_ceil_to_int(height);
-                    tp->x_advance   = f26p6_ceil_to_int(x);
-                    tp->y_advance   = f26p6_ceil_to_int(y);
+                    tp->x_bearing       = x_bearing;
+                    tp->y_bearing       = -y_bearing;
+                    tp->width           = width;
+                    tp->height          = height;
+                    tp->x_advance       = width + x_bearing;
+                    tp->y_advance       = y_max + y_bearing;
                 }
 
                 return bitmap;
