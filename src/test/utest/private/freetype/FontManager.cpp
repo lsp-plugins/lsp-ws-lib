@@ -157,6 +157,7 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         printf("Size:               %d x %d\n", int(tp.width), int(tp.height));
         printf("Advance:            %d, %d\n", int(tp.x_advance), int(tp.y_advance));
         printf("Used cache size:    %ld bytes\n", long(manager.used_cache_size()));
+        printf("Cache hit/miss/rm:  %ld/%ld/%ld\n", long(manager.cache_hits()), long(manager.cache_misses()), long(manager.cache_removal()));
 
         // Remove the font
         UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);

@@ -58,10 +58,13 @@ namespace lsp
                     lltl::darray<font_entry_t>          vFaces;
                     lltl::pphash<face_id_t, face_t>     vFontCache;
                     lltl::pphash<char, char>            vAliases;
+                    LRUCache                            sLRU;
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
                     size_t                              nMaxCacheSize;
-                    LRUCache                            sLRU;
+                    size_t                              nCacheHits;
+                    size_t                              nCacheMisses;
+                    size_t                              nCacheRemoval;
 
                 protected:
                     glyph_t                *get_glyph(face_t *face, lsp_wchar_t ch);
@@ -87,15 +90,6 @@ namespace lsp
                     status_t                add_alias(const char *name, const char *alias);
                     status_t                remove(const char *name);
                     status_t                clear();
-                    void                    gc();
-
-                    void                    set_cache_limits(size_t min, size_t max);
-                    size_t                  set_min_cache_size(size_t min);
-                    size_t                  set_max_cache_size(size_t max);
-
-                    size_t                  min_cache_size() const;
-                    size_t                  max_cache_size() const;
-                    size_t                  used_cache_size() const;
 
                     /**
                      * Get font parameters
@@ -125,6 +119,25 @@ namespace lsp
                      * @return pointer to bitmap or NULL if corresponding font has not been found
                      */
                     dsp::bitmap_t          *render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last);
+
+                public: // Cache control and statistics
+                    /**
+                     * Perform garbage collection
+                     */
+                    void                    gc();
+
+                    void                    set_cache_limits(size_t min, size_t max);
+                    size_t                  set_min_cache_size(size_t min);
+                    size_t                  set_max_cache_size(size_t max);
+
+                    inline size_t           min_cache_size() const  { return nMinCacheSize; }
+                    inline size_t           max_cache_size() const  { return nMaxCacheSize; }
+                    inline size_t           used_cache_size() const { return nCacheSize;    }
+
+                    inline size_t           cache_hits() const      { return nCacheHits;    }
+                    inline size_t           cache_misses() const    { return nCacheMisses;  }
+                    inline size_t           cache_removal() const   { return nCacheRemoval; }
+                    void                    clear_cache_stats();
             };
 
         } /* namespace ft */

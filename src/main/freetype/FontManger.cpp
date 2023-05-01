@@ -40,9 +40,13 @@ namespace lsp
             FontManager::FontManager()
             {
                 hLibrary        = NULL;
+
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;
+                nCacheHits      = 0;
+                nCacheMisses    = 0;
+                nCacheRemoval   = 0;
             }
 
             FontManager::~FontManager()
@@ -65,6 +69,7 @@ namespace lsp
             void FontManager::destroy()
             {
                 clear();
+                clear_cache_stats();
 
                 if (hLibrary != NULL)
                 {
@@ -389,6 +394,7 @@ namespace lsp
                     face_t *face        = glyph->face;
                     if (face->cache.remove(glyph, &glyph))
                     {
+                        ++nCacheRemoval;
                         face->cache_size   -= glyph->szof;
                         nCacheSize         -= glyph->szof;
                     }
@@ -406,7 +412,11 @@ namespace lsp
                 // Try to obtain glyph from cache
                 glyph_t *glyph  = face->cache.get(&key);
                 if (glyph != NULL)
+                {
+                    ++nCacheHits;
                     return sLRU.touch(glyph); // Move glyph to the beginning of the LRU cache
+                }
+                ++nCacheMisses;
 
                 // There was no glyph present, create new glyph
                 glyph           = render_glyph(face, ch);
@@ -458,19 +468,11 @@ namespace lsp
                 return old_size;
             }
 
-            size_t FontManager::min_cache_size() const
+            void FontManager::clear_cache_stats()
             {
-                return nMinCacheSize;
-            }
-
-            size_t FontManager::max_cache_size() const
-            {
-                return nMaxCacheSize;
-            }
-
-            size_t FontManager::used_cache_size() const
-            {
-                return nCacheSize;
+                nCacheHits                  = 0;
+                nCacheMisses                = 0;
+                nCacheRemoval               = 0;
             }
 
             face_t *FontManager::find_face(const face_id_t *id)
