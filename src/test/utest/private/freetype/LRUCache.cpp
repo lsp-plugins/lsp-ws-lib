@@ -35,7 +35,7 @@ UTEST_BEGIN("ws.freetype", lrucache)
         lsp::ws::ft::glyph_t *glyph;;
 
         // Check the 'next' chain
-        for (glyph = lru->pHead; glyph != NULL; glyph = glyph->next)
+        for (glyph = lru->head(); glyph != NULL; glyph = glyph->lru_next)
         {
             if (processed.contains(glyph))
                 return false;
@@ -45,14 +45,14 @@ UTEST_BEGIN("ws.freetype", lrucache)
         // Check consistency
         if (processed.size() > 0)
         {
-            if(processed.last() != lru->pTail)
+            if(processed.last() != lru->tail())
                 return false;
         }
-        else if ((lru->pHead != NULL) || (lru->pTail != NULL))
+        else if ((lru->head() != NULL) || (lru->tail() != NULL))
             return false;
 
         // Check the 'prev' chain
-        for (glyph = lru->pTail; glyph != NULL; glyph = glyph->prev)
+        for (glyph = lru->tail(); glyph != NULL; glyph = glyph->lru_prev)
         {
             lsp::ws::ft::glyph_t *curr = processed.pop();
             if (curr != glyph)
@@ -70,7 +70,7 @@ UTEST_BEGIN("ws.freetype", lrucache)
         }
 
         LSPString s;
-        for (const lsp::ws::ft::glyph_t *glyph = lru->pHead; glyph != NULL; glyph = glyph->next)
+        for (const lsp::ws::ft::glyph_t *glyph = lru->head(); glyph != NULL; glyph = glyph->lru_next)
         {
             if (!s.append(glyph->codepoint))
             {

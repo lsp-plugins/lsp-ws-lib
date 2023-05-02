@@ -50,8 +50,9 @@ namespace lsp
              */
             typedef struct glyph_t
             {
-                glyph_t        *next;       // Pointer to next glyph in the LRU cache
-                glyph_t        *prev;       // Pointer to previous glyph in the LRU cache
+                glyph_t        *cache_next; // The pointer to the next item in the hash
+                glyph_t        *lru_next;   // Pointer to next glyph in the LRU cache
+                glyph_t        *lru_prev;   // Pointer to previous glyph in the LRU cache
 
                 face_t         *face;       // The pointer to the font face
                 lsp_wchar_t     codepoint;  // UTF-32 codepoint associated with the glyph

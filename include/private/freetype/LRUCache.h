@@ -32,21 +32,25 @@ namespace lsp
     {
         namespace ft
         {
-            struct LRUCache
+            class LRUCache
             {
-                public:
+                protected:
                     glyph_t    *pHead;      // Head in the LRU cache
                     glyph_t    *pTail;      // Tail in the LRU cache
 
+                public:
                     LRUCache();
                     ~LRUCache();
 
                 public:
-                    void         clear();
-                    void         remove(glyph_t *glyph);
-                    glyph_t     *remove_last();
-                    glyph_t     *add_first(glyph_t *glyph);
-                    glyph_t     *touch(glyph_t *glyph);
+                    void            clear();
+                    void            remove(glyph_t *glyph);
+                    glyph_t        *remove_last();
+                    glyph_t        *add_first(glyph_t *glyph);
+                    glyph_t        *touch(glyph_t *glyph);
+
+                    inline glyph_t *head()  { return pHead; }
+                    inline glyph_t *tail()  { return pTail; }
             };
 
         } /* namespace ft */

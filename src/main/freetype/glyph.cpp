@@ -84,8 +84,9 @@ namespace lsp
                     return NULL;
                 glyph_t *res        = reinterpret_cast<glyph_t *>(buf);
 
-                res->prev           = NULL;
-                res->next           = NULL;
+                res->lru_prev       = NULL;
+                res->lru_next       = NULL;
+                res->cache_next     = NULL;
                 res->face           = face;
                 res->codepoint      = ch;
                 res->szof           = to_alloc;
@@ -137,8 +138,8 @@ namespace lsp
                     return NULL;
                 glyph_t *res        = reinterpret_cast<glyph_t *>(buf);
 
-                res->prev           = NULL;
-                res->next           = NULL;
+                res->lru_prev           = NULL;
+                res->lru_next           = NULL;
                 res->face           = face;
                 res->codepoint      = ch;
                 res->szof           = to_alloc;

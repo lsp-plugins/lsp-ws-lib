@@ -49,18 +49,18 @@ namespace lsp
 
             void LRUCache::remove(glyph_t *glyph)
             {
-                if (glyph->prev != NULL)
-                    glyph->prev->next   = glyph->next;
+                if (glyph->lru_prev != NULL)
+                    glyph->lru_prev->lru_next   = glyph->lru_next;
                 else
-                    pHead               = glyph->next;
-                if (glyph->next != NULL)
-                    glyph->next->prev   = glyph->prev;
+                    pHead               = glyph->lru_next;
+                if (glyph->lru_next != NULL)
+                    glyph->lru_next->lru_prev   = glyph->lru_prev;
                 else
-                    pTail               = glyph->prev;
+                    pTail               = glyph->lru_prev;
 
                 // Clear links to other glyphs
-                glyph->prev     = NULL;
-                glyph->next     = NULL;
+                glyph->lru_prev     = NULL;
+                glyph->lru_next     = NULL;
             }
 
             glyph_t *LRUCache::remove_last()
@@ -71,15 +71,15 @@ namespace lsp
                 // Remove glyph from the LRU list
                 glyph_t *glyph  = pTail;
 
-                pTail           = glyph->prev;
+                pTail           = glyph->lru_prev;
                 if (pTail != NULL)
-                    pTail->next     = NULL;
+                    pTail->lru_next     = NULL;
                 else
                     pHead           = NULL;
 
                 // Clear links to other glyphs
-                glyph->prev     = NULL;
-                glyph->next     = NULL;
+                glyph->lru_prev     = NULL;
+                glyph->lru_next     = NULL;
 
                 return glyph;
             }
@@ -88,15 +88,15 @@ namespace lsp
             {
                 if (pHead != NULL)
                 {
-                    glyph->next     = pHead;
-                    glyph->prev     = NULL;
-                    pHead->prev     = glyph;
+                    glyph->lru_next     = pHead;
+                    glyph->lru_prev     = NULL;
+                    pHead->lru_prev     = glyph;
                     pHead           = glyph;
                     return glyph;
                 }
 
-                glyph->next     = NULL;
-                glyph->prev     = NULL;
+                glyph->lru_next     = NULL;
+                glyph->lru_prev     = NULL;
                 pHead           = glyph;
                 pTail           = glyph;
 
@@ -106,20 +106,20 @@ namespace lsp
             glyph_t *LRUCache::touch(glyph_t *glyph)
             {
                 // Remove glyph from the list
-                if (glyph->prev != NULL)
-                    glyph->prev->next   = glyph->next;
+                if (glyph->lru_prev != NULL)
+                    glyph->lru_prev->lru_next   = glyph->lru_next;
                 else
                     return glyph;
 
-                if (glyph->next != NULL)
-                    glyph->next->prev   = glyph->prev;
+                if (glyph->lru_next != NULL)
+                    glyph->lru_next->lru_prev   = glyph->lru_prev;
                 else
-                    pTail               = glyph->prev;
+                    pTail               = glyph->lru_prev;
 
                 // Add glyph to the head
-                glyph->next     = pHead;
-                glyph->prev     = NULL;
-                pHead->prev     = glyph;
+                glyph->lru_next     = pHead;
+                glyph->lru_prev     = NULL;
+                pHead->lru_prev     = glyph;
                 pHead           = glyph;
 
                 return glyph;
