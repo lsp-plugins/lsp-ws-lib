@@ -33,6 +33,7 @@
 #include <private/freetype/face.h>
 #include <private/freetype/face_id.h>
 #include <private/freetype/glyph.h>
+#include <private/freetype/GlyphCache.h>
 #include <private/freetype/LRUCache.h>
 
 namespace lsp

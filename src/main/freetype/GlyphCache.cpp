@@ -100,7 +100,7 @@ namespace lsp
                 for (glyph_t **pcurr = &bin->data; *pcurr != NULL; )
                 {
                     glyph_t *curr = *pcurr;
-                    if (curr->codepoint == glyph->codepoint)
+                    if (curr == glyph)
                     {
                         *pcurr              = curr->cache_next;
                         curr->cache_next    = NULL;

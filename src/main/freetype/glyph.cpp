@@ -37,20 +37,6 @@ namespace lsp
     {
         namespace ft
         {
-            size_t glyph_hash_iface::hash_func(const void *ptr, size_t /* size */)
-            {
-                const glyph_t *g    = static_cast<const glyph_t *>(ptr);
-                return g->codepoint;
-            }
-
-            ssize_t glyph_compare_iface::cmp_func(const void *a, const void *b, size_t /* size */)
-            {
-                const glyph_t *ga   = static_cast<const glyph_t *>(a);
-                const glyph_t *gb   = static_cast<const glyph_t *>(b);
-
-                return ssize_t(ga->codepoint) - ssize_t(gb->codepoint);
-            }
-
             glyph_t *render_regular_glyph(face_t *face, FT_GlyphSlot glyph, lsp_wchar_t ch)
             {
                 uint32_t format = FMT_1_BPP;

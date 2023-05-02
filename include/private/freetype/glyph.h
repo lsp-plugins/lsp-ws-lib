@@ -70,32 +70,6 @@ namespace lsp
             } glyph_t;
 
             /**
-             * Glyph hashing interface
-             */
-            struct glyph_hash_iface: public lltl::hash_iface
-            {
-                static size_t hash_func(const void *ptr, size_t size);
-
-                explicit inline glyph_hash_iface()
-                {
-                    hash        = hash_func;
-                }
-            };
-
-            /**
-             * Glyph comparison interface
-             */
-            struct glyph_compare_iface: public lltl::compare_iface
-            {
-                static ssize_t cmp_func(const void *a, const void *b, size_t size);
-
-                explicit inline glyph_compare_iface()
-                {
-                    compare     = cmp_func;
-                }
-            };
-
-            /**
              * Use the font face to load glyph and render it
              * @param face the font face to load the glyph
              * @param ch UTF-32 codepoint of the glyph

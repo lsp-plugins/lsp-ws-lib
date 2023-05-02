@@ -27,14 +27,13 @@
 #include <lsp-plug.in/ws/ws.h>
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/io/IInStream.h>
-#include <lsp-plug.in/lltl/parray.h>
-#include <lsp-plug.in/lltl/phashset.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
 #include <private/freetype/face_id.h>
 #include <private/freetype/types.h>
+#include <private/freetype/GlyphCache.h>
 
 namespace lsp
 {
@@ -62,7 +61,7 @@ namespace lsp
                 f26p6_t     ascent;             // The ascender
                 f26p6_t     descent;            // The descender
 
-                lltl::phashset<glyph_t> cache;  // Glyph cache
+                GlyphCache  cache;              // Glyph cache
             } face_t;
 
             /**

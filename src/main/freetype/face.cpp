@@ -25,7 +25,6 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
-#include <lsp-plug.in/lltl/phashset.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 
 #include <private/freetype/face.h>
@@ -147,6 +146,9 @@ namespace lsp
                     face->cache_size    = 0;
                     face->ft_face       = ft_face;
                     face->font          = data;
+                    face->flags         = (ft_face->style_flags & FT_STYLE_FLAG_BOLD) ? FID_BOLD : 0;
+                    if (ft_face->style_flags & FT_STYLE_FLAG_ITALIC)
+                        face->flags        |= FID_ITALIC;
 
                     face->h_size        = 0;
                     face->v_size        = 0;
@@ -155,7 +157,7 @@ namespace lsp
                     face->descent       = 0;
 
                     allocator_tag_t tag;
-                    new (&face->cache, tag) lltl::phashset<glyph_t>(glyph_hash_iface(), glyph_compare_iface());
+                    new (&face->cache, tag) GlyphCache();
 
                     // Cleanup the pointer to avoid face destruction
                     ++face->font->references;
@@ -195,6 +197,7 @@ namespace lsp
                 face->cache_size    = 0;
                 face->ft_face       = src->ft_face;
                 face->font          = src->font;
+                face->flags         = src->flags;
 
                 face->h_size        = 0;
                 face->v_size        = 0;
@@ -203,7 +206,7 @@ namespace lsp
                 face->descent       = 0;
 
                 allocator_tag_t tag;
-                new (&face->cache, tag) lltl::phashset<glyph_t>(glyph_hash_iface(), glyph_compare_iface());
+                new (&face->cache, tag) GlyphCache();
 
                 // Cleanup the pointer to avoid face destruction
                 ++face->font->references;
@@ -239,14 +242,14 @@ namespace lsp
                 }
 
                 // Drop all glyphs in the cache
-                lltl::parray<glyph_t> vv;
-                if (face->cache.values(&vv))
+                glyph_t *glyph  = face->cache.clear();
+                while (glyph != NULL)
                 {
-                    for (size_t i=0, n=vv.size(); i<n; ++i)
-                        free_glyph(vv.uget(i));
+                    glyph_t *next   = glyph->cache_next;
+                    free_glyph(glyph);
+                    glyph           = next;
                 }
-                face->cache.flush();
-                face->cache.~phashset<glyph_t>();
+                face->cache.~GlyphCache();
 
                 // Free memory allocated by the face
                 free(face);

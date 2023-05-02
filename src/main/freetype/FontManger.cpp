@@ -239,21 +239,14 @@ namespace lsp
 
             void FontManager::invalidate_face(face_t *face)
             {
-                // Obtain the list of all glyphs in the face
-                lltl::parray<glyph_t> glyphs;
-                if (!face->cache.values(&glyphs))
-                    return;
-                lsp_finally { face->cache.flush(); };
-
                 // Remove all glyphs from LRU cache
-                for (size_t i=0, n=glyphs.size(); i<n; ++i)
+                glyph_t *glyph = face->cache.clear();
+                while (glyph != NULL)
                 {
-                    glyph_t *glyph  = glyphs.uget(i);
-                    if (glyph != NULL)
-                    {
-                        sLRU.remove(glyph);
-                        free_glyph(glyph);
-                    }
+                    glyph_t *next   = glyph->cache_next;
+                    sLRU.remove(glyph);
+                    free_glyph(glyph);
+                    glyph           = next;
                 }
 
                 // Update counters
@@ -392,7 +385,7 @@ namespace lsp
 
                     // Remove glyph from the face's cache
                     face_t *face        = glyph->face;
-                    if (face->cache.remove(glyph, &glyph))
+                    if (face->cache.remove(glyph))
                     {
                         ++nCacheRemoval;
                         face->cache_size   -= glyph->szof;
@@ -406,11 +399,8 @@ namespace lsp
 
             glyph_t *FontManager::get_glyph(face_t *face, lsp_wchar_t ch)
             {
-                glyph_t key;
-                key.codepoint   = ch;
-
                 // Try to obtain glyph from cache
-                glyph_t *glyph  = face->cache.get(&key);
+                glyph_t *glyph  = face->cache.get(ch);
                 if (glyph != NULL)
                 {
                     ++nCacheHits;
@@ -424,7 +414,7 @@ namespace lsp
                     return NULL;
 
                 // Add glyph to the face cache
-                if (face->cache.create(glyph))
+                if (face->cache.put(glyph))
                 {
                     // Call the garbage collector to collect the garbage
                     gc();
