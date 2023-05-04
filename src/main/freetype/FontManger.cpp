@@ -68,14 +68,22 @@ namespace lsp
 
             void FontManager::destroy()
             {
+                if (hLibrary == NULL)
+                    return;
+
+                // Output cache statistics
+                lsp_info("Cache statistics:");
+                lsp_info("  Size:       %ld", long(nCacheSize));
+                lsp_info("  Hits:       %ld", long(nCacheHits));
+                lsp_info("  Misses:     %ld", long(nCacheMisses));
+                lsp_info("  Removal:    %ld", long(nCacheRemoval));
+
+                // Destroy the state
                 clear();
                 clear_cache_stats();
 
-                if (hLibrary != NULL)
-                {
-                    FT_Done_FreeType(hLibrary);
-                    hLibrary    = NULL;
-                }
+                FT_Done_FreeType(hLibrary);
+                hLibrary    = NULL;
             }
 
             void FontManager::dereference(face_t *face)
@@ -505,6 +513,19 @@ namespace lsp
                 id.name         = name;
                 id.size         = float_to_f26p6(f->size());
 
+                {
+                    lltl::parray<face_id_t> vk;
+                    vFontCache.keys(&vk);
+
+                    lsp_trace("Available font in cache: ");
+                    for (size_t i=0; i<vk.size(); ++i)
+                    {
+                        face_id_t *fid = vk.uget(i);
+                        lsp_trace("  name=%s, flags=0x%x, size=%d",
+                            fid->name, int(fid->flags), int(fid->size));
+                    }
+                }
+
                 id.flags        = flags;
                 if ((face = vFontCache.get(&id)) != NULL)
                     return face;
@@ -523,7 +544,7 @@ namespace lsp
                             break;
 
                         // Try to lookup regular face to synthesize bold or italic one
-                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
+                        id.flags    = (flags & (~(FID_BOLD | FID_ITALIC))) | FID_SYNTHETIC;
                         if ((face = find_face(&id)) != NULL)
                             break;
                         break;
@@ -536,17 +557,17 @@ namespace lsp
                             break;
 
                         // Try to lookup without BOLD first
-                        id.flags    = flags & (~FID_BOLD);
+                        id.flags    = (flags & (~FID_BOLD)) | FID_SYNTHETIC;
                         if ((face = find_face(&id)) != NULL)
                             break;
 
                         // Then try to lookup without ITALIC first
-                        id.flags    = flags & (~FID_ITALIC);
+                        id.flags    = (flags & (~FID_ITALIC)) | FID_SYNTHETIC;
                         if ((face = find_face(&id)) != NULL)
                             break;
 
                         // Then try to lookup regular one
-                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
+                        id.flags    = (flags & (~(FID_BOLD | FID_ITALIC))) | FID_SYNTHETIC;
                         if ((face = find_face(&id)) != NULL)
                             break;
                         break;
@@ -572,7 +593,6 @@ namespace lsp
                 lsp_finally { dereference(face); };
 
                 // Initialize synthesized face and add to the mapping
-                id.flags            = flags | FID_SYNTHETIC;
                 face->flags         = id.flags;
                 face->h_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? id.size : 0;
                 face->v_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : id.size;

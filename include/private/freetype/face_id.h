@@ -44,7 +44,7 @@ namespace lsp
                 FID_SYNTHETIC   = 1 << 3,
 
                 FID_ALL         = FID_BOLD | FID_ITALIC | FID_ANTIALIAS,
-                FID_SHIFT       = 1 << 4
+                FID_SHIFT       = 4
             };
 
             typedef struct face_id_t
