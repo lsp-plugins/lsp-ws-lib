@@ -815,36 +815,147 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
 
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
+                {
+                    LSPString tmp;
+                    if (!tmp.set_utf8(text))
+                        return;
+
+                    ft::text_range_t tr;
+                    dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, &tmp, 0, tmp.length());
+                    if (bitmap != NULL)
+                    {
+                        lsp_finally { ft::free_bitmap(bitmap); };
+
+                        // Draw the text bitmap at the specified position
+                        cairo_surface_t *fs = cairo_image_surface_create_for_data(
+                            bitmap->data,
+                            CAIRO_FORMAT_A8,
+                            bitmap->width,
+                            bitmap->height,
+                            bitmap->stride);
+                        if (fs == NULL)
+                            return;
+                        lsp_finally{ cairo_surface_destroy(fs); };
+
+                        setSourceRGBA(color);
+                        cairo_mask_surface(pCR, fs, x + tr.x_bearing, y + tr.y_bearing);
+
+                        // Draw underline if required
+                        if (f.is_underline())
+                        {
+                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                            cairo_set_line_width(pCR, width);
+                            cairo_move_to(pCR, x, y + tr.y_advance + 1 + width);
+                            cairo_line_to(pCR, x + tr.x_advance, y + tr.y_advance + 1 + width);
+                            cairo_stroke(pCR);
+                        }
+
+                        return;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
                 // Set current font
                 font_context_t ctx;
                 set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Draw
+                cairo_move_to(pCR, x, y);
+                setSourceRGBA(color);
+                cairo_show_text(pCR, text);
+
+                // Draw underline if required
+                if (f.is_underline())
                 {
-                    // Draw
-                    cairo_move_to(pCR, x, y);
-                    setSourceRGBA(color);
-                    cairo_show_text(pCR, text);
+                    cairo_text_extents_t te;
+                    cairo_text_extents(pCR, text, &te);
+                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
 
-                    if (f.is_underline())
-                    {
-                        cairo_text_extents_t te;
-                        cairo_text_extents(pCR, text, &te);
-                        float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                    cairo_set_line_width(pCR, width);
 
-                        cairo_set_line_width(pCR, width);
-
-                        cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
-                        cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
-                        cairo_stroke(pCR);
-                    }
+                    cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
+                    cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
+                    cairo_stroke(pCR);
                 }
-                unset_current_font(&ctx);
             }
 
             void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if ((pCR == NULL) || (text == NULL))
+                if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
-                out_text(f, color, x, y, text->get_utf8(first, last));
+
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
+                {
+                    ft::text_range_t tr;
+                    dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                    if (bitmap != NULL)
+                    {
+                        lsp_finally { ft::free_bitmap(bitmap); };
+
+                        // Draw the text bitmap at the specified position
+                        cairo_surface_t *fs = cairo_image_surface_create_for_data(
+                            bitmap->data,
+                            CAIRO_FORMAT_A8,
+                            bitmap->width,
+                            bitmap->height,
+                            bitmap->stride);
+                        if (fs == NULL)
+                            return;
+                        lsp_finally{ cairo_surface_destroy(fs); };
+
+                        setSourceRGBA(color);
+                        cairo_mask_surface(pCR, fs, x + tr.x_bearing, y + tr.y_bearing);
+
+                        // Draw underline if required
+                        if (f.is_underline())
+                        {
+                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                            cairo_set_line_width(pCR, width);
+                            cairo_move_to(pCR, x, y + tr.y_advance + 1 + width);
+                            cairo_line_to(pCR, x + tr.x_advance, y + tr.y_advance + 1 + width);
+                            cairo_stroke(pCR);
+                        }
+
+                        return;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                const char *utf8_text = text->get_utf8(first, last);
+                if (utf8_text == NULL)
+                    return;
+
+                // Set current font
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Draw
+                cairo_move_to(pCR, x, y);
+                setSourceRGBA(color);
+                cairo_show_text(pCR, utf8_text);
+
+                // Draw underline if required
+                if (f.is_underline())
+                {
+                    cairo_text_extents_t te;
+                    cairo_text_extents(pCR, utf8_text, &te);
+                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                    cairo_set_line_width(pCR, width);
+
+                    cairo_move_to(pCR, x, y + te.y_advance + 1 + width);
+                    cairo_line_to(pCR, x + te.x_advance, y + te.y_advance + 1 + width);
+                    cairo_stroke(pCR);
+                }
             }
 
             void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
@@ -852,31 +963,169 @@ namespace lsp
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
 
+                float r_w, r_h, fx, fy;
+
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
+                {
+                    LSPString tmp;
+                    if (!tmp.set_utf8(text))
+                        return;
+
+                    ft::text_range_t tr;
+                    dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, &tmp, 0, tmp.length());
+                    if (bitmap != NULL)
+                    {
+                        lsp_finally { ft::free_bitmap(bitmap); };
+
+                        // Draw the text bitmap at the specified position
+                        cairo_surface_t *fs = cairo_image_surface_create_for_data(
+                            bitmap->data,
+                            CAIRO_FORMAT_A8,
+                            bitmap->width,
+                            bitmap->height,
+                            bitmap->stride);
+                        if (fs == NULL)
+                            return;
+                        lsp_finally{ cairo_surface_destroy(fs); };
+
+                        setSourceRGBA(color);
+                        r_w   = tr.x_advance;
+                        r_h   = -tr.y_bearing;
+                        fx    = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                        fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                        cairo_mask_surface(pCR, fs, fx + tr.x_bearing, fy + tr.y_bearing);
+
+                        // Draw underline if required
+                        if (f.is_underline())
+                        {
+                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                            cairo_set_line_width(pCR, width);
+                            cairo_move_to(pCR, fx, fy + tr.y_advance + 1 + width);
+                            cairo_line_to(pCR, fx + tr.x_advance, fy + tr.y_advance + 1 + width);
+                            cairo_stroke(pCR);
+                        }
+
+                        return;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
                 // Set current font
                 font_context_t ctx;
                 set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Output text
+                cairo_text_extents_t te;
+                cairo_text_extents(pCR, text, &te);
+
+                r_w   = te.x_advance;
+                r_h   = -te.y_bearing;
+                fx    = x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+
+                setSourceRGBA(color);
+                cairo_move_to(pCR, fx, fy);
+                cairo_show_text(pCR, text);
+
+                // Draw underline if required
+                if (f.is_underline())
                 {
-                    // Output text
-                    cairo_text_extents_t extents;
-                    cairo_text_extents(pCR, text, &extents);
+                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
 
-                    float r_w   = extents.x_advance;
-                    float r_h   = -extents.y_bearing;
-                    float fx    = x - extents.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                    float fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
-
-                    setSourceRGBA(color);
-                    cairo_move_to(pCR, fx, fy);
-                    cairo_show_text(pCR, text);
+                    cairo_set_line_width(pCR, width);
+                    cairo_move_to(pCR, fx, fy + te.y_advance + 1 + width);
+                    cairo_line_to(pCR, fx + te.x_advance, fy + te.y_advance + 1 + width);
+                    cairo_stroke(pCR);
                 }
-                unset_current_font(&ctx);
             }
 
             void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (text == NULL)
+                if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
-                out_text_relative(f, color, x, y, dx, dy, text->get_utf8(first, last));
+
+                float r_w, r_h, fx, fy;
+
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
+                {
+                    ft::text_range_t tr;
+                    dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                    if (bitmap != NULL)
+                    {
+                        lsp_finally { ft::free_bitmap(bitmap); };
+
+                        // Draw the text bitmap at the specified position
+                        cairo_surface_t *fs = cairo_image_surface_create_for_data(
+                            bitmap->data,
+                            CAIRO_FORMAT_A8,
+                            bitmap->width,
+                            bitmap->height,
+                            bitmap->stride);
+                        if (fs == NULL)
+                            return;
+                        lsp_finally{ cairo_surface_destroy(fs); };
+
+                        setSourceRGBA(color);
+                        r_w   = tr.x_advance;
+                        r_h   = -tr.y_bearing;
+                        fx    = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                        fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                        cairo_mask_surface(pCR, fs, fx + tr.x_bearing, fy + tr.y_bearing);
+
+                        // Draw underline if required
+                        if (f.is_underline())
+                        {
+                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                            cairo_set_line_width(pCR, width);
+                            cairo_move_to(pCR, fx, fy + tr.y_advance + 1 + width);
+                            cairo_line_to(pCR, fx + tr.x_advance, fy + tr.y_advance + 1 + width);
+                            cairo_stroke(pCR);
+                        }
+
+                        return;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                const char *utf8_text = text->get_utf8(first, last);
+                if (utf8_text == NULL)
+                    return;
+
+                // Set current font
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Output text
+                cairo_text_extents_t te;
+                cairo_text_extents(pCR, utf8_text, &te);
+
+                r_w   = te.x_advance;
+                r_h   = -te.y_bearing;
+                fx    = x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+
+                setSourceRGBA(color);
+                cairo_move_to(pCR, fx, fy);
+                cairo_show_text(pCR, utf8_text);
+
+                // Draw underline if required
+                if (f.is_underline())
+                {
+                    float width = lsp_max(1.0f, f.get_size() / 12.0f);
+
+                    cairo_set_line_width(pCR, width);
+                    cairo_move_to(pCR, fx, fy + te.y_advance + 1 + width);
+                    cairo_line_to(pCR, fx + te.x_advance, fy + te.y_advance + 1 + width);
+                    cairo_stroke(pCR);
+                }
             }
 
             void X11CairoSurface::line(const Color &color, float x0, float y0, float x1, float y1, float width)
