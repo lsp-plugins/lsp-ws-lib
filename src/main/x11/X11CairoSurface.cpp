@@ -25,25 +25,13 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
+#include <cairo/cairo.h>
+#include <cairo/cairo-xlib.h>
 
+#include <private/freetype/FontManager.h>
 #include <private/x11/X11CairoGradient.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11Display.h>
-
-#include <cairo/cairo.h>
-#include <cairo/cairo-ft.h>
-#include <cairo/cairo-xlib.h>
-
-// Freetype headers
-#ifdef USE_LIBFREETYPE
-    #include <ft2build.h>
-    #include FT_SFNT_NAMES_H
-    #include FT_FREETYPE_H
-    #include FT_GLYPH_H
-    #include FT_OUTLINE_H
-    #include FT_BBOX_H
-    #include FT_TYPE1_TABLES_H
-#endif /* USE_LIBFREETYPE */
 
 namespace lsp
 {
@@ -380,64 +368,12 @@ namespace lsp
                 cairo_font_options_set_antialias(pFO, decode_antialiasing(f));
                 cairo_set_font_options(pCR, pFO);
 
-                // Try to select custom font face
-                X11Display::font_t *font = pDisplay->get_font(f.get_name());
-                if (font != NULL)
-                {
-                    size_t index = (f.is_bold())    ? 0x1 : 0;
-                    index       |= (f.is_italic())  ? 0x2 : 0;
-
-                    cairo_font_face_t *ff = font->cr_face[index];
-                    if (ff == NULL)
-                    {
-                        ff = cairo_ft_font_face_create_for_ft_face(font->ft_face, 0);
-                        if (ff != NULL)
-                        {
-                            cairo_status_t cr_status = cairo_font_face_set_user_data (
-                                ff, &pDisplay->sCairoUserDataKey,
-                                font, (cairo_destroy_func_t) X11Display::destroy_font_object
-                            );
-
-                            if (cr_status)
-                            {
-                                lsp_error("FT_MANAGE Error creating cairo font face for font '%s', error=%d", font->name, int(cr_status));
-                                cairo_font_face_destroy(ff);
-                                ff = NULL;
-                            }
-                        }
-
-                        if (ff != NULL)
-                        {
-                            // Increment number of references (used by cairo)
-                            font->cr_face[index]    = ff;
-                            ++font->refs;
-
-                            if (f.is_bold())
-                                cairo_ft_font_face_set_synthesize(ff, CAIRO_FT_SYNTHESIZE_BOLD);
-                            if (f.is_italic())
-                                cairo_ft_font_face_set_synthesize(ff, CAIRO_FT_SYNTHESIZE_OBLIQUE);
-                        }
-                    }
-
-                    if (ff != NULL)
-                    {
-                        cairo_set_font_face(pCR, ff);
-                        cairo_set_font_size(pCR, f.get_size());
-
-                        ctx->font   = font;
-                        ctx->face   = ff;
-                        return;
-                    }
-                }
-
-                // Try to select fall-back font face
                 cairo_select_font_face(pCR, f.get_name(),
                     (f.is_italic()) ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                     (f.is_bold()) ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL
                 );
                 cairo_set_font_size(pCR, f.get_size());
 
-                ctx->font   = NULL;
                 ctx->face   = cairo_get_font_face(pCR);
 
                 return;
@@ -449,7 +385,6 @@ namespace lsp
                 cairo_set_font_face(pCR, NULL);
 
                 ctx->face   = NULL;
-                ctx->font   = NULL;
                 ctx->aa     = CAIRO_ANTIALIAS_DEFAULT;
             }
 
@@ -724,26 +659,34 @@ namespace lsp
 
             bool X11CairoSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
-                cairo_font_extents_t fe;
-                fe.ascent           = 0.0;
-                fe.descent          = 0.0;
-                fe.height           = 0.0;
-                fe.max_x_advance    = 0.0;
-                fe.max_y_advance    = 0.0;
-
-                if ((pCR != NULL) && (f.get_name() != NULL))
+                // Get font parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
                 {
-                    // Set current font
-                    font_context_t ctx;
-                    set_current_font(&ctx, f);
-                    {
-                        // Get font parameters
-                        cairo_font_extents(pCR, &fe);
-                    }
-                    unset_current_font(&ctx);
+                    if (mgr->get_font_parameters(&f, fp))
+                        return true;
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                // Do the usual job using Cairo
+                if ((pCR == NULL) || (f.get_name() == NULL))
+                {
+                    fp->Ascent          = 0.0f;
+                    fp->Descent         = 0.0f;
+                    fp->Height          = 0.0f;
+                    return true;
                 }
 
-                // Return result
+                // Set current font
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Get font parameters
+                cairo_font_extents_t fe;
+                cairo_font_extents(pCR, &fe);
+
                 fp->Ascent          = fe.ascent;
                 fp->Descent         = fe.descent;
                 fp->Height          = fe.height;
@@ -753,38 +696,54 @@ namespace lsp
 
             bool X11CairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
             {
-                // Initialize data structure
-                cairo_text_extents_t te;
-                te.x_bearing        = 0.0;
-                te.y_bearing        = 0.0;
-                te.width            = 0.0;
-                te.height           = 0.0;
-                te.x_advance        = 0.0;
-                te.y_advance        = 0.0;
+                if (text == NULL)
+                    return false;
 
-                if ((pCR != NULL) && (f.get_name() != NULL))
+                // Get text parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
                 {
-                    // Set current font
-                    font_context_t ctx;
-                    set_current_font(&ctx, f);
-                    {
-                        // Get text parameters
-                        cairo_glyph_t *glyphs = NULL;
-                        int num_glyphs = 0;
+                    LSPString tmp;
+                    if (!tmp.set_utf8(text))
+                        return false;
 
-                        cairo_scaled_font_t *scaled_font = cairo_get_scaled_font(pCR);
-                        cairo_scaled_font_text_to_glyphs(
-                            scaled_font, 0.0, 0.0,
-                            text, -1,
-                            &glyphs, &num_glyphs,
-                            NULL, NULL, NULL);
-                        lsp_finally{ cairo_glyph_free(glyphs); };
-                        cairo_glyph_extents (pCR, glyphs, num_glyphs, &te);
+                    ft::text_range_t tr;
+                    if (mgr->get_text_parameters(&f, &tr, &tmp, 0, tmp.length()))
+                    {
+                        tp->XBearing    = tr.x_bearing;
+                        tp->YBearing    = tr.y_bearing;
+                        tp->Width       = tr.width;
+                        tp->Height      = tr.height;
+                        tp->XAdvance    = tr.x_advance;
+                        tp->YAdvance    = tr.y_advance;
+                        return true;
                     }
-                    unset_current_font(&ctx);
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                if ((pCR == NULL) || (f.get_name() == NULL))
+                {
+                    tp->XBearing        = 0.0f;
+                    tp->YBearing        = 0.0f;
+                    tp->Width           = 0.0f;
+                    tp->Height          = 0.0f;
+                    tp->XAdvance        = 0.0f;
+                    tp->YAdvance        = 0.0f;
+
+                    return true;
                 }
 
-                // Return result
+                // Initialize data structure
+                cairo_text_extents_t te;
+
+                // Set current font
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Get text parameters
+                cairo_text_extents(pCR, text, &te);
                 tp->XBearing        = te.x_bearing;
                 tp->YBearing        = te.y_bearing;
                 tp->Width           = te.width;
@@ -799,8 +758,56 @@ namespace lsp
             {
                 if (text == NULL)
                     return false;
-                // Cairo internally uses UTF-8 character encoding.
-                return get_text_parameters(f, tp, text->get_utf8(first, last));
+
+                // Get text parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pDisplay->font_manager();
+                if (mgr != NULL)
+                {
+                    ft::text_range_t tr;
+                    if (mgr->get_text_parameters(&f, &tr, text, first, last))
+                    {
+                        tp->XBearing    = tr.x_bearing;
+                        tp->YBearing    = tr.y_bearing;
+                        tp->Width       = tr.width;
+                        tp->Height      = tr.height;
+                        tp->XAdvance    = tr.x_advance;
+                        tp->YAdvance    = tr.y_advance;
+                        return true;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                if ((pCR == NULL) || (f.get_name() == NULL))
+                {
+                    tp->XBearing        = 0.0f;
+                    tp->YBearing        = 0.0f;
+                    tp->Width           = 0.0f;
+                    tp->Height          = 0.0f;
+                    tp->XAdvance        = 0.0f;
+                    tp->YAdvance        = 0.0f;
+
+                    return true;
+                }
+
+                // Initialize data structure
+                cairo_text_extents_t te;
+
+                // Set current font
+                font_context_t ctx;
+                set_current_font(&ctx, f);
+                lsp_finally { unset_current_font(&ctx); };
+
+                // Get text parameters
+                cairo_text_extents(pCR, text->get_utf8(first, last), &te);
+                tp->XBearing        = te.x_bearing;
+                tp->YBearing        = te.y_bearing;
+                tp->Width           = te.width;
+                tp->Height          = te.height;
+                tp->XAdvance        = te.x_advance;
+                tp->YAdvance        = te.y_advance;
+
+                return true;
             }
 
             void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
