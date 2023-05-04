@@ -202,6 +202,15 @@ namespace lsp
                     }
                 }
 
+                // Initialize font manager
+            #ifdef USE_LIBFREETYPE
+                {
+                    status_t fm_res    = sFontManager.init();
+                    if (fm_res != STATUS_OK)
+                        return fm_res;
+                }
+            #endif /* USE_LIBFREETYPE */
+
                 // Get Root window and screen
                 size_t screens  = ScreenCount(pDisplay);
                 hRootWnd        = DefaultRootWindow(pDisplay);
@@ -335,6 +344,11 @@ namespace lsp
                 }
                 complete_async_tasks();
 
+                // Destroy font manager
+            #ifdef USE_LIBFREETYPE
+                sFontManager.destroy();
+            #endif /* USE_LIBFREETYPE */
+
                 // Drop clipboard data sources
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                 {
@@ -417,7 +431,9 @@ namespace lsp
                 drop_monitors(&vMonitors);
 
                 // Deallocate previously allocated fonts
+            #ifdef USE_LIBFREETYPE
                 sFontManager.clear();
+            #endif /* USE_LIBFREETYPE */
 
                 // Remove FT library
                 if (hFtLibrary != NULL)
@@ -569,6 +585,11 @@ namespace lsp
 
                 // Call for main task
                 call_main_task(ts);
+
+                // Perform garbage collection for the font manager
+            #ifdef USE_LIBFREETYPE
+                sFontManager.gc();
+            #endif /* USE_LIBFREETYPE */
 
                 // Return number of processed events
                 return result;
