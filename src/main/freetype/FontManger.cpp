@@ -644,8 +644,7 @@ namespace lsp
                 ++face->references;
 
                 // Select font face
-                status_t res = select_face(face);
-                return (res == STATUS_OK) ? face : NULL;
+                return face;
             }
 
             bool FontManager::get_font_parameters(const Font *f, font_parameters_t *fp)
@@ -653,6 +652,9 @@ namespace lsp
                 // Select the font face
                 face_t *face    = select_font_face(f);
                 if (face == NULL)
+                    return false;
+
+                if (activate_face(face) != STATUS_OK)
                     return false;
 
                 if (fp != NULL)
@@ -678,6 +680,9 @@ namespace lsp
                     return false;
                 if (tp == NULL)
                     return true;
+
+                if (activate_face(face) != STATUS_OK)
+                    return false;
 
                 // Estimate the text parameters
                 lsp_wchar_t ch      = text->char_at(first);
@@ -725,6 +730,8 @@ namespace lsp
                 // Select the font face
                 face_t *face        = select_font_face(f);
                 if (face == NULL)
+                    return NULL;
+                if (activate_face(face) != STATUS_OK)
                     return NULL;
 
                 // Estimate the text parameters

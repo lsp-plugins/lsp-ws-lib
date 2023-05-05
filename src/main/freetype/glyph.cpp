@@ -205,9 +205,6 @@ namespace lsp
 
             glyph_t *render_glyph(face_t *face, lsp_wchar_t ch)
             {
-                // Set transformation matrix
-                FT_Set_Transform(face->ft_face, &face->matrix, NULL);
-
                 // Obtain the glyph index
                 FT_UInt glyph_index = FT_Get_Char_Index(face->ft_face, ch);
 

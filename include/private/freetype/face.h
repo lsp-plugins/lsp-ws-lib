@@ -100,7 +100,7 @@ namespace lsp
              * @param id_flags the flags to set while selecting the font face
              * @return status of operation
              */
-            status_t    select_face(face_t *face);
+            status_t    activate_face(face_t *face);
 
         } /* namespace ft */
     } /* namespace ws */

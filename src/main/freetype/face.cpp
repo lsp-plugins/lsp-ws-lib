@@ -255,7 +255,7 @@ namespace lsp
                 free(face);
             }
 
-            status_t select_face(face_t *face)
+            status_t activate_face(face_t *face)
             {
                 FT_Error error;
                 FT_Face ft_face     = face->ft_face;
