@@ -514,21 +514,21 @@ namespace lsp
                     name    = aliased;
                 }
 
+//                {
+//                    lltl::parray<face_id_t> vk;
+//                    vFontCache.keys(&vk);
+//
+//                    lsp_trace("Available font in cache: ");
+//                    for (size_t i=0; i<vk.size(); ++i)
+//                    {
+//                        face_id_t *fid = vk.uget(i);
+//                        lsp_trace("  name=%s, flags=0x%x, size=%d",
+//                            fid->name, int(fid->flags), int(fid->size));
+//                    }
+//                }
+
                 // Now we have non-aliased name, let's look up into the cache for such font
                 // (first non-synthetic, then for synthetic)
-                {
-                    lltl::parray<face_id_t> vk;
-                    vFontCache.keys(&vk);
-
-                    lsp_trace("Available font in cache: ");
-                    for (size_t i=0; i<vk.size(); ++i)
-                    {
-                        face_id_t *fid = vk.uget(i);
-                        lsp_trace("  name=%s, flags=0x%x, size=%d",
-                            fid->name, int(fid->flags), int(fid->size));
-                    }
-                }
-
                 face_t **pface;
                 face_id_t id;
                 size_t flags    = make_face_id_flags(f);
