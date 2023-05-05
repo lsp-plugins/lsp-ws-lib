@@ -31,16 +31,34 @@
 #include <private/freetype/glyph.h>
 #include <private/freetype/face.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
+#include FT_OUTLINE_H
+
 namespace lsp
 {
     namespace ws
     {
         namespace ft
         {
-            glyph_t *render_regular_glyph(face_t *face, FT_GlyphSlot glyph, lsp_wchar_t ch)
+            glyph_t *render_regular_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
+                // Load glyph
+                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
+                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
+                    return NULL;
+
+                // Render glyph
+                FT_GlyphSlot glyph  = face->ft_face->glyph;
+                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
+                    return NULL;
+
+                // Obtain bitmap and pixel format
+                FT_Bitmap *bitmap   = &glyph->bitmap;
                 uint32_t format = FMT_1_BPP;
-                switch (glyph->bitmap.pixel_mode)
+                switch (bitmap->pixel_mode)
                 {
                     case FT_PIXEL_MODE_MONO:
                         format = FMT_1_BPP;
@@ -59,7 +77,6 @@ namespace lsp
                 }
 
                 // Copy the glyph data
-                FT_Bitmap *bitmap   = &glyph->bitmap;
                 size_t szof_glyph   = sizeof(glyph_t) + DEFAULT_ALIGN;
                 size_t stride       = lsp_abs(bitmap->pitch);
                 size_t bytes        = bitmap->rows * stride;
@@ -108,8 +125,19 @@ namespace lsp
                 return res;
             }
 
-            glyph_t *render_bold_glyph(face_t *face, FT_GlyphSlot glyph, lsp_wchar_t ch)
+            glyph_t *render_bold_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
+                // Load glyph
+                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
+                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
+                    return NULL;
+
+                // Render glyph
+                FT_GlyphSlot glyph  = face->ft_face->glyph;
+                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
+                    return NULL;
+
                 // Copy the glyph data
                 FT_Bitmap *bitmap   = &glyph->bitmap;
 
@@ -124,8 +152,8 @@ namespace lsp
                     return NULL;
                 glyph_t *res        = reinterpret_cast<glyph_t *>(buf);
 
-                res->lru_prev           = NULL;
-                res->lru_next           = NULL;
+                res->lru_prev       = NULL;
+                res->lru_next       = NULL;
                 res->face           = face;
                 res->codepoint      = ch;
                 res->szof           = to_alloc;
@@ -150,7 +178,7 @@ namespace lsp
                 src.stride          = bitmap->pitch;
                 src.data            = reinterpret_cast<uint8_t *>(bitmap->buffer);
 
-                switch (glyph->bitmap.pixel_mode)
+                switch (bitmap->pixel_mode)
                 {
                     case FT_PIXEL_MODE_MONO:
                         dsp::bitmap_max_b1b8(&res->bitmap, &src, 0, 0);
@@ -177,29 +205,17 @@ namespace lsp
 
             glyph_t *render_glyph(face_t *face, lsp_wchar_t ch)
             {
-                int error;
-
                 // Set transformation matrix
                 FT_Set_Transform(face->ft_face, &face->matrix, NULL);
 
                 // Obtain the glyph index
                 FT_UInt glyph_index = FT_Get_Char_Index(face->ft_face, ch);
 
-                // Load glyph
-                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                if ((error = FT_Load_Glyph(face->ft_face, glyph_index, load_flags )) != FT_Err_Ok)
-                    return NULL;
-
                 // Render the glyph
-                FT_GlyphSlot glyph  = face->ft_face->glyph;
-                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
-                if ((error = FT_Render_Glyph(glyph, render_mode )) != FT_Err_Ok)
-                    return NULL;
-
                 if ((face->flags & FID_BOLD) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_BOLD)))
-                    return render_bold_glyph(face, glyph, ch);
+                    return render_bold_glyph(face, glyph_index, ch);
 
-                return render_regular_glyph(face, glyph, ch);
+                return render_regular_glyph(face, glyph_index, ch);
             }
 
             void free_glyph(glyph_t *glyph)

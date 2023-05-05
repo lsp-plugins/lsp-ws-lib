@@ -657,9 +657,11 @@ namespace lsp
 
                 if (fp != NULL)
                 {
-                    fp->Ascent  = f26p6_to_float(face->ascent);
-                    fp->Descent = f26p6_to_float(face->descent);
-                    fp->Height  = f26p6_to_float(face->height);
+                    FT_Size_Metrics *metrics = & face->ft_face->size->metrics;
+
+                    fp->Ascent  = f26p6_to_float(metrics->ascender);
+                    fp->Descent = f26p6_to_float(-metrics->descender);
+                    fp->Height  = f26p6_to_float(metrics->height);
                 }
 
                 return true;
@@ -753,7 +755,7 @@ namespace lsp
                 width               = f26p6_ceil_to_int(width);
                 height              = y_max + y_bearing;
 
-                dsp::bitmap_t *bitmap   = create_bitmap(width, height);
+                dsp::bitmap_t *bitmap   = create_bitmap(width + (height * face->matrix.xy) / 0x10000, height);
                 if (bitmap == NULL)
                     return NULL;
 
@@ -787,7 +789,7 @@ namespace lsp
                             break;
                     }
 
-                    x      += glyph->x_advance;
+                    x                  += glyph->x_advance;
                 }
 
                 if (tp != NULL)
