@@ -63,9 +63,11 @@ namespace lsp
                     size_t                              nCacheSize;
                     size_t                              nMinCacheSize;
                     size_t                              nMaxCacheSize;
-                    size_t                              nCacheHits;
-                    size_t                              nCacheMisses;
-                    size_t                              nCacheRemoval;
+                    size_t                              nFaceHits;
+                    size_t                              nFaceMisses;
+                    size_t                              nGlyphHits;
+                    size_t                              nGlyphMisses;
+                    size_t                              nGlyphRemoval;
 
                 protected:
                     glyph_t                *get_glyph(face_t *face, lsp_wchar_t ch);
@@ -135,9 +137,11 @@ namespace lsp
                     inline size_t           max_cache_size() const  { return nMaxCacheSize; }
                     inline size_t           used_cache_size() const { return nCacheSize;    }
 
-                    inline size_t           cache_hits() const      { return nCacheHits;    }
-                    inline size_t           cache_misses() const    { return nCacheMisses;  }
-                    inline size_t           cache_removal() const   { return nCacheRemoval; }
+                    inline size_t           face_hits() const       { return nFaceHits;     }
+                    inline size_t           face_misses() const     { return nFaceMisses;   }
+                    inline size_t           glyph_hits() const      { return nGlyphHits;    }
+                    inline size_t           glyph_misses() const    { return nGlyphMisses;  }
+                    inline size_t           glyph_removal() const   { return nGlyphRemoval; }
                     void                    clear_cache_stats();
             };
 

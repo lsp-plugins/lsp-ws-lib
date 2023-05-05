@@ -44,9 +44,11 @@ namespace lsp
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;
-                nCacheHits      = 0;
-                nCacheMisses    = 0;
-                nCacheRemoval   = 0;
+                nFaceHits       = 0;
+                nFaceMisses     = 0;
+                nGlyphHits      = 0;
+                nGlyphMisses    = 0;
+                nGlyphRemoval   = 0;
             }
 
             FontManager::~FontManager()
@@ -73,10 +75,12 @@ namespace lsp
 
                 // Output cache statistics
                 lsp_info("Cache statistics:");
-                lsp_info("  Size:       %ld", long(nCacheSize));
-                lsp_info("  Hits:       %ld", long(nCacheHits));
-                lsp_info("  Misses:     %ld", long(nCacheMisses));
-                lsp_info("  Removal:    %ld", long(nCacheRemoval));
+                lsp_info("  Memory:         %ld", long(nCacheSize));
+                lsp_info("  Face hits:      %ld", long(nFaceHits));
+                lsp_info("  Face misses:    %ld", long(nFaceMisses));
+                lsp_info("  Glyph hits:     %ld", long(nGlyphHits));
+                lsp_info("  Glyph misses:   %ld", long(nGlyphMisses));
+                lsp_info("  Glyph removal:  %ld", long(nGlyphRemoval));
 
                 // Destroy the state
                 clear();
@@ -398,7 +402,7 @@ namespace lsp
                     face_t *face        = glyph->face;
                     if (face->cache.remove(glyph))
                     {
-                        ++nCacheRemoval;
+                        ++nGlyphRemoval;
                         face->cache_size   -= glyph->szof;
                         nCacheSize         -= glyph->szof;
                     }
@@ -414,10 +418,10 @@ namespace lsp
                 glyph_t *glyph  = face->cache.get(ch);
                 if (glyph != NULL)
                 {
-                    ++nCacheHits;
+                    ++nGlyphHits;
                     return sLRU.touch(glyph); // Move glyph to the beginning of the LRU cache
                 }
-                ++nCacheMisses;
+                ++nGlyphMisses;
 
                 // There was no glyph present, create new glyph
                 glyph           = render_glyph(face, ch);
@@ -471,9 +475,11 @@ namespace lsp
 
             void FontManager::clear_cache_stats()
             {
-                nCacheHits                  = 0;
-                nCacheMisses                = 0;
-                nCacheRemoval               = 0;
+                nFaceHits                   = 0;
+                nFaceMisses                 = 0;
+                nGlyphHits                  = 0;
+                nGlyphMisses                = 0;
+                nGlyphRemoval               = 0;
             }
 
             face_t *FontManager::find_face(const face_id_t *id)
@@ -529,12 +535,20 @@ namespace lsp
                 id.name         = name;
                 id.size         = float_to_f26p6(f->size());
 
+                // Try lookup the face in the face cache
                 id.flags        = flags;
                 if ((pface = vFontCache.wbget(&id)) != NULL)
+                {
+                    ++nFaceHits;
                     return *pface;
+                }
                 id.flags        = flags | FID_SYNTHETIC;
                 if ((pface = vFontCache.wbget(&id)) != NULL)
+                {
+                    ++nFaceHits;
                     return *pface;
+                }
+                ++nFaceMisses;
 
                 // Face was not found. Try to synthesize new face
                 face_t *face    = NULL;

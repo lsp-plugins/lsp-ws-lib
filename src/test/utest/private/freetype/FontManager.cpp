@@ -158,7 +158,8 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         printf("Size:               %d x %d\n", int(tp.width), int(tp.height));
         printf("Advance:            %d, %d\n", int(tp.x_advance), int(tp.y_advance));
         printf("Used cache size:    %ld bytes\n", long(manager.used_cache_size()));
-        printf("Cache hit/miss/rm:  %ld/%ld/%ld\n", long(manager.cache_hits()), long(manager.cache_misses()), long(manager.cache_removal()));
+        printf("Face hit/miss:      %ld/%ld\n", long(manager.face_hits()), long(manager.face_misses()));
+        printf("Glyph hit/miss/rm:  %ld/%ld/%ld\n", long(manager.glyph_hits()), long(manager.glyph_misses()), long(manager.glyph_removal()));
 
         // Remove the font
         UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);
@@ -211,7 +212,53 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         printf("Size:               %d x %d\n", int(tp.width), int(tp.height));
         printf("Advance:            %d, %d\n", int(tp.x_advance), int(tp.y_advance));
         printf("Used cache size:    %ld bytes\n", long(manager.used_cache_size()));
-        printf("Cache hit/miss/rm:  %ld/%ld/%ld\n", long(manager.cache_hits()), long(manager.cache_misses()), long(manager.cache_removal()));
+        printf("Face hit/miss:      %ld/%ld\n", long(manager.face_hits()), long(manager.face_misses()));
+        printf("Glyph hit/miss/rm:  %ld/%ld/%ld\n", long(manager.glyph_hits()), long(manager.glyph_misses()), long(manager.glyph_removal()));
+
+        // Remove the font
+        UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);
+    }
+
+    void test_cache_removal()
+    {
+        // Load font
+        ft::FontManager manager;
+        io::Path path;
+
+        printf("Testing cache removal strategy\n");
+
+        // Initialize manager
+        UTEST_ASSERT(manager.init() == STATUS_OK);
+        lsp_finally { manager.destroy(); };
+        UTEST_ASSERT(path.fmt("%s/font/NotoSansDisplay-Regular.ttf", resources()) > 0);
+        UTEST_ASSERT(manager.add("noto-sans", &path) == STATUS_OK);
+        manager.set_cache_limits(0x1000, 0x1000);
+
+        // Try to render text
+        ft::text_range_t tp;
+        ws::Font f("noto-sans", 24.0f);
+        f.set_bold(true);
+        f.set_italic(true);
+        LSPString text;
+        UTEST_ASSERT(text.set_ascii("This test performs check of extra glyph eviction strategy."));
+
+        dsp::bitmap_t *bitmap = manager.render_text(&f, &tp, &text, 0, text.length());
+        UTEST_ASSERT(bitmap != NULL);
+        lsp_finally { ft::free_bitmap(bitmap); };
+
+        // Save rendered text
+        UTEST_ASSERT(path.fmt("%s/%s-test-extra-eviction.xpm", tempdir(), name()) > 0);
+        UTEST_ASSERT(write_bitmap(bitmap, &path) == 0);
+
+        printf("Output file:        %s\n", path.as_native());
+        printf("Image Size:         %d x %d\n", int(bitmap->width), int(bitmap->height));
+        printf("Stride:             %d\n", int(bitmap->stride));
+        printf("Bearing:            %d, %d\n", int(tp.x_bearing), int(tp.y_bearing));
+        printf("Size:               %d x %d\n", int(tp.width), int(tp.height));
+        printf("Advance:            %d, %d\n", int(tp.x_advance), int(tp.y_advance));
+        printf("Used cache size:    %ld bytes\n", long(manager.used_cache_size()));
+        printf("Face hit/miss:      %ld/%ld\n", long(manager.face_hits()), long(manager.face_misses()));
+        printf("Glyph hit/miss/rm:  %ld/%ld/%ld\n", long(manager.glyph_hits()), long(manager.glyph_misses()), long(manager.glyph_removal()));
 
         // Remove the font
         UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);
@@ -219,9 +266,10 @@ UTEST_BEGIN("ws.freetype", fontmanager)
 
     UTEST_MAIN
     {
-//        test_load_font();
-//        test_render_text();
+        test_load_font();
+        test_render_text();
         test_fail_render_text();
+        test_cache_removal();
     }
 
 UTEST_END;
