@@ -380,6 +380,19 @@ namespace lsp
                 }
                 vFaces.flush();
 
+                // Remove all aliases
+                lltl::parray<char> va;
+                if (vAliases.values(&va))
+                {
+                    for (size_t i=0, n=va.size(); i<n; ++i)
+                    {
+                        char *str = va.uget(i);
+                        if (str != NULL)
+                            free(str);
+                    }
+                }
+                vAliases.flush();
+
                 return STATUS_OK;
             }
 
