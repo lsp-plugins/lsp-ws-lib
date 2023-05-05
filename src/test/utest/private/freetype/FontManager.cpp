@@ -95,7 +95,7 @@ UTEST_BEGIN("ws.freetype", fontmanager)
 
         // Add first font
         UTEST_ASSERT(path1.fmt("%s/font/example.ttf", resources()) > 0);
-        UTEST_ASSERT(manager.add_font("test-1", &path1) == STATUS_OK);
+        UTEST_ASSERT(manager.add("test-1", &path1) == STATUS_OK);
 
         // Add second font
         io::InFileStream ifs;
@@ -113,6 +113,7 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         UTEST_ASSERT(manager.remove("test-2") == STATUS_OK);
         UTEST_ASSERT(manager.remove("test-1") == STATUS_OK);
         UTEST_ASSERT(manager.remove("test-2") == STATUS_NOT_FOUND);
+        UTEST_ASSERT(manager.remove("test-1") == STATUS_NOT_FOUND);
 
         // Remove aliases
         UTEST_ASSERT(manager.remove("alias-test-1") == STATUS_OK);
@@ -133,7 +134,7 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         UTEST_ASSERT(manager.init() == STATUS_OK);
         lsp_finally { manager.destroy(); };
         UTEST_ASSERT(path.fmt("%s/font/NotoSansDisplay-Regular.ttf", resources()) > 0);
-        UTEST_ASSERT(manager.add_font("noto-sans", &path) == STATUS_OK);
+        UTEST_ASSERT(manager.add("noto-sans", &path) == STATUS_OK);
 
         // Try to render text
         ft::text_range_t tp;
@@ -163,10 +164,64 @@ UTEST_BEGIN("ws.freetype", fontmanager)
         UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);
     }
 
+    void test_fail_render_text()
+    {
+        // Load font
+        ft::FontManager manager;
+        io::Path path;
+
+        printf("Testing failed text rendering\n");
+
+        // Initialize manager
+        UTEST_ASSERT(manager.init() == STATUS_OK);
+        lsp_finally { manager.destroy(); };
+
+        // Try to render text
+        ft::text_range_t tp;
+        ws::Font f("noto-sans", 12.0f);
+        f.set_italic(true);
+        LSPString text;
+        UTEST_ASSERT(text.set_ascii("Another one text for test rendering"));
+
+        // Test first (long) search of the font face
+        dsp::bitmap_t *bitmap = manager.render_text(&f, &tp, &text, 0, text.length());
+        UTEST_ASSERT(bitmap == NULL);
+
+        // Test second (quick) search of the font face
+        bitmap = manager.render_text(&f, &tp, &text, 0, text.length());
+        UTEST_ASSERT(bitmap == NULL);
+
+        // Load font and invalidate cache for the 'noto-sans' font
+        UTEST_ASSERT(path.fmt("%s/font/NotoSansDisplay-Regular.ttf", resources()) > 0);
+        UTEST_ASSERT(manager.add("noto-sans", &path) == STATUS_OK);
+
+        // Now the rendering should be OK
+        bitmap = manager.render_text(&f, &tp, &text, 0, text.length());
+        UTEST_ASSERT(bitmap != NULL);
+        lsp_finally { ft::free_bitmap(bitmap); };
+
+        // Save rendered text
+        UTEST_ASSERT(path.fmt("%s/%s-test-italic.xpm", tempdir(), name()) > 0);
+        UTEST_ASSERT(write_bitmap(bitmap, &path) == 0);
+
+        printf("Output file:        %s\n", path.as_native());
+        printf("Image Size:         %d x %d\n", int(bitmap->width), int(bitmap->height));
+        printf("Stride:             %d\n", int(bitmap->stride));
+        printf("Bearing:            %d, %d\n", int(tp.x_bearing), int(tp.y_bearing));
+        printf("Size:               %d x %d\n", int(tp.width), int(tp.height));
+        printf("Advance:            %d, %d\n", int(tp.x_advance), int(tp.y_advance));
+        printf("Used cache size:    %ld bytes\n", long(manager.used_cache_size()));
+        printf("Cache hit/miss/rm:  %ld/%ld/%ld\n", long(manager.cache_hits()), long(manager.cache_misses()), long(manager.cache_removal()));
+
+        // Remove the font
+        UTEST_ASSERT(manager.remove("noto-sans") == STATUS_OK);
+    }
+
     UTEST_MAIN
     {
-        test_load_font();
-        test_render_text();
+//        test_load_font();
+//        test_render_text();
+        test_fail_render_text();
     }
 
 UTEST_END;

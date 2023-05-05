@@ -112,7 +112,7 @@ namespace lsp
                 return true;
             }
 
-            status_t FontManager::add_font(const char *name, const char *path)
+            status_t FontManager::add(const char *name, const char *path)
             {
                 if (hLibrary == NULL)
                     return STATUS_BAD_STATE;
@@ -125,7 +125,7 @@ namespace lsp
                 return (res == STATUS_OK) ? res2 : res;
             }
 
-            status_t FontManager::add_font(const char *name, const io::Path *path)
+            status_t FontManager::add(const char *name, const io::Path *path)
             {
                 if (hLibrary == NULL)
                     return STATUS_BAD_STATE;
@@ -138,7 +138,7 @@ namespace lsp
                 return (res == STATUS_OK) ? res2 : res;
             }
 
-            status_t FontManager::add_font(const char *name, const LSPString *path)
+            status_t FontManager::add(const char *name, const LSPString *path)
             {
                 if (hLibrary == NULL)
                     return STATUS_BAD_STATE;
@@ -247,6 +247,9 @@ namespace lsp
 
             void FontManager::invalidate_face(face_t *face)
             {
+                if (face == NULL)
+                    return;
+
                 // Remove all glyphs from LRU cache
                 glyph_t *glyph = face->cache.clear();
                 while (glyph != NULL)
@@ -507,12 +510,6 @@ namespace lsp
 
                 // Now we have non-aliased name, let's look up into the cache for such font
                 // (first non-synthetic, then for synthetic)
-                face_id_t id;
-                face_t *face    = NULL;
-                size_t flags    = make_face_id_flags(f);
-                id.name         = name;
-                id.size         = float_to_f26p6(f->size());
-
                 {
                     lltl::parray<face_id_t> vk;
                     vFontCache.keys(&vk);
@@ -526,14 +523,21 @@ namespace lsp
                     }
                 }
 
+                face_t **pface;
+                face_id_t id;
+                size_t flags    = make_face_id_flags(f);
+                id.name         = name;
+                id.size         = float_to_f26p6(f->size());
+
                 id.flags        = flags;
-                if ((face = vFontCache.get(&id)) != NULL)
-                    return face;
+                if ((pface = vFontCache.wbget(&id)) != NULL)
+                    return *pface;
                 id.flags        = flags | FID_SYNTHETIC;
-                if ((face = vFontCache.get(&id)) != NULL)
-                    return face;
+                if ((pface = vFontCache.wbget(&id)) != NULL)
+                    return *pface;
 
                 // Face was not found. Try to synthesize new face
+                face_t *face    = NULL;
                 switch (flags & (FID_BOLD | FID_ITALIC))
                 {
                     case FID_BOLD:
@@ -542,9 +546,10 @@ namespace lsp
                         id.flags    = flags;
                         if ((face = find_face(&id)) != NULL)
                             break;
+                        flags      |= FID_SYNTHETIC;
 
                         // Try to lookup regular face to synthesize bold or italic one
-                        id.flags    = (flags & (~(FID_BOLD | FID_ITALIC))) | FID_SYNTHETIC;
+                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
                         if ((face = find_face(&id)) != NULL)
                             break;
                         break;
@@ -555,19 +560,20 @@ namespace lsp
                         id.flags    = flags;
                         if ((face = find_face(&id)) != NULL)
                             break;
+                        flags      |= FID_SYNTHETIC;
 
                         // Try to lookup without BOLD first
-                        id.flags    = (flags & (~FID_BOLD)) | FID_SYNTHETIC;
+                        id.flags    = flags & (~FID_BOLD);
                         if ((face = find_face(&id)) != NULL)
                             break;
 
                         // Then try to lookup without ITALIC first
-                        id.flags    = (flags & (~FID_ITALIC)) | FID_SYNTHETIC;
+                        id.flags    = flags & (~FID_ITALIC);
                         if ((face = find_face(&id)) != NULL)
                             break;
 
                         // Then try to lookup regular one
-                        id.flags    = (flags & (~(FID_BOLD | FID_ITALIC))) | FID_SYNTHETIC;
+                        id.flags    = flags & (~(FID_BOLD | FID_ITALIC));
                         if ((face = find_face(&id)) != NULL)
                             break;
                         break;
@@ -584,7 +590,11 @@ namespace lsp
 
                 // Return if no face was found
                 if (face == NULL)
+                {
+                    id.flags            = flags & (~FID_SYNTHETIC);
+                    vFontCache.create(&id, face);
                     return NULL;
+                }
 
                 // Synthesize new face
                 if ((face = clone_face(face)) == NULL)
@@ -593,6 +603,7 @@ namespace lsp
                 lsp_finally { dereference(face); };
 
                 // Initialize synthesized face and add to the mapping
+                id.flags            = flags;
                 face->flags         = id.flags;
                 face->h_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? id.size : 0;
                 face->v_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : id.size;

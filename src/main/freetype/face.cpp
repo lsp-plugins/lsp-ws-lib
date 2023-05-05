@@ -265,7 +265,7 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
 
                 // Set transformation matrix
-                FT_Set_Transform(face->ft_face, &face->matrix, NULL);
+                FT_Set_Transform(ft_face, &face->matrix, NULL);
 
                 // Update the font metrics for the face
                 face->height        = ft_face->size->metrics.height;

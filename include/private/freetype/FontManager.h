@@ -84,9 +84,9 @@ namespace lsp
                     void                    destroy();
 
                 public:
-                    status_t                add_font(const char *name, const char *path);
-                    status_t                add_font(const char *name, const io::Path *path);
-                    status_t                add_font(const char *name, const LSPString *path);
+                    status_t                add(const char *name, const char *path);
+                    status_t                add(const char *name, const io::Path *path);
+                    status_t                add(const char *name, const LSPString *path);
                     status_t                add(const char *name, io::IInStream *is);
                     status_t                add_alias(const char *name, const char *alias);
                     status_t                remove(const char *name);
