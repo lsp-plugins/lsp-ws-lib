@@ -57,7 +57,6 @@ namespace lsp
                 protected:
                     typedef struct font_context_t
                     {
-                        X11Display::font_t     *font;       // Custom font (if present)
                         cairo_font_face_t      *face;       // Selected font face
                         cairo_antialias_t       aa;         // Antialias settings
                     } font_context_t;

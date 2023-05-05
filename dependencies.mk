@@ -22,6 +22,7 @@
 # List of common dependencies
 DEPENDENCIES = \
   LSP_COMMON_LIB \
+  LSP_DSP_LIB \
   LSP_LLTL_LIB \
   LSP_R3D_IFACE \
   LSP_RUNTIME_LIB

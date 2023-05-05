@@ -442,9 +442,9 @@ namespace lsp
                 virtual status_t add_font(const char *name, io::IInStream *is);
 
                 /**
-                 * Add an alias to the font name
-                 * @param name font name
-                 * @param alias alias for the font name
+                 * Add an alias (pseudonym) to the font name
+                 * @param name the name of the alias
+                 * @param alias the name of the original (aliased) font
                  * @return status of operation
                  */
                 virtual status_t add_font_alias(const char *name, const char *alias);

@@ -119,6 +119,9 @@ class Handler: public ws::IEventHandler
 
 int main(int argc, const char **argv)
 {
+	// Initialize library
+	ws::init();
+
 	// Create display
     ws::IDisplay *dpy = ws::create_display(argc, &argv[1]);
     
