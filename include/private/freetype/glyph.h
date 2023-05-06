@@ -62,8 +62,8 @@ namespace lsp
                 f26p6_t         height;     // Glyph height
                 f26p6_t         x_advance;  // Advance by X
                 f26p6_t         y_advance;  // Advance by Y
-                f26p6_t         x_bearing;  // Bearing by X
-                f26p6_t         y_bearing;  // Bearing by Y
+                int32_t         x_bearing;  // Bearing by X
+                int32_t         y_bearing;  // Bearing by Y
                 f26p6_t         lsb_delta;  // LSB delta
                 f26p6_t         rsb_delta;  // LSB delta
 

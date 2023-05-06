@@ -704,8 +704,7 @@ namespace lsp
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
                 ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
-                ssize_t x           = glyph->x_advance;
-                ssize_t prev_rsb_delta = glyph->rsb_delta;
+                ssize_t x           = f26p6_ceil_to_int(glyph->x_advance + glyph->lsb_delta - glyph->rsb_delta);
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
@@ -714,20 +713,13 @@ namespace lsp
                     if (glyph == NULL)
                         return NULL;
 
-                    ssize_t rsb_delta = prev_rsb_delta - glyph->lsb_delta;
-                    if (rsb_delta > f26p6_half)
-                        x                  -= f26p6_one;
-                    else if (rsb_delta < -f26p6_half)
-                        x                  += f26p6_one;
-                    prev_rsb_delta      = glyph->rsb_delta;
-
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
-                    x                  += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance + glyph->lsb_delta - glyph->rsb_delta);
                 }
 
                 // Output the result
-                ssize_t width       = f26p6_ceil_to_int(x - x_bearing);
+                ssize_t width       = x - x_bearing;
                 ssize_t height      = y_max + y_bearing;
 
                 tp->x_bearing       = x_bearing;
@@ -761,8 +753,7 @@ namespace lsp
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
                 ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
-                ssize_t x           = glyph->x_advance;
-                ssize_t prev_rsb_delta = glyph->rsb_delta;
+                ssize_t x           = f26p6_ceil_to_int(glyph->x_advance + glyph->lsb_delta - glyph->rsb_delta);
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
@@ -771,20 +762,13 @@ namespace lsp
                     if (glyph == NULL)
                         return NULL;
 
-                    ssize_t rsb_delta = prev_rsb_delta - glyph->lsb_delta;
-                    if (rsb_delta > f26p6_half)
-                        x                  -= f26p6_one;
-                    else if (rsb_delta < -f26p6_half)
-                        x                  += f26p6_one;
-                    prev_rsb_delta      = glyph->rsb_delta;
-
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
-                    x                  += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance + glyph->lsb_delta - glyph->rsb_delta);
                 }
 
                 // Allocate the bitmap
-                ssize_t width       = f26p6_ceil_to_int(x - x_bearing);
+                ssize_t width       = x - x_bearing;
                 ssize_t height      = y_max + y_bearing;
 
                 dsp::bitmap_t *bitmap   = create_bitmap(width + (height * face->matrix.xy) / 0x10000, height);
@@ -793,8 +777,6 @@ namespace lsp
 
                 // Render the contents to the bitmap
                 x                   = 0;
-                prev_rsb_delta      = 0;
-
                 for (ssize_t i = first; i<last; ++i)
                 {
                     ch                  = text->char_at(i);
@@ -802,14 +784,7 @@ namespace lsp
                     if (glyph == NULL)
                         return NULL;
 
-                    ssize_t rsb_delta = prev_rsb_delta - glyph->lsb_delta;
-                    if (rsb_delta > f26p6_half)
-                        x                  -= f26p6_one;
-                    else if (rsb_delta < -f26p6_half)
-                        x                  += f26p6_one;
-                    prev_rsb_delta      = glyph->rsb_delta;
-
-                    ssize_t cx          = f26p6_floor_to_int(x) + glyph->x_bearing - x_bearing;
+                    ssize_t cx          = x - x_bearing + glyph->x_bearing;
                     ssize_t cy          = y_bearing - glyph->y_bearing;
 
                     switch (glyph->format)
@@ -829,7 +804,7 @@ namespace lsp
                             break;
                     }
 
-                    x                  += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance + glyph->lsb_delta - glyph->rsb_delta);
                 }
 
                 if (tp != NULL)
