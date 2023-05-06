@@ -437,7 +437,7 @@ namespace lsp
                 ++nGlyphMisses;
 
                 // There was no glyph present, create new glyph
-                glyph           = render_glyph(face, ch);
+                glyph           = render_glyph(hLibrary, face, ch);
                 if (glyph == NULL)
                     return NULL;
 

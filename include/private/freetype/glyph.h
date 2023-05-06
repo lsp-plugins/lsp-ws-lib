@@ -76,7 +76,7 @@ namespace lsp
              * @return pointer to allocated glyph or NULL if no memory is available
              */
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_glyph(face_t *face, lsp_wchar_t ch);
+            glyph_t *render_glyph(FT_Library library, face_t *face, lsp_wchar_t ch);
 
             /**
              * Free the glyph and data associated with it

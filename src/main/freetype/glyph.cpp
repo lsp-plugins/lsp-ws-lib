@@ -32,6 +32,7 @@
 #include <private/freetype/face.h>
 
 #include <ft2build.h>
+#include FT_BITMAP_H
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
@@ -42,20 +43,8 @@ namespace lsp
     {
         namespace ft
         {
-            LSP_HIDDEN_MODIFIER
-            glyph_t *render_regular_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
+            static glyph_t *make_glyph_data(face_t *face, FT_GlyphSlot glyph, lsp_wchar_t ch)
             {
-                // Load glyph
-                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
-                    return NULL;
-
-                // Render glyph
-                FT_GlyphSlot glyph  = face->ft_face->glyph;
-                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
-                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
-                    return NULL;
-
                 // Obtain bitmap and pixel format
                 FT_Bitmap *bitmap   = &glyph->bitmap;
                 uint32_t format = FMT_1_BPP;
@@ -127,10 +116,11 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_bold_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
+            glyph_t *render_regular_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
                 // Load glyph
                 size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
+                load_flags         |= FT_LOAD_FORCE_AUTOHINT;
                 if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
                     return NULL;
 
@@ -140,80 +130,47 @@ namespace lsp
                 if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
                     return NULL;
 
-                // Copy the glyph data
-                FT_Bitmap *bitmap   = &glyph->bitmap;
-
-                size_t width        = lsp_abs(bitmap->width) + 1;
-                size_t stride       = compute_bitmap_stride(width);
-                size_t szof_glyph   = sizeof(glyph_t) + DEFAULT_ALIGN;
-                size_t bytes        = bitmap->rows * stride;
-                size_t to_alloc     = szof_glyph + bytes;
-
-                uint8_t *buf        = static_cast<uint8_t *>(malloc(to_alloc));
-                if (buf == NULL)
-                    return NULL;
-                glyph_t *res        = reinterpret_cast<glyph_t *>(buf);
-
-                res->lru_prev       = NULL;
-                res->lru_next       = NULL;
-                res->face           = face;
-                res->codepoint      = ch;
-                res->szof           = to_alloc;
-                res->width          = glyph->metrics.width + f26p6_one;
-                res->height         = glyph->metrics.height;
-                res->x_advance      = glyph->advance.x + f26p6_one;
-                res->y_advance      = glyph->advance.y;
-                res->x_bearing      = glyph->bitmap_left;
-                res->y_bearing      = glyph->bitmap_top;
-
-                res->bitmap.width   = width;
-                res->bitmap.height  = bitmap->rows;
-                res->bitmap.stride  = stride;
-                res->bitmap.data    = align_ptr(&buf[sizeof(glyph_t)], DEFAULT_ALIGN);
-                res->format         = FMT_8_BPP;
-
-                bzero(res->bitmap.data, bytes);
-
-                dsp::bitmap_t src;
-                src.width           = bitmap->width;
-                src.height          = bitmap->rows;
-                src.stride          = bitmap->pitch;
-                src.data            = reinterpret_cast<uint8_t *>(bitmap->buffer);
-
-                switch (bitmap->pixel_mode)
-                {
-                    case FT_PIXEL_MODE_MONO:
-                        dsp::bitmap_max_b1b8(&res->bitmap, &src, 0, 0);
-                        dsp::bitmap_max_b1b8(&res->bitmap, &src, 1, 0);
-                        break;
-                    case FT_PIXEL_MODE_GRAY2:
-                        dsp::bitmap_max_b2b8(&res->bitmap, &src, 0, 0);
-                        dsp::bitmap_max_b2b8(&res->bitmap, &src, 1, 0);
-                        break;
-                    case FT_PIXEL_MODE_GRAY4:
-                        dsp::bitmap_max_b4b8(&res->bitmap, &src, 0, 0);
-                        dsp::bitmap_max_b4b8(&res->bitmap, &src, 1, 0);
-                        break;
-                    case FT_PIXEL_MODE_GRAY:
-                    default:
-                        dsp::bitmap_max_b8b8(&res->bitmap, &src, 0, 0);
-                        dsp::bitmap_max_b8b8(&res->bitmap, &src, 1, 0);
-                        break;
-                }
-
-                // Return result
-                return res;
+                return make_glyph_data(face, glyph, ch);
             }
 
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_glyph(face_t *face, lsp_wchar_t ch)
+            glyph_t *render_bold_glyph(FT_Library library, face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
+            {
+                // Load glyph
+                size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
+                load_flags         |= FT_LOAD_FORCE_AUTOHINT;
+                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
+                    return NULL;
+
+                // Get the glyph
+                FT_GlyphSlot glyph  = face->ft_face->glyph;
+                const bool is_outline = glyph->format == FT_GLYPH_FORMAT_OUTLINE;
+                if (is_outline)
+                    FT_Outline_Embolden(&glyph->outline, 2 * f26p6_one);
+
+                // Render glyph
+                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
+                    return NULL;
+
+                if (!is_outline)
+                {
+                    if (FT_Bitmap_Embolden(library, &glyph->bitmap, 1, 0) != FT_Err_Ok)
+                        return NULL;
+                }
+
+                return make_glyph_data(face, glyph, ch);
+            }
+
+            LSP_HIDDEN_MODIFIER
+            glyph_t *render_glyph(FT_Library library, face_t *face, lsp_wchar_t ch)
             {
                 // Obtain the glyph index
                 FT_UInt glyph_index = FT_Get_Char_Index(face->ft_face, ch);
 
                 // Render the glyph
                 if ((face->flags & FID_BOLD) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_BOLD)))
-                    return render_bold_glyph(face, glyph_index, ch);
+                    return render_bold_glyph(library, face, glyph_index, ch);
 
                 return render_regular_glyph(face, glyph_index, ch);
             }
