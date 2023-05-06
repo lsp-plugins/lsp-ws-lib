@@ -674,6 +674,16 @@ namespace lsp
             {
                 if ((text == NULL) || (first > last))
                     return false;
+                else if (first == last)
+                {
+                    tp->x_bearing       = 0;
+                    tp->y_bearing       = 0;
+                    tp->width           = 0;
+                    tp->height          = 0;
+                    tp->x_advance       = 0;
+                    tp->y_advance       = 0;
+                    return true;
+                }
 
                 // Select the font face
                 face_t *face        = select_font_face(f);
@@ -732,7 +742,7 @@ namespace lsp
 
             dsp::bitmap_t *FontManager::render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if ((text == NULL) || (first > last))
+                if ((text == NULL) || (first >= last))
                     return NULL;
 
                 // Select the font face
