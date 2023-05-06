@@ -122,7 +122,6 @@ namespace lsp
             {
                 // Load glyph
                 size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                load_flags         |= FT_LOAD_FORCE_AUTOHINT;
                 if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
                     return NULL;
 
@@ -140,7 +139,6 @@ namespace lsp
             {
                 // Load glyph
                 size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                load_flags         |= FT_LOAD_FORCE_AUTOHINT;
                 if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
                     return NULL;
 
