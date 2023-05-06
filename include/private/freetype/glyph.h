@@ -75,12 +75,14 @@ namespace lsp
              * @param ch UTF-32 codepoint of the glyph
              * @return pointer to allocated glyph or NULL if no memory is available
              */
+            LSP_HIDDEN_MODIFIER
             glyph_t *render_glyph(face_t *face, lsp_wchar_t ch);
 
             /**
              * Free the glyph and data associated with it
              * @param glyph glyph to destroy
              */
+            LSP_HIDDEN_MODIFIER
             void free_glyph(glyph_t *glyph);
 
         } /* namespace ft */

@@ -32,6 +32,7 @@ namespace lsp
     {
         namespace ft
         {
+            LSP_HIDDEN_MODIFIER
             size_t face_id_hash(const face_id_t *face_id)
             {
                 size_t hash = (face_id->name != NULL) ? lltl::char_hash_func(face_id->name, 0) : 0;
@@ -40,6 +41,7 @@ namespace lsp
                 return hash ^ extra;
             }
 
+            LSP_HIDDEN_MODIFIER
             face_id_t *make_face_id(const char *name, f26p6_t size, size_t flags)
             {
                 size_t len      = strlen(name) + 1;
@@ -59,12 +61,14 @@ namespace lsp
                 return id;
             }
 
+            LSP_HIDDEN_MODIFIER
             void free_face_id(face_id_t *id)
             {
                 if (id != NULL)
                     free(id);
             }
 
+            LSP_HIDDEN_MODIFIER
             size_t make_face_id_flags(const Font *f)
             {
                 size_t flags    = (f->bold()) ? FID_BOLD : 0;

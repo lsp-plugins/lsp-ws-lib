@@ -65,7 +65,7 @@ namespace lsp
     namespace lltl
     {
         template <>
-        struct hash_spec<ws::ft::face_id_t>: public hash_iface
+        struct LSP_HIDDEN_MODIFIER hash_spec<ws::ft::face_id_t>: public hash_iface
         {
             static size_t hash_func(const void *ptr, size_t size);
 
@@ -76,7 +76,7 @@ namespace lsp
         };
 
         template <>
-        struct compare_spec<ws::ft::face_id_t>: public lltl::compare_iface
+        struct LSP_HIDDEN_MODIFIER compare_spec<ws::ft::face_id_t>: public lltl::compare_iface
         {
             static ssize_t cmp_func(const void *a, const void *b, size_t size);
 
@@ -87,7 +87,7 @@ namespace lsp
         };
 
         template <>
-        struct allocator_spec<ws::ft::face_id_t>: public lltl::allocator_iface
+        struct LSP_HIDDEN_MODIFIER allocator_spec<ws::ft::face_id_t>: public lltl::allocator_iface
         {
             static void *clone_func(const void *src, size_t size);
             static void free_func(void *ptr);

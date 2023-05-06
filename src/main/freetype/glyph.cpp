@@ -42,6 +42,7 @@ namespace lsp
     {
         namespace ft
         {
+            LSP_HIDDEN_MODIFIER
             glyph_t *render_regular_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
                 // Load glyph
@@ -125,6 +126,7 @@ namespace lsp
                 return res;
             }
 
+            LSP_HIDDEN_MODIFIER
             glyph_t *render_bold_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
                 // Load glyph
@@ -203,6 +205,7 @@ namespace lsp
                 return res;
             }
 
+            LSP_HIDDEN_MODIFIER
             glyph_t *render_glyph(face_t *face, lsp_wchar_t ch)
             {
                 // Obtain the glyph index
@@ -215,6 +218,7 @@ namespace lsp
                 return render_regular_glyph(face, glyph_index, ch);
             }
 
+            LSP_HIDDEN_MODIFIER
             void free_glyph(glyph_t *glyph)
             {
                 if (glyph == NULL)

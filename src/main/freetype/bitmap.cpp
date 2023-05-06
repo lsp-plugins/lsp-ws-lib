@@ -40,6 +40,7 @@ namespace lsp
     {
         namespace ft
         {
+            LSP_HIDDEN_MODIFIER
             size_t compute_bitmap_stride(size_t width)
             {
             #if defined(USE_LIBCAIRO)
@@ -49,6 +50,7 @@ namespace lsp
             #endif /* USE_LIBCAIRO */
             }
 
+            LSP_HIDDEN_MODIFIER
             dsp::bitmap_t *create_bitmap(size_t width, size_t height)
             {
                 size_t stride       = compute_bitmap_stride(width);
@@ -70,6 +72,7 @@ namespace lsp
                 return b;
             }
 
+            LSP_HIDDEN_MODIFIER
             void free_bitmap(dsp::bitmap_t *bitmap)
             {
                 if (bitmap != NULL)

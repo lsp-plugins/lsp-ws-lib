@@ -32,7 +32,10 @@ namespace lsp
     {
         namespace ft
         {
-            class LRUCache
+            /**
+             * LRU cache designed for performing LRU algorithm of glyph aging
+             */
+            class LSP_HIDDEN_MODIFIER LRUCache
             {
                 protected:
                     glyph_t    *pHead;      // Head in the LRU cache

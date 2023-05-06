@@ -86,6 +86,7 @@ namespace lsp
              * @param value value to convert
              * @return converted floating-point value
              */
+            LSP_HIDDEN_MODIFIER
             inline float f26p6_to_float(f26p6_t value)
             {
                 return value * f26p6_divider;
@@ -96,6 +97,7 @@ namespace lsp
              * @param value value to convert
              * @return converted floating-point value
              */
+            LSP_HIDDEN_MODIFIER
             inline ssize_t f26p6_ceil_to_int(f26p6_t value)
             {
                 return (value + f26p6_one - 1) / f26p6_one;
@@ -106,6 +108,7 @@ namespace lsp
              * @param value value to convert
              * @return converted floating-point value
              */
+            LSP_HIDDEN_MODIFIER
             inline ssize_t f26p6_floor_to_int(f26p6_t value)
             {
                 return value / f26p6_one;
@@ -116,6 +119,7 @@ namespace lsp
              * @param value value to convert
              * @return converted f26p6 value
              */
+            LSP_HIDDEN_MODIFIER
             inline f26p6_t float_to_f26p6(float value)
             {
                 return value * f26p6_multiplier;
@@ -126,6 +130,7 @@ namespace lsp
              * @param value value to convert
              * @return converted f26p6 value
              */
+            LSP_HIDDEN_MODIFIER
             inline f26p6_t int_to_f26p6(ssize_t value)
             {
                 return value * f26p6_one;

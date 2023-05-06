@@ -46,7 +46,7 @@ namespace lsp
             /**
              * The font face
              */
-            typedef struct face_t
+            typedef struct LSP_HIDDEN_MODIFIER face_t
             {
                 size_t      references;         // Number of references
                 size_t      cache_size;         // The amount of memory used by glyphs in cache
@@ -71,6 +71,7 @@ namespace lsp
              * @param is input stream with the font data
              * @return status of operation
              */
+            LSP_HIDDEN_MODIFIER
             status_t    load_face(lltl::parray<face_t> *faces, FT_Library ft, io::IInStream *is);
 
             /**
@@ -79,18 +80,21 @@ namespace lsp
              * @param flags font face flags
              * @return pointer to font face
              */
+            LSP_HIDDEN_MODIFIER
             face_t     *clone_face(face_t *src);
 
             /**
              * Destroy the font face
              * @param face the font face to destroy
              */
+            LSP_HIDDEN_MODIFIER
             void        destroy_face(face_t *face);
 
             /**
              * Destroy the list of font faces
              * @param face the font face to destroy
              */
+            LSP_HIDDEN_MODIFIER
             void        destroy_faces(lltl::parray<face_t> *faces);
 
             /**
@@ -100,6 +104,7 @@ namespace lsp
              * @param id_flags the flags to set while selecting the font face
              * @return status of operation
              */
+            LSP_HIDDEN_MODIFIER
             status_t    activate_face(face_t *face);
 
         } /* namespace ft */

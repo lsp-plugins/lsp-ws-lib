@@ -40,6 +40,7 @@ namespace lsp
              * @param width width of the bitmap
              * @return stride of the bitmap in bytes
              */
+            LSP_HIDDEN_MODIFIER
             size_t compute_bitmap_stride(size_t width);
 
             /**
@@ -48,8 +49,10 @@ namespace lsp
              * @param height height of the bitmap
              * @return pointer to bitmap or NULL
              */
+            LSP_HIDDEN_MODIFIER
             dsp::bitmap_t *create_bitmap(size_t width, size_t height);
 
+            LSP_HIDDEN_MODIFIER
             void free_bitmap(dsp::bitmap_t *bitmap);
 
         } /* namespace ft */

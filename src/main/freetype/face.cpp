@@ -81,6 +81,7 @@ namespace lsp
                 return font;
             }
 
+            LSP_HIDDEN_MODIFIER
             status_t load_face(lltl::parray<face_t> *faces, FT_Library ft, io::IInStream *is)
             {
                 // Create the font data
@@ -175,6 +176,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            LSP_HIDDEN_MODIFIER
             face_t *clone_face(face_t *src)
             {
                 FT_Error error;
@@ -215,6 +217,7 @@ namespace lsp
                 return face;
             }
 
+            LSP_HIDDEN_MODIFIER
             void destroy_faces(lltl::parray<face_t> *faces)
             {
                 for (size_t i=0, n=faces->size(); i<n; ++i)
@@ -222,6 +225,7 @@ namespace lsp
                 faces->flush();
             }
 
+            LSP_HIDDEN_MODIFIER
             void destroy_face(face_t *face)
             {
                 if (face == NULL)
@@ -255,6 +259,7 @@ namespace lsp
                 free(face);
             }
 
+            LSP_HIDDEN_MODIFIER
             status_t activate_face(face_t *face)
             {
                 FT_Error error;
