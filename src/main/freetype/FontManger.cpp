@@ -527,6 +527,15 @@ namespace lsp
                     name    = aliased;
                 }
 
+                // Now we have non-aliased name, let's look up into the cache for such font
+                // (first non-synthetic, then for synthetic)
+                face_t **pface;
+                face_id_t id;
+                size_t flags    = make_face_id_flags(f);
+                id.name         = name;
+                id.size         = float_to_f26p6(f->size());
+
+//                if (id.size == 576)
 //                {
 //                    lltl::parray<face_id_t> vk;
 //                    vFontCache.keys(&vk);
@@ -539,14 +548,6 @@ namespace lsp
 //                            fid->name, int(fid->flags), int(fid->size));
 //                    }
 //                }
-
-                // Now we have non-aliased name, let's look up into the cache for such font
-                // (first non-synthetic, then for synthetic)
-                face_t **pface;
-                face_id_t id;
-                size_t flags    = make_face_id_flags(f);
-                id.name         = name;
-                id.size         = float_to_f26p6(f->size());
 
                 // Try lookup the face in the face cache
                 id.flags        = flags;

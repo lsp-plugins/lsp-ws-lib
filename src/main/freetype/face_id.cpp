@@ -35,7 +35,9 @@ namespace lsp
             size_t face_id_hash(const face_id_t *face_id)
             {
                 size_t hash = (face_id->name != NULL) ? lltl::char_hash_func(face_id->name, 0) : 0;
-                return hash ^ (face_id->flags | (face_id->size << FID_SHIFT));
+                size_t size = face_id->size;
+                size_t extra= (size << FID_SHIFT) + (size >> 6)+ (size >> 1) + face_id->flags;
+                return hash ^ extra;
             }
 
             face_id_t *make_face_id(const char *name, f26p6_t size, size_t flags)
@@ -51,7 +53,7 @@ namespace lsp
                 face_id_t *id   = reinterpret_cast<face_id_t *>(ptr);
                 id->name        = reinterpret_cast<const char *>(&ptr[szof]);
                 id->size        = size;
-                id->flags       = flags & (FID_ALL);
+                id->flags       = flags;
                 memcpy(&ptr[szof], name, len);
 
                 return id;

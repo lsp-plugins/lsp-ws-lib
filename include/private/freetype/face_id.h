@@ -38,12 +38,11 @@ namespace lsp
         {
             enum face_id_flags_t
             {
-                FID_BOLD        = 1 << 0,
-                FID_ITALIC      = 1 << 1,
-                FID_ANTIALIAS   = 1 << 2,
-                FID_SYNTHETIC   = 1 << 3,
+                FID_SYNTHETIC   = 1 << 0,
+                FID_ANTIALIAS   = 1 << 1,
+                FID_BOLD        = 1 << 2,
+                FID_ITALIC      = 1 << 3,
 
-                FID_ALL         = FID_BOLD | FID_ITALIC | FID_ANTIALIAS,
                 FID_SHIFT       = 4
             };
 
