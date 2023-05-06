@@ -57,6 +57,7 @@ namespace lsp
             constexpr size_t            default_max_font_cache_size     = 2 * default_min_font_cache_size;
 
             constexpr f26p6_t           f26p6_one               = 64;
+            constexpr f26p6_t           f26p6_half              = 32;
             constexpr float             f26p6_divider           = 1.0f / 64.0f;
             constexpr float             f26p6_multiplier        = 64.0f;
             constexpr f26p6_t           f26p6_face_slant_shift  = 12505; // sinf(M_PI * 12.0f / 180.0f) * 0x10000

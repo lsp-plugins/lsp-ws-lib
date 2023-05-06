@@ -89,6 +89,8 @@ namespace lsp
                 res->y_advance      = glyph->advance.y;
                 res->x_bearing      = glyph->bitmap_left;
                 res->y_bearing      = glyph->bitmap_top;
+                res->lsb_delta      = glyph->lsb_delta;
+                res->rsb_delta      = glyph->rsb_delta;
 
                 res->bitmap.width   = bitmap->width;
                 res->bitmap.height  = bitmap->rows;
