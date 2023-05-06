@@ -635,8 +635,8 @@ namespace lsp
                 face->flags         = id.flags;
                 face->h_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? id.size : 0;
                 face->v_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : id.size;
-                face->matrix.xx     = 1 * 0x10000;
-                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f26p6_face_slant_shift : 0;
+                face->matrix.xx     = ((face->flags & FID_BOLD) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_BOLD))) ? 0x10c00 : 0x10000;
+                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC))) ? f26p6_face_slant_shift : 0;
                 face->matrix.yx     = 0;
                 face->matrix.yy     = 1 * 0x10000;
 

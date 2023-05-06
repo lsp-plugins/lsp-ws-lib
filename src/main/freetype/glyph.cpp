@@ -145,8 +145,9 @@ namespace lsp
                 // Get the glyph
                 FT_GlyphSlot glyph  = face->ft_face->glyph;
                 const bool is_outline = glyph->format == FT_GLYPH_FORMAT_OUTLINE;
+                size_t embolden     = size_t(lsp_max(face->h_size, face->v_size)) >> 5;
                 if (is_outline)
-                    FT_Outline_Embolden(&glyph->outline, 2 * f26p6_one);
+                    FT_Outline_Embolden(&glyph->outline, embolden);
 
                 // Render glyph
                 FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
@@ -155,7 +156,7 @@ namespace lsp
 
                 if (!is_outline)
                 {
-                    if (FT_Bitmap_Embolden(library, &glyph->bitmap, 1, 0) != FT_Err_Ok)
+                    if (FT_Bitmap_Embolden(library, &glyph->bitmap, embolden >> 1, 0) != FT_Err_Ok)
                         return NULL;
                 }
 
