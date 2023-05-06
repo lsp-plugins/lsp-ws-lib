@@ -1895,7 +1895,7 @@ namespace lsp
                         continue;
 
                     // Translate coordinates if originating and target window differs
-                    int x, y;
+                    int x = 0, y = 0;
                     if (!translate_coordinates(
                         ev->xany.window, wnd->x11handle(),
                         ue.nLeft, ue.nTop,
@@ -1905,7 +1905,7 @@ namespace lsp
                     se.nLeft    = x;
                     se.nTop     = y;
 
-//                    lsp_trace("Sending event to target=%p", wnd);
+                    lsp_trace("Sending event to target=%p, x=%d, y=%d", wnd, x, y);
                     wnd->handle_event(&se);
                 }
             }
@@ -2121,8 +2121,7 @@ namespace lsp
                         break;
                     }
                     lsp_trace(" found child %lx pointer location: x=%d, y=%d -> cx=%d, cy=%d",
-                            long(child), x, y, cx, cy
-                    );
+                        long(child), x, y, cx, cy);
                     if (child == None)
                         break;
 
