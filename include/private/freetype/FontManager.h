@@ -45,7 +45,7 @@ namespace lsp
             /**
              * Custom font manager
              */
-            class FontManager
+            class LSP_HIDDEN_MODIFIER FontManager
             {
                 private:
                     typedef struct font_entry_t

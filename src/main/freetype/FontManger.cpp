@@ -437,7 +437,7 @@ namespace lsp
                 ++nGlyphMisses;
 
                 // There was no glyph present, create new glyph
-                glyph           = render_glyph(face, ch);
+                glyph           = render_glyph(hLibrary, face, ch);
                 if (glyph == NULL)
                     return NULL;
 
@@ -527,6 +527,15 @@ namespace lsp
                     name    = aliased;
                 }
 
+                // Now we have non-aliased name, let's look up into the cache for such font
+                // (first non-synthetic, then for synthetic)
+                face_t **pface;
+                face_id_t id;
+                size_t flags    = make_face_id_flags(f);
+                id.name         = name;
+                id.size         = float_to_f26p6(f->size());
+
+//                if (id.size == 576)
 //                {
 //                    lltl::parray<face_id_t> vk;
 //                    vFontCache.keys(&vk);
@@ -539,14 +548,6 @@ namespace lsp
 //                            fid->name, int(fid->flags), int(fid->size));
 //                    }
 //                }
-
-                // Now we have non-aliased name, let's look up into the cache for such font
-                // (first non-synthetic, then for synthetic)
-                face_t **pface;
-                face_id_t id;
-                size_t flags    = make_face_id_flags(f);
-                id.name         = name;
-                id.size         = float_to_f26p6(f->size());
 
                 // Try lookup the face in the face cache
                 id.flags        = flags;
@@ -634,8 +635,8 @@ namespace lsp
                 face->flags         = id.flags;
                 face->h_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? id.size : 0;
                 face->v_size        = (face->ft_face->face_flags & FT_FACE_FLAG_HORIZONTAL) ? 0 : id.size;
-                face->matrix.xx     = 1 * 0x10000;
-                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC)))? f26p6_face_slant_shift : 0;
+                face->matrix.xx     = ((face->flags & FID_BOLD) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_BOLD))) ? 0x10800 : 0x10000;
+                face->matrix.xy     = ((face->flags & FID_ITALIC) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_ITALIC))) ? f26p6_face_slant_shift : 0;
                 face->matrix.yx     = 0;
                 face->matrix.yy     = 1 * 0x10000;
 
@@ -644,8 +645,7 @@ namespace lsp
                 ++face->references;
 
                 // Select font face
-                status_t res = select_face(face);
-                return (res == STATUS_OK) ? face : NULL;
+                return face;
             }
 
             bool FontManager::get_font_parameters(const Font *f, font_parameters_t *fp)
@@ -655,11 +655,16 @@ namespace lsp
                 if (face == NULL)
                     return false;
 
+                if (activate_face(face) != STATUS_OK)
+                    return false;
+
                 if (fp != NULL)
                 {
-                    fp->Ascent  = f26p6_to_float(face->ascent);
-                    fp->Descent = f26p6_to_float(face->descent);
-                    fp->Height  = f26p6_to_float(face->height);
+                    FT_Size_Metrics *metrics = & face->ft_face->size->metrics;
+
+                    fp->Ascent  = f26p6_to_float(metrics->ascender);
+                    fp->Descent = f26p6_to_float(-metrics->descender);
+                    fp->Height  = f26p6_to_float(metrics->height);
                 }
 
                 return true;
@@ -669,6 +674,16 @@ namespace lsp
             {
                 if ((text == NULL) || (first > last))
                     return false;
+                else if (first == last)
+                {
+                    tp->x_bearing       = 0;
+                    tp->y_bearing       = 0;
+                    tp->width           = 0;
+                    tp->height          = 0;
+                    tp->x_advance       = 0;
+                    tp->y_advance       = 0;
+                    return true;
+                }
 
                 // Select the font face
                 face_t *face        = select_font_face(f);
@@ -676,6 +691,9 @@ namespace lsp
                     return false;
                 if (tp == NULL)
                     return true;
+
+                if (activate_face(face) != STATUS_OK)
+                    return false;
 
                 // Estimate the text parameters
                 lsp_wchar_t ch      = text->char_at(first);
@@ -686,8 +704,7 @@ namespace lsp
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
                 ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
-                ssize_t width       = glyph->x_advance - glyph->x_bearing;
-                ssize_t height      = 0;
+                ssize_t x           = f26p6_ceil_to_int(glyph->x_advance);
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
@@ -698,12 +715,12 @@ namespace lsp
 
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
-                    width              += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance);
                 }
 
                 // Output the result
-                width               = f26p6_ceil_to_int(width);
-                height              = y_max + y_bearing;
+                ssize_t width       = x - x_bearing;
+                ssize_t height      = y_max + y_bearing;
 
                 tp->x_bearing       = x_bearing;
                 tp->y_bearing       = -y_bearing;
@@ -717,12 +734,14 @@ namespace lsp
 
             dsp::bitmap_t *FontManager::render_text(const Font *f, text_range_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if ((text == NULL) || (first > last))
+                if ((text == NULL) || (first >= last))
                     return NULL;
 
                 // Select the font face
                 face_t *face        = select_font_face(f);
                 if (face == NULL)
+                    return NULL;
+                if (activate_face(face) != STATUS_OK)
                     return NULL;
 
                 // Estimate the text parameters
@@ -734,8 +753,7 @@ namespace lsp
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
                 ssize_t y_max       = glyph->bitmap.height - glyph->y_bearing;
-                ssize_t width       = glyph->x_advance - glyph->x_bearing;
-                ssize_t height      = 0;
+                ssize_t x           = f26p6_ceil_to_int(glyph->x_advance);
 
                 for (ssize_t i = first+1; i<last; ++i)
                 {
@@ -746,20 +764,19 @@ namespace lsp
 
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
-                    width              += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance);
                 }
 
                 // Allocate the bitmap
-                width               = f26p6_ceil_to_int(width);
-                height              = y_max + y_bearing;
+                ssize_t width       = x - x_bearing;
+                ssize_t height      = y_max + y_bearing;
 
-                dsp::bitmap_t *bitmap   = create_bitmap(width, height);
+                dsp::bitmap_t *bitmap   = create_bitmap(width + (height * face->matrix.xy) / 0x10000, height);
                 if (bitmap == NULL)
                     return NULL;
 
                 // Render the contents to the bitmap
-                ssize_t x           = 0;
-
+                x                   = 0;
                 for (ssize_t i = first; i<last; ++i)
                 {
                     ch                  = text->char_at(i);
@@ -767,7 +784,7 @@ namespace lsp
                     if (glyph == NULL)
                         return NULL;
 
-                    ssize_t cx          = f26p6_floor_to_int(x) + glyph->x_bearing - x_bearing;
+                    ssize_t cx          = x - x_bearing + glyph->x_bearing;
                     ssize_t cy          = y_bearing - glyph->y_bearing;
 
                     switch (glyph->format)
@@ -787,7 +804,7 @@ namespace lsp
                             break;
                     }
 
-                    x      += glyph->x_advance;
+                    x                  += f26p6_ceil_to_int(glyph->x_advance);
                 }
 
                 if (tp != NULL)

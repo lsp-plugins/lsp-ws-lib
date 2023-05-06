@@ -32,7 +32,10 @@ namespace lsp
     {
         namespace ft
         {
-            class GlyphCache
+            /**
+             * Glyph cache designed for storing glyphs for a singe font face
+             */
+            class LSP_HIDDEN_MODIFIER GlyphCache
             {
                 protected:
                     typedef struct bin_t

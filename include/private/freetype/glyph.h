@@ -64,6 +64,8 @@ namespace lsp
                 f26p6_t         y_advance;  // Advance by Y
                 int32_t         x_bearing;  // Bearing by X
                 int32_t         y_bearing;  // Bearing by Y
+                f26p6_t         lsb_delta;  // LSB delta
+                f26p6_t         rsb_delta;  // LSB delta
 
                 uint32_t        format;     // Bits per pixel, format
                 dsp::bitmap_t   bitmap;     // The bitmap that stores the glyph data
@@ -75,12 +77,14 @@ namespace lsp
              * @param ch UTF-32 codepoint of the glyph
              * @return pointer to allocated glyph or NULL if no memory is available
              */
-            glyph_t *render_glyph(face_t *face, lsp_wchar_t ch);
+            LSP_HIDDEN_MODIFIER
+            glyph_t *render_glyph(FT_Library library, face_t *face, lsp_wchar_t ch);
 
             /**
              * Free the glyph and data associated with it
              * @param glyph glyph to destroy
              */
+            LSP_HIDDEN_MODIFIER
             void free_glyph(glyph_t *glyph);
 
         } /* namespace ft */

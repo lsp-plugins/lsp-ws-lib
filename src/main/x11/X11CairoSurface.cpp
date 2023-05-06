@@ -841,7 +841,9 @@ namespace lsp
                         lsp_finally{ cairo_surface_destroy(fs); };
 
                         setSourceRGBA(color);
-                        cairo_mask_surface(pCR, fs, x + tr.x_bearing, y + tr.y_bearing);
+                        x += tr.x_bearing;
+                        y += tr.y_bearing;
+                        cairo_mask_surface(pCR, fs, x, y);
 
                         // Draw underline if required
                         if (f.is_underline())
@@ -911,7 +913,9 @@ namespace lsp
                         lsp_finally{ cairo_surface_destroy(fs); };
 
                         setSourceRGBA(color);
-                        cairo_mask_surface(pCR, fs, x + tr.x_bearing, y + tr.y_bearing);
+                        x += tr.x_bearing;
+                        y += tr.y_bearing;
+                        cairo_mask_surface(pCR, fs, x, y);
 
                         // Draw underline if required
                         if (f.is_underline())
