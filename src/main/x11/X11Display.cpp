@@ -1583,7 +1583,7 @@ namespace lsp
                         XLookupString(&ev->xkey, ret, sizeof(ret), &ksym, &status);
                         code_t key   = decode_keycode(ksym);
 
-                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
+//                        lsp_trace("%s: code=0x%lx, raw=0x%lx", (ev->type == KeyPress) ? "key_press" : "key_release", long(key), long(ksym));
 
                         if (key != WSK_UNKNOWN)
                         {
@@ -1905,7 +1905,7 @@ namespace lsp
                     se.nLeft    = x;
                     se.nTop     = y;
 
-                    lsp_trace("Sending event to target=%p, x=%d, y=%d", wnd, x, y);
+//                    lsp_trace("Sending event to target=%p, x=%d, y=%d", wnd, x, y);
                     wnd->handle_event(&se);
                 }
             }
