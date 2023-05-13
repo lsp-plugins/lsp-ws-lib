@@ -1126,12 +1126,15 @@ namespace lsp
                 if (pX11Display->pFocusWindow == this)
                     pX11Display->pFocusWindow   = NULL;
 
-                pX11Display->sync();
-                XSetInputFocus(pX11Display->x11display(), hWindow,  RevertToPointerRoot, CurrentTime);
+                lsp_trace("Calling set_input_focus this=%p, handle=%lx...", this, long(hWindow));
+                bool res = pX11Display->set_input_focus(hWindow);
+
+                lsp_trace("Sending focus event...");
                 send_focus_event();
 
-                pX11Display->sync();
-                return STATUS_OK;
+                lsp_trace("result = %s", (res) ? "success" : "unknown_error");
+
+                return (res) ? STATUS_OK : STATUS_UNKNOWN_ERR;
             }
 
             status_t X11Window::set_caption(const char *caption)

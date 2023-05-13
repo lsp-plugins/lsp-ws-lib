@@ -31,8 +31,10 @@
 #include <lsp-plug.in/io/InFileStream.h>
 #include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/ws/x11/decode.h>
+
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
+#include <private/x11/X11Window.h>
 
 #include <poll.h>
 #include <errno.h>
@@ -164,6 +166,9 @@ namespace lsp
                 sTranslateReq.hSrcW     = None;
                 sTranslateReq.hDstW     = None;
                 sTranslateReq.bSuccess  = false;
+
+                sSetInputFocusReq.hWnd      = None;
+                sSetInputFocusReq.bSuccess  = false;
 
                 pEstimation     = NULL;
             }
@@ -3467,7 +3472,11 @@ namespace lsp
                         (sTranslateReq.hDstW == ev->resourceid))
                         sTranslateReq.bSuccess = false;
                 }
-
+                if (ev->error_code == BadMatch)
+                {
+                    if (sSetInputFocusReq.hWnd != None)
+                        sSetInputFocusReq.bSuccess = false;
+                }
             }
 
             X11Display::dnd_recv_t *X11Display::current_drag_task()
@@ -3700,6 +3709,32 @@ namespace lsp
                 if (meta->wnd_type == r3d::WND_HANDLE_X11)
                     return true;
                 return IDisplay::r3d_backend_supported(meta);
+            }
+
+            bool X11Display::set_input_focus(::Window wnd)
+            {
+                // Create the request
+                sSetInputFocusReq.hWnd       = wnd;
+                sSetInputFocusReq.bSuccess   = true;
+
+                // Set error handler
+                ::XSync(pDisplay, False);
+                XErrorHandler old = ::XSetErrorHandler(x11_error_handler);
+
+                // Set input focus to window
+                ::XSetInputFocus(pDisplay, wnd, RevertToParent, CurrentTime);
+
+                // Reset error handler
+                ::XSync(pDisplay, False);
+                ::XSetErrorHandler(old);
+
+            #ifdef LSP_TRACE
+                if (!sSetInputFocusReq.bSuccess)
+                    lsp_trace("this=%p: failed to focus window handle=0x%lx",
+                        this, long(wnd));
+            #endif
+
+                return sSetInputFocusReq.bSuccess;
             }
 
             bool X11Display::translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return)

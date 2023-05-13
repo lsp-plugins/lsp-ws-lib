@@ -147,6 +147,12 @@ namespace lsp
                         bool                bSuccess;       // Success flag
                     } xtranslate_t;
 
+                    typedef struct xsetinputfocus_t
+                    {
+                        Window              hWnd;           // Focused Window
+                        bool                bSuccess;       // Success flag
+                    } xsetinputfocus_t;
+
                     typedef struct dnd_proxy_t: public cb_common_t
                     {
                         Window              hTarget;        // The target window which has XDndProxy attribute
@@ -213,6 +219,7 @@ namespace lsp
                     lltl::darray<x11_async_t>   sAsync;
                     lltl::parray<char>          vDndMimeTypes;
                     xtranslate_t                sTranslateReq;
+                    xsetinputfocus_t            sSetInputFocusReq;
 
                     lltl::darray<MonitorInfo>   vMonitors;
 
@@ -348,6 +355,8 @@ namespace lsp
                     status_t                    unlock_events(X11Window *wnd);
 
                     ft::FontManager            *font_manager();
+
+                    bool                        set_input_focus(::Window wnd);
 
                     void                        flush();
 
