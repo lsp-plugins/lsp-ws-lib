@@ -633,8 +633,8 @@ namespace lsp
                 switch (style)
                 {
                     case BS_DIALOG:
-                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DIALOG;
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
+                        atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_DIALOG;
                         break;
 
                     case BS_NONE:
