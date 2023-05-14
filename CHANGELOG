@@ -8,6 +8,7 @@
 * Added new dependency on lsp-dsp-lib for text rendering using glyph bitmaps.
 * Removed Makefile.d. Dependencies are now automatically generated at the build stage.
 * Fixed crash (BadMatch) for Fluxbox window manager on popup windows.
+* Fixed popup window heading display in Fluxbox.
 
 === 1.0.9 ===
 * Updated module versions in dependencies.
