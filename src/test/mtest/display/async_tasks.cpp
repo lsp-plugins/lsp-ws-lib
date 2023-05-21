@@ -73,11 +73,11 @@ MTEST_BEGIN("ws.display", async_tasks)
                             float *x = new float[NUM_POINTS+1];
                             if (!x)
                                 return STATUS_NO_MEM;
-                            lsp_finally { delete x; };
+                            lsp_finally { delete[] x; };
                             float *y = new float[NUM_POINTS+1];
                             if (!y)
                                 return STATUS_NO_MEM;
-                            lsp_finally { delete y; };
+                            lsp_finally { delete[] y; };
 
                             // Draw lissajous figure
                             for (size_t i=0; i <= NUM_POINTS; ++i)
