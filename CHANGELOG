@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.11 ===
+
+
 === 1.0.10 ===
 * The library now uses FreeType for rendering custom fonts, avoiding cairo cache.
 * The library now requires to call ws::init() before proceeding with other operations.
