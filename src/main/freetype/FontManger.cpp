@@ -699,7 +699,7 @@ namespace lsp
                 lsp_wchar_t ch      = text->char_at(first);
                 glyph_t *glyph      = get_glyph(face, ch);
                 if (glyph == NULL)
-                    return NULL;
+                    return false;
 
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;
@@ -711,7 +711,7 @@ namespace lsp
                     ch                  = text->char_at(i);
                     glyph               = get_glyph(face, ch);
                     if (glyph == NULL)
-                        return NULL;
+                        return false;
 
                     y_bearing           = lsp_max(y_bearing, glyph->y_bearing);
                     y_max               = lsp_max(y_max, glyph->bitmap.height - glyph->y_bearing);
