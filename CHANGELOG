@@ -10,6 +10,7 @@
 * Fixed crash (BadMatch) for Fluxbox window manager on popup windows.
 * Fixed popup window heading display in Fluxbox.
 * Updated build scripts.
+* Updated module versions in dependencies.
 
 === 1.0.9 ===
 * Updated module versions in dependencies.
