@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 2 мая 2020 г.
+ * Created on: 5 мая 2023 г.
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,19 +19,19 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_WS_VERSION_H_
-#define LSP_PLUG_IN_WS_VERSION_H_
+#include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/ws/ws.h>
 
-#define LSP_WS_LIB_MAJOR            1
-#define LSP_WS_LIB_MINOR            0
-#define LSP_WS_LIB_MICRO            10
+namespace lsp
+{
+    namespace ws
+    {
+        LSP_WS_LIB_PUBLIC
+        void init()
+        {
+            dsp::init();
+        }
+    } /* namespace ws */
+} /* namespace lsp */
 
-#if defined(LSP_WS_LIB_PUBLISHER)
-    #define LSP_WS_LIB_PUBLIC               LSP_EXPORT_MODIFIER
-#elif defined(LSP_WS_LIB_BUILTIN) || defined(LSP_IDE_DEBUG)
-    #define LSP_WS_LIB_PUBLIC
-#else
-    #define LSP_WS_LIB_PUBLIC               LSP_IMPORT_MODIFIER
-#endif
 
-#endif /* LSP_PLUG_IN_WS_VERSION_H_ */

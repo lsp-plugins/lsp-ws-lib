@@ -38,5 +38,6 @@
 #include <lsp-plug.in/ws/IR3DBackend.h>
 
 #include <lsp-plug.in/ws/factory.h>
+#include <lsp-plug.in/ws/init.h>
 
 #endif /* LSP_PLUG_IN_WS_WS_H_ */

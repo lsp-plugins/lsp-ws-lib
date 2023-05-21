@@ -33,32 +33,27 @@
 #include <lsp-plug.in/lltl/pphash.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 
-#include <private/x11/X11Atoms.h>
-#include <private/x11/X11Window.h>
-
 #include <time.h>
 #include <X11/Xlib.h>
-
-// Freetype headers
-#ifdef USE_LIBFREETYPE
-    #include <ft2build.h>
-    #include FT_SFNT_NAMES_H
-    #include FT_FREETYPE_H
-    #include FT_GLYPH_H
-    #include FT_OUTLINE_H
-    #include FT_BBOX_H
-    #include FT_TYPE1_TABLES_H
-#endif /* USE_LIBFREETYPE */
 
 // Cairo headers
 #ifdef USE_LIBCAIRO
     #include <cairo/cairo.h>
 #endif /* USE_LIBCAIRO */
 
+#include <private/x11/X11Atoms.h>
+#include <private/x11/X11Window.h>
+#include <private/freetype/FontManager.h>
+
 namespace lsp
 {
     namespace ws
     {
+        namespace ft
+        {
+            class FontManager;
+        }
+
         namespace x11
         {
             class X11Window;
@@ -152,6 +147,12 @@ namespace lsp
                         bool                bSuccess;       // Success flag
                     } xtranslate_t;
 
+                    typedef struct xsetinputfocus_t
+                    {
+                        Window              hWnd;           // Focused Window
+                        bool                bSuccess;       // Success flag
+                    } xsetinputfocus_t;
+
                     typedef struct dnd_proxy_t: public cb_common_t
                     {
                         Window              hTarget;        // The target window which has XDndProxy attribute
@@ -184,20 +185,6 @@ namespace lsp
                         size_t              mm_height;      // Height of display in mm
                     } x11_screen_t;
 
-                public:
-                    typedef struct font_t
-                    {
-                        char               *name;           // Name of the font
-                        char               *alias;          // Font alias (the symbolic name of the font)
-                        void               *data;           // Font data (font file contents loaded to memory)
-                        ssize_t             refs;           // Number of references
-                        FT_Face             ft_face;        // Font face handle for freetype
-
-                    #ifdef USE_LIBCAIRO
-                        cairo_font_face_t  *cr_face[4];     // Font faces for cairo
-                    #endif /* USE_LIBCAIRO */
-                    } font_t;
-
                 private:
                     static volatile atomic_t    hLock;
                     static X11Display          *pHandlers;
@@ -220,9 +207,9 @@ namespace lsp
                     uint8_t                    *pIOBuf;
                     FT_Library                  hFtLibrary;
                     IDataSource                *pCbOwner[_CBUF_TOTAL];
-                #ifdef USE_LIBCAIRO
-                    cairo_user_data_key_t       sCairoUserDataKey;
-                #endif /* USE_LIBCAIRO */
+                #ifdef USE_LIBFREETYPE
+                    ft::FontManager             sFontManager;
+                #endif /* USE_LIBFREETYPE */
 
                     lltl::darray<x11_screen_t>  vScreens;
                     lltl::parray<X11Window>     vWindows;
@@ -231,8 +218,8 @@ namespace lsp
                     lltl::darray<wnd_lock_t>    sLocks;
                     lltl::darray<x11_async_t>   sAsync;
                     lltl::parray<char>          vDndMimeTypes;
-                    lltl::pphash<char, font_t>  vCustomFonts;
                     xtranslate_t                sTranslateReq;
+                    xsetinputfocus_t            sSetInputFocusReq;
 
                     lltl::darray<MonitorInfo>   vMonitors;
 
@@ -243,13 +230,9 @@ namespace lsp
                     void            handle_event(XEvent *ev);
                     bool            handle_clipboard_event(XEvent *ev);
                     bool            handle_drag_event(XEvent *ev);
-                    static void     destroy_font_object(font_t *font);
-                    static void     unload_font_object(font_t *font);
-                    static font_t  *alloc_font_object(const char *name);
 
                     status_t        do_main_iteration(timestamp_t ts);
                     void            do_destroy();
-                    void            drop_custom_fonts();
                     X11Window      *get_locked(X11Window *wnd);
                     X11Window      *get_redirect(X11Window *wnd);
                     static void     compress_long_data(void *data, size_t nitems);
@@ -371,7 +354,9 @@ namespace lsp
                     status_t                    lock_events(X11Window *wnd, X11Window *lock);
                     status_t                    unlock_events(X11Window *wnd);
 
-                    font_t                     *get_font(const char *name);
+                    ft::FontManager            *font_manager();
+
+                    bool                        set_input_focus(::Window wnd);
 
                     void                        flush();
 

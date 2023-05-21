@@ -23,6 +23,7 @@
 #define LSP_PLUG_IN_WS_FONT_H_
 
 #include <lsp-plug.in/ws/version.h>
+
 #include <lsp-plug.in/ws/types.h>
 
 namespace lsp
@@ -69,6 +70,7 @@ namespace lsp
                 inline const char      *get_name() const                    { return sName;                                 }
                 inline const char      *name() const                        { return sName;                                 }
                 inline size_t           flags() const                       { return nFlags & FF_ALL;                       }
+                inline size_t           raw_flags() const                   { return nFlags;                                }
 
                 inline void             set_bold(bool b)                    { if (b) nFlags |= FF_BOLD; else nFlags &= ~FF_BOLD;                            }
                 inline void             set_italic(bool i)                  { if (i) nFlags |= FF_ITALIC; else nFlags &= ~FF_ITALIC;                        }
@@ -87,7 +89,8 @@ namespace lsp
                 bool                    get_parameters(ISurface *s, font_parameters_t *fp);
                 bool                    get_text_parameters(ISurface *s, text_parameters_t *tp, const char *text);
         };
-    }
-}
+
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* LSP_PLUG_IN_WS_FONT_H_ */

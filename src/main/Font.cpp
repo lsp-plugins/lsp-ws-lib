@@ -19,9 +19,10 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/lltl/types.h>
+#include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/ws/ISurface.h>
-#include <lsp-plug.in/stdlib/string.h>
 
 namespace lsp
 {
@@ -130,5 +131,5 @@ namespace lsp
         {
             return s->get_text_parameters(*this, tp, text);
         }
-    }
-}
+    } /* namespace ws */
+} /* namespace lsp */
