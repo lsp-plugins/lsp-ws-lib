@@ -699,7 +699,7 @@ namespace lsp
                 lsp_wchar_t ch      = text->char_at(first);
                 glyph_t *glyph      = get_glyph(face, ch);
                 if (glyph == NULL)
-                    return NULL;
+                    return false;
 
                 ssize_t x_bearing   = glyph->x_bearing;
                 ssize_t y_bearing   = glyph->y_bearing;

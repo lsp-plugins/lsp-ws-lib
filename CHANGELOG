@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.11 ===
-
+* Fixed clang build error.
 
 === 1.0.10 ===
 * The library now uses FreeType for rendering custom fonts, avoiding cairo cache.
