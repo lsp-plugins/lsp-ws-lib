@@ -392,6 +392,7 @@ namespace lsp
                     }
                 }
                 vAliases.flush();
+                sLRU.clear();
 
                 return STATUS_OK;
             }

@@ -3,6 +3,8 @@
 *******************************************************************************
 
 === 1.0.12 ===
+* Fixed bug in the ws::ft::FontManager which could yield memory corrption after
+  complete font manager cleanup.
 * Updated build scripts.
 
 === 1.0.11 ===
