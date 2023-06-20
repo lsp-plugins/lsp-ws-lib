@@ -60,7 +60,7 @@ namespace lsp
                 pSurface                = NULL;
                 pDNDTarget              = NULL;
                 pOldUserData            = reinterpret_cast<LONG_PTR>(reinterpret_cast<void *>(NULL));
-                pOldProc                = reinterpret_cast<WNDPROC>(NULL);
+                pOldProc                = static_cast<WNDPROC>(NULL);
                 bWrapper                = wrapper;
                 bMouseInside            = false;
                 bGrabbing               = false;
@@ -143,6 +143,8 @@ namespace lsp
                     pOldProc        = reinterpret_cast<WNDPROC>(
                         SetWindowLongPtrW(hWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(WinDisplay::window_proc)));
                     pOldUserData    = SetWindowLongPtrW(hWindow, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+
+                    lsp_trace("pOldProc = %p, pOldUserData = 0x%lx",  pOldProc, pOldUserData);
                 }
 
                 // Create Surface
@@ -621,8 +623,11 @@ namespace lsp
                     return DefWindowProcW(hWindow, uMsg, wParam, lParam);
 
                 // If message has not been processed, update context and call previous wrappers
+                lsp_trace("pOldProc = %p, pOldUserData=0x%lx", pOldProc, pOldUserData);
+
                 SetWindowLongPtrW(hWindow, GWLP_USERDATA, pOldUserData);
                 SetWindowLongPtrW(hWindow, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(pOldProc));
+
                 LRESULT res = (pOldProc != NULL) ?
                     pOldProc(hWindow, uMsg, wParam, lParam) :
                     DefWindowProcW(hWindow, uMsg, wParam, lParam);

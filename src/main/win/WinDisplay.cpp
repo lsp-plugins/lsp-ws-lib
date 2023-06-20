@@ -472,12 +472,12 @@ namespace lsp
 
             IWindow *WinDisplay::create_window(void *handle)
             {
-                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, false);
             }
 
             IWindow *WinDisplay::wrap_window(void *handle)
             {
-                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, false);
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
             }
 
             ISurface *WinDisplay::create_surface(size_t width, size_t height)
