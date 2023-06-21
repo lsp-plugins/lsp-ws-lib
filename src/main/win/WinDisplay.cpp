@@ -384,6 +384,9 @@ namespace lsp
 
             status_t WinDisplay::do_main_iteration(timestamp_t ts)
             {
+                // Call for main task
+                call_main_task(ts);
+
                 // Process all pending messages.
                 size_t limit = 0;
                 do
@@ -409,9 +412,6 @@ namespace lsp
                 status_t result = IDisplay::main_iteration();
                 if (result == STATUS_OK)
                     result = process_pending_tasks(ts);
-
-                // Call for main task
-                call_main_task(ts);
 
                 // Return number of processed events
                 return result;

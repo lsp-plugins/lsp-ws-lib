@@ -561,6 +561,9 @@ namespace lsp
 
             status_t X11Display::do_main_iteration(timestamp_t ts)
             {
+                // Call for main task
+                call_main_task(ts);
+
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
 
@@ -587,9 +590,6 @@ namespace lsp
                 // Flush & sync display
                 ::XFlush(pDisplay);
 //                XSync(pDisplay, False);
-
-                // Call for main task
-                call_main_task(ts);
 
                 // Perform garbage collection for the font manager
             #ifdef USE_LIBFREETYPE
