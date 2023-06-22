@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -483,7 +483,7 @@ namespace lsp
                     timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
 
                     // Compute how many milliseconds to wait for the event
-                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, 50);
+                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, idle_interval());
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;

@@ -691,6 +691,7 @@ namespace lsp
                     case BS_COMBO:
                     case BS_DROPDOWN:
                         atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
+                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
                         break;
 
                     case BS_SINGLE:         // Not resizable; minimize/maximize menu

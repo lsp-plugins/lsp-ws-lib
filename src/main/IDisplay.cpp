@@ -993,6 +993,19 @@ namespace lsp
                 *count = 0;
             return NULL;
         }
-    }
+
+        size_t IDisplay::idle_interval()
+        {
+            return nIdleInterval;
+        }
+
+        size_t IDisplay::set_idle_interval(size_t interval)
+        {
+            size_t old = nIdleInterval;
+            nIdleInterval = interval;
+            return old;
+        }
+
+    } /* namespace ws */
 
 } /* namespace lsp */
