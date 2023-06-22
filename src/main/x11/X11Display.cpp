@@ -561,9 +561,6 @@ namespace lsp
 
             status_t X11Display::do_main_iteration(timestamp_t ts)
             {
-                // Call for main task
-                call_main_task(ts);
-
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
 
@@ -579,13 +576,8 @@ namespace lsp
                     handle_event(&event);
                 }
 
-                // Call parent class for iteration
-                status_t result = IDisplay::main_iteration();
-                if (result != STATUS_OK)
-                    return result;
-
                 // Process pending tasks
-                result  = process_pending_tasks(ts);
+                status_t result  = process_pending_tasks(ts);
 
                 // Flush & sync display
                 ::XFlush(pDisplay);

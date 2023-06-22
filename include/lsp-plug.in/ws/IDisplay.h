@@ -110,7 +110,6 @@ namespace lsp
                 status_t            switch_r3d_backend(r3d_lib_t *backend);
                 status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
-                void                call_main_task(timestamp_t time);
                 status_t            process_pending_tasks(timestamp_t time);
                 static void         drop_r3d_lib(r3d_lib_t *lib);
                 bool                check_duplicate(const r3d_lib_t *lib);

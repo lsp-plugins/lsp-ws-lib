@@ -485,18 +485,30 @@ namespace lsp
             }
         }
 
-        void IDisplay::call_main_task(timestamp_t time)
-        {
-            if (sMainTask.pHandler != NULL)
-                sMainTask.pHandler(time, time, sMainTask.pArg);
-        }
-
         void IDisplay::task_queue_changed()
         {
         }
 
         status_t IDisplay::process_pending_tasks(timestamp_t time)
         {
+            // Sync backends
+            if (nCurrent3D != nPending3D)
+            {
+                r3d_lib_t *lib = s3DLibs.get(nPending3D);
+                if (lib != NULL)
+                {
+                    if (switch_r3d_backend(lib) == STATUS_OK)
+                        nCurrent3D = nPending3D;
+                }
+                else
+                    nPending3D = nCurrent3D;
+            }
+
+            // Call the main task
+            if (sMainTask.pHandler != NULL)
+                sMainTask.pHandler(time, time, sMainTask.pArg);
+
+            // Execute all other pending tasks
             dtask_t task;
             status_t result = STATUS_OK;
 
@@ -707,19 +719,6 @@ namespace lsp
 
         status_t IDisplay::main_iteration()
         {
-            // Sync backends
-            if (nCurrent3D != nPending3D)
-            {
-                r3d_lib_t *lib = s3DLibs.get(nPending3D);
-                if (lib != NULL)
-                {
-                    if (switch_r3d_backend(lib) == STATUS_OK)
-                        nCurrent3D = nPending3D;
-                }
-                else
-                    nPending3D = nCurrent3D;
-            }
-
             return STATUS_SUCCESS;
         }
 
