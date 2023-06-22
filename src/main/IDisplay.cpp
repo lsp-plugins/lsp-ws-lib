@@ -105,6 +105,7 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
+            nIdleInterval       = 50;
         }
 
         IDisplay::~IDisplay()
