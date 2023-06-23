@@ -57,6 +57,7 @@ namespace lsp
                     hWindow                 = INVALID_HWND;
                     hParent                 = wnd;
                 }
+                hTransientFor           = NULL;
                 pSurface                = NULL;
                 pDNDTarget              = NULL;
                 pOldUserData            = reinterpret_cast<LONG_PTR>(reinterpret_cast<void *>(NULL));
@@ -64,6 +65,7 @@ namespace lsp
                 bWrapper                = wrapper;
                 bMouseInside            = false;
                 bGrabbing               = false;
+                bTransientOn            = false;
                 nMouseCapture           = 0;
 
                 sSize.nLeft             = 0;
@@ -851,6 +853,11 @@ namespace lsp
                     bGrabbing = false;
                 }
 
+                if ((hTransientFor != HWND_TOP) && (hTransientFor != NULL))
+                {
+                    EnableWindow(hTransientFor, bTransientOn);
+                    hTransientFor   = NULL;
+                }
                 ShowWindow(hWindow, SW_HIDE);
                 return STATUS_OK;
             }
@@ -861,7 +868,7 @@ namespace lsp
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
-                SetParent(hWindow, hParent);
+                hTransientFor       = NULL;
                 ShowWindow(hWindow, SW_SHOW);
                 return STATUS_OK;
             }
@@ -873,20 +880,22 @@ namespace lsp
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
-                HWND top        = HWND_TOP;
+                hTransientFor   = HWND_TOP;
                 if (over != NULL)
-                    top             = reinterpret_cast<HWND>(over->handle());
+                {
+                    hTransientFor   = reinterpret_cast<HWND>(over->handle());
+                    bTransientOn    = !EnableWindow(hTransientFor, FALSE);
+                }
 
                 SetWindowPos(
                     hWindow,            // hWnd
-                    top,                // hWndInsertAfter
+                    hTransientFor,      // hWndInsertAfter
                     sSize.nLeft,        // X
                     sSize.nTop,         // Y
                     sSize.nWidth,       // nWidth
                     sSize.nHeight,      // nHeight
                     0                   // uFlags
                 );
-
                 ShowWindow(hWindow, SW_SHOW);
 
                 return STATUS_OK;
