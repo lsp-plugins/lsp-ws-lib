@@ -607,6 +607,34 @@ namespace lsp
                         return 0;
                     }
 
+                    case WM_WINDOWPOSCHANGING:
+                    {
+                        if ((hTransientFor == NULL) || (hTransientFor == HWND_TOP))
+                            break;
+
+                        HWND hPrev          = GetTopWindow(GetDesktopWindow());
+                        while (hPrev != NULL)
+                        {
+                            HWND hCurr              = GetWindow(hPrev, GW_HWNDNEXT);
+
+                            // We are already at the top?
+                            if (hCurr == hWindow)
+                                break;
+                            if (hCurr == hTransientFor)
+                            {
+                                WINDOWPOS *p            = reinterpret_cast<WINDOWPOS *>(lParam);
+                                p->hwndInsertAfter      = hPrev;
+                                p->flags               &= ~SWP_NOZORDER;
+                                break;
+                            }
+
+                            // Update pointer
+                            hPrev                  = hCurr;
+                        }
+
+                        break;
+                    }
+
 //                    case WM_CHAR:
 //                        lsp_trace("WM_CHAR code=0x%x", wParam);
 //                        return 0;
