@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -115,18 +115,18 @@ namespace lsp
                 {
                     // Create new window
                     hWindow         = CreateWindowExW(
-                        0,                              // dwExStyle
-                        WinDisplay::WINDOW_CLASS_NAME,  // lpClassName
-                        L"",                            // lpWindowName
-                        WS_OVERLAPPEDWINDOW,            // dwStyle
-                        sSize.nLeft,                    // X
-                        sSize.nTop,                     // Y
-                        sSize.nWidth,                   // nWidth
-                        sSize.nHeight,                  // nHeight
-                        hParent,                        // hWndParent
-                        NULL,                           // hMenu
-                        GetModuleHandleW(NULL),         // hInstance
-                        this                            // lpCreateParam
+                        0,                                                  // dwExStyle
+                        pWinDisplay->sWindowClassName.get_utf16(),          // lpClassName
+                        L"",                                                // lpWindowName
+                        (hParent != NULL) ? WS_CHILD : WS_OVERLAPPEDWINDOW, // dwStyle
+                        sSize.nLeft,                                        // X
+                        sSize.nTop,                                         // Y
+                        sSize.nWidth,                                       // nWidth
+                        sSize.nHeight,                                      // nHeight
+                        hParent,                                            // hWndParent
+                        NULL,                                               // hMenu
+                        GetModuleHandleW(NULL),                             // hInstance
+                        this                                                // lpCreateParam
                     );
 
                     if (hWindow == NULL)
@@ -134,6 +134,7 @@ namespace lsp
                         lsp_error("Error creating window: %ld", long(GetLastError()));
                         return STATUS_UNKNOWN_ERR;
                     }
+                    lsp_trace("Created window hWND=%p", hWindow);
 
                     commit_border_style(enBorderStyle, nActions);
                 }
@@ -839,6 +840,8 @@ namespace lsp
 
             status_t WinWindow::hide()
             {
+                lsp_trace("Hide window this=%p", this);
+
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
@@ -854,31 +857,36 @@ namespace lsp
 
             status_t WinWindow::show()
             {
+                lsp_trace("Show window this=%p, hWindow=%p", this, hWindow);
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
+                SetParent(hWindow, hParent);
                 ShowWindow(hWindow, SW_SHOW);
                 return STATUS_OK;
             }
 
             status_t WinWindow::show(IWindow *over)
             {
+                lsp_trace("Show window this=%p, hWindow=%p over=%p", this, hWindow, over);
+
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
-                HWND hTransientFor = HWND_TOP;
+                HWND top        = HWND_TOP;
                 if (over != NULL)
-                    hTransientFor = reinterpret_cast<HWND>(over->handle());
+                    top             = reinterpret_cast<HWND>(over->handle());
 
                 SetWindowPos(
                     hWindow,            // hWnd
-                    hTransientFor,      // hWndInsertAfter
+                    top,                // hWndInsertAfter
                     sSize.nLeft,        // X
                     sSize.nTop,         // Y
                     sSize.nWidth,       // nWidth
                     sSize.nHeight,      // nHeight
                     0                   // uFlags
                 );
+
                 ShowWindow(hWindow, SW_SHOW);
 
                 return STATUS_OK;
@@ -1090,49 +1098,59 @@ namespace lsp
 
             status_t WinWindow::commit_border_style(border_style_t bs, size_t wa)
             {
-                border_style_t xbs  = (has_parent()) ? BS_NONE : bs;
-                size_t style        = 0;
-                size_t ex_style     = 0;
+                size_t style    = 0;
+                size_t ex_style = 0;
+                HMENU sysmenu   = NULL;
 
-                switch (xbs)
+                if (has_parent())
                 {
-                    case BS_DIALOG:
-                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
-                        ex_style    = WS_EX_ACCEPTFILES;
-                        break;
-                    case BS_SINGLE:
-                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
-                        if (wa & WA_MINIMIZE)
-                            style       |= WS_MINIMIZEBOX;
-                        if (wa & WA_MAXIMIZE)
-                            style       |= WS_MAXIMIZEBOX;
-                        ex_style    = WS_EX_ACCEPTFILES;
-                        break;
-                    case BS_SIZEABLE:
-                        style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
-                        if (wa & WA_MINIMIZE)
-                            style       |= WS_MINIMIZEBOX;
-                        if (wa & WA_MAXIMIZE)
-                            style       |= WS_MAXIMIZEBOX;
-                        ex_style    = WS_EX_ACCEPTFILES;
-                        break;
-                    case BS_POPUP:
-                    case BS_COMBO:
-                    case BS_DROPDOWN:
-                        style       = WS_POPUP;
-                        ex_style    = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
-                        break;
-                    case BS_NONE:
-                    default:
-                        style       = WS_OVERLAPPED;
-                        ex_style    = WS_EX_ACCEPTFILES;
-                        break;
+                    style           = WS_CHILD;
+                    ex_style        = WS_EX_ACCEPTFILES;
+                    sysmenu         = NULL;
+                }
+                else
+                {
+                    sysmenu             = GetSystemMenu(hWindow, FALSE);
+
+                    switch (bs)
+                    {
+                        case BS_DIALOG:
+                            style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                            ex_style    = WS_EX_ACCEPTFILES;
+                            break;
+                        case BS_SINGLE:
+                            style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                            if (wa & WA_MINIMIZE)
+                                style       |= WS_MINIMIZEBOX;
+                            if (wa & WA_MAXIMIZE)
+                                style       |= WS_MAXIMIZEBOX;
+                            ex_style    = WS_EX_ACCEPTFILES;
+                            break;
+                        case BS_SIZEABLE:
+                            style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
+                            if (wa & WA_MINIMIZE)
+                                style       |= WS_MINIMIZEBOX;
+                            if (wa & WA_MAXIMIZE)
+                                style       |= WS_MAXIMIZEBOX;
+                            ex_style    = WS_EX_ACCEPTFILES;
+                            break;
+                        case BS_POPUP:
+                        case BS_COMBO:
+                        case BS_DROPDOWN:
+                            style       = WS_POPUP;
+                            ex_style    = WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
+                            break;
+                        case BS_NONE:
+                        default:
+                            style       = WS_OVERLAPPED;
+                            ex_style    = WS_EX_ACCEPTFILES;
+                            break;
+                    }
                 }
 
                 SetWindowLongW(hWindow, GWL_STYLE, LONG(style));
                 SetWindowLongW(hWindow, GWL_EXSTYLE, LONG(ex_style));
 
-                HMENU sysmenu = (hParent == NULL) ? GetSystemMenu(hWindow, FALSE) : NULL;
                 if (sysmenu != NULL)
                 {
                     #define COMMIT(id, flag) \
@@ -1309,6 +1327,7 @@ namespace lsp
             {
                 if (hWindow == NULL)
                     return false;
+
                 HWND wnd = GetParent(hWindow);
 
                 return wnd != NULL;
