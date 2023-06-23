@@ -280,11 +280,15 @@ namespace lsp
 
             status_t WinDisplay::ping_proc(void *arg)
             {
-                WinDisplay *_this = static_cast<WinDisplay *>(arg);
+                WinDisplay *self = static_cast<WinDisplay *>(arg);
 
                 while (!ipc::Thread::is_cancelled())
                 {
-                    PostMessageW(_this->hClipWnd, WM_USER, 0, 0);
+                    // Post message if there was no idle loop for a long time
+                    timestamp_t ts = system::get_time_millis();
+                    if (ts >= (self->nLastIdleCall + self->idle_interval()))
+                        PostMessageW(self->hClipWnd, WM_USER, 0, 0);
+
                     ipc::Thread::sleep(20);
                 }
 
