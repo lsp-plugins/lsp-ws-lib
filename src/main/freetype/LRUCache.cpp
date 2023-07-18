@@ -75,7 +75,7 @@ namespace lsp
                 if (pTail != NULL)
                     pTail->lru_next     = NULL;
                 else
-                    pHead           = NULL;
+                    pHead               = NULL;
 
                 // Clear links to other glyphs
                 glyph->lru_prev     = NULL;
@@ -91,14 +91,14 @@ namespace lsp
                     glyph->lru_next     = pHead;
                     glyph->lru_prev     = NULL;
                     pHead->lru_prev     = glyph;
-                    pHead           = glyph;
+                    pHead               = glyph;
                     return glyph;
                 }
 
                 glyph->lru_next     = NULL;
                 glyph->lru_prev     = NULL;
-                pHead           = glyph;
-                pTail           = glyph;
+                pHead               = glyph;
+                pTail               = glyph;
 
                 return glyph;
             }

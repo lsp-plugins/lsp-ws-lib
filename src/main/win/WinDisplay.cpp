@@ -41,6 +41,7 @@
 #include <combaseapi.h>
 #include <locale.h>
 #include <windows.h>
+#include <winuser.h>
 #include <d2d1.h>
 
 // Define the placement-new for our construction/destruction tricks
@@ -58,10 +59,10 @@ namespace lsp
             //-----------------------------------------------------------------
             static const BYTE none_cursor_and[] = { 0xff };
             static const BYTE none_cursor_xor[] = { 0 };
+            static const char *WINDOW_CLASS_NAME            = "lsp-ws-lib::window";
+            static const char *CLIPBOARD_CLASS_NAME         = "lsp-ws-lib::clipboard";
 
             //-----------------------------------------------------------------
-            const WCHAR *WinDisplay::WINDOW_CLASS_NAME      = L"lsp-ws-lib window";
-            const WCHAR *WinDisplay::CLIPBOARD_CLASS_NAME   = L"lsp-ws-lib clipboard window";
             volatile atomic_t WinDisplay::hLock             = 0;
             volatile DWORD WinDisplay::nThreadId            = 0;
             WinDisplay  *WinDisplay::pHandlers              = NULL;
@@ -72,12 +73,12 @@ namespace lsp
             WinDisplay::WinDisplay():
                 IDisplay()
             {
-                bExit           = false;
-                pD2D1Factroy    = NULL;
-                pWICFactory     = NULL;
-                pDWriteFactory  = NULL;
-                hWindowClass    = 0;
-                hClipClass      = 0;
+                bExit                   = false;
+                pD2D1Factroy            = NULL;
+                pWICFactory             = NULL;
+                pDWriteFactory          = NULL;
+                hWindowClass            = 0;
+                hClipClass              = 0;
 
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
@@ -85,11 +86,12 @@ namespace lsp
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = NULL;
 
-                pNextHandler    = NULL;
-                hClipWnd        = NULL;
-                pClipData       = NULL;
-                pDragWindow     = NULL;
-                pPingThread     = NULL;
+                pNextHandler            = NULL;
+                hClipWnd                = NULL;
+                pClipData               = NULL;
+                pDragWindow             = NULL;
+                pPingThread             = NULL;
+                nLastIdleCall           = 0;
             }
 
             WinDisplay::~WinDisplay()
@@ -108,12 +110,13 @@ namespace lsp
 
                 bExit           = false;
 
-                // Register window class
-                bzero(&wc, sizeof(wc));
+                // Register window classes
+                sWindowClassName.fmt_ascii("%s", WINDOW_CLASS_NAME, this);
 
+                bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = window_proc;
                 wc.hInstance     = GetModuleHandleW(NULL);
-                wc.lpszClassName = WINDOW_CLASS_NAME;
+                wc.lpszClassName = sWindowClassName.get_utf16();
 
                 if (!(hWindowClass = RegisterClassW(&wc)))
                 {
@@ -122,11 +125,12 @@ namespace lsp
                 }
 
                 // Register clipboard window class
-                bzero(&wc, sizeof(wc));
+                sClipboardClassName.fmt_ascii("%s", CLIPBOARD_CLASS_NAME, this);
 
+                bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = clipboard_proc;
                 wc.hInstance     = GetModuleHandleW(NULL);
-                wc.lpszClassName = CLIPBOARD_CLASS_NAME;
+                wc.lpszClassName = sClipboardClassName.get_utf16();
 
                 if (!(hClipClass = RegisterClassW(&wc)))
                 {
@@ -179,14 +183,14 @@ namespace lsp
                 // Create invisible clipboard window
                 hClipWnd = CreateWindowExW(
                         0,                                  // dwExStyle
-                        WinDisplay::CLIPBOARD_CLASS_NAME,   // lpClassName
+                        sClipboardClassName.get_utf16(),    // lpClassName
                         L"Clipboard",                       // lpWindowName
                         WS_OVERLAPPEDWINDOW,                // dwStyle
                         0,                                  // X
                         0,                                  // Y
                         1,                                  // nWidth
                         1,                                  // nHeight
-                        NULL,                               // hWndParent
+                        HWND_MESSAGE,                       // hWndParent
                         NULL,                               // hMenu
                         GetModuleHandleW(NULL),             // hInstance
                         this);                              // lpCreateParam
@@ -195,6 +199,7 @@ namespace lsp
                     lsp_error("Error creating clipboard window: %ld", long(GetLastError()));
                     return STATUS_UNKNOWN_ERR;
                 }
+                lsp_trace("Created clipboard window hWND=%p", hClipWnd);
 
                 // Create pinging thread
                 pPingThread = new ipc::Thread(ping_proc, this);
@@ -230,12 +235,12 @@ namespace lsp
                 // Unregister window classes
                 if (hWindowClass != 0)
                 {
-                    UnregisterClassW(WINDOW_CLASS_NAME, GetModuleHandleW(NULL));
+                    UnregisterClassW(sWindowClassName.get_utf16(), GetModuleHandleW(NULL));
                     hWindowClass    = 0;
                 }
                 if (hClipClass != 0)
                 {
-                    UnregisterClassW(CLIPBOARD_CLASS_NAME, GetModuleHandleW(NULL));
+                    UnregisterClassW(sClipboardClassName.get_utf16(), GetModuleHandleW(NULL));
                     hClipClass    = 0;
                 }
 
@@ -275,11 +280,15 @@ namespace lsp
 
             status_t WinDisplay::ping_proc(void *arg)
             {
-                WinDisplay *_this = static_cast<WinDisplay *>(arg);
+                WinDisplay *self = static_cast<WinDisplay *>(arg);
 
                 while (!ipc::Thread::is_cancelled())
                 {
-                    PostMessageW(_this->hClipWnd, WM_USER, 0, 0);
+                    // Post message if there was no idle loop for a long time
+                    timestamp_t ts = system::get_time_millis();
+                    if (ts >= (self->nLastIdleCall + self->idle_interval()))
+                        PostMessageW(self->hClipWnd, WM_USER, 0, 0);
+
                     ipc::Thread::sleep(20);
                 }
 
@@ -300,12 +309,20 @@ namespace lsp
                 // Obtain the "this" pointer
                 WinWindow *wnd = reinterpret_cast<WinWindow *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
-//                lsp_trace("Received event: this=%p, hwnd=%p, uMsg=%d(0x%x), wParam=%d(0x%x), lParam=%p",
-//                    _this, hwnd, int(uMsg), int(uMsg), int(wParam), int(wParam), lParam);
                 if (wnd == NULL)
                     return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 
-                timestamp_t ts = GetMessageTime();
+                // Do the idle stuff if required
+                WinDisplay *self = wnd->pWinDisplay;
+                if (self != NULL)
+                {
+                    timestamp_t ts = system::get_time_millis();
+                    if (ts >= (self->nLastIdleCall + self->idle_interval()))
+                    {
+                        self->process_pending_tasks(ts);
+                        self->nLastIdleCall = ts;
+                    }
+                }
 
 //                // Debug
 //                switch (uMsg)
@@ -335,7 +352,7 @@ namespace lsp
                 // Do not deliver several events to the window handler if it is grabbing events at this moment via hook
                 if (is_hookable_event(uMsg))
                 {
-                    if (wnd->pWinDisplay->has_grabbing_events())
+                    if (self->has_grabbing_events())
                     {
                         if (!wnd->is_grabbing_events())
                             return 0;
@@ -343,7 +360,8 @@ namespace lsp
                 }
 
                 // Deliver event to the window
-                return wnd->process_event(uMsg, wParam, lParam, ts, false);
+                timestamp_t msg_time = GetMessageTime();
+                return wnd->process_event(uMsg, wParam, lParam, msg_time, false);
             }
 
             status_t WinDisplay::main()
@@ -352,7 +370,7 @@ namespace lsp
                 {
                     // Get current time
                     timestamp_t xts     = system::get_time_millis();
-                    int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
+                    int wtime           = compute_poll_delay(xts, idle_interval()); // How many milliseconds to wait
 
                     // Poll for the new message
                     if (wtime > 0)
@@ -405,16 +423,11 @@ namespace lsp
                 // At this moment, we don't have any pending messages for processing
                 sPendingMessage.message     = WM_NULL;
 
-                // Do main iteration
-                status_t result = IDisplay::main_iteration();
-                if (result == STATUS_OK)
-                    result = process_pending_tasks(ts);
+                // Process all pending tasks
+                status_t res = process_pending_tasks(ts);
+                nLastIdleCall   = ts;
 
-                // Call for main task
-                call_main_task(ts);
-
-                // Return number of processed events
-                return result;
+                return res;
             }
 
             status_t WinDisplay::main_iteration()
@@ -438,7 +451,7 @@ namespace lsp
 
                 MSG message;
                 timestamp_t xts     = system::get_time_millis();
-                int wtime           = compute_poll_delay(xts, 50); // How many milliseconds to wait
+                int wtime           = compute_poll_delay(xts, idle_interval()); // How many milliseconds to wait
 
                 // Poll for the new message
                 if (wtime <= 0)
@@ -472,12 +485,12 @@ namespace lsp
 
             IWindow *WinDisplay::create_window(void *handle)
             {
-                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, false);
             }
 
             IWindow *WinDisplay::wrap_window(void *handle)
             {
-                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, false);
+                return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
             }
 
             ISurface *WinDisplay::create_surface(size_t width, size_t height)
@@ -1756,18 +1769,33 @@ namespace lsp
 
             LRESULT CALLBACK WinDisplay::clipboard_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
-                WinDisplay *dpy = reinterpret_cast<WinDisplay *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+                WinDisplay *dpy;
 
+                // Handle WM_CREATE in a bit another way
+                if (uMsg == WM_CREATE)
+                {
+                    CREATESTRUCTW *create = reinterpret_cast<CREATESTRUCTW *>(lParam);
+                    dpy = reinterpret_cast<WinDisplay *>(create->lpCreateParams);
+                    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dpy));
+                    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+                }
+
+                // Check that display is present
+                dpy = reinterpret_cast<WinDisplay *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+                if (dpy == NULL)
+                    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+
+                // Do the idle stuff if required
+                timestamp_t ts = system::get_time_millis();
+                if (ts >= (dpy->nLastIdleCall + dpy->idle_interval()))
+                {
+                    dpy->process_pending_tasks(ts);
+                    dpy->nLastIdleCall = ts;
+                }
+
+                // Process the message
                 switch (uMsg)
                 {
-                    case WM_CREATE:
-                    {
-                        CREATESTRUCTW *create = reinterpret_cast<CREATESTRUCTW *>(lParam);
-                        dpy = reinterpret_cast<WinDisplay *>(create->lpCreateParams);
-                        if (dpy != NULL)
-                            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(dpy));
-                        break;
-                    }
                     case WM_RENDERFORMAT:
                     {
                         // wParam - The clipboard format to be rendered.

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -483,7 +483,7 @@ namespace lsp
                     timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
 
                     // Compute how many milliseconds to wait for the event
-                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, 50);
+                    int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, idle_interval());
 
                     // Try to poll input data for a specified period
                     x11_poll.fd         = x11_fd;
@@ -576,20 +576,12 @@ namespace lsp
                     handle_event(&event);
                 }
 
-                // Call parent class for iteration
-                status_t result = IDisplay::main_iteration();
-                if (result != STATUS_OK)
-                    return result;
-
                 // Process pending tasks
-                result  = process_pending_tasks(ts);
+                status_t result  = process_pending_tasks(ts);
 
                 // Flush & sync display
                 ::XFlush(pDisplay);
 //                XSync(pDisplay, False);
-
-                // Call for main task
-                call_main_task(ts);
 
                 // Perform garbage collection for the font manager
             #ifdef USE_LIBFREETYPE

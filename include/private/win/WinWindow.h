@@ -77,6 +77,7 @@ namespace lsp
                     WinDisplay         *pWinDisplay;    // Pointer to the display
                     HWND                hWindow;        // The identifier of the wrapped window
                     HWND                hParent;        // The identifier of parent window
+                    HWND                hTransientFor;  // The transient window
                     WinDDSurface       *pSurface;       // Drawing surface
                     WinDNDTarget       *pDNDTarget;     // Drag&Drop target
                     LONG_PTR            pOldUserData;   // Old user data
@@ -84,6 +85,7 @@ namespace lsp
                     bool                bWrapper;       // Indicates that window is a wrapper
                     bool                bMouseInside;   // Flag that indicates that mouse is inside of the window
                     bool                bGrabbing;      // Grabbing mouse and keyboard events
+                    bool                bTransientOn;   // The transient window status
                     size_t              nMouseCapture;  // Flag for capturing mouse
                     rectangle_t         sSize;          // Size of the window
                     size_limit_t        sConstraints;   // Window constraints

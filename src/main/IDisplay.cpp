@@ -105,6 +105,7 @@ namespace lsp
             sMainTask.nTime     = 0;
             sMainTask.pHandler  = NULL;
             sMainTask.pArg      = NULL;
+            nIdleInterval       = 50;
         }
 
         IDisplay::~IDisplay()
@@ -484,18 +485,30 @@ namespace lsp
             }
         }
 
-        void IDisplay::call_main_task(timestamp_t time)
-        {
-            if (sMainTask.pHandler != NULL)
-                sMainTask.pHandler(time, time, sMainTask.pArg);
-        }
-
         void IDisplay::task_queue_changed()
         {
         }
 
         status_t IDisplay::process_pending_tasks(timestamp_t time)
         {
+            // Sync backends
+            if (nCurrent3D != nPending3D)
+            {
+                r3d_lib_t *lib = s3DLibs.get(nPending3D);
+                if (lib != NULL)
+                {
+                    if (switch_r3d_backend(lib) == STATUS_OK)
+                        nCurrent3D = nPending3D;
+                }
+                else
+                    nPending3D = nCurrent3D;
+            }
+
+            // Call the main task
+            if (sMainTask.pHandler != NULL)
+                sMainTask.pHandler(time, time, sMainTask.pArg);
+
+            // Execute all other pending tasks
             dtask_t task;
             status_t result = STATUS_OK;
 
@@ -706,19 +719,6 @@ namespace lsp
 
         status_t IDisplay::main_iteration()
         {
-            // Sync backends
-            if (nCurrent3D != nPending3D)
-            {
-                r3d_lib_t *lib = s3DLibs.get(nPending3D);
-                if (lib != NULL)
-                {
-                    if (switch_r3d_backend(lib) == STATUS_OK)
-                        nCurrent3D = nPending3D;
-                }
-                else
-                    nPending3D = nCurrent3D;
-            }
-
             return STATUS_SUCCESS;
         }
 
@@ -993,6 +993,19 @@ namespace lsp
                 *count = 0;
             return NULL;
         }
-    }
+
+        size_t IDisplay::idle_interval()
+        {
+            return nIdleInterval;
+        }
+
+        size_t IDisplay::set_idle_interval(size_t interval)
+        {
+            size_t old = nIdleInterval;
+            nIdleInterval = interval;
+            return old;
+        }
+
+    } /* namespace ws */
 
 } /* namespace lsp */

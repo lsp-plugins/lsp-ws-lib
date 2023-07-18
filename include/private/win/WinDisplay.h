@@ -68,10 +68,6 @@ namespace lsp
                     friend class WinWindow;
                     friend class WinDDSurface;
 
-                public:
-                    static const WCHAR         *WINDOW_CLASS_NAME;
-                    static const WCHAR         *CLIPBOARD_CLASS_NAME;
-
                 protected:
                     typedef struct font_t
                     {
@@ -118,6 +114,9 @@ namespace lsp
                     lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard
                     WinWindow                  *pDragWindow;                // Window which is currently acting in Drag&Drop action
                     ipc::Thread                *pPingThread;                // Pinger thread
+                    volatile timestamp_t        nLastIdleCall;              // The time of last idle call
+                    LSPString                   sWindowClassName;           // Window class name
+                    LSPString                   sClipboardClassName;        // Clipboard window class name
 
                 protected:
                     void                        do_destroy();

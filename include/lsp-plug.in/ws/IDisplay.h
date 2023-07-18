@@ -100,6 +100,7 @@ namespace lsp
                 r3d::factory_t             *p3DFactory;         // Pointer to the factory object
                 ssize_t                     nCurrent3D;         // Current 3D backend
                 ssize_t                     nPending3D;         // Pending 3D backend
+                size_t                      nIdleInterval;      // Idle interval in milliseconds
 
             protected:
                 friend class IR3DBackend;
@@ -109,7 +110,6 @@ namespace lsp
                 status_t            switch_r3d_backend(r3d_lib_t *backend);
                 status_t            commit_r3d_factory(const LSPString *path, r3d::factory_t *factory, const version_t *mversion);
                 void                detach_r3d_backends();
-                void                call_main_task(timestamp_t time);
                 status_t            process_pending_tasks(timestamp_t time);
                 static void         drop_r3d_lib(r3d_lib_t *lib);
                 bool                check_duplicate(const r3d_lib_t *lib);
@@ -515,7 +515,20 @@ namespace lsp
                  * @param count number of actual monitors enumerated
                  * @return pointer to enumerated monitors or error.
                  */
-                virtual const MonitorInfo       *enum_monitors(size_t *count);
+                virtual const MonitorInfo      *enum_monitors(size_t *count);
+
+                /**
+                 * Get the typical idle interval for the display
+                 * @return the typical idle interval (default 50 ms or 20 FPS)
+                 */
+                virtual size_t                  idle_interval();
+
+                /**
+                 * Set the typical idle interval for the display
+                 * @param interval idle interval in millisecionds
+                 * @return previous value of the idle interval
+                 */
+                size_t                          set_idle_interval(size_t interval);
         };
 
     } /* namespace ws */
