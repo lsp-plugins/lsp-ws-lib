@@ -662,6 +662,7 @@ namespace lsp
                 font_t *f = vCustomFonts.get(name);
                 if (f != NULL)
                     return STATUS_ALREADY_EXISTS;
+
                 if ((f = alloc_font(name)) == NULL)
                     return STATUS_NO_MEM;
                 lsp_finally{ drop_font(f); };
@@ -673,19 +674,19 @@ namespace lsp
                     return status_t(-length);
 
                 // Create file loader
-                f->file = new WinFontFileLoader(&os);
+                f->file = safe_acquire(new WinFontFileLoader(&os));
                 if (f->file == NULL)
                     return STATUS_NO_MEM;
-                f->file->AddRef();
+
                 hr = pDWriteFactory->RegisterFontFileLoader(f->file);
                 if (FAILED(hr))
                     return STATUS_UNKNOWN_ERR;
 
                 // Create collection loader
-                f->loader = new WinFontCollectionLoader();
+                f->loader = safe_acquire(new WinFontCollectionLoader());
                 if (f->loader == NULL)
                     return STATUS_NO_MEM;
-                f->loader->AddRef();
+
                 hr = pDWriteFactory->RegisterFontCollectionLoader(f->loader);
                 if (FAILED(hr))
                     return STATUS_UNKNOWN_ERR;
@@ -699,6 +700,7 @@ namespace lsp
                 UINT32 count = f->collection->GetFontFamilyCount();
                 if (count <= 0)
                     return STATUS_UNKNOWN_ERR;
+
                 f->collection->GetFontFamily(0, &f->family);
                 if ((FAILED(hr)) || (f->family == NULL))
                     return STATUS_UNKNOWN_ERR;
@@ -708,6 +710,7 @@ namespace lsp
                 hr = f->family->GetFamilyNames(&names);
                 if ((FAILED(hr)) || (names == NULL))
                     return STATUS_UNKNOWN_ERR;
+
                 lsp_finally{ safe_release(names); };
 
                 // Enumerate all possible font family names
@@ -728,6 +731,7 @@ namespace lsp
                     // The font has been found, add it to registry and exit
                     if (!vCustomFonts.create(name, f))
                         return STATUS_UNKNOWN_ERR;
+
                 #ifdef LSP_TRACE
                     LSPString out;
                     out.set_utf16(f->wname);
@@ -1063,13 +1067,9 @@ namespace lsp
             {
                 HRESULT hr;
 
-                // Obtain the system locale
-                const WCHAR *wLocale    = _wsetlocale(LC_ALL, NULL);
-                if (wLocale == NULL)
-                    wLocale         = L"en-us";
-
                 // Create text format
                 IDWriteTextFormat *tf   = NULL;
+
                 hr = pDWriteFactory->CreateTextFormat(
                     fname,                      // Font family name
                     fc,                         // Font collection (NULL sets it to use the system font collection)
@@ -1077,7 +1077,7 @@ namespace lsp
                     (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL,
                     DWRITE_FONT_STRETCH_NORMAL,
                     f.size(),
-                    wLocale,
+                    L"",
                     &tf);
                 if ((FAILED(hr)) || (tf == NULL))
                 {
@@ -1092,7 +1092,7 @@ namespace lsp
                         DWRITE_FONT_STYLE_OBLIQUE,
                         DWRITE_FONT_STRETCH_NORMAL,
                         f.size(),
-                        wLocale,
+                        L"",
                         &tf);
                     if ((FAILED(hr)) || (tf == NULL))
                         return NULL;
@@ -1211,7 +1211,9 @@ namespace lsp
 
                 // Get text layout metrics and font metrics
                 DWRITE_TEXT_METRICS tm;
-                tl->GetMetrics(&tm);
+                HRESULT hr = tl->GetMetrics(&tm);
+                if (FAILED(hr))
+                    return false;
 
                 float ratio     = f.size() / float(fm.designUnitsPerEm);
                 tp->Width       = tm.widthIncludingTrailingWhitespace;
@@ -1229,6 +1231,7 @@ namespace lsp
                 const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
                 if (pText == NULL)
                     return false;
+
                 size_t range = text->range_length(first, last);
 
                 // Obtain the font family

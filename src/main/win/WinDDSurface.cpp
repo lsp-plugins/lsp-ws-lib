@@ -63,7 +63,7 @@ namespace lsp
 
             size_t WinDDShared::Release()
             {
-                size_t count = nReferences--;
+                size_t count = --nReferences;
                 if (count == 0)
                     delete this;
                 return count;
