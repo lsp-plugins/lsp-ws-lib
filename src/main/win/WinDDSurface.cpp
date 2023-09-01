@@ -1491,8 +1491,6 @@ namespace lsp
 
             bool WinDDSurface::try_out_text(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const lsp_wchar_t *text, size_t length)
             {
-//                HRESULT hr;
-
                 // Get font face
                 IDWriteFontFace *face   = pShared->pDisplay->get_font_face(f, ff);
                 if (face == NULL)
@@ -1508,12 +1506,6 @@ namespace lsp
                 if (run == NULL)
                     return false;
                 lsp_finally { free(run); };
-
-//                // Create text layout
-//                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
-//                if (tl == NULL)
-//                    return false;
-//                lsp_finally{ safe_release(tl); };
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
@@ -1542,11 +1534,26 @@ namespace lsp
                     brush,
                     DWRITE_MEASURING_MODE_NATURAL);
 
-//                pDC->DrawTextLayout(
-//                    D2D1::Point2F(x, y),
-//                    tl,
-//                    brush,
-//                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+                if (f.is_underline())
+                {
+                    ws::text_parameters_t tp;
+                    calc_text_metrics(f, &tp, &fm, run->metrics, length);
+
+                    float scale = f.size() / float(fm.designUnitsPerEm);
+                    float k     = f.bold() ? 0.6f : 0.5f;
+                    float ypos  = y - fm.underlinePosition * scale;
+                    float thick = k * fm.underlineThickness * scale;
+
+                    pDC->FillRectangle(
+                        D2D1_RECT_F {
+                            x,
+                            ypos - thick,
+                            x + tp.Width,
+                            ypos + thick
+                        },
+                        brush);
+                }
+
                 pDC->SetTextAntialiasMode(antialias);
 
                 return true;
