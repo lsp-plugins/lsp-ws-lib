@@ -24,6 +24,9 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/test-fw/mtest.h>
 
+#include <locale.h>
+#include <wchar.h>
+
 MTEST_BEGIN("ws.display", font2)
 
     class Handler: public ws::IEventHandler
@@ -74,7 +77,7 @@ MTEST_BEGIN("ws.display", font2)
 
                             s->get_font_parameters(f, &fp);
                             s->get_text_parameters(f, &tp1, "Text");
-                            s->get_text_parameters(f, &tp2, " Text");
+                            s->get_text_parameters(f, &tp2, " Текст");
 
                             // Text bar 1
                             c.alpha(0.0f);
@@ -121,7 +124,7 @@ MTEST_BEGIN("ws.display", font2)
                             // Output text
                             c.set_rgb24(0x000000);
                             c.alpha(0.25f);
-                            s->out_text(f, c, x, y, " Text");
+                            s->out_text(f, c, x, y, " Текст");
                         }
 
                         s->end();
@@ -156,6 +159,8 @@ MTEST_BEGIN("ws.display", font2)
             wnd->destroy();
             delete wnd;
         };
+
+        _wsetlocale(LC_ALL, L"en_US");
 
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/NotoSansDisplay-Regular.ttf", resources()));

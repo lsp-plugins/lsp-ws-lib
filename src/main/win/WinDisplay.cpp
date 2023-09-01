@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -1136,30 +1136,49 @@ namespace lsp
                 }
             }
 
-            bool WinDisplay::get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics)
+            IDWriteFont *WinDisplay::get_font(const Font &f, IDWriteFontFamily *ff)
             {
-                HRESULT hr;
-
-                // Find the matching font
                 DWRITE_FONT_WEIGHT fWeight  = (f.bold())   ? DWRITE_FONT_WEIGHT_BOLD  : DWRITE_FONT_WEIGHT_REGULAR;
                 DWRITE_FONT_STYLE fStyle    = (f.italic()) ? DWRITE_FONT_STYLE_ITALIC : DWRITE_FONT_STYLE_NORMAL;
                 DWRITE_FONT_STRETCH fStretch= DWRITE_FONT_STRETCH_NORMAL;
-
                 IDWriteFont* font = NULL;
-                hr = ff->GetFirstMatchingFont(fWeight, fStretch, fStyle, &font);
+
+                HRESULT hr = ff->GetFirstMatchingFont(fWeight, fStretch, fStyle, &font);
                 if ((FAILED(hr)) || (font == NULL))
                 {
                     if (!f.italic())
-                        return false;
+                        return NULL;
                     hr = ff->GetFirstMatchingFont(fWeight, fStretch, DWRITE_FONT_STYLE_OBLIQUE, &font);
                     if ((FAILED(hr)) || (font == NULL))
-                        return false;
+                        return NULL;
                 }
-                lsp_finally{ safe_release(font); };
+
+                return font;
+            }
+
+            IDWriteFontFace *WinDisplay::get_font_face(const Font &f, IDWriteFontFamily *ff)
+            {
+                // Find the matching font
+                IDWriteFont* font = get_font(f, ff);
+                if (font == NULL)
+                    return false;
+                lsp_finally { safe_release(font); };
+
+                IDWriteFontFace *face = NULL;
+                HRESULT hr = font->CreateFontFace(&face);
+                return ((FAILED(hr)) || (face == NULL)) ? NULL : face;
+            }
+
+            bool WinDisplay::get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics)
+            {
+                // Find the matching font
+                IDWriteFont* font = get_font(f, ff);
+                if (font == NULL)
+                    return false;
+                lsp_finally { safe_release(font); };
 
                 // Get font metrics
                 font->GetMetrics(metrics);
-
                 return true;
             }
 
@@ -1195,15 +1214,38 @@ namespace lsp
                 IDWriteFontCollection *fc,
                 IDWriteFontFamily *ff,
                 text_parameters_t *tp,
-                const WCHAR *text,
-                ssize_t length)
+                const UINT32 *text,
+                size_t length)
             {
+                HRESULT hr;
+
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
                 if (!get_font_metrics(f, ff, &fm))
                     return false;
 
-                // Create text layout
+                // Get font face
+                IDWriteFontFace *face = get_font_face(f, ff);
+                if (face == NULL)
+                    return false;
+                lsp_finally { safe_release(face); };
+
+                // Allocate space for glyphs and glyph indices
+                UINT16 *glyphIndices = malloc(length * sizeof(UINT16));
+                if (glyphIndices == NULL)
+                    return false;
+                lsp_finally { free(glyphIndices); };
+
+                // Get glyph indices
+                hr = face->GetGlyphIndices(text, length, glyphIndices);
+                if (FAILED(hr))
+                    return false;
+
+
+
+                face->GetGlyphIndices();
+
+/*                // Create text layout
                 IDWriteTextLayout *tl   = create_text_layout(f, fname, fc, ff, text, length);
                 if (tl == NULL)
                     return false;
@@ -1221,18 +1263,18 @@ namespace lsp
                 tp->XAdvance    = tm.widthIncludingTrailingWhitespace;
                 tp->YAdvance    = tp->Height;
                 tp->XBearing    = (f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f;
-                tp->YBearing    = - fm.capHeight * ratio;
+                tp->YBearing    = - fm.capHeight * ratio;*/
 
                 return true;
             }
 
             bool WinDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
+                if ((first < 0) || (last < 0) || (last < first))
                     return false;
 
-                size_t range = text->range_length(first, last);
+                size_t range    = last - first;
+                const lsp_wchar_t *data = text->characters();
 
                 // Obtain the font family
                 LSPString family_name;
@@ -1243,9 +1285,9 @@ namespace lsp
                 // Process custom font first
                 bool found = false;
                 if (custom != NULL)
-                    found = try_get_text_parameters(f, custom->wname, custom->collection, custom->family, tp, pText, range);
+                    found = try_get_text_parameters(f, custom->wname, custom->collection, custom->family, tp, &data[first], range);
                 if ((!found) && (ff != NULL))
-                    found = try_get_text_parameters(f, family_name.get_utf16(), NULL, ff, tp, pText, range);
+                    found = try_get_text_parameters(f, family_name.get_utf16(), NULL, ff, tp, &data[first], range);
 
                 return found;
             }

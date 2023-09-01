@@ -126,12 +126,14 @@ namespace lsp
                     IDWriteTextLayout          *create_text_layout(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *string, size_t length);
                     IDWriteFontFamily          *get_font_family(const Font &f, LSPString *name, font_t **custom);
                     bool                        get_font_metrics(const Font &f, IDWriteFontFamily *ff, DWRITE_FONT_METRICS *metrics);
+                    IDWriteFont                *get_font(const Font &f, IDWriteFontFamily *ff);
+                    IDWriteFontFace            *get_font_face(const Font &f, IDWriteFontFamily *ff);
                     static void                 drop_font_cache(font_cache_t *cache);
                     bool                        create_font_cache();
                     void                        drop_font(font_t *f);
                     static font_t              *alloc_font(const char *name);
                     font_t                     *get_custom_font_collection(const char *name);
-                    bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const WCHAR *text, ssize_t length);
+                    bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const UINT32 *text, size_t length);
 
                     status_t                    install_windows_hooks();
                     status_t                    uninstall_windows_hooks();
