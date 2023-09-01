@@ -1653,59 +1653,24 @@ namespace lsp
                     brush,
                     DWRITE_MEASURING_MODE_NATURAL);
 
-                pDC->SetTextAntialiasMode(antialias);
+                if (f.is_underline())
+                {
+                    float scale = f.size() / float(fm.designUnitsPerEm);
+                    float k     = f.bold() ? 0.6f : 0.5f;
+                    float ypos  = fy - fm.underlinePosition * scale;
+                    float thick = k * fm.underlineThickness * scale;
 
-                // Obtain font metrics
-//                DWRITE_FONT_METRICS fm;
-//                if (!pShared->pDisplay->get_font_metrics(f, ff, &fm))
-//                    return false;
-//
-//                // Create text layout
-//                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
-//                if (tl == NULL)
-//                    return false;
-//                lsp_finally{ safe_release(tl); };
-//
-//                // Create brush
-//                ID2D1SolidColorBrush *brush = NULL;
-//                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
-//                    return false;
-//                lsp_finally{ safe_release(brush); };
-//
-//                // Get text layout metrics and font metrics
-//                DWRITE_TEXT_METRICS tm;
-//                tl->GetMetrics(&tm);
-//
-//                // Compute the text position
-//                float ratio     = f.size() / float(fm.designUnitsPerEm);
-//                float height    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
-//                float xbearing  = (f.italic()) ? sinf(0.033f * M_PI) * height : 0.0f;
-//                float r_w       = tm.width;
-//                float r_h       = fm.capHeight * ratio;
-//                float fx        = x - xbearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-//                float fy        = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
-//
-//                // Draw the text
-//                D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
-//                switch (f.antialias())
-//                {
-//                    case FA_DISABLED:
-//                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
-//                        break;
-//                    case FA_ENABLED:
-//                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
-//                        break;
-//                    case FA_DEFAULT:
-//                    default:
-//                        break;
-//                }
-//
-//                pDC->DrawTextLayout(
-//                    D2D1::Point2F(fx, fy),
-//                    tl,
-//                    brush,
-//                    D2D1_DRAW_TEXT_OPTIONS_NONE);
-//                pDC->SetTextAntialiasMode(antialias);
+                    pDC->FillRectangle(
+                        D2D1_RECT_F {
+                            fx,
+                            ypos - thick,
+                            fx + tp.Width,
+                            ypos + thick
+                        },
+                        brush);
+                }
+
+                pDC->SetTextAntialiasMode(antialias);
 
                 return true;
             }
