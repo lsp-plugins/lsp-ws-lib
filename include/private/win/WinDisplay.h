@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -38,6 +38,8 @@
 #include <wincodec.h>
 #include <d2d1.h>
 #include <dwrite.h>
+
+#include <private/win/fonts.h>
 
 //-----------------------------------------------------------------------------
 // Some specific definitions
@@ -134,6 +136,7 @@ namespace lsp
                     static font_t              *alloc_font(const char *name);
                     font_t                     *get_custom_font_collection(const char *name);
                     bool                        try_get_text_parameters(const Font &f, const WCHAR *fname, IDWriteFontCollection *fc, IDWriteFontFamily *ff, text_parameters_t *tp, const UINT32 *text, size_t length);
+                    win::glyph_run_t           *make_glyph_run(const Font &f, IDWriteFontFace *face, const DWRITE_FONT_METRICS *fm, const UINT32 *text, size_t length);
 
                     status_t                    install_windows_hooks();
                     status_t                    uninstall_windows_hooks();

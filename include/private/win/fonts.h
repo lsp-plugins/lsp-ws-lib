@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 13 июл. 2022 г.
@@ -28,7 +28,10 @@
 
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/io/IInStream.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/ws/Font.h>
+#include <lsp-plug.in/ws/types.h>
 
 #include <private/win/com.h>
 
@@ -44,6 +47,12 @@ namespace lsp
             class WinFontFileLoader;
             class WinFontFileEnumerator;
             class WinFontCollectionLoader;
+
+            typedef struct glyph_run_t
+            {
+                const DWRITE_GLYPH_RUN        *run;
+                const DWRITE_GLYPH_METRICS    *metrics;
+            } glyph_run_t;
 
             /**
              * Custom implementation of IDWriteFontFileStream interface for collections
@@ -145,6 +154,13 @@ namespace lsp
                         UINT32 collectionKeySize,
                         IDWriteFontFileEnumerator **fontFileEnumerator) override;
             };
+
+            void calc_text_metrics(
+                const Font &f,
+                text_parameters_t *tp,
+                const DWRITE_FONT_METRICS *fm,
+                const DWRITE_GLYPH_METRICS *metrics,
+                size_t length);
 
         } /* namespace win */
     } /* namespace ws */

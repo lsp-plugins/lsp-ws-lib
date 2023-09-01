@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 13 июл. 2022 г.
@@ -25,6 +25,7 @@
 
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/stdlib/math.h>
 
 #include <private/win/fonts.h>
 
@@ -228,6 +229,49 @@ namespace lsp
                 // Return result
                 *fontFileEnumerator = safe_acquire(enumerator);
                 return S_OK;
+            }
+
+            //-----------------------------------------------------------------
+            void calc_text_metrics(
+                const Font &f,
+                text_parameters_t *tp,
+                const DWRITE_FONT_METRICS *fm,
+                const DWRITE_GLYPH_METRICS *metrics,
+                size_t length)
+            {
+                if (length <= 0)
+                {
+                    tp->Width           = 0.0f;
+                    tp->Height          = 0.0f;
+                    tp->XAdvance        = 0.0f;
+                    tp->YAdvance        = 0.0f;
+                    tp->XBearing        = 0.0f;
+                    tp->YBearing        = 0.0f;
+                    return;
+                }
+
+                // Compute the text metrics
+                const DWRITE_GLYPH_METRICS *glyph = &metrics[0];
+                ssize_t x_bearing   = glyph->leftSideBearing;
+                ssize_t y_bearing   = glyph->topSideBearing;
+                ssize_t x           = glyph->advanceWidth;
+
+                for (size_t i = 1; i<length; ++i)
+                {
+                    glyph               = &metrics[i];
+                    y_bearing           = lsp_max(y_bearing, glyph->topSideBearing);
+                    x                  += glyph->advanceWidth;
+                }
+
+                float ratio         = f.size() / float(fm->designUnitsPerEm);
+
+                // Output text metrics
+                tp->Width           = (x - x_bearing) * ratio;
+                tp->Height          = (fm->ascent + fm->descent + fm->lineGap) * ratio;
+                tp->XAdvance        = x * ratio;
+                tp->YAdvance        = tp->Height;
+                tp->XBearing        = (f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f;
+                tp->YBearing        = - fm->capHeight * ratio;
             }
 
         } /* namespace win */

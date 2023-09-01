@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -1489,13 +1489,31 @@ namespace lsp
                     out_text(f, color, x, y, &tmp, 0, tmp.length());
             }
 
-            bool WinDDSurface::try_out_text(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const WCHAR *text, size_t length)
+            bool WinDDSurface::try_out_text(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, const lsp_wchar_t *text, size_t length)
             {
-                // Create text layout
-                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
-                if (tl == NULL)
+//                HRESULT hr;
+
+                // Get font face
+                IDWriteFontFace *face   = pShared->pDisplay->get_font_face(f, ff);
+                if (face == NULL)
                     return false;
-                lsp_finally{ safe_release(tl); };
+                lsp_finally { safe_release(face); };
+
+                // Obtain font metrics
+                DWRITE_FONT_METRICS fm;
+                face->GetMetrics(&fm);
+
+                // Create glyph run
+                win::glyph_run_t *run   = pShared->pDisplay->make_glyph_run(f, face, &fm, text, length);
+                if (run == NULL)
+                    return false;
+                lsp_finally { free(run); };
+
+//                // Create text layout
+//                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
+//                if (tl == NULL)
+//                    return false;
+//                lsp_finally{ safe_release(tl); };
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
@@ -1517,11 +1535,18 @@ namespace lsp
                     default:
                         break;
                 }
-                pDC->DrawTextLayout(
-                    D2D1::Point2F(x, y),
-                    tl,
+
+                pDC->DrawGlyphRun(
+                    D2D1_POINT_2F{x, y},
+                    run->run,
                     brush,
-                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+                    DWRITE_MEASURING_MODE_NATURAL);
+
+//                pDC->DrawTextLayout(
+//                    D2D1::Point2F(x, y),
+//                    tl,
+//                    brush,
+//                    D2D1_DRAW_TEXT_OPTIONS_NONE);
                 pDC->SetTextAntialiasMode(antialias);
 
                 return true;
@@ -1531,10 +1556,11 @@ namespace lsp
             {
                 if (bad_state())
                     return;
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
+                if ((first < 0) || (last < 0) || (first >= last))
                     return;
-                size_t length = text->range_length(first, last);
+
+                size_t range    = text->range_length(first, last);
+                const lsp_wchar_t *data = text->characters();
 
                 // Obtain the font family
                 LSPString family_name;
@@ -1544,12 +1570,12 @@ namespace lsp
 
                 if (custom != NULL)
                 {
-                    if (try_out_text(custom->collection, custom->family, custom->wname, f, color, x, y, pText, length))
+                    if (try_out_text(custom->collection, custom->family, custom->wname, f, color, x, y, &data[first], range))
                         return;
                 }
                 if (ff != NULL)
                 {
-                    if (try_out_text(NULL, ff, family_name.get_utf16(), f, color, x, y, pText, length))
+                    if (try_out_text(NULL, ff, family_name.get_utf16(), f, color, x, y, &data[first], range))
                         return;
                 }
             }
@@ -1568,37 +1594,28 @@ namespace lsp
                 return out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
             }
 
-            bool WinDDSurface::try_out_text_relative(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const WCHAR *text, size_t length)
+            bool WinDDSurface::try_out_text_relative(IDWriteFontCollection *fc, IDWriteFontFamily *ff, const WCHAR *family, const Font &f, const Color &color, float x, float y, float dx, float dy, const lsp_wchar_t *text, size_t length)
             {
+                IDWriteFontFace *face   = pShared->pDisplay->get_font_face(f, ff);
+                if (face == NULL)
+                    return false;
+                lsp_finally { safe_release(face); };
+
                 // Obtain font metrics
                 DWRITE_FONT_METRICS fm;
-                if (!pShared->pDisplay->get_font_metrics(f, ff, &fm))
-                    return false;
+                face->GetMetrics(&fm);
 
-                // Create text layout
-                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
-                if (tl == NULL)
+                // Create glyph run
+                win::glyph_run_t *run   = pShared->pDisplay->make_glyph_run(f, face, &fm, text, length);
+                if (run == NULL)
                     return false;
-                lsp_finally{ safe_release(tl); };
+                lsp_finally { free(run); };
 
                 // Create brush
                 ID2D1SolidColorBrush *brush = NULL;
                 if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
                     return false;
                 lsp_finally{ safe_release(brush); };
-
-                // Get text layout metrics and font metrics
-                DWRITE_TEXT_METRICS tm;
-                tl->GetMetrics(&tm);
-
-                // Compute the text position
-                float ratio     = f.size() / float(fm.designUnitsPerEm);
-                float height    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
-                float xbearing  = (f.italic()) ? sinf(0.033f * M_PI) * height : 0.0f;
-                float r_w       = tm.width;
-                float r_h       = fm.capHeight * ratio;
-                float fx        = x - xbearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                float fy        = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
 
                 // Draw the text
                 D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
@@ -1615,12 +1632,73 @@ namespace lsp
                         break;
                 }
 
-                pDC->DrawTextLayout(
-                    D2D1::Point2F(fx, fy),
-                    tl,
+                ws::text_parameters_t tp;
+                calc_text_metrics(f, &tp, &fm, run->metrics, length);
+
+                float r_w       = tp.Width;
+                float r_h       = tp.Height;
+                float fx        = x - tp.XBearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                float fy        = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+
+                pDC->DrawGlyphRun(
+                    D2D1_POINT_2F{fx, fy},
+                    run->run,
                     brush,
-                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+                    DWRITE_MEASURING_MODE_NATURAL);
+
                 pDC->SetTextAntialiasMode(antialias);
+
+                // Obtain font metrics
+//                DWRITE_FONT_METRICS fm;
+//                if (!pShared->pDisplay->get_font_metrics(f, ff, &fm))
+//                    return false;
+//
+//                // Create text layout
+//                IDWriteTextLayout *tl   = pShared->pDisplay->create_text_layout(f, family, fc, ff, text, length);
+//                if (tl == NULL)
+//                    return false;
+//                lsp_finally{ safe_release(tl); };
+//
+//                // Create brush
+//                ID2D1SolidColorBrush *brush = NULL;
+//                if (FAILED(pDC->CreateSolidColorBrush(d2d_color(color), &brush)))
+//                    return false;
+//                lsp_finally{ safe_release(brush); };
+//
+//                // Get text layout metrics and font metrics
+//                DWRITE_TEXT_METRICS tm;
+//                tl->GetMetrics(&tm);
+//
+//                // Compute the text position
+//                float ratio     = f.size() / float(fm.designUnitsPerEm);
+//                float height    = (fm.ascent + fm.descent + fm.lineGap) * ratio;
+//                float xbearing  = (f.italic()) ? sinf(0.033f * M_PI) * height : 0.0f;
+//                float r_w       = tm.width;
+//                float r_h       = fm.capHeight * ratio;
+//                float fx        = x - xbearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+//                float fy        = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+//
+//                // Draw the text
+//                D2D1_TEXT_ANTIALIAS_MODE antialias = pDC->GetTextAntialiasMode();
+//                switch (f.antialias())
+//                {
+//                    case FA_DISABLED:
+//                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_ALIASED);
+//                        break;
+//                    case FA_ENABLED:
+//                        pDC->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_CLEARTYPE);
+//                        break;
+//                    case FA_DEFAULT:
+//                    default:
+//                        break;
+//                }
+//
+//                pDC->DrawTextLayout(
+//                    D2D1::Point2F(fx, fy),
+//                    tl,
+//                    brush,
+//                    D2D1_DRAW_TEXT_OPTIONS_NONE);
+//                pDC->SetTextAntialiasMode(antialias);
 
                 return true;
             }
@@ -1629,10 +1707,11 @@ namespace lsp
             {
                 if (bad_state())
                     return;
-                const WCHAR *pText = (text != NULL) ? reinterpret_cast<const WCHAR *>(text->get_utf16(first, last)) : NULL;
-                if (pText == NULL)
+                if ((first < 0) || (last < 0) || (first >= last))
                     return;
-                size_t length = text->range_length(first, last);
+
+                size_t range    = text->range_length(first, last);
+                const lsp_wchar_t *data = text->characters();
 
                 // Obtain the font family
                 LSPString family_name;
@@ -1643,12 +1722,12 @@ namespace lsp
 
                 if (custom != NULL)
                 {
-                    if (try_out_text_relative(custom->collection, custom->family, custom->wname, f, color, x, y, dx, dy, pText, length))
+                    if (try_out_text_relative(custom->collection, custom->family, custom->wname, f, color, x, y, dx, dy, &data[first], range))
                         return;
                 }
                 if (ff != NULL)
                 {
-                    if (try_out_text_relative(NULL, ff, family_name.get_utf16(), f, color, x, y, dx, dy, pText, length))
+                    if (try_out_text_relative(NULL, ff, family_name.get_utf16(), f, color, x, y, dx, dy, &data[first], range))
                         return;
                 }
             }
