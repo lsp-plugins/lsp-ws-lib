@@ -24,9 +24,6 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/test-fw/mtest.h>
 
-#include <locale.h>
-#include <wchar.h>
-
 MTEST_BEGIN("ws.display", font2)
 
     class Handler: public ws::IEventHandler
@@ -159,8 +156,6 @@ MTEST_BEGIN("ws.display", font2)
             wnd->destroy();
             delete wnd;
         };
-
-        _wsetlocale(LC_ALL, L"en_US");
 
         io::Path font;
         MTEST_ASSERT(font.fmt("%s/font/NotoSansDisplay-Regular.ttf", resources()));
