@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.14 ===
-
+* Improved text rendering for Windows platform.
 
 === 1.0.13 ===
 * Updated build scripts.
