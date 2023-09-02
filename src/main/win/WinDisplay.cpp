@@ -287,14 +287,10 @@ namespace lsp
                 while (!ipc::Thread::is_cancelled())
                 {
                     // Post message if there was no idle loop for a long time
-                    if (self->nIdlePending <= 0)
+                    if (self->nIdlePending < 2)
                     {
-                        timestamp_t ts = system::get_time_millis();
-                        if (ts >= (self->nLastIdleCall + self->idle_interval()))
-                        {
-                            atomic_add(&self->nIdlePending, 1);
-                            PostMessageW(self->hClipWnd, WM_USER, 0, 0);
-                        }
+                        atomic_add(&self->nIdlePending, 1);
+                        PostMessageW(self->hClipWnd, WM_USER, 0, 0);
                     }
 
                     ipc::Thread::sleep(20);

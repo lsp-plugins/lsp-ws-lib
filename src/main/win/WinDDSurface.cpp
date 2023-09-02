@@ -179,7 +179,7 @@ namespace lsp
                     prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_PREMULTIPLIED; // D2D1_ALPHA_MODE_STRAIGHT;
                     prop.dpiX                   = dpi_x;
                     prop.dpiY                   = dpi_y;
-                    prop.usage                  = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
+                    prop.usage                  = D2D1_RENDER_TARGET_USAGE_NONE;
                     prop.minLevel               = D2D1_FEATURE_LEVEL_DEFAULT;
 
                     hwndProp.hwnd               = pShared->hWindow;
@@ -1273,7 +1273,7 @@ namespace lsp
                     &desiredSize,
                     &desiredPixelSize,
                     &pixelFormat,
-                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_GDI_COMPATIBLE, // options
+                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, // options
                     &dc);
                 if (FAILED(hr))
                     return NULL;
@@ -1307,7 +1307,7 @@ namespace lsp
                     &desiredSize,
                     &desiredPixelSize,
                     &pixelFormat,
-                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_GDI_COMPATIBLE,
+                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE,
                     &dc);
                 if (FAILED(hr))
                     return NULL;
