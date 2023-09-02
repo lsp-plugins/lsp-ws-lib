@@ -104,6 +104,7 @@ namespace lsp
                     ATOM                        hClipClass;                 // Window class for the clipboard
                     LSPString                   sDflFontFamily;             // Default font family name
                     MSG                         sPendingMessage;            // Currently pending message
+                    MSG                         sLastMouseMove;             // Last mouse move message
                     HCURSOR                     vCursors[__MP_COUNT];       // Cursor handles (cached)
                     lltl::darray<MonitorInfo>   vMonitors;                  // Monitor information
                     font_cache_t                vFontCache;                 // Font cache

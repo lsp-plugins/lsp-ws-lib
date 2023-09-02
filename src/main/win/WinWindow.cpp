@@ -612,16 +612,34 @@ namespace lsp
                         if ((hTransientFor == NULL) || (hTransientFor == HWND_TOP))
                             break;
 
-                        HWND hPrev          = GetTopWindow(GetDesktopWindow());
+//                        WCHAR caption[256];
+//                        LSPString tmp;
+//
+//                        lsp_trace("Order for hWnd = %p, hTransientFor = %p:", hWindow, hTransientFor);
+//                        HWND hIter  = GetWindow(hWindow, GW_HWNDFIRST);
+//                        while (hIter != NULL)
+//                        {
+//                            caption[0] = 0;
+//                            GetWindowTextW(hIter, caption, sizeof(caption)/sizeof(WCHAR));
+//                            tmp.set_utf16(caption);
+//                            lsp_trace("  hWnd=%p (%s)", hIter, tmp.get_native());
+//
+//                            hIter   = GetWindow(hIter, GW_HWNDNEXT);
+//                        }
+
+                        HWND hPrev          = GetWindow(hWindow, GW_HWNDFIRST);
+//                        lsp_trace("hPrev = %p", hPrev);
                         while (hPrev != NULL)
                         {
                             HWND hCurr              = GetWindow(hPrev, GW_HWNDNEXT);
+//                            lsp_trace("hCurr = %p", hCurr);
 
                             // We are already at the top?
                             if (hCurr == hWindow)
                                 break;
                             if (hCurr == hTransientFor)
                             {
+//                                lsp_trace("overriding hwndInsertAfter with %p", hPrev);
                                 WINDOWPOS *p            = reinterpret_cast<WINDOWPOS *>(lParam);
                                 p->hwndInsertAfter      = hPrev;
                                 p->flags               &= ~SWP_NOZORDER;
