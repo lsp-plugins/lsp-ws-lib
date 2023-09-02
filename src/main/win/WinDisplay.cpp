@@ -84,6 +84,9 @@ namespace lsp
                 bzero(&sPendingMessage, sizeof(sPendingMessage));
                 sPendingMessage.message     = WM_NULL;
 
+                bzero(&sLastMouseMove, sizeof(sLastMouseMove));
+                sLastMouseMove.message      = WM_NULL;
+
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = NULL;
 
@@ -328,6 +331,16 @@ namespace lsp
                     }
                 }
 
+                // Check spurious WM_MOUSEMOVE message
+                if (uMsg == WM_MOUSEMOVE)
+                {
+                    MSG *mouse              = &self->sLastMouseMove;
+                    if ((mouse->wParam == wParam) && (mouse->lParam == lParam))
+                        return 0;
+                    mouse->wParam           = wParam;
+                    mouse->lParam           = lParam;
+                }
+
 //                // Debug
 //                switch (uMsg)
 //                {
@@ -382,6 +395,8 @@ namespace lsp
                         // Here we perform a check that there is some message in the queue
                         if (!PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE))
                         {
+                            sPendingMessage.message     = WM_NULL;
+
                             UINT_PTR timerId    = SetTimer(NULL, 0, wtime, NULL);
                             BOOL res            = GetMessageW(&sPendingMessage, NULL, 0, 0);
                             KillTimer(NULL, timerId);
@@ -419,13 +434,11 @@ namespace lsp
                     {
                         TranslateMessage(&sPendingMessage);
                         DispatchMessageW(&sPendingMessage);
+                        sPendingMessage.message     = WM_NULL;
                     }
                     if ((limit++) >= 0x20)
                         break;
                 } while (PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE));
-
-                // At this moment, we don't have any pending messages for processing
-                sPendingMessage.message     = WM_NULL;
 
                 // Process all pending tasks
                 status_t res    = process_pending_tasks(ts);
@@ -1472,6 +1485,8 @@ namespace lsp
                 if (!vGrab[group].add(wnd))
                     return STATUS_NO_MEM;
 
+                lsp_trace("Added HWND=%p to grab group %d", wnd->win_handle(), int(group));
+
                 // Obtain a grab if necessary
                 if (count > 0)
                     return STATUS_OK;
@@ -1490,7 +1505,10 @@ namespace lsp
                 {
                     lltl::parray<WinWindow> &g = vGrab[i];
                     if (g.premove(wnd))
+                    {
+                        lsp_trace("Removed HWND=%p from grab group %d", wnd->win_handle(), int(i));
                         found = true;
+                    }
                     count      += g.size();
                 }
 
@@ -1748,17 +1766,18 @@ namespace lsp
                      * @param pt The x- and y-coordinates of the cursor, in per-monitor-aware screen coordinates.
                      */
                     POINT pt    = mou->pt;
-                    RECT rect;
                     if (!ScreenToClient(wnd->hWindow, &pt))
                         continue;
-                    if (!GetClientRect(wnd->hWindow, &rect))
-                        continue;
 
-                    // Skip events that are inside of client area of the window. Process them as usual.
-                    if ((pt.x >= rect.left) && (pt.x <= rect.right) &&
-                        (pt.y >= rect.top) && (pt.y <= rect.bottom))
-                        continue;
+//                    // Skip events that are inside of client area of the window. Process them as usual.
+//                    RECT rect;
+//                    if (!GetClientRect(wnd->hWindow, &rect))
+//                        continue;
+//                    if ((pt.x >= rect.left) && (pt.x <= rect.right) &&
+//                        (pt.y >= rect.top) && (pt.y <= rect.bottom))
+//                        continue;
 
+                    // Send the message
                     lParam      = MAKELONG(pt.x, pt.y);
                     PostMessageW(wnd->hWindow, uMsg, wParam, lParam);
                 }
