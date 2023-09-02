@@ -23,8 +23,6 @@
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/test-fw/mtest.h>
-#include <locale.h>
-#include <wchar.h>
 
 MTEST_BEGIN("ws.display", rtext)
 
@@ -118,8 +116,6 @@ MTEST_BEGIN("ws.display", rtext)
             wnd->destroy();
             delete wnd;
         };
-
-        _wsetlocale(LC_ALL, L"en_US");
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test relative text") == STATUS_OK);
