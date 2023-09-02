@@ -1218,17 +1218,9 @@ namespace lsp
                 if (bad_state())
                     return;
 
-                // Create the clipping layer
-                ID2D1Layer *layer   = NULL;
-                HRESULT hr          = pDC->CreateLayer(NULL, &layer);
-                if ((FAILED(hr)) || (layer == NULL))
-                    return;
-                lsp_finally{ safe_release(layer); };
-
-                // Apply the layer
-                pDC->PushLayer(
-                    D2D1::LayerParameters(D2D1::RectF(x, y, x+w, y+h)),
-                    layer);
+                pDC->PushAxisAlignedClip(
+                    D2D1::RectF(x, y, x+w, y+h),
+                    D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
 
                 #ifdef LSP_DEBUG
                 ++ nClipping;
@@ -1249,7 +1241,7 @@ namespace lsp
                 -- nClipping;
             #endif /* LSP_DEBUG */
 
-                pDC->PopLayer();
+                pDC->PopAxisAlignedClip();
             }
 
             IDisplay *WinDDSurface::display()
