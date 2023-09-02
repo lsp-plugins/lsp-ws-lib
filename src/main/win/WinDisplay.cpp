@@ -93,6 +93,7 @@ namespace lsp
                 pDragWindow             = NULL;
                 pPingThread             = NULL;
                 nLastIdleCall           = 0;
+                nIdlePending            = 0;
             }
 
             WinDisplay::~WinDisplay()
@@ -286,9 +287,15 @@ namespace lsp
                 while (!ipc::Thread::is_cancelled())
                 {
                     // Post message if there was no idle loop for a long time
-                    timestamp_t ts = system::get_time_millis();
-                    if (ts >= (self->nLastIdleCall + self->idle_interval()))
-                        PostMessageW(self->hClipWnd, WM_USER, 0, 0);
+                    if (self->nIdlePending <= 0)
+                    {
+                        timestamp_t ts = system::get_time_millis();
+                        if (ts >= (self->nLastIdleCall + self->idle_interval()))
+                        {
+                            atomic_add(&self->nIdlePending, 1);
+                            PostMessageW(self->hClipWnd, WM_USER, 0, 0);
+                        }
+                    }
 
                     ipc::Thread::sleep(20);
                 }
@@ -425,7 +432,7 @@ namespace lsp
                 sPendingMessage.message     = WM_NULL;
 
                 // Process all pending tasks
-                status_t res = process_pending_tasks(ts);
+                status_t res    = process_pending_tasks(ts);
                 nLastIdleCall   = ts;
 
                 return res;
@@ -1970,6 +1977,7 @@ namespace lsp
                     {
                         ws::timestamp_t ts  = system::get_time_millis();
                         dpy->process_pending_tasks(ts);
+                        atomic_add(&dpy->nIdlePending, -1);
                         return 0;
                     }
                     default:
@@ -2368,7 +2376,10 @@ namespace lsp
             void WinDisplay::task_queue_changed()
             {
                 if (hClipWnd != NULL)
+                {
+                    atomic_add(&nIdlePending, 1);
                     PostMessageW(hClipWnd, WM_USER, 0, 0);
+                }
             }
 
         } /* namespace win */

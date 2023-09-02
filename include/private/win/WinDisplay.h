@@ -117,6 +117,7 @@ namespace lsp
                     WinWindow                  *pDragWindow;                // Window which is currently acting in Drag&Drop action
                     ipc::Thread                *pPingThread;                // Pinger thread
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
+                    volatile atomic_t           nIdlePending;               // Number of idle requests pending
                     LSPString                   sWindowClassName;           // Window class name
                     LSPString                   sClipboardClassName;        // Clipboard window class name
 
