@@ -252,26 +252,24 @@ namespace lsp
 
                 // Compute the text metrics
                 const DWRITE_GLYPH_METRICS *glyph = &metrics[0];
-                ssize_t x_bearing   = glyph->leftSideBearing;
-                ssize_t y_bearing   = glyph->topSideBearing;
-                ssize_t x           = glyph->advanceWidth;
+                const float ratio   = f.size() / float(fm->designUnitsPerEm);
+
+                ssize_t x_bearing   = ceilf(glyph->leftSideBearing * ratio);
+                ssize_t x           = ceilf(glyph->advanceWidth * ratio);
 
                 for (size_t i = 1; i<length; ++i)
                 {
                     glyph               = &metrics[i];
-                    y_bearing           = lsp_max(y_bearing, glyph->topSideBearing);
-                    x                  += glyph->advanceWidth;
+                    x                  += ceilf(glyph->advanceWidth * ratio);
                 }
 
-                float ratio         = f.size() / float(fm->designUnitsPerEm);
-
                 // Output text metrics
-                tp->Width           = (x - x_bearing) * ratio;
-                tp->Height          = (fm->ascent + fm->descent + fm->lineGap) * ratio;
-                tp->XAdvance        = x * ratio;
+                tp->Width           = x - x_bearing;
+                tp->Height          = ceilf((fm->ascent + fm->descent + fm->lineGap) * ratio);
+                tp->XAdvance        = x;
                 tp->YAdvance        = tp->Height;
-                tp->XBearing        = (f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f;
-                tp->YBearing        = - fm->capHeight * ratio;
+                tp->XBearing        = ceilf((f.italic()) ? sinf(0.033f * M_PI) * tp->Height : 0.0f);
+                tp->YBearing        = ceilf( - fm->capHeight * ratio);
             }
 
         } /* namespace win */

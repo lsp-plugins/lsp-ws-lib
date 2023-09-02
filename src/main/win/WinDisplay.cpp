@@ -1348,10 +1348,10 @@ namespace lsp
                 if (FAILED(hr))
                     return NULL;
 
-                float scale                         = run->fontEmSize / fm->designUnitsPerEm;
+                const float ratio                   = run->fontEmSize / fm->designUnitsPerEm;
                 for (size_t i = 0; i<length; ++i)
                 {
-                    glyphAdvances[i]                = glyphMetrics[i].advanceWidth * scale;
+                    glyphAdvances[i]                = ceilf(glyphMetrics[i].advanceWidth * ratio);
                     glyphOffsets[i].advanceOffset   = 0.0f;
                     glyphOffsets[i].ascenderOffset  = 0.0f;
                 }
