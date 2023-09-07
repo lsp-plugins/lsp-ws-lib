@@ -675,14 +675,19 @@ namespace lsp
             {
                 if ((text == NULL) || (first > last))
                     return false;
-                else if (first == last)
+
+                if (first == last)
                 {
-                    tp->x_bearing       = 0;
-                    tp->y_bearing       = 0;
-                    tp->width           = 0;
-                    tp->height          = 0;
-                    tp->x_advance       = 0;
-                    tp->y_advance       = 0;
+                    if (tp != NULL)
+                    {
+                        tp->x_bearing       = 0;
+                        tp->y_bearing       = 0;
+                        tp->width           = 0;
+                        tp->height          = 0;
+                        tp->x_advance       = 0;
+                        tp->y_advance       = 0;
+                    }
+
                     return true;
                 }
 

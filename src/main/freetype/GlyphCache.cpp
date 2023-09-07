@@ -141,11 +141,10 @@ namespace lsp
                 // Cleanup all data
                 nSize       = 0;
                 nCap        = 0;
-                if (vBins != NULL)
-                {
-                    free(vBins);
-                    vBins       = NULL;
-                }
+
+                // Cleanup bins
+                free(vBins);
+                vBins       = NULL;
 
                 return root;
             }

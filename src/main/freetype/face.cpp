@@ -182,6 +182,8 @@ namespace lsp
                 FT_Error error;
 
                 // Reference the freetype face
+                if (src == NULL)
+                    return NULL;
                 if ((error = FT_Reference_Face(src->ft_face)) != FT_Err_Ok)
                     return NULL;
                 lsp_finally {

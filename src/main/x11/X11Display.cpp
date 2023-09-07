@@ -163,6 +163,8 @@ namespace lsp
                 for (size_t i=0; i<__MP_COUNT; ++i)
                     vCursors[i]     = None;
 
+                bzero(&sAtoms, sizeof(sAtoms));
+
                 sTranslateReq.hSrcW     = None;
                 sTranslateReq.hDstW     = None;
                 sTranslateReq.bSuccess  = false;
@@ -929,9 +931,7 @@ namespace lsp
                             if ((task->cb_send.hProperty == ev->atom) &&
                                 (task->cb_send.hRequestor == ev->window))
                             {
-                                status_t result = handle_property_notify(&task->cb_send, ev);
-                                if (task->result == STATUS_OK)
-                                    task->result    = result;
+                                task->result = update_status(task->result, handle_property_notify(&task->cb_send, ev));
                             }
                             break;
                         default:
@@ -2130,7 +2130,7 @@ namespace lsp
                     // Test for support of XDnD protocol
                     status_t res    = read_property(child, sAtoms.X11_XdndAware, sAtoms.X11_XA_ATOM, &data, &size, &xtype);
                     lsp_trace("xDndAware res=%d, xtype=%d, size=%d", int(res), int(xtype), int(size));
-                    if ((res != STATUS_OK) || (xtype == None) || (size < 1) || (data[0] < 1))
+                    if ((res != STATUS_OK) || (xtype == None) || (size < 1) || (data == NULL) || (data[0] < 1))
                     {
                         lsp_trace("Window %lx does not support XDnD Protocol", long(child));
                         parent = child;
@@ -2346,8 +2346,6 @@ namespace lsp
 
                 Atom type;
                 size_t bytes;
-                uint8_t *data = NULL;
-
                 drop_mime_types(&vDndMimeTypes);
 
                 // Find target window
@@ -2367,11 +2365,7 @@ namespace lsp
                     {
                         // Create task
                         if ((task = sAsync.add()) == NULL)
-                        {
-                            if (data != NULL)
-                                ::free(data);
                             return STATUS_NO_MEM;
-                        }
 
                         lsp_trace("Created new XDnD proxy task");
 
@@ -2388,9 +2382,6 @@ namespace lsp
                         dnd->enter[1]       = ev->data.l[2];
                         dnd->enter[2]       = ev->data.l[3];
                         dnd->enter[3]       = ev->data.l[4];
-
-                        if (data != NULL)
-                            ::free(data);
                     }
 
                     return STATUS_OK;
@@ -2400,6 +2391,7 @@ namespace lsp
                 if (ev->data.l[1] & 1)
                 {
                     // Fetch all MIME types as additional property
+                    uint8_t *data   = NULL;
                     status_t res = read_property(ev->data.l[0],
                             sAtoms.X11_XdndTypeList, sAtoms.X11_XA_ATOM,
                             &data, &bytes, &type);
@@ -2408,11 +2400,12 @@ namespace lsp
                         lsp_trace("Could not read proprty XdndTypeList");
                         return res;
                     }
-                    else if (type != sAtoms.X11_XA_ATOM)
+                    else if ((data == NULL) || (type != sAtoms.X11_XA_ATOM))
                     {
                         lsp_trace("Could proprty XdndTypeList is not of XA_ATOM type");
                         return STATUS_BAD_TYPE;
                     }
+                    lsp_finally { free(data); };
 
                     // Decode MIME types
                     uint32_t *atoms = reinterpret_cast<uint32_t *>(data);
@@ -3638,8 +3631,8 @@ namespace lsp
                 ev->data.l[1]       = 1 | ((r != NULL) ? (1 << 1) : 0);
                 if (r != NULL)
                 {
-                    ev->data.l[2]       = (x << 16) | y;
-                    ev->data.l[3]       = (r->nWidth << 16) | r->nHeight;
+                    ev->data.l[2]       = (long(x) << 16) | long(y);
+                    ev->data.l[3]       = (long(r->nWidth) << 16) | long(r->nHeight);
                 }
                 else
                 {
