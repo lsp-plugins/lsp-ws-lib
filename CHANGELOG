@@ -2,6 +2,13 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.14 ===
+* Improved code base by using PVS Studio static code analyzer.
+* Improved text rendering for Windows platform.
+* Significant improvements related to rectangle area clipping for Windows platform.
+* Several improvements against grabbing events for Windows.
+* Updated module versions in dependencies.
+
 === 1.0.13 ===
 * Updated build scripts.
 * Updated module versions in dependencies.

@@ -36,14 +36,17 @@ namespace lsp
                 ++n;
 
             vMimes          = reinterpret_cast<char **>(::malloc(sizeof(char *) * (n+1)));
-            for (size_t i=0; i<(n+1); ++i)
-                vMimes[i]       = NULL;
-
-            for (size_t i=0, j=0; i<n; ++i)
+            if (vMimes != NULL)
             {
-                vMimes[j]   = ::strdup(mimes[i]);
-                if (vMimes[j])
-                    ++j;
+                for (size_t i=0; i<(n+1); ++i)
+                    vMimes[i]       = NULL;
+
+                for (size_t i=0, j=0; i<n; ++i)
+                {
+                    vMimes[j]   = ::strdup(mimes[i]);
+                    if (vMimes[j])
+                        ++j;
+                }
             }
         }
         
@@ -77,5 +80,5 @@ namespace lsp
             return refs;
         }
     
-    } /* namespace ctl */
+    } /* namespace ws */
 } /* namespace lsp */

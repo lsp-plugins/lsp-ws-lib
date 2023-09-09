@@ -1025,7 +1025,7 @@ namespace lsp
                 {
                     if ((code >= 0x20) && (code <= 0x7e))
                         return code;
-                    else if ((code >= 0xa0) && (code <= 0x00ff))
+                    else if (code >= 0xa0)
                         return code;
                 }
                 else if (code & 0xff000000)

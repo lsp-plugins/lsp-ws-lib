@@ -65,6 +65,13 @@ namespace lsp
                 nScreen                 = screen;
                 pSurface                = NULL;
                 enBorderStyle           = BS_SIZEABLE;
+
+                sMotif.flags            = 0;
+                sMotif.functions        = 0;
+                sMotif.decorations      = 0;
+                sMotif.input_mode       = 0;
+                sMotif.status           = 0;
+
                 nActions                = WA_SINGLE;
                 nFlags                  = 0;
                 enPointer               = MP_DEFAULT;
@@ -824,8 +831,7 @@ namespace lsp
                 }
 
                 // Enable constraints back
-                if (result == STATUS_OK)
-                    result = do_update_constraints(false);
+                result = do_update_constraints(false);
                 pX11Display->flush();
 
                 return result;
