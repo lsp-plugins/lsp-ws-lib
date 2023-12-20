@@ -89,6 +89,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.605669147" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925.169296649">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925.169296649" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925">
+							<option id="gnu.cpp.compiler.option.other.other.2058905678" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.922427481" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -142,6 +148,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.release.2093466427.1283387153" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511.2044920176">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511.2044920176" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511">
+							<option id="gnu.cpp.compiler.option.other.other.2105448366" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.349629723" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -263,6 +275,12 @@
 							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.569698827" name="Resource Custom Build Step Output Type"/>
 						</tool>
 					</fileInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.1786573548.428158821" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.698162837">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.698162837" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992">
+							<option id="gnu.cpp.compiler.option.other.other.1320667806" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1502700616" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.1786573548.826603074" name="sse4.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/sse4.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.1492076728">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.1492076728" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992">
 							<option id="gnu.cpp.compiler.option.other.other.104518172" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -msse4a" valueType="string"/>
@@ -301,7 +319,7 @@
 					</fileInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.1786573548.1692984727" name="avx2.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx2.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.2063164285">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.2063164285" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992">
-							<option id="gnu.cpp.compiler.option.other.other.125015310" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -mavx -mavx2" valueType="string"/>
+							<option id="gnu.cpp.compiler.option.other.other.125015310" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -mavx -mavx2" valueType="string"/>
 							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1403254847" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 						</tool>
 						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.705973846" name="Resource Custom Build Step">
@@ -342,6 +360,7 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="DebugLinux"/>
 		<configuration configurationName="Debug Linux"/>
 		<configuration configurationName="Debug Win"/>
 		<configuration configurationName="DebugWin"/>
