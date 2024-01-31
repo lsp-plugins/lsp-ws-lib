@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.20 ===
+* Extended support of XEMBED protocol by windows.
 * Updated build scripts.
 
 === 1.0.19 ===

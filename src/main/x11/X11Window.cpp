@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -119,6 +119,7 @@ namespace lsp
 
                 Display *dpy = pX11Display->x11display();
                 Atom dnd_version    = 5;    // Version 5 of protocol is supported
+                long xembed_info[2] = { 0, 0 };
 
                 if (bWrapper)
                 {
@@ -166,6 +167,15 @@ namespace lsp
                      */
                     ::XChangeProperty(dpy, hWindow, pX11Display->atoms().X11_XdndProxy, XA_WINDOW, 32, PropModeReplace,
                                     reinterpret_cast<unsigned char *>(&hWindow), 1);
+
+                    ::XChangeProperty(
+                        dpy, hWindow,
+                        pX11Display->atoms().X11__XEMBED_INFO,
+                        pX11Display->atoms().X11__XEMBED_INFO,
+                        32,
+                        PropModeReplace,
+                        reinterpret_cast<unsigned char *>(&xembed_info[2]),
+                        2);
 
                     pX11Display->flush();
                 }
@@ -230,6 +240,16 @@ namespace lsp
                      */
                     ::XChangeProperty(dpy, wnd, pX11Display->atoms().X11_XdndProxy, XA_WINDOW, 32, PropModeReplace,
                                     reinterpret_cast<unsigned char *>(&wnd), 1);
+
+                    ::XChangeProperty(
+                        dpy, hWindow,
+                        pX11Display->atoms().X11__XEMBED_INFO,
+                        pX11Display->atoms().X11__XEMBED_INFO,
+                        32,
+                        PropModeReplace,
+                        reinterpret_cast<unsigned char *>(&xembed_info[2]),
+                        2);
+
                     pX11Display->flush();
 
                     // Now create X11Window instance
@@ -1527,9 +1547,13 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool X11Window::has_parent() const
+            void *X11Window::parent() const
             {
                 Window root = None, parent = None, *children = NULL;
+                lsp_finally {
+                    if (children != NULL)
+                        XFree(children);
+                };
                 unsigned int num_children;
 
                 XQueryTree(
@@ -1537,12 +1561,26 @@ namespace lsp
                     hWindow, &root, &parent,
                     &children, &num_children);
 
-                bool embedded = parent != root;
+                return (parent != root) ? reinterpret_cast<void *>(parent) : NULL;
+            }
 
-                if (children != NULL)
-                    XFree(children);
+            status_t X11Window::set_parent(void *parent)
+            {
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
-                return embedded;
+                Window parent_wnd = (parent != NULL) ?
+                    reinterpret_cast<Window>(parent) :
+                    pX11Display->x11root();
+
+                XReparentWindow(
+                    pX11Display->x11display(),
+                    hWindow,
+                    parent_wnd,
+                    sSize.nLeft,
+                    sSize.nTop);
+
+                return STATUS_OK;
             }
 
         } /* namespace x11 */

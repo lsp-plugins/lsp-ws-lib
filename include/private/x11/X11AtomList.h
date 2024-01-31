@@ -226,3 +226,9 @@ WM_ATOM(XdndActionList)
 WM_ATOM(XdndActionDescription)
 
 WM_ATOM(XdndDirectSave0)
+
+// XEmbed atoms
+WM_ATOM(_XEMBED)
+WM_ATOM(_XEMBED_INFO)
+
+

@@ -402,14 +402,25 @@ namespace lsp
             return STATUS_OK;
         }
 
-        bool IWindow::has_parent() const
-        {
-            return false;
-        }
-
         status_t IWindow::invalidate()
         {
             return STATUS_NOT_IMPLEMENTED;
         }
+
+        bool IWindow::has_parent() const
+        {
+            return parent() != NULL;
+        }
+
+        void *IWindow::parent() const
+        {
+            return NULL;
+        }
+
+        status_t IWindow::set_parent(void *parent)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
     } /* namespace ws */
 } /* namespace lsp */
