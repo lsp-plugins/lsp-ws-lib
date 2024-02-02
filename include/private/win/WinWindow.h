@@ -168,7 +168,8 @@ namespace lsp
                     virtual status_t    set_class(const char *instance, const char *wclass) override;
                     virtual status_t    set_role(const char *wrole) override;
 
-                    virtual bool        has_parent() const override;
+                    virtual void       *parent() const override;
+                    virtual status_t    set_parent(void *parent) override;
 
                 public:
                     virtual status_t    handle_event(const event_t *ev) override;

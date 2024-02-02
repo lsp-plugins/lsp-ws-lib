@@ -1378,14 +1378,25 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            bool WinWindow::has_parent() const
+            void *WinWindow::parent() const
             {
                 if (hWindow == NULL)
-                    return false;
+                    return NULL;
 
-                HWND wnd = GetParent(hWindow);
+                return reinterpret_cast<void *>(GetParent(hWindow));
+            }
 
-                return wnd != NULL;
+            status_t WinWindow::set_parent(void *parent)
+            {
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                if (SetParent(hWindow, reinterpret_cast<HWND>(parent)) == NULL)
+                    return STATUS_UNKNOWN_ERR;
+
+                commit_border_style(enBorderStyle, nActions);
+
+                return STATUS_OK;
             }
 
             bool WinWindow::process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam)
