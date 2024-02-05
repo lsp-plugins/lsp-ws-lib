@@ -425,6 +425,19 @@ namespace lsp
                  * @return true if window is embedded into some another window.
                  */
                 virtual bool has_parent() const;
+
+                /**
+                 * Get handle to the parent window
+                 * @return native handle of the parent window or NULL
+                 */
+                virtual void *parent() const;
+
+                /**
+                 * Set new parent window
+                 * @param parent parent window to set or NULL if there is no need in the parent window
+                 * @return status of operation
+                 */
+                virtual status_t set_parent(void *parent);
         };
     } /* namespace ws */
 } /* namespace lsp */

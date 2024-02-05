@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -161,10 +161,11 @@ namespace lsp
                     virtual status_t    set_class(const char *instance, const char *wclass) override;
                     virtual status_t    set_role(const char *wrole) override;
 
-                    virtual bool        has_parent() const override;
+                    virtual void       *parent() const override;
+                    virtual status_t    set_parent(void *parent) override;
 
                 public:
-                    virtual status_t handle_event(const event_t *ev) override;
+                    virtual status_t    handle_event(const event_t *ev) override;
             };
         } /* namespace x11 */
     } /* namespace ws */

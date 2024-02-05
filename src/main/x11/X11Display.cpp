@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -35,6 +35,7 @@
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11Window.h>
+#include <private/x11/xembed.h>
 
 #include <poll.h>
 #include <errno.h>
@@ -1715,12 +1716,13 @@ namespace lsp
                         }
                         else if (ev->xclient.message_type != nWakeupMessage)
                         {
-                            #ifdef LSP_TRACE
+                        #ifdef LSP_TRACE
                             char *a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
                             lsp_trace("received client message of type %s", a_name);
                             ::XFree(a_name);
-                            #endif
+                        #endif /* LSP_TRACE */
                         }
+
                         break;
                     }
 
@@ -1750,13 +1752,17 @@ namespace lsp
                 }
                 #endif
 
-                // Special case for buffers
+                // Process special events first
+                if (handle_xembed_event(ev))
+                {
+                    complete_async_tasks();
+                    return;
+                }
                 if (handle_clipboard_event(ev))
                 {
                     complete_async_tasks();
                     return;
                 }
-
                 if (handle_drag_event(ev))
                 {
                     complete_async_tasks();
@@ -1920,6 +1926,75 @@ namespace lsp
                 }
 
                 return NULL;
+            }
+
+            bool X11Display::handle_xembed_event(XEvent *ev)
+            {
+                switch (ev->type)
+                {
+                    case PropertyNotify:
+                    {
+                        if (ev->xproperty.atom != sAtoms.X11__XEMBED_INFO)
+                            return false;
+
+                        X11Window *wnd = find_window(ev->xproperty.window);
+                        if (wnd == NULL)
+                            return true;
+
+                        uint8_t *data   = NULL;
+                        size_t bytes    = 0;
+                        Atom type       = 0;
+                        lsp_finally {
+                            if (data != NULL)
+                                free(data);
+                        };
+
+                        status_t res = read_property(
+                            ev->xproperty.window,
+                            sAtoms.X11__XEMBED_INFO,
+                            sAtoms.X11__XEMBED_INFO,
+                            &data, &bytes, &type);
+
+                        if ((res != STATUS_OK) ||
+                            (bytes < 2 * sizeof(uint32_t)) ||
+                            (type != sAtoms.X11__XEMBED_INFO))
+                            return true;
+
+                        const uint32_t *prop = reinterpret_cast<const uint32_t *>(data);
+                        // prop[0]  = protocol version (0)
+                        // prop[1]  = flags
+                        if (prop[1] & XEMBED_MAPPED)
+                            wnd->show();
+                        else
+                            wnd->hide();
+
+                        break;
+                    }
+                    case ClientMessage:
+                    {
+                        if (ev->xclient.message_type != sAtoms.X11__XEMBED)
+                            return false;
+
+                        // data.l[0] = time
+                        // data.l[1] = major opcode
+                        // data.l[2] = minor opcode
+                        if (ev->xclient.data.l[1] == XEMBED_EMBEDDED_NOTIFY)
+                        {
+                            // data.l[3] = The embedder's window handle
+                            // data.l[4] = The protocol version in use (see the description of _XEMBED_INFO)
+                            X11Window *wnd = find_window(ev->xclient.window);
+                            if (wnd != NULL)
+                                wnd->show();
+                        }
+
+                        return true;
+                    }
+                    default:
+                        break;
+
+                }
+
+                return false;
             }
 
             bool X11Display::handle_drag_event(XEvent *ev)
