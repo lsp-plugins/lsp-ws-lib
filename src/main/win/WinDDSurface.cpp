@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -58,12 +58,12 @@ namespace lsp
 
             size_t WinDDShared::AddRef()
             {
-                return ++nReferences;
+                return atomic_add(&nReferences, 1) + 1;
             }
 
             size_t WinDDShared::Release()
             {
-                size_t count = --nReferences;
+                size_t count = atomic_add(&nReferences, -1) - 1;
                 if (count == 0)
                     delete this;
                 return count;
@@ -179,7 +179,7 @@ namespace lsp
                     prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_PREMULTIPLIED; // D2D1_ALPHA_MODE_STRAIGHT;
                     prop.dpiX                   = dpi_x;
                     prop.dpiY                   = dpi_y;
-                    prop.usage                  = D2D1_RENDER_TARGET_USAGE_NONE;
+                    prop.usage                  = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
                     prop.minLevel               = D2D1_FEATURE_LEVEL_DEFAULT;
 
                     hwndProp.hwnd               = pShared->hWindow;
@@ -191,7 +191,7 @@ namespace lsp
                     HRESULT hr                  = pShared->pDisplay->d2d_factory()->CreateHwndRenderTarget(prop, hwndProp, &ht);
                     if (FAILED(hr))
                     {
-                        lsp_error("Error creating HWND render target: 0x%08lx", long(hr));
+                        lsp_error("Error creating HWND render target: window=%p, error=0x%08lx", pShared->hWindow, long(hr));
                         return;
                     }
 
