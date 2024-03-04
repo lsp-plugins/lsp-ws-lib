@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -120,7 +120,7 @@ namespace lsp
                         0,                                                  // dwExStyle
                         pWinDisplay->sWindowClassName.get_utf16(),          // lpClassName
                         L"",                                                // lpWindowName
-                        (hParent != NULL) ? WS_CHILD : WS_OVERLAPPEDWINDOW, // dwStyle
+                        (hParent != NULL) ? WS_CHILDWINDOW : WS_OVERLAPPEDWINDOW, // dwStyle
                         sSize.nLeft,                                        // X
                         sSize.nTop,                                         // Y
                         sSize.nWidth,                                       // nWidth
@@ -1159,7 +1159,7 @@ namespace lsp
 
                 if (has_parent())
                 {
-                    style           = WS_CHILD;
+                    style           = WS_CHILDWINDOW;
                     ex_style        = WS_EX_ACCEPTFILES;
                     sysmenu         = NULL;
                 }
@@ -1378,14 +1378,27 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            bool WinWindow::has_parent() const
+            void *WinWindow::parent() const
             {
                 if (hWindow == NULL)
-                    return false;
+                    return NULL;
 
-                HWND wnd = GetParent(hWindow);
+                return reinterpret_cast<void *>(hParent);
+            }
 
-                return wnd != NULL;
+            status_t WinWindow::set_parent(void *parent)
+            {
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                HWND pwindow = reinterpret_cast<HWND>(parent);
+                if (SetParent(hWindow, pwindow) == NULL)
+                    return STATUS_UNKNOWN_ERR;
+
+                hParent = pwindow;
+                commit_border_style(enBorderStyle, nActions);
+
+                return STATUS_OK;
             }
 
             bool WinWindow::process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam)

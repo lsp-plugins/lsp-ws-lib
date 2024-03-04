@@ -1527,9 +1527,16 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool X11Window::has_parent() const
+            void *X11Window::parent() const
             {
+                if (hWindow == None)
+                    return NULL;
+
                 Window root = None, parent = None, *children = NULL;
+                lsp_finally {
+                    if (children != NULL)
+                        XFree(children);
+                };
                 unsigned int num_children;
 
                 XQueryTree(
@@ -1537,12 +1544,26 @@ namespace lsp
                     hWindow, &root, &parent,
                     &children, &num_children);
 
-                bool embedded = parent != root;
+                return (parent != root) ? reinterpret_cast<void *>(parent) : NULL;
+            }
 
-                if (children != NULL)
-                    XFree(children);
+            status_t X11Window::set_parent(void *parent)
+            {
+                if (hWindow == None)
+                    return STATUS_BAD_STATE;
 
-                return embedded;
+                Window parent_wnd = (parent != NULL) ?
+                    reinterpret_cast<Window>(parent) :
+                    pX11Display->x11root();
+
+                XReparentWindow(
+                    pX11Display->x11display(),
+                    hWindow,
+                    parent_wnd,
+                    sSize.nLeft,
+                    sSize.nTop);
+
+                return STATUS_OK;
             }
 
         } /* namespace x11 */
