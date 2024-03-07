@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -931,7 +931,7 @@ namespace lsp
                 Window child;
                 Display *dpy = pX11Display->x11display();
                 // We do not trust XGetWindowAttributes since it can always return (0, 0) coordinates
-                XTranslateCoordinates(dpy, hWindow, pX11Display->hRootWnd, 0, 0, &x, &y, &child);
+                XTranslateCoordinates(dpy, hWindow, pX11Display->x11root(), 0, 0, &x, &y, &child);
                 // lsp_trace("xy = {%d, %d}", int(x), int(y));
 
                 realize->nLeft      = x;
@@ -1024,8 +1024,7 @@ namespace lsp
 
 //                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
                 ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
-                ::XRaiseWindow(pX11Display->x11display(), hWindow);
-                ::XMapWindow(pX11Display->x11display(), hWindow);
+                ::XMapRaised(pX11Display->x11display(), hWindow);
                 pX11Display->sync();
 //                XWindowAttributes atts;
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
@@ -1052,6 +1051,24 @@ namespace lsp
                     default:
                         break;
                 }
+
+                // Bring window to top
+
+                XEvent ev;
+                ev.xclient.type = ClientMessage;
+                ev.xclient.serial = 0;
+                ev.xclient.send_event = True;
+                ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
+                ev.xclient.window = hWindow;
+                ev.xclient.format = 32;
+
+                XSendEvent(
+                    pX11Display->x11display(),
+                    pX11Display->x11root(),
+                    False,
+                    SubstructureRedirectMask | SubstructureNotifyMask,
+                    &ev);
+
                 return STATUS_OK;
             }
 
@@ -1109,7 +1126,7 @@ namespace lsp
                 ev.xclient.serial       = 0;
                 ev.xclient.send_event   = True;
                 ev.xclient.display      = dpy;
-                ev.xclient.window       = pX11Display->hRootWnd;
+                ev.xclient.window       = pX11Display->x11root();
                 ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
                 ev.xclient.format       = 32;
                 ev.xclient.data.l[0]    = ((enBorderStyle == BS_POPUP) || (enBorderStyle == BS_COMBO) || (enBorderStyle == BS_DROPDOWN)) ? 2 : 1;
@@ -1118,7 +1135,7 @@ namespace lsp
                 ev.xclient.data.l[3]    = 0;
                 ev.xclient.data.l[4]    = 0;
 
-                ::XSendEvent(dpy, pX11Display->hRootWnd, True, NoEventMask, &ev);
+                ::XSendEvent(dpy, pX11Display->x11root(), True, NoEventMask, &ev);
             }
 
             status_t X11Window::take_focus()
