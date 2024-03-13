@@ -86,6 +86,13 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
+                    explicit X11CairoSurface(X11Display *dpy, cairo_surface_t *surface, size_t width, size_t height);
+
+                    /** Create image surface
+                     *
+                     * @param width surface width
+                     * @param height surface height
+                     */
                     explicit X11CairoSurface(X11Display *dpy, size_t width, size_t height);
 
                     virtual ~X11CairoSurface();
