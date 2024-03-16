@@ -592,7 +592,12 @@ namespace lsp
                     case WM_SYSKEYDOWN:
                     {
                         if (!process_virtual_key(&ue, wParam, lParam))
+                        {
+//                            lsp_trace("keydown process_virtual_key failed");
                             return 0;
+                        }
+
+//                        lsp_trace("keydown process_virtual_key code=0x%x, raw_code=0x%x", int(ue.nCode), int(ue.nRawCode));
 
                         // If the key was pressed, we need to simulate UIE_KEY_UP event
                         if (lParam & (1 << 30))
@@ -1410,7 +1415,7 @@ namespace lsp
 
                 #define TRX(scan, cond, code1, code2) \
                     case scan: \
-                        ev->nCode = (cond) ? code2 : code1; \
+                        ev->nCode = (cond) ? (code1) : (code2); \
                         return true;
 
                 #define SKP(scan) \
@@ -1442,10 +1447,11 @@ namespace lsp
                 ev->nCode           = WSK_UNKNOWN;
                 ev->nRawCode        = (lParam & (~0xffff)) | wParam;
 
-                //lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d", int(wParam), int(lParam), int(ext));
+                BYTE num = kState[VK_NUMLOCK];
+
+//                lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d, num=0x%x", int(wParam), int(lParam), int(ext), int(num));
 
                 // Process special case for numpad
-                bool num = kState[VK_NUMLOCK];
                 switch (wParam)
                 {
                     TRK(VK_CANCEL, WSK_BREAK)  // Control-break processing
