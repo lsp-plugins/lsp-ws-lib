@@ -80,7 +80,8 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
-                pSurface        = ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                // ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -170,7 +171,8 @@ namespace lsp
                 if (nType == ST_IMAGE)
                     s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 else if (nType == ST_SIMILAR)
-                    s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    // s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
 
                 if (s == NULL)
                     return false;
