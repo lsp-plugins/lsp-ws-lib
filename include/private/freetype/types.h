@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 8 апр. 2023 г.
@@ -37,13 +37,6 @@ namespace lsp
     {
         namespace ft
         {
-            /**
-             * Tag structure used for in-place new operator
-             */
-            typedef struct allocator_tag_t
-            {
-            } allocator_tag_t;
-
             typedef int32_t             f26p6_t;
 
             /**

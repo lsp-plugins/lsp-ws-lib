@@ -23,6 +23,7 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
@@ -30,11 +31,6 @@
 #include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
 #include <private/freetype/types.h>
-
-inline void *operator new(size_t size, void *ptr, const lsp::ws::ft::allocator_tag_t & tag)
-{
-    return ptr;
-}
 
 namespace lsp
 {
@@ -157,8 +153,7 @@ namespace lsp
                     face->ascent        = 0;
                     face->descent       = 0;
 
-                    allocator_tag_t tag;
-                    new (&face->cache, tag) GlyphCache();
+                    new (reinterpret_cast<void *>(&face->cache), inplace_new_tag_t()) GlyphCache();
 
                     // Cleanup the pointer to avoid face destruction
                     ++face->font->references;
@@ -209,8 +204,7 @@ namespace lsp
                 face->ascent        = 0;
                 face->descent       = 0;
 
-                allocator_tag_t tag;
-                new (&face->cache, tag) GlyphCache();
+                new (reinterpret_cast<void *>(&face->cache), inplace_new_tag_t()) GlyphCache();
 
                 // Cleanup the pointer to avoid face destruction
                 ++face->font->references;

@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.21 ===
+* Using inplace new from common library.
 * Some optimizations of X11CairoSurface.
 * Updated build scripts.
 

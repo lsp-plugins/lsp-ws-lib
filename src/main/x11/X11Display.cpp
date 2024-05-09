@@ -24,6 +24,7 @@
 #ifdef USE_LIBX11
 
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
 #include <lsp-plug.in/stdlib/stdio.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
@@ -52,12 +53,6 @@
 #endif /* USE_LIBCAIRO */
 
 #define X11IOBUF_SIZE               0x100000
-
-// Define the placement-new for our construction/destruction tricks
-inline void *operator new (size_t size, void *ptr)
-{
-    return ptr;
-}
 
 namespace lsp
 {
@@ -3881,7 +3876,7 @@ namespace lsp
                     for (int i=0; i<nmonitors; ++i)
                     {
                         MonitorInfo *di = &items[i];
-                        new (static_cast<void *>(&di->name)) LSPString;
+                        new (&di->name, inplace_new_tag_t()) LSPString;
                     }
 
                     // Translate records
