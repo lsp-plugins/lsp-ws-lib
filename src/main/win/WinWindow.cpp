@@ -592,7 +592,12 @@ namespace lsp
                     case WM_SYSKEYDOWN:
                     {
                         if (!process_virtual_key(&ue, wParam, lParam))
+                        {
+//                            lsp_trace("keydown process_virtual_key failed");
                             return 0;
+                        }
+
+//                        lsp_trace("keydown process_virtual_key code=0x%x, raw_code=0x%x", int(ue.nCode), int(ue.nRawCode));
 
                         // If the key was pressed, we need to simulate UIE_KEY_UP event
                         if (lParam & (1 << 30))
@@ -910,18 +915,32 @@ namespace lsp
 
             status_t WinWindow::show()
             {
-                lsp_trace("Show window this=%p, hWindow=%p", this, hWindow);
+                lsp_trace("Show window this=%p, hWindow=%p, position={l=%d, t=%d, w=%d, h=%d}",
+                    this, hWindow,
+                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
                 hTransientFor       = NULL;
+                SetWindowPos(
+                    hWindow,            // hWnd
+                    HWND_TOPMOST,       // hWndInsertAfter
+                    sSize.nLeft,        // X
+                    sSize.nTop,         // Y
+                    sSize.nWidth,       // nWidth
+                    sSize.nHeight,      // nHeight
+                    SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE // uFlags
+                );
                 ShowWindow(hWindow, SW_SHOW);
                 return STATUS_OK;
             }
 
             status_t WinWindow::show(IWindow *over)
             {
-                lsp_trace("Show window this=%p, hWindow=%p over=%p", this, hWindow, over);
+                lsp_trace("Show window this=%p, hWindow=%p, position={l=%d, t=%d, w=%d, h=%d}, over=%p",
+                    this, hWindow,
+                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight),
+                    over);
 
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
@@ -940,7 +959,7 @@ namespace lsp
                     sSize.nTop,         // Y
                     sSize.nWidth,       // nWidth
                     sSize.nHeight,      // nHeight
-                    0                   // uFlags
+                    SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE // uFlags
                 );
                 ShowWindow(hWindow, SW_SHOW);
 
@@ -1074,25 +1093,10 @@ namespace lsp
                     dst->nHeight        = sConstraints.nMinHeight;
             }
 
-            status_t WinWindow::set_geometry(const rectangle_t *realize)
+            status_t WinWindow::set_geomety_impl()
             {
-                if (hWindow == NULL)
-                    return STATUS_BAD_STATE;
-
-                rectangle_t old = sSize;
-                apply_constraints(&sSize, realize);
-
-//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d",
-//                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
-
-                if ((old.nLeft == sSize.nLeft) &&
-                    (old.nTop == sSize.nTop) &&
-                    (old.nWidth == sSize.nWidth) &&
-                    (old.nHeight == sSize.nHeight))
-                    return STATUS_OK;
-
                 // These system metrics affect the actual client size of the window
-                bool border             = has_border();
+                const bool border       = has_border();
                 ssize_t hborder         = (border) ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
                 ssize_t vborder         = (border) ? GetSystemMetrics(SM_CYSIZEFRAME) : 0;
                 ssize_t vcaption        = (border) ? GetSystemMetrics(SM_CYCAPTION) : 0;
@@ -1111,6 +1115,26 @@ namespace lsp
                 lsp_error("Error moving window to l=%d, t=%d, w=%d, h=%d: error=%ld",
                     int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight), long(GetLastError()));
                 return STATUS_UNKNOWN_ERR;
+            }
+
+            status_t WinWindow::set_geometry(const rectangle_t *realize)
+            {
+                if (hWindow == NULL)
+                    return STATUS_BAD_STATE;
+
+                rectangle_t old = sSize;
+                apply_constraints(&sSize, realize);
+
+//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d",
+//                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+
+                if ((old.nLeft == sSize.nLeft) &&
+                    (old.nTop == sSize.nTop) &&
+                    (old.nWidth == sSize.nWidth) &&
+                    (old.nHeight == sSize.nHeight))
+                    return STATUS_OK;
+
+                return set_geomety_impl();
             }
 
             status_t WinWindow::set_border_style(border_style_t style)
@@ -1217,6 +1241,11 @@ namespace lsp
                     COMMIT(SC_CLOSE, WA_CLOSE);
                     #undef COMMIT
                 }
+
+                // If you have changed certain window data using SetWindowLong, you must call SetWindowPos
+                // for the changes to take effect. Use the following combination for uFlags:
+                // SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED.
+                SetWindowPos(hWindow, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 
                 // Finally, update the value for fields
                 enBorderStyle       = bs;
@@ -1410,7 +1439,7 @@ namespace lsp
 
                 #define TRX(scan, cond, code1, code2) \
                     case scan: \
-                        ev->nCode = (cond) ? code2 : code1; \
+                        ev->nCode = (cond) ? (code1) : (code2); \
                         return true;
 
                 #define SKP(scan) \
@@ -1442,10 +1471,11 @@ namespace lsp
                 ev->nCode           = WSK_UNKNOWN;
                 ev->nRawCode        = (lParam & (~0xffff)) | wParam;
 
-                //lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d", int(wParam), int(lParam), int(ext));
+                BYTE num = kState[VK_NUMLOCK];
+
+//                lsp_trace("wparam=0x%x, lparam=0x%x, ext=%d, num=0x%x", int(wParam), int(lParam), int(ext), int(num));
 
                 // Process special case for numpad
-                bool num = kState[VK_NUMLOCK];
                 switch (wParam)
                 {
                     TRK(VK_CANCEL, WSK_BREAK)  // Control-break processing

@@ -323,6 +323,7 @@ namespace lsp
             ST_UNKNOWN,         // Unknown surface type
             ST_IMAGE,           // Image surface
             ST_XLIB,            // Surface created by XLIB extension (X.11 Linux/FreeBSD)
+            ST_SIMILAR,         // Similar surface to the parent
             ST_DDRAW,           // Surface created by DirectDraw factory (Windows)
         };
 

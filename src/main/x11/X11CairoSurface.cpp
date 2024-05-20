@@ -74,6 +74,19 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
+            X11CairoSurface::X11CairoSurface(X11Display *dpy, cairo_surface_t *surface, size_t width, size_t height):
+                ISurface(width, height, ST_SIMILAR)
+            {
+                pDisplay        = dpy;
+                pCR             = NULL;
+                pFO             = NULL;
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                // ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+            #ifdef LSP_DEBUG
+                nNumClips       = 0;
+            #endif /* LSP_DEBUG */
+            }
+
             IDisplay *X11CairoSurface::display()
             {
                 return pDisplay;
@@ -81,12 +94,12 @@ namespace lsp
 
             ISurface *X11CairoSurface::create(size_t width, size_t height)
             {
-                return new X11CairoSurface(pDisplay, width, height);
+                return new X11CairoSurface(pDisplay, pSurface, width, height);
             }
 
             ISurface *X11CairoSurface::create_copy()
             {
-                X11CairoSurface *s = new X11CairoSurface(pDisplay, nWidth, nHeight);
+                X11CairoSurface *s = new X11CairoSurface(pDisplay, pSurface, nWidth, nHeight);
                 if (s == NULL)
                     return NULL;
 
@@ -152,36 +165,41 @@ namespace lsp
                     ::cairo_xlib_surface_set_size(pSurface, width, height);
                     return true;
                 }
-                else if (nType == ST_IMAGE)
+
+                // Create new surface and cairo
+                cairo_surface_t *s  = NULL;
+                if (nType == ST_IMAGE)
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                else if (nType == ST_SIMILAR)
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    // s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+
+                if (s == NULL)
+                    return false;
+
+                cairo_t *cr         = ::cairo_create(s);
+                if (cr == NULL)
                 {
-                    // Create new surface and cairo
-                    cairo_surface_t *s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-                    if (s == NULL)
-                        return false;
-                    cairo_t *cr         = ::cairo_create(s);
-                    if (cr == NULL)
-                    {
-                        cairo_surface_destroy(s);
-                        return false;
-                    }
-
-                    // Draw previous content
-                    ::cairo_set_source_surface(cr, pSurface, 0, 0);
-                    ::cairo_fill(cr);
-
-                    // Destroy previously used context
-                    destroy_context();
-
-                    // Update context
-                    pSurface            = s;
-                    if (pCR != NULL)
-                    {
-                        ::cairo_destroy(pCR);
-                        pCR                 = cr;
-                    }
-                    else
-                        ::cairo_destroy(cr);
+                    cairo_surface_destroy(s);
+                    return false;
                 }
+
+                // Draw previous content
+                ::cairo_set_source_surface(cr, pSurface, 0, 0);
+                ::cairo_fill(cr);
+
+                // Destroy previously used context
+                destroy_context();
+
+                // Update context
+                pSurface            = s;
+                if (pCR != NULL)
+                {
+                    ::cairo_destroy(pCR);
+                    pCR                 = cr;
+                }
+                else
+                    ::cairo_destroy(cr);
 
                 return false;
             }
@@ -191,7 +209,7 @@ namespace lsp
                 if (pCR == NULL)
                     return;
                 surface_type_t type = s->type();
-                if (type != ST_IMAGE)
+                if ((type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
 
                 X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
@@ -230,7 +248,7 @@ namespace lsp
             void X11CairoSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
                 surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE))
+                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
                 if (pCR == NULL)
                     return;
@@ -254,7 +272,7 @@ namespace lsp
             void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
                 surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE))
+                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_IMAGE))
                     return;
                 if (pCR == NULL)
                     return;
@@ -329,8 +347,9 @@ namespace lsp
                     return;
 
                 // Initialize settings
-                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_GOOD);
+                ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_FAST);
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
+                ::cairo_set_tolerance(pCR, 0.5);
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;

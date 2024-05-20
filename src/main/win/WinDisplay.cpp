@@ -25,6 +25,7 @@
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
 #include <lsp-plug.in/io/charset.h>
 #include <lsp-plug.in/io/OutMemoryStream.h>
 #include <lsp-plug.in/stdlib/math.h>
@@ -44,12 +45,6 @@
 #include <windows.h>
 #include <winuser.h>
 #include <d2d1.h>
-
-// Define the placement-new for our construction/destruction tricks
-inline void *operator new (size_t size, void *ptr)
-{
-    return ptr;
-}
 
 namespace lsp
 {
@@ -589,7 +584,7 @@ namespace lsp
                 MonitorInfo *di     = result->add();
                 if (di == NULL)
                     return TRUE;
-                new (static_cast<void *>(&di->name)) LSPString;
+                new (&di->name, inplace_new_tag_t()) LSPString;
 
                 MONITORINFOEXW xmi;
                 xmi.cbSize       = sizeof(xmi);

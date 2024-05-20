@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -74,13 +74,13 @@ namespace lsp
                     return;
 
                 // Output cache statistics
-                lsp_info("Cache statistics:");
-                lsp_info("  Memory:         %ld", long(nCacheSize));
-                lsp_info("  Face hits:      %ld", long(nFaceHits));
-                lsp_info("  Face misses:    %ld", long(nFaceMisses));
-                lsp_info("  Glyph hits:     %ld", long(nGlyphHits));
-                lsp_info("  Glyph misses:   %ld", long(nGlyphMisses));
-                lsp_info("  Glyph removal:  %ld", long(nGlyphRemoval));
+                lsp_trace("Cache statistics:");
+                lsp_trace("  Memory:         %ld", long(nCacheSize));
+                lsp_trace("  Face hits:      %ld", long(nFaceHits));
+                lsp_trace("  Face misses:    %ld", long(nFaceMisses));
+                lsp_trace("  Glyph hits:     %ld", long(nGlyphHits));
+                lsp_trace("  Glyph misses:   %ld", long(nGlyphMisses));
+                lsp_trace("  Glyph removal:  %ld", long(nGlyphRemoval));
 
                 // Destroy the state
                 clear();

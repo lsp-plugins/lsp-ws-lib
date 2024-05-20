@@ -106,6 +106,7 @@ namespace lsp
                     bool                process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam);
                     void                handle_mouse_leave();
                     void                handle_mouse_enter(const ws::event_t *ev);
+                    status_t            set_geomety_impl();
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
