@@ -186,7 +186,7 @@ namespace lsp
                     } x11_screen_t;
 
                 private:
-                    static volatile atomic_t    hLock;
+                    static atomic_t             hLock;
                     static X11Display          *pHandlers;
                     X11Display                 *pNextHandler;
 
