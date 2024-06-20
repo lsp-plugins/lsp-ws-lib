@@ -59,7 +59,7 @@ namespace lsp
             static const char *CLIPBOARD_CLASS_NAME         = "lsp-ws-lib::clipboard";
 
             //-----------------------------------------------------------------
-            volatile atomic_t WinDisplay::hLock             = 0;
+            atomic_t WinDisplay::hLock                      = 0;
             volatile DWORD WinDisplay::nThreadId            = 0;
             WinDisplay  *WinDisplay::pHandlers              = NULL;
             HHOOK WinDisplay::hMouseHook                    = NULL;
@@ -91,7 +91,7 @@ namespace lsp
                 pDragWindow             = NULL;
                 pPingThread             = NULL;
                 nLastIdleCall           = 0;
-                nIdlePending            = 0;
+                atomic_store(&nIdlePending, 0);
             }
 
             WinDisplay::~WinDisplay()
@@ -285,7 +285,7 @@ namespace lsp
                 while (!ipc::Thread::is_cancelled())
                 {
                     // Post message if there was no idle loop for a long time
-                    if (self->nIdlePending < 2)
+                    if (atomic_load(&self->nIdlePending) < 2)
                     {
                         atomic_add(&self->nIdlePending, 1);
                         PostMessageW(self->hClipWnd, WM_USER, 0, 0);
@@ -1856,7 +1856,7 @@ namespace lsp
                 // Just increment the counter.
                 while (true)
                 {
-                    atomic_t count = hLock;
+                    atomic_t count = atomic_load(&hLock);
                     if (atomic_cas(&hLock, count, count + 1))
                         break;
                 }
@@ -1874,7 +1874,7 @@ namespace lsp
                 // before decrementing the counter
                 while (true)
                 {
-                    atomic_t count = hLock;
+                    atomic_t count = atomic_load(&hLock);
                     if (count == 1)
                         nThreadId   = 0;
                     if (atomic_cas(&hLock, count, count - 1))
