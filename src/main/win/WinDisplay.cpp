@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -111,7 +111,7 @@ namespace lsp
                 bExit           = false;
 
                 // Register window classes
-                sWindowClassName.fmt_ascii("%s", WINDOW_CLASS_NAME, this);
+                sWindowClassName.fmt_ascii("%s@%p", WINDOW_CLASS_NAME, this);
 
                 bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = window_proc;
@@ -125,7 +125,7 @@ namespace lsp
                 }
 
                 // Register clipboard window class
-                sClipboardClassName.fmt_ascii("%s", CLIPBOARD_CLASS_NAME, this);
+                sClipboardClassName.fmt_ascii("%s@%p", CLIPBOARD_CLASS_NAME, this);
 
                 bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = clipboard_proc;
