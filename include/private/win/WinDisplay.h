@@ -112,6 +112,7 @@ namespace lsp
                     WinDisplay                 *pNextHandler;               // Next hook handler in the chain of handlers
                     lltl::parray<WinWindow>     vGrab[__GRAB_TOTAL];        // Grab queue according to the priority
                     lltl::parray<WinWindow>     sTargets;                   // Targets for event delivery
+                    lltl::parray<WinWindow>     vWindows;                   // All registered windows
                     HWND                        hClipWnd;                   // Clipboard window
                     IDataSource                *pClipData;                  // Data source for clipboard
                     lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard

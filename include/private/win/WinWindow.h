@@ -107,6 +107,9 @@ namespace lsp
                     void                handle_mouse_leave();
                     void                handle_mouse_enter(const ws::event_t *ev);
                     status_t            set_geomety_impl();
+                    void                place_above(HWND wnd);
+                    HWND                placement_window(HWND wnd);
+                    static HWND         wrapping_window(HWND wnd);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
@@ -189,6 +192,7 @@ namespace lsp
                     HWND                win_handle();
                     WinDisplay         *win_display();
                     WinDNDTarget       *dnd_target();
+                    void                idle();
             };
         } /* namespace win */
     } /* namespace ws */

@@ -225,6 +225,13 @@ namespace lsp
                 }
             }
 
+            void WinDDSurface::invalidate()
+            {
+                if (pShared != NULL)
+                    pShared->Invalidate();
+                safe_release(pDC);
+            }
+
             void WinDDSurface::sync_size()
             {
                 if ((pShared == NULL) || (pShared->hWindow == NULL))

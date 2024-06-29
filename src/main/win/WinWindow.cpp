@@ -43,6 +43,17 @@ namespace lsp
     {
         namespace win
         {
+//            static void dump_window(const char *id, HWND wnd)
+//            {
+//                WCHAR caption[256];
+//                LSPString text;
+//
+//                GetWindowTextW(wnd, caption, sizeof(caption)/sizeof(WCHAR));
+//                text.set_utf16(caption);
+//                bool visible = IsWindowVisible(wnd);
+//                lsp_trace("  %s=%p, caption=%s, visible=%s", id, wnd, text.get_native(), (visible) ? "true" : "false");
+//            }
+
             WinWindow::WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper):
                 ws::IWindow(dpy, handler)
             {
@@ -99,6 +110,7 @@ namespace lsp
 
             WinWindow::~WinWindow()
             {
+                pWinDisplay     = NULL;
                 pDisplay        = NULL;
             }
 
@@ -170,11 +182,17 @@ namespace lsp
                 // Enable all keyboard and mouse input for the window
                 EnableWindow(hWindow, TRUE);
 
+                // Add window to display
+                pWinDisplay->vWindows.add(this);
+
                 return STATUS_OK;
             }
 
             void WinWindow::destroy()
             {
+                if (pWinDisplay != NULL)
+                    pWinDisplay->vWindows.qpremove(this);
+
                 if (hWindow == NULL)
                     return;
 
@@ -612,49 +630,25 @@ namespace lsp
                         return 0;
                     }
 
+                    case WM_WINDOWPOSCHANGED:
+                    {
+                        WINDOWPOS *p = reinterpret_cast<WINDOWPOS *>(lParam);
+                        lsp_trace("windowposchanged wnd=%p (%p) flags=0x%x transient_for=%p", hWindow, p->hwnd, p->flags, hTransientFor);
+                        break;
+                    }
+
                     case WM_WINDOWPOSCHANGING:
                     {
                         if ((hTransientFor == NULL) || (hTransientFor == HWND_TOP))
                             break;
 
-//                        WCHAR caption[256];
-//                        LSPString tmp;
-//
-//                        lsp_trace("Order for hWnd = %p, hTransientFor = %p:", hWindow, hTransientFor);
-//                        HWND hIter  = GetWindow(hWindow, GW_HWNDFIRST);
-//                        while (hIter != NULL)
-//                        {
-//                            caption[0] = 0;
-//                            GetWindowTextW(hIter, caption, sizeof(caption)/sizeof(WCHAR));
-//                            tmp.set_utf16(caption);
-//                            lsp_trace("  hWnd=%p (%s)", hIter, tmp.get_native());
-//
-//                            hIter   = GetWindow(hIter, GW_HWNDNEXT);
-//                        }
-
-                        HWND hPrev          = GetWindow(hWindow, GW_HWNDFIRST);
-//                        lsp_trace("hPrev = %p", hPrev);
-                        while (hPrev != NULL)
+                        WINDOWPOS *p = reinterpret_cast<WINDOWPOS *>(lParam);
+                        HWND placement = placement_window(hTransientFor);
+                        if (placement != NULL)
                         {
-                            HWND hCurr              = GetWindow(hPrev, GW_HWNDNEXT);
-//                            lsp_trace("hCurr = %p", hCurr);
-
-                            // We are already at the top?
-                            if (hCurr == hWindow)
-                                break;
-                            if (hCurr == hTransientFor)
-                            {
-//                                lsp_trace("overriding hwndInsertAfter with %p", hPrev);
-                                WINDOWPOS *p            = reinterpret_cast<WINDOWPOS *>(lParam);
-                                p->hwndInsertAfter      = hPrev;
-                                p->flags               &= ~SWP_NOZORDER;
-                                break;
-                            }
-
-                            // Update pointer
-                            hPrev                  = hCurr;
+                            p->hwndInsertAfter = placement;
+                            p->flags &= ~SWP_NOZORDER;
                         }
-
                         break;
                     }
 
@@ -922,15 +916,18 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 hTransientFor       = NULL;
-                SetWindowPos(
-                    hWindow,            // hWnd
-                    HWND_TOPMOST,       // hWndInsertAfter
-                    sSize.nLeft,        // X
-                    sSize.nTop,         // Y
-                    sSize.nWidth,       // nWidth
-                    sSize.nHeight,      // nHeight
-                    SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE // uFlags
-                );
+                if (!has_parent())
+                {
+                    SetWindowPos(
+                        hWindow,            // hWnd
+                        HWND_TOPMOST,       // hWndInsertAfter
+                        sSize.nLeft,        // X
+                        sSize.nTop,         // Y
+                        sSize.nWidth,       // nWidth
+                        sSize.nHeight,      // nHeight
+                        SWP_NOSIZE | SWP_NOMOVE // uFlags
+                    );
+                }
                 ShowWindow(hWindow, SW_SHOW);
                 return STATUS_OK;
             }
@@ -952,18 +949,82 @@ namespace lsp
                     bTransientOn    = !EnableWindow(hTransientFor, FALSE);
                 }
 
+                if (!has_parent())
+                {
+                    place_above(hTransientFor);
+//                    HWND topmost = placement_window(hTransientFor);
+//                    SetWindowPos(
+//                        hWindow,            // hWnd
+//                        topmost,            // hWndInsertAfter
+//                        sSize.nLeft,        // X
+//                        sSize.nTop,         // Y
+//                        sSize.nWidth,       // nWidth
+//                        sSize.nHeight,      // nHeight
+//                        SWP_NOSIZE | SWP_NOMOVE // uFlags
+//                    );
+                }
+
+                ShowWindow(hWindow, SW_SHOW);
+
+                return STATUS_OK;
+            }
+
+            void WinWindow::idle()
+            {
+                // Update window order
+                if ((hTransientFor != NULL) && (!has_parent()))
+                {
+                    place_above(hTransientFor);
+                }
+            }
+
+            HWND WinWindow::wrapping_window(HWND window)
+            {
+                HWND parent;
+                while ((parent = GetParent(window)) != NULL)
+                    window = parent;
+
+                return window;
+            }
+
+            void WinWindow::place_above(HWND wnd)
+            {
+                HWND window     = placement_window(wnd);
+
+                // Nope, we need to find the window to place after
+                lsp_trace("Placing window %p above %p", hWindow, window);
+
                 SetWindowPos(
                     hWindow,            // hWnd
-                    hTransientFor,      // hWndInsertAfter
+                    window,             // hWndInsertAfter
                     sSize.nLeft,        // X
                     sSize.nTop,         // Y
                     sSize.nWidth,       // nWidth
                     sSize.nHeight,      // nHeight
-                    SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE // uFlags
+                    SWP_NOSIZE | SWP_NOMOVE // uFlags
                 );
-                ShowWindow(hWindow, SW_SHOW);
+            }
 
-                return STATUS_OK;
+            HWND WinWindow::placement_window(HWND window)
+            {
+                HWND desktop    = GetDesktopWindow();
+                window          = wrapping_window(window);
+
+                // Check that the window is placed before the passed in arguments
+                HWND current    = GetTopWindow(desktop);
+                while (true)
+                {
+                    current = GetWindow(current, GW_HWNDNEXT);
+                    if (current == NULL)
+                        return HWND_TOPMOST;
+                    if (current == window)
+                        break;
+                    if (current == hWindow)
+                        return NULL;
+                }
+
+                // Nope, we need to find the window to place after
+                return GetWindow(current, GW_HWNDPREV);
             }
 
             status_t WinWindow::take_focus()
@@ -1195,7 +1256,7 @@ namespace lsp
                     {
                         case BS_DIALOG:
                             style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;
-                            ex_style    = WS_EX_ACCEPTFILES;
+                            ex_style    = WS_EX_ACCEPTFILES | WS_EX_DLGMODALFRAME;
                             break;
                         case BS_SINGLE:
                             style       = WS_OVERLAPPED | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU;

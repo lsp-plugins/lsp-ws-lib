@@ -1987,6 +1987,13 @@ namespace lsp
                     {
                         ws::timestamp_t ts  = system::get_time_millis();
                         dpy->process_pending_tasks(ts);
+                        for (lltl::iterator<WinWindow> it = dpy->vWindows.values(); it; ++it)
+                        {
+                            WinWindow *wnd = it.get();
+                            if (wnd != NULL)
+                                wnd->idle();
+                        }
+
                         atomic_add(&dpy->nIdlePending, -1);
                         return 0;
                     }
