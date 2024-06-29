@@ -632,8 +632,10 @@ namespace lsp
 
                     case WM_WINDOWPOSCHANGED:
                     {
+                    #ifdef LSP_TRACE
                         WINDOWPOS *p = reinterpret_cast<WINDOWPOS *>(lParam);
                         lsp_trace("windowposchanged wnd=%p (%p) flags=0x%x transient_for=%p", hWindow, p->hwnd, p->flags, hTransientFor);
+                    #endif /* LSP_TRACE */
                         break;
                     }
 
