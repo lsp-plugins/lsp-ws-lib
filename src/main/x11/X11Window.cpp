@@ -1011,6 +1011,7 @@ namespace lsp
                     return STATUS_OK;
 
                 ::Window transient_for = None;
+                Display *dpy = pX11Display->x11display();
                 X11Window *wnd = NULL;
                 if (over != NULL)
                 {
@@ -1023,8 +1024,21 @@ namespace lsp
                 hTransientFor   = transient_for;
 
 //                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
-                ::XSetTransientForHint(pX11Display->x11display(), hWindow, transient_for);
-                ::XMapRaised(pX11Display->x11display(), hWindow);
+                ::XSetTransientForHint(dpy, hWindow, transient_for);
+                ::XMapRaised(dpy, hWindow);
+                if (hTransientFor != None)
+                {
+                    XWindowChanges cw;
+                    cw.x            = 0;
+                    cw.y            = 0;
+                    cw.width        = 0;
+                    cw.height       = 0;
+                    cw.border_width = 0;
+                    cw.sibling      = hTransientFor;
+                    cw.stack_mode   = Above;
+                    ::XConfigureWindow(dpy, hWindow, CWStackMode, &cw);
+                }
+
                 pX11Display->sync();
 //                XWindowAttributes atts;
 //                XGetWindowAttributes(pX11Display->x11display(), hWindow, &atts);
@@ -1063,7 +1077,7 @@ namespace lsp
                 ev.xclient.format = 32;
 
                 XSendEvent(
-                    pX11Display->x11display(),
+                    dpy,
                     pX11Display->x11root(),
                     False,
                     SubstructureRedirectMask | SubstructureNotifyMask,
