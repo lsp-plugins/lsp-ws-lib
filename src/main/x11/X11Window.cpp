@@ -417,9 +417,10 @@ namespace lsp
                     sz.max_height   = sSize.nHeight;
                 }
 
-//                lsp_trace("Window constraints: min_width=%d, min_height=%d, max_width=%d, max_height=%d",
-//                        int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
-//                    );
+//                lsp_trace("Window constraints: pos=(x=%d, y=%d), size=(w=%d, h=%d), min(w=%d, h=%d), max(w=%d, height=%d)",
+//                    int(sz.x), int(sz.y), int(sz.width), int(sz.height),
+//                    int(sz.min_width), int(sz.min_height), int(sz.max_width), int(sz.max_height)
+//                );
 
                 XSetWMNormalHints(pX11Display->x11display(), hWindow, &sz);
 //                pX11Display->sync();
@@ -517,8 +518,8 @@ namespace lsp
                             break;
 
 //                        lsp_trace("new window location = %d x %d, size = %d x %d",
-//                                int(ev->nLeft), int(ev->nTop),
-//                                int(ev->nWidth), int(ev->nHeight));
+//                            int(ev->nLeft), int(ev->nTop),
+//                            int(ev->nWidth), int(ev->nHeight));
                         sSize.nLeft         = ev->nLeft;
                         sSize.nTop          = ev->nTop;
                         sSize.nWidth        = ev->nWidth;
@@ -732,10 +733,7 @@ namespace lsp
                     sizeof(sMotif)/sizeof(long)
                 );
 
-
-//                lsp_trace("All seems to be OK");
-
-                status_t result = do_update_constraints();
+                status_t result = do_update_constraints(false);
                 pX11Display->flush();
                 return result;
             }
@@ -801,7 +799,7 @@ namespace lsp
                 if (hParent <= 0)
                     ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                 if (result == STATUS_OK)
-                    result = do_update_constraints();
+                    result = do_update_constraints(false);
                 if (result != STATUS_OK)
                     return result;
                 pX11Display->flush();
@@ -809,10 +807,14 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t X11Window::commit_size()
+            status_t X11Window::commit_size(const ws::rectangle_t *new_size)
             {
                 if (hWindow == None)
                     return STATUS_OK;
+
+//                lsp_trace("old={%d, %d}, new={%d, %d}",
+//                    int(sSize.nWidth), int(sSize.nHeight),
+//                    int(new_size->nWidth), int(new_size->nHeight));
 
                 // Temporarily drop constraints
                 status_t result = do_update_constraints(true);
@@ -820,13 +822,15 @@ namespace lsp
                     return result;
 
                 // Resize window if needed
-                XWindowAttributes xwa;
-                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+//                XWindowAttributes xwa;
+//                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
 //                lsp_trace("XGetWindowAttributes -> x=%d, y=%d, w=%d h=%d", int(xwa.x), int(xwa.y), int(xwa.width), int(xwa.height));
 
-                if ((sSize.nWidth != xwa.width) || (sSize.nHeight != xwa.height))
+                if ((sSize.nWidth != new_size->nWidth) || (sSize.nHeight != new_size->nHeight))
                 {
-//                    lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
+//                    lsp_trace("XResizeWindow(%d, %d)", int(new_size->nWidth), int(new_size->nHeight));
+                    sSize.nWidth    = new_size->nWidth;
+                    sSize.nHeight   = new_size->nHeight;
                     ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                 }
 
@@ -843,16 +847,15 @@ namespace lsp
 //                    int(sSize.nWidth), int(sSize.nHeight),
 //                    int(width), int(height));
 
-                if ((sSize.nWidth == width) && (sSize.nHeight == height))
-                    return STATUS_OK;
+                ws::rectangle_t new_size = sSize;
 
-                sSize.nWidth    = width;
-                sSize.nHeight   = height;
+                new_size.nWidth     = width;
+                new_size.nHeight    = height;
 
-                calc_constraints(&sSize, &sSize);
+                calc_constraints(&new_size, &new_size);
 //                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
-                return commit_size();
+                return commit_size(&new_size);
             }
 
             status_t X11Window::set_geometry(const rectangle_t *realize)
@@ -909,8 +912,21 @@ namespace lsp
 
             status_t X11Window::get_geometry(rectangle_t *realize)
             {
-                if (realize != NULL)
-                    *realize    = sSize;
+                if (realize == NULL)
+                    return STATUS_OK;
+
+                if (hWindow != None)
+                {
+                    XWindowAttributes xwa;
+                    ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+                    sSize.nLeft     = xwa.x;
+                    sSize.nTop      = xwa.y;
+                    sSize.nWidth    = xwa.width;
+                    sSize.nHeight   = xwa.height;
+                }
+
+                *realize    = sSize;
+
                 return STATUS_OK;
             }
 
@@ -918,7 +934,7 @@ namespace lsp
             {
                 if (realize == NULL)
                     return STATUS_BAD_ARGUMENTS;
-                if (hWindow == 0)
+                if (hWindow == None)
                 {
                     realize->nLeft      = 0;
                     realize->nTop       = 0;
@@ -926,6 +942,13 @@ namespace lsp
                     realize->nHeight    = sSize.nHeight;
                     return STATUS_BAD_STATE;
                 }
+
+                XWindowAttributes xwa;
+                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+                sSize.nLeft         = xwa.x;
+                sSize.nTop          = xwa.y;
+                sSize.nWidth        = xwa.width;
+                sSize.nHeight       = xwa.height;
 
                 int x, y;
                 Window child;
@@ -1119,10 +1142,11 @@ namespace lsp
                 if (sConstraints.nMinHeight == 0)
                     sConstraints.nMinHeight = 1;
 
-                calc_constraints(&sSize, &sSize);
+                ws::rectangle_t new_size;
+                calc_constraints(&new_size, &sSize);
 //                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
-                return commit_size();
+                return commit_size(&new_size);
             }
 
             status_t X11Window::get_size_constraints(size_limit_t *c)
