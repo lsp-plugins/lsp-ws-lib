@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -134,7 +134,7 @@ namespace lsp
             //XC_ul_angle,
             //XC_ur_angle,
 
-            volatile atomic_t X11Display::hLock     = 0;
+            atomic_t X11Display::hLock              = LSP_ATOMIC_UNLOCKED;
             X11Display  *X11Display::pHandlers      = NULL;
 
             X11Display::X11Display()
@@ -181,15 +181,13 @@ namespace lsp
                 ::XInitThreads();
 
                 // Set-up custom handler
-                while (true)
                 {
-                    if (atomic_cas(&hLock, 0, 1))
-                    {
-                        pNextHandler    = pHandlers;
-                        pHandlers       = this;
-                        hLock           = 0;
-                        break;
-                    }
+                    while (!atomic_trylock(hLock))
+                        ipc::Thread::yield();
+                    lsp_finally { atomic_unlock(hLock); };
+
+                    pNextHandler    = pHandlers;
+                    pHandlers       = this;
                 }
 
                 // Open the display
@@ -295,8 +293,9 @@ namespace lsp
 
             int X11Display::x11_error_handler(Display *dpy, XErrorEvent *ev)
             {
-                while (!atomic_cas(&hLock, 0, 1)) { /* Wait */ }
-                lsp_finally { hLock = 0; };
+                while (!atomic_trylock(hLock))
+                    ipc::Thread::yield();
+                lsp_finally { atomic_unlock(hLock); };
 
                 // Dispatch errors between Displays
                 for (X11Display *dp = pHandlers; dp != NULL; dp = dp->pNextHandler)
@@ -412,20 +411,18 @@ namespace lsp
                 }
 
                 // Remove custom handler
-                while (true)
                 {
-                    if (atomic_cas(&hLock, 0, 1))
+                    while (!atomic_trylock(hLock))
+                        ipc::Thread::yield();
+                    lsp_finally { atomic_unlock(hLock); };
+
+                    X11Display **pd = &pHandlers;
+                    while (*pd != NULL)
                     {
-                        X11Display **pd = &pHandlers;
-                        while (*pd != NULL)
-                        {
-                            if (*pd == this)
-                                *pd = (*pd)->pNextHandler;
-                            else
-                                pd  = &((*pd)->pNextHandler);
-                        }
-                        hLock   = 0;
-                        break;
+                        if (*pd == this)
+                            *pd = (*pd)->pNextHandler;
+                        else
+                            pd  = &((*pd)->pNextHandler);
                     }
                 }
 

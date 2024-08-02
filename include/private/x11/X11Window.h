@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -79,13 +79,13 @@ namespace lsp
                     static bool         check_click(const btn_event_t *ev);
                     static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     void                send_focus_event();
-                    status_t            commit_size();
+                    status_t            commit_size(const ws::rectangle_t *new_size);
 
                 protected:
 
                     void                calc_constraints(rectangle_t *dst, const rectangle_t *req);
 
-                    status_t            do_update_constraints(bool disable=false);
+                    status_t            do_update_constraints(bool disable);
 
                 public:
                     explicit X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -89,7 +89,7 @@ namespace lsp
                     typedef lltl::pphash<char, font_t> custom_font_cache_t;
 
                 protected:
-                    static volatile atomic_t    hLock;
+                    static atomic_t             hLock;
                     static volatile DWORD       nThreadId;
                     static HHOOK                hMouseHook;
                     static HHOOK                hKeyboardHook;
@@ -112,13 +112,14 @@ namespace lsp
                     WinDisplay                 *pNextHandler;               // Next hook handler in the chain of handlers
                     lltl::parray<WinWindow>     vGrab[__GRAB_TOTAL];        // Grab queue according to the priority
                     lltl::parray<WinWindow>     sTargets;                   // Targets for event delivery
+                    lltl::parray<WinWindow>     vWindows;                   // All registered windows
                     HWND                        hClipWnd;                   // Clipboard window
                     IDataSource                *pClipData;                  // Data source for clipboard
                     lltl::parray<void>          vClipMemory;                // Memory chunks allocated for the clipboard
                     WinWindow                  *pDragWindow;                // Window which is currently acting in Drag&Drop action
                     ipc::Thread                *pPingThread;                // Pinger thread
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
-                    volatile atomic_t           nIdlePending;               // Number of idle requests pending
+                    atomic_t                    nIdlePending;               // Number of idle requests pending
                     LSPString                   sWindowClassName;           // Window class name
                     LSPString                   sClipboardClassName;        // Clipboard window class name
 

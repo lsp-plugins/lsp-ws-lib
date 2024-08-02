@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -59,7 +59,7 @@ namespace lsp
             static const char *CLIPBOARD_CLASS_NAME         = "lsp-ws-lib::clipboard";
 
             //-----------------------------------------------------------------
-            volatile atomic_t WinDisplay::hLock             = 0;
+            atomic_t WinDisplay::hLock                      = 0;
             volatile DWORD WinDisplay::nThreadId            = 0;
             WinDisplay  *WinDisplay::pHandlers              = NULL;
             HHOOK WinDisplay::hMouseHook                    = NULL;
@@ -91,7 +91,7 @@ namespace lsp
                 pDragWindow             = NULL;
                 pPingThread             = NULL;
                 nLastIdleCall           = 0;
-                nIdlePending            = 0;
+                atomic_store(&nIdlePending, 0);
             }
 
             WinDisplay::~WinDisplay()
@@ -111,7 +111,7 @@ namespace lsp
                 bExit           = false;
 
                 // Register window classes
-                sWindowClassName.fmt_ascii("%s", WINDOW_CLASS_NAME, this);
+                sWindowClassName.fmt_ascii("%s@%p", WINDOW_CLASS_NAME, this);
 
                 bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = window_proc;
@@ -125,7 +125,7 @@ namespace lsp
                 }
 
                 // Register clipboard window class
-                sClipboardClassName.fmt_ascii("%s", CLIPBOARD_CLASS_NAME, this);
+                sClipboardClassName.fmt_ascii("%s@%p", CLIPBOARD_CLASS_NAME, this);
 
                 bzero(&wc, sizeof(wc));
                 wc.lpfnWndProc   = clipboard_proc;
@@ -285,7 +285,7 @@ namespace lsp
                 while (!ipc::Thread::is_cancelled())
                 {
                     // Post message if there was no idle loop for a long time
-                    if (self->nIdlePending < 2)
+                    if (atomic_load(&self->nIdlePending) < 2)
                     {
                         atomic_add(&self->nIdlePending, 1);
                         PostMessageW(self->hClipWnd, WM_USER, 0, 0);
@@ -1856,7 +1856,7 @@ namespace lsp
                 // Just increment the counter.
                 while (true)
                 {
-                    atomic_t count = hLock;
+                    atomic_t count = atomic_load(&hLock);
                     if (atomic_cas(&hLock, count, count + 1))
                         break;
                 }
@@ -1874,7 +1874,7 @@ namespace lsp
                 // before decrementing the counter
                 while (true)
                 {
-                    atomic_t count = hLock;
+                    atomic_t count = atomic_load(&hLock);
                     if (count == 1)
                         nThreadId   = 0;
                     if (atomic_cas(&hLock, count, count - 1))
@@ -1987,6 +1987,13 @@ namespace lsp
                     {
                         ws::timestamp_t ts  = system::get_time_millis();
                         dpy->process_pending_tasks(ts);
+                        for (lltl::iterator<WinWindow> it = dpy->vWindows.values(); it; ++it)
+                        {
+                            WinWindow *wnd = it.get();
+                            if (wnd != NULL)
+                                wnd->idle();
+                        }
+
                         atomic_add(&dpy->nIdlePending, -1);
                         return 0;
                     }

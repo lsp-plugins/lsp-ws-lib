@@ -179,6 +179,7 @@ namespace lsp
 
                 public:
                     void        sync_size();
+                    void        invalidate();
             };
 
         } /* namespace win */
