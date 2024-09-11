@@ -645,8 +645,8 @@ namespace lsp
                             break;
 
                         WINDOWPOS *p = reinterpret_cast<WINDOWPOS *>(lParam);
-                        HWND placement = placement_window(hTransientFor);
-                        if (placement != NULL)
+                        HWND placement = NULL;;
+                        if (placement_window(&placement, hTransientFor))
                         {
                             p->hwndInsertAfter = placement;
                             p->flags &= ~SWP_NOZORDER;
@@ -991,7 +991,9 @@ namespace lsp
 
             void WinWindow::place_above(HWND wnd)
             {
-                HWND window     = placement_window(wnd);
+                HWND window = NULL;
+                if (!placement_window(&window, wnd))
+                    return;
 
                 // Nope, we need to find the window to place after
                 lsp_trace("Placing window %p above %p", hWindow, window);
@@ -1007,7 +1009,7 @@ namespace lsp
                 );
             }
 
-            HWND WinWindow::placement_window(HWND window)
+            bool WinWindow::placement_window(HWND *result, HWND window)
             {
                 HWND desktop    = GetDesktopWindow();
                 window          = wrapping_window(window);
@@ -1018,15 +1020,22 @@ namespace lsp
                 {
                     current = GetWindow(current, GW_HWNDNEXT);
                     if (current == NULL)
-                        return HWND_TOPMOST;
+                    {
+                        *result = HWND_TOPMOST;
+                        return true;
+                    }
                     if (current == window)
                         break;
                     if (current == hWindow)
-                        return NULL;
+                    {
+                        *result = NULL;
+                        return false;
+                    }
                 }
 
                 // Nope, we need to find the window to place after
-                return GetWindow(current, GW_HWNDPREV);
+                *result = GetWindow(current, GW_HWNDPREV);
+                return true;
             }
 
             status_t WinWindow::take_focus()

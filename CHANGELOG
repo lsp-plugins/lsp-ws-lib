@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.24 ===
-
+* Fixed z fighting cases between windows under Windows platform.
 
 === 1.0.23 ===
 * Updated build scripts.
