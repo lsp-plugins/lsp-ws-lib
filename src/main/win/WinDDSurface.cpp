@@ -43,6 +43,8 @@ namespace lsp
     {
         namespace win
         {
+            constexpr FLOAT DEFAULT_DESKTOP_DPI     = 96.0f;
+
             //-----------------------------------------------------------------
             WinDDShared::WinDDShared(WinDisplay *dpy, HWND wnd)
             {
@@ -168,17 +170,14 @@ namespace lsp
                 // Create render target if necessary
                 if ((pDC == NULL) && (nType == ST_DDRAW))
                 {
-                    FLOAT dpi_x, dpi_y;
                     D2D1_RENDER_TARGET_PROPERTIES prop;
                     D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProp;
-
-                    pShared->pDisplay->d2d_factory()->GetDesktopDpi(&dpi_x, &dpi_y);
 
                     prop.type                   = D2D1_RENDER_TARGET_TYPE_DEFAULT;
                     prop.pixelFormat.format     = DXGI_FORMAT_B8G8R8A8_UNORM;
                     prop.pixelFormat.alphaMode  = D2D1_ALPHA_MODE_PREMULTIPLIED; // D2D1_ALPHA_MODE_STRAIGHT;
-                    prop.dpiX                   = dpi_x;
-                    prop.dpiY                   = dpi_y;
+                    prop.dpiX                   = DEFAULT_DESKTOP_DPI;
+                    prop.dpiY                   = DEFAULT_DESKTOP_DPI;
                     prop.usage                  = D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
                     prop.minLevel               = D2D1_FEATURE_LEVEL_DEFAULT;
 
