@@ -108,7 +108,7 @@ namespace lsp
                     void                handle_mouse_enter(const ws::event_t *ev);
                     status_t            set_geomety_impl();
                     void                place_above(HWND wnd);
-                    HWND                placement_window(HWND wnd);
+                    bool                placement_window(HWND *result, HWND wnd);
                     static HWND         wrapping_window(HWND wnd);
 
                 public:
