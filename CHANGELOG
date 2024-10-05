@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.25 ===
+
+
 === 1.0.24 ===
 * Fixed z fighting cases between windows under Windows platform.
 * Fixed UI over-scaling due to DPI taken from the system settings.
