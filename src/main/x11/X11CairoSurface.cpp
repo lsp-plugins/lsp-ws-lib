@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -1290,9 +1290,9 @@ namespace lsp
                 if ((pCR == NULL) || (n < 2))
                     return;
 
-                cairo_move_to(pCR, *(x++), *(y++));
+                cairo_move_to(pCR, x[0], y[0]);
                 for (size_t i=1; i < n; ++i)
-                    cairo_line_to(pCR, *(x++), *(y++));
+                    cairo_line_to(pCR, x[i], y[i]);
 
                 setSourceRGBA(color);
                 cairo_fill(pCR);
@@ -1303,9 +1303,9 @@ namespace lsp
                 if ((pCR == NULL) || (n < 2) || (gr == NULL))
                     return;
 
-                cairo_move_to(pCR, *(x++), *(y++));
+                cairo_move_to(pCR, x[0], y[0]);
                 for (size_t i=1; i < n; ++i)
-                    cairo_line_to(pCR, *(x++), *(y++));
+                    cairo_line_to(pCR, x[i], y[i]);
 
                 X11CairoGradient *cg = static_cast<X11CairoGradient *>(gr);
                 cg->apply(pCR);
@@ -1317,9 +1317,9 @@ namespace lsp
                 if ((pCR == NULL) || (n < 2))
                     return;
 
-                cairo_move_to(pCR, *(x++), *(y++));
+                cairo_move_to(pCR, x[0], y[0]);
                 for (size_t i=1; i < n; ++i)
-                    cairo_line_to(pCR, *(x++), *(y++));
+                    cairo_line_to(pCR, x[i], y[i]);
 
                 setSourceRGBA(color);
                 cairo_set_line_width(pCR, width);
@@ -1331,9 +1331,9 @@ namespace lsp
                 if ((pCR == NULL) || (n < 2))
                     return;
 
-                cairo_move_to(pCR, *(x++), *(y++));
+                cairo_move_to(pCR, x[0], y[0]);
                 for (size_t i=1; i < n; ++i)
-                    cairo_line_to(pCR, *(x++), *(y++));
+                    cairo_line_to(pCR, x[i], y[i]);
 
                 if (width > 0.0f)
                 {
@@ -1615,8 +1615,8 @@ namespace lsp
             }
 
         }
-    }
 
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
