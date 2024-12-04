@@ -142,6 +142,7 @@ namespace lsp
                 pNextHandler    = NULL;
                 bExit           = false;
                 pDisplay        = NULL;
+                pXrenderFormat  = NULL;
                 hRootWnd        = -1;
                 hClipWnd        = None;
                 pFocusWindow    = NULL;
@@ -200,6 +201,8 @@ namespace lsp
                         lsp_error("Can not open display");
                         return STATUS_NO_DEVICE;
                     }
+
+                    pXrenderFormat  = XRenderFindStandardFormat(pDisplay, PictStandardRGB24);
                 }
 
                 // Initialize font manager

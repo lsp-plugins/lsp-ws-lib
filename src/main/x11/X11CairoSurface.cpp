@@ -26,12 +26,24 @@
 #include <lsp-plug.in/stdlib/math.h>
 
 #include <cairo/cairo.h>
-#include <cairo/cairo-xlib.h>
+
+#ifdef CAIRO_HAS_XLIB_SURFACE
+    #include <cairo/cairo-xlib.h>
+#endif /* CAIRO_HAS_XLIB_SURFACE */
+#ifdef CAIRO_HAS_GLX_FUNCTIONS
+    #include <cairo/cairo-gl.h>
+    #include <GL/glx.h>
+#endif /* CAIRO_HAS_GLX_FUNCTIONS */
+#ifdef CAIRO_HAS_XLIB_XRENDER_SURFACE
+    #include <cairo/cairo-xlib-xrender.h>
+#endif /* CAIRO_HAS_XLIB_XRENDER_SURFACE */
 
 #include <private/freetype/FontManager.h>
 #include <private/x11/X11CairoGradient.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11Display.h>
+
+#include <X11/extensions/Xrender.h>
 
 namespace lsp
 {
@@ -39,6 +51,40 @@ namespace lsp
     {
         namespace x11
         {
+            static inline const char *to_string(cairo_surface_type_t type)
+            {
+                switch (type)
+                {
+                    case CAIRO_SURFACE_TYPE_IMAGE: return "image";
+                    case CAIRO_SURFACE_TYPE_PDF: return "pdf";
+                    case CAIRO_SURFACE_TYPE_PS: return "ps";
+                    case CAIRO_SURFACE_TYPE_XLIB: return "xlib";
+                    case CAIRO_SURFACE_TYPE_XCB: return "xcb";
+                    case CAIRO_SURFACE_TYPE_GLITZ: return "glitz";
+                    case CAIRO_SURFACE_TYPE_QUARTZ: return "quartz";
+                    case CAIRO_SURFACE_TYPE_WIN32: return "win32";
+                    case CAIRO_SURFACE_TYPE_BEOS: return "beos";
+                    case CAIRO_SURFACE_TYPE_DIRECTFB: return "directfb";
+                    case CAIRO_SURFACE_TYPE_SVG: return "svg";
+                    case CAIRO_SURFACE_TYPE_OS2: return "os2";
+                    case CAIRO_SURFACE_TYPE_WIN32_PRINTING: return "win32_printing";
+                    case CAIRO_SURFACE_TYPE_QUARTZ_IMAGE: return "quartz_image";
+                    case CAIRO_SURFACE_TYPE_SCRIPT: return "script";
+                    case CAIRO_SURFACE_TYPE_QT: return "qt";
+                    case CAIRO_SURFACE_TYPE_RECORDING: return "recording";
+                    case CAIRO_SURFACE_TYPE_VG: return "vg";
+                    case CAIRO_SURFACE_TYPE_GL: return "gl";
+                    case CAIRO_SURFACE_TYPE_DRM: return "drm";
+                    case CAIRO_SURFACE_TYPE_TEE: return "tee";
+                    case CAIRO_SURFACE_TYPE_XML: return "xml";
+                    case CAIRO_SURFACE_TYPE_SKIA: return "skia";
+                    case CAIRO_SURFACE_TYPE_SUBSURFACE: return "subsurface";
+                    case CAIRO_SURFACE_TYPE_COGL: return "cogl";
+                }
+
+                return "unknown";
+            }
+
             static inline cairo_antialias_t decode_antialiasing(const Font &f)
             {
                 switch (f.antialiasing())
@@ -56,7 +102,58 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
-                pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+                pSurface        = NULL;
+
+            #if CAIRO_HAS_GLX_FUNCTIONS
+                if (pSurface == NULL)
+                {
+                    int attributes[] = { //can't be const b/c X11 doesn't like it.  Not sure if that's intentional or just stupid.
+                        GLX_RGBA, //apparently nothing comes after this?
+                        //Ideally, the size would be 32 (or at least 24), but I have actually seen
+                        //  this size (on a modern OS even).
+//                        GLX_X_RENDERABLE    , True,
+                        GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
+                        GLX_RED_SIZE        , 8,
+                        GLX_GREEN_SIZE      , 8,
+                        GLX_BLUE_SIZE       , 8,
+                        GLX_ALPHA_SIZE      , 8,
+                        GLX_DEPTH_SIZE      , 16,
+                        GLX_STENCIL_SIZE    , 8,
+                        GLX_DOUBLEBUFFER, True,
+                        None
+                    };
+
+                    XVisualInfo* visual_info = glXChooseVisual(dpy->x11display(), DefaultScreen(dpy->x11display()), attributes);
+                    GLXContext render_context = glXCreateContext(dpy->x11display(), visual_info, nullptr, True);
+
+                    cairo_device_t *dev = cairo_glx_device_create(dpy->x11display(), render_context);
+                    pSurface        = cairo_gl_surface_create_for_window(dev, drawable, width, height);
+                    if (pSurface != NULL)
+                        nType           = ST_GLXWND;
+                }
+
+            #endif /* CAIRO_HAS_GLX_FUNCTIONS */
+            #if CAIRO_HAS_XLIB_XRENDER_SURFACE
+                if (pSurface == NULL)
+                {
+                    XRenderPictFormat *xr_format = dpy->xrender_pict_format();
+                    if (xr_format != NULL)
+                    {
+                        pSurface        = cairo_xlib_surface_create_with_xrender_format(
+                            dpy->x11display(),
+                            drawable,
+                            DefaultScreenOfDisplay(dpy->x11display()),
+                            xr_format,
+                            width, height);
+                    }
+                }
+            #endif /* CAIRO_HAS_XLIB_XRENDER_SURFACE */
+                if (pSurface == NULL)
+                    pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+
+                cairo_surface_type_t stype = cairo_surface_get_type(pSurface);
+                lsp_trace("surface type=%s", to_string(stype));
+
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -69,6 +166,9 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+
+                cairo_surface_type_t stype = cairo_surface_get_type(pSurface);
+                lsp_trace("surface type=%s", to_string(stype));
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -80,8 +180,23 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-                // ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+//                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                if ((nType == ST_GLXWND) || (nType == ST_GLX))
+                {
+                    pSurface        = ::cairo_gl_surface_create(
+                                cairo_surface_get_device(surface),
+                                CAIRO_CONTENT_COLOR_ALPHA,
+                                width, height);
+                    nType           = ST_GLX;
+                }
+                else
+                {
+                    pSurface        = ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+                    nType           = ST_SIMILAR;
+                }
+
+                cairo_surface_type_t stype = cairo_surface_get_type(pSurface);
+                lsp_trace("surface type=%s", to_string(stype));
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -168,11 +283,19 @@ namespace lsp
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
-                if (nType == ST_IMAGE)
+                if ((nType == ST_GLXWND) || (nType == ST_GLX))
+                {
+                    ::cairo_gl_surface_set_size(pSurface, width, height);
+                    return true;
+                }
+                else if (nType == ST_IMAGE)
                     s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 else if (nType == ST_SIMILAR)
-                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-                    // s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+//                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+
+                cairo_surface_type_t stype = cairo_surface_get_type(s);
+                lsp_trace("surface type=%s", to_string(stype));
 
                 if (s == NULL)
                     return false;
@@ -378,6 +501,8 @@ namespace lsp
                 }
 
                 ::cairo_surface_flush(pSurface);
+                if (nType == ST_GLXWND)
+                    ::cairo_gl_surface_swapbuffers(pSurface);
             }
 
             void X11CairoSurface::set_current_font(font_context_t *ctx, const Font &f)

@@ -35,6 +35,7 @@
 
 #include <time.h>
 #include <X11/Xlib.h>
+#include <X11/extensions/Xrender.h>
 
 // Cairo headers
 #ifdef USE_LIBCAIRO
@@ -195,6 +196,7 @@ namespace lsp
                 protected:
                     volatile bool               bExit;
                     Display                    *pDisplay;
+                    XRenderPictFormat          *pXrenderFormat;
                     Window                      hRootWnd;           // Root window of the display
                     Window                      hClipWnd;           // Unmapped clipboard window
                     X11Window                  *pFocusWindow;       // Focus window after show
@@ -341,9 +343,10 @@ namespace lsp
                     bool                        add_window(X11Window *wnd);
                     bool                        remove_window(X11Window *wnd);
 
-                    inline Display             *x11display() const  { return pDisplay; }
-                    inline Window               x11root() const     { return hRootWnd; }
-                    inline const x11_atoms_t   &atoms() const       { return sAtoms; }
+                    inline Display             *x11display() const      { return pDisplay; }
+                    inline Window               x11root() const         { return hRootWnd; }
+                    inline const x11_atoms_t   &atoms() const           { return sAtoms; }
+                    inline XRenderPictFormat   *xrender_pict_format()   { return pXrenderFormat;    }
                     Cursor                      get_cursor(mouse_pointer_t pointer);
 
                     size_t                      get_screen(Window root);
