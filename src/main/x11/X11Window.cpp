@@ -1402,10 +1402,11 @@ namespace lsp
                 if (hWindow <= 0)
                     return STATUS_BAD_STATE;
 
-                size_t n = width * height;
-                unsigned long *buffer = new unsigned long [n + 2];
+                const size_t n = width * height;
+                unsigned long *buffer = reinterpret_cast<unsigned long *>(malloc(sizeof(unsigned long) * (n + 2)));
                 if (buffer == NULL)
                     return STATUS_NO_MEM;
+                lsp_finally { free(buffer); };
 
                 buffer[0] = width;
                 buffer[1] = height;
@@ -1419,11 +1420,9 @@ namespace lsp
                 const x11_atoms_t &a = pX11Display->atoms();
 
                 XChangeProperty(
-                        pX11Display->x11display(), hWindow,
-                        a.X11__NET_WM_ICON, a.X11_XA_CARDINAL, 32, PropModeReplace,
-                        reinterpret_cast<unsigned char *>(buffer), n + 2);
-
-                delete [] buffer; // Drop buffer
+                    pX11Display->x11display(), hWindow,
+                    a.X11__NET_WM_ICON, a.X11_XA_CARDINAL, 32, PropModeReplace,
+                    reinterpret_cast<unsigned char *>(buffer), n + 2);
 
                 return STATUS_OK;
             }
