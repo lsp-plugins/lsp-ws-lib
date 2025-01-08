@@ -135,6 +135,7 @@ namespace lsp
                         Atom                hSelection;
                         Atom                hType;
                         x11_dnd_recv_states enState;
+                        bool                bPollActive;
                         IDataSink          *pSink;
                         Atom                hAction;
                         Window              hProxy;
@@ -315,10 +316,11 @@ namespace lsp
 
                     virtual status_t            set_clipboard(size_t id, IDataSource *ds) override;
                     virtual status_t            get_clipboard(size_t id, IDataSink *dst) override;
-                    virtual const char * const *get_drag_ctypes() override;
 
+                    virtual const char * const *get_drag_ctypes() override;
                     virtual status_t            reject_drag() override;
                     virtual status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL) override;
+                    virtual bool                drag_pending() override;
 
                     virtual status_t            get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
 

@@ -2234,7 +2234,9 @@ namespace lsp
 
                         ue.nTime            = ev->data.l[3];
 
+                        recv->bPollActive   = true;
                         wnd->handle_event(&ue);
+                        recv->bPollActive   = false;
 
                         // Did the handler properly process the event?
                         if ((recv->enState != DND_RECV_ACCEPT) && (recv->enState != DND_RECV_REJECT))
@@ -2481,6 +2483,7 @@ namespace lsp
                 dnd->hSelection     = sAtoms.X11_XdndSelection;
                 dnd->hType          = None;
                 dnd->enState        = DND_RECV_PENDING;
+                dnd->bPollActive    = false;
                 dnd->pSink          = NULL;
                 dnd->hAction        = None;
                 dnd->hProxy         = None;
@@ -2632,7 +2635,9 @@ namespace lsp
 
                 ue.nTime            = ev->data.l[3];
 
+                task->bPollActive   = true;
                 status_t res        = tgt->handle_event(&ue);
+                task->bPollActive   = false;
 
                 // Did the handler properly process the event?
                 if ((task->enState != DND_RECV_ACCEPT) && (task->enState != DND_RECV_REJECT))
@@ -3550,6 +3555,13 @@ namespace lsp
                 reject_dnd_transfer(task);
 
                 return STATUS_OK;
+            }
+
+            bool X11Display::drag_pending()
+            {
+                // Check task state
+                dnd_recv_t *task = current_drag_task();
+                return (task != NULL) && (task->enState == DND_RECV_POSITION) && (task->bPollActive);
             }
 
             status_t X11Display::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)

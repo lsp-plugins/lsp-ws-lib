@@ -63,8 +63,8 @@ namespace lsp
             ws::rectangle_t     rect;       // The position and size of monitor
         } MonitorInfo;
 
-        /** Display
-         *
+        /**
+         * Display interface
          */
         class LSP_WS_LIB_PUBLIC IDisplay
         {
@@ -372,7 +372,17 @@ namespace lsp
                 virtual status_t get_clipboard(size_t id, IDataSink *dst);
 
                 /**
-                 * Reject drag request because drag is not supported at the current position
+                 * Check if drag request is still pending and was not rejected, works only
+                 * in the event handler that handles current Drag&Drop operation.
+                 *
+                 * @return true if drag request is still pending and was not rejected
+                 */
+                virtual bool drag_pending();
+
+                /**
+                 * Force to reject drag&drop operation request because drag is not supported
+                 * at the current position. This call should be issued in extra cases as by
+                 * default display automatically rejects drag if no accept_drag() was called.
                  * @return status of operation
                  */
                 virtual status_t reject_drag();
@@ -385,6 +395,7 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r = NULL);
+
 
                 /**
                  * Get currently pending content type of a drag

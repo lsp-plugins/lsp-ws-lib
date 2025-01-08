@@ -872,6 +872,11 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
+        bool IDisplay::drag_pending()
+        {
+            return false;
+        }
+
         status_t IDisplay::reject_drag()
         {
             return STATUS_NOT_IMPLEMENTED;
