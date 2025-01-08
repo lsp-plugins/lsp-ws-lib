@@ -3,7 +3,9 @@
 *******************************************************************************
 
 === 1.0.27 ===
-
+* Updated Drag&Drop handling to be more optimistic: if nested widget does not
+  reject Drag&Drop operation, then we try to handle the Drag&Drop operation by
+  the parent widget.
 
 === 1.0.26 ===
 * Updated build scripts.
