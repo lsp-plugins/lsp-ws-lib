@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -176,7 +176,12 @@ namespace lsp
 
                 public:
                     explicit WinDisplay();
-                    virtual ~WinDisplay();
+                    WinDisplay(const WinDisplay &) = delete;
+                    WinDisplay(WinDisplay &&) = delete;
+                    virtual ~WinDisplay() override;
+
+                    WinDisplay & operator = (const WinDisplay &) = delete;
+                    WinDisplay & operator = (WinDisplay &&) = delete;
 
                     virtual status_t            init(int argc, const char **argv) override;
                     virtual void                destroy() override;
@@ -208,6 +213,7 @@ namespace lsp
 
                     // Drag & Drop management
                     virtual const char * const *get_drag_ctypes() override;
+                    virtual bool                drag_pending() override;
                     virtual status_t            reject_drag() override;
                     virtual status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r=NULL) override;
 

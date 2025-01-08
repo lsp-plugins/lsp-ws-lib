@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 4 мая 2020 г.
@@ -130,8 +130,8 @@ namespace lsp
          */
         enum drag_t
         {
-            DRAG_COPY           = 0,//!< DRAG_COPY
-            DRAG_MOVE           = 1,//!< DRAG_MOVE
+            DRAG_COPY           = 0,
+            DRAG_MOVE           = 1,
             DRAG_LINK           = 2
         };
 

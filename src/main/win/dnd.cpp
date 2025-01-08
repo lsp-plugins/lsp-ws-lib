@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 22 июл. 2022 г.
@@ -49,6 +49,8 @@ namespace lsp
                 pDataSink       = NULL;
                 enAction        = DRAG_COPY;
                 bInternal       = false;
+                bPollActive     = false;
+                bRejected       = false;
                 sRect.nLeft     = 0;
                 sRect.nTop      = 0;
                 sRect.nWidth    = 0;
@@ -89,6 +91,13 @@ namespace lsp
                 sRect.nHeight   = 0;
             }
 
+            bool WinDNDTarget::poll_active() const
+            {
+                // If pDataSink is not null, then drag has been accepted.
+                // If bRejected is false, then no explicit reject_drag() was called.
+                return (bPollActive) && (pDataSink != NULL) && (!bRejected);
+            }
+
             const char *const *WinDNDTarget::formats() const
             {
                 return (vFormatNames.size() > 0) ? vFormatNames.array() : NULL;
@@ -119,13 +128,14 @@ namespace lsp
 
             status_t WinDNDTarget::reject_drag()
             {
+                bRejected       = true;
                 reset_confirm_state();
                 return STATUS_OK;
             }
 
             DWORD WinDNDTarget::get_drop_effect()
             {
-                if (pDataSink == NULL)
+                if ((pDataSink == NULL) || (bRejected))
                     return DROPEFFECT_NONE;
 
                 switch (enAction)
@@ -255,6 +265,8 @@ namespace lsp
 
                 // Reset state, prepare for accept_drag() or reject_drag() calls
                 reset_confirm_state();
+                bPollActive     = true;
+                bRejected       = false;
 
                 // Create DRAG_REQUEST event and pass to window
                 POINT dpt;
@@ -268,10 +280,12 @@ namespace lsp
                 ue.nTop         = dpt.y;
 
                 pWindow->handle_event(&ue);
+                bPollActive     = false;
 
                 // Return the drop effect
-                *pdwEffect      = get_drop_effect();
-                lsp_trace("drop effect = 0x%lx", long(*pdwEffect));
+                DWORD effect    = get_drop_effect();
+                lsp_trace("drop effect = 0x%lx", long(effect));
+                *pdwEffect      = effect;
 
                 return S_OK;
             }
@@ -347,10 +361,22 @@ namespace lsp
                 LSPString fmt_oname;
                 if (read_clipboard_format_name(fmt->cfFormat, &fmt_oname) != STATUS_OK)
                 {
-                    if (fmt_oname.prepend_ascii("application/x-windows-"))
-                        lsp_trace("FMT: fmt=%d, asp=%ld, lind=%ld, tymed=0x%lx name=%s",
-                            int(fmt->cfFormat), long(fmt->dwAspect), long(fmt->lindex), long(fmt->tymed), fmt_oname.get_native());
+                    switch (fmt->cfFormat)
+                    {
+                        case CF_UNICODETEXT: fmt_oname.set_ascii("CF_UNICODETEXT"); break;
+                        case CF_OEMTEXT: fmt_oname.set_ascii("CF_OEMTEXT"); break;
+                        case CF_TEXT: fmt_oname.set_ascii("CF_TEXT"); break;
+                        case CF_HDROP: fmt_oname.set_ascii("CF_HDROP"); break;
+                        default:
+                            fmt_oname.fmt_ascii("unknown(0x%x)", int(fmt->cfFormat));
+                            break;
+                    }
                 }
+                else
+                    fmt_oname.prepend_ascii("application/x-windows-");
+
+                lsp_trace("FMT: fmt=%d, asp=%ld, lind=%ld, tymed=0x%lx name=%s",
+                    int(fmt->cfFormat), long(fmt->dwAspect), long(fmt->lindex), long(fmt->tymed), fmt_oname.get_native());
             #endif /* LSP_TRACE */
 
                 // Write data to the sink
@@ -361,9 +387,10 @@ namespace lsp
 
                 return DragLeave();
             }
-        } // namespace win
-    } // namespace ws
-} // namespace lsp
+
+        } /* namespace win */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* PLATFORM_WINDOWS */
 
