@@ -1800,6 +1800,10 @@ namespace lsp
                             sTargets.add(target);
                         break;
 
+                    case UIE_FOCUS_IN:
+                        XAutoRepeatOn(pDisplay);
+                        break;
+
                     case UIE_MOUSE_DOWN:
                     case UIE_MOUSE_UP:
                     case UIE_MOUSE_IN:
@@ -3700,6 +3704,7 @@ namespace lsp
 
                 // Set input focus to window
                 ::XSetInputFocus(pDisplay, wnd, RevertToParent, CurrentTime);
+                ::XAutoRepeatOn(pDisplay);
 
                 // Reset error handler
                 ::XSync(pDisplay, False);
