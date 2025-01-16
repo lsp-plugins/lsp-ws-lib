@@ -505,11 +505,6 @@ namespace lsp
                 return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
             }
 
-            ISurface *WinDisplay::create_surface(size_t width, size_t height)
-            {
-                return NULL;
-            }
-
             size_t WinDisplay::screens()
             {
                 return 1;
