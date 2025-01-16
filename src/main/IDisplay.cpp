@@ -773,11 +773,6 @@ namespace lsp
             return NULL;
         }
 
-        ISurface *IDisplay::create_surface(size_t width, size_t height)
-        {
-            return NULL;
-        }
-    
         bool IDisplay::taskid_exists(taskid_t id)
         {
             for (size_t i=0, n=sTasks.size(); i<n; ++i)

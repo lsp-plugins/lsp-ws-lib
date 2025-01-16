@@ -329,14 +329,6 @@ namespace lsp
                  */
                 virtual IR3DBackend *create_r3d_backend(IWindow *parent);
 
-                /** Create surface for drawing
-                 *
-                 * @param width surface width
-                 * @param height surface height
-                 * @return surface or NULL on error
-                 */
-                virtual ISurface *create_surface(size_t width, size_t height);
-
                 /** Submit task for execution. The implementation MUST be thread safe and allow
                  * to submit tasks from ANY thread at ANY time.
                  *

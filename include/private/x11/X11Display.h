@@ -302,7 +302,6 @@ namespace lsp
                     virtual IWindow            *create_window(size_t screen) override;
                     virtual IWindow            *create_window(void *handle) override;
                     virtual IWindow            *wrap_window(void *handle) override;
-                    virtual ISurface           *create_surface(size_t width, size_t height) override;
 
                     virtual status_t            main() override;
                     virtual status_t            main_iteration() override;

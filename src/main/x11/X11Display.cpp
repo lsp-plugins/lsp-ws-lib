@@ -284,7 +284,7 @@ namespace lsp
                 nWakeupMessage  = XInternAtom(pDisplay, "lsp::ws::wakeup", False);
 
                 // Create estimation surface
-                pEstimation     = create_surface(1, 1);
+                pEstimation     = new X11CairoSurface(this, 1, 1);
                 if (pEstimation == NULL)
                     return STATUS_NO_MEM;
 
@@ -324,11 +324,6 @@ namespace lsp
             IWindow *X11Display::wrap_window(void *handle)
             {
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, true);
-            }
-
-            ISurface *X11Display::create_surface(size_t width, size_t height)
-            {
-                return new X11CairoSurface(this, width, height);
             }
 
             void X11Display::do_destroy()
