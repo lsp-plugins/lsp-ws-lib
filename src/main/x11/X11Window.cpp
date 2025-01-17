@@ -35,9 +35,11 @@
 
 #include <limits.h>
 #include <errno.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xatom.h>
+
+#ifdef USE_LIBGL
+    #include <GL/gl.h>
+    #include <GL/glx.h>
+#endif /* USE_LIBGL */
 
 namespace lsp
 {
@@ -45,12 +47,55 @@ namespace lsp
     {
         namespace x11
         {
+        #ifdef USE_LIBGL
+            static const GLint rgba24x32[]    = { GLX_RGBA, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 32, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba24x24[]    = { GLX_RGBA, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba16x24[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba15x24[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 5, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba16[]       = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba15[]       = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 5, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax32[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 32, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax24[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax16[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 16, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba[]         = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
+
+            static const GLint * const glx_visuals[] =
+            {
+                rgba24x32, rgba24x24,
+                rgba16x24, rgba16,
+                rgba15x24, rgba15,
+                rgbax32, rgbax24, rgbax16, rgba,
+                NULL
+            };
+
+        #endif /* USE_LIBGL */
+
+            static ::XVisualInfo *choose_visual(Display *dpy, int screen)
+            {
+            #ifdef USE_LIBGL
+                for (const GLint * const *visual = glx_visuals; *visual != NULL; ++visual)
+                {
+                    ::XVisualInfo *vi = ::glXChooseVisual(dpy, screen, const_cast<int *>(*visual));
+                    if (vi != NULL)
+                    {
+                        lsp_trace(
+                            "Selected visual: id=0x%lx, depth=%d, red=0x%lx, green=0x%lx, blue=0x%lx, colormap_size=%d, bits_per_rgb=%d",
+                            long(vi->visualid), vi->depth, vi->red_mask, vi->green_mask, vi->blue_mask, vi->colormap_size, vi->bits_per_rgb);
+                        return vi;
+                    }
+                }
+            #endif /* USE_LIBGL */
+                return NULL;
+            }
+
             X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): IWindow(core, handler)
             {
 //                lsp_trace("hwindow = %x", int(wnd));
                 pX11Display             = core;
                 bWrapper                = wrapper;
                 bVisible                = false;
+                pVisualInfo             = NULL;
+                hColormap               = None;
                 if (wrapper)
                 {
                     hWindow                 = wnd;
@@ -177,31 +222,48 @@ namespace lsp
                     // Calculate window constraints
                     calc_constraints(&sSize, &sSize);
 
-                    // Create window
+                    // Determine parent window and screen
                     Window wnd = 0;
+                    Window parent_wnd = hParent;
 
-                    if (hParent > 0)
+                    if (parent_wnd > 0)
                     {
                         XWindowAttributes atts;
-                        XGetWindowAttributes(pX11Display->x11display(), hParent, &atts);
+                        XGetWindowAttributes(dpy, hParent, &atts);
                         nScreen = pX11Display->get_screen(atts.root);
-
-                        wnd = XCreateWindow(
-                            dpy, hParent,
-                            sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight,
-                            0, 0, CopyFromParent, CopyFromParent, 0, NULL);
                     }
                     else
                     {
-                        size_t n = pX11Display->screens();
-                        wnd = (nScreen < n) ? RootWindow(dpy, nScreen) : pX11Display->x11root();
+                        const size_t n = pX11Display->screens();
+                        parent_wnd = (nScreen < n) ? RootWindow(dpy, nScreen) : pX11Display->x11root();
                         nScreen = pX11Display->get_screen(wnd);
-
-                        wnd = XCreateWindow(
-                            dpy, wnd,
-                            sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight,
-                            0, 0, CopyFromParent, CopyFromParent, 0, NULL);
                     }
+
+                #ifdef USE_LIBGL
+                    // Create visual
+                    pVisualInfo = choose_visual(dpy, int(nScreen));
+                    ::Visual *xv = (pVisualInfo != NULL) ? pVisualInfo->visual : ::XDefaultVisual(dpy, int(nScreen));
+                    lsp_trace(
+                        "Selected visual: id=0x%lx, red=0x%lx, green=0x%lx, blue=0x%lx, bits_per_rgb=%d",
+                        xv->visualid, xv->red_mask, xv->green_mask, xv->blue_mask, xv->bits_per_rgb);
+
+                    hColormap = XCreateColormap(dpy, parent_wnd, xv, AllocNone);
+
+                    XSetWindowAttributes swa;
+                    swa.colormap            = hColormap;
+                    swa.background_pixmap   = None;
+                    swa.border_pixel        = 0;
+
+                    wnd = XCreateWindow(
+                        dpy, parent_wnd,
+                        sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight,
+                        0, 0, CopyFromParent, xv, CWColormap|CWBorderPixel, &swa);
+                #else
+                    wnd = XCreateWindow(
+                        dpy, parent_wnd,
+                        sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight,
+                        0, 0, CopyFromParent, CopyFromParent, 0, NULL);
+                #endif /* USE_LIBGL */
 
 //                    lsp_trace("wnd=%x, external=%d, external_id=%x", int(wnd), int(hParent > 0), int(hParent));
                     if (wnd <= 0)
@@ -332,6 +394,20 @@ namespace lsp
                 {
                     hWindow = None;
                     hParent = None;
+                }
+
+                if (pX11Display != NULL)
+                {
+                    if (hColormap != None)
+                    {
+                        XFreeColormap(pX11Display->x11display(), hColormap);
+                        hColormap       = None;
+                    }
+                    if (pVisualInfo != NULL)
+                    {
+                        XFree(pVisualInfo);
+                        pVisualInfo     = NULL;
+                    }
                 }
 
                 pX11Display = NULL;
@@ -473,11 +549,10 @@ namespace lsp
 
                         // Create surface
                         Display *dpy    = pX11Display->x11display();
-                        Visual *v       = DefaultVisual(dpy, screen());
+                        ::Visual *v     = (pVisualInfo != NULL) ? pVisualInfo->visual : DefaultVisual(dpy, screen());
                         pSurface        = new X11CairoSurface(
-                                            static_cast<X11Display *>(pDisplay),
-                                            hWindow, v, sSize.nWidth, sSize.nHeight
-                                          );
+                                              static_cast<X11Display *>(pDisplay),
+                                              hWindow, v, sSize.nWidth, sSize.nHeight);
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)

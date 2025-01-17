@@ -37,6 +37,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.preprocessor.def.1538000506" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="LSP_IDE_DEBUG"/>
+									<listOptionValue builtIn="false" value="USE_LIBGL"/>
 									<listOptionValue builtIn="false" value="USE_LIBX11"/>
 									<listOptionValue builtIn="false" value="USE_LIBXRANDR"/>
 									<listOptionValue builtIn="false" value="USE_LIBFREETYPE"/>
@@ -62,6 +63,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.850397340" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="LSP_IDE_DEBUG"/>
+									<listOptionValue builtIn="false" value="USE_LIBGL"/>
 									<listOptionValue builtIn="false" value="USE_LIBX11"/>
 									<listOptionValue builtIn="false" value="USE_LIBFREETYPE"/>
 									<listOptionValue builtIn="false" value="USE_LIBXRANDR"/>
