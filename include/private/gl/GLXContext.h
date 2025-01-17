@@ -29,6 +29,8 @@
 #include <private/gl/IContext.h>
 
 #include <GL/glx.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
 namespace lsp
 {
@@ -53,6 +55,8 @@ namespace lsp
                     virtual status_t    do_deactivate() override;
                     virtual const char *shader(gl::shader_t shader) const override;
             };
+
+            gl::IContext *create_context(Display *dpy);
 
         } /* namespace glx */
     } /* namespace ws */
