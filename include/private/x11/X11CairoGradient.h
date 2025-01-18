@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 19 дек. 2016 г.
@@ -39,21 +39,64 @@ namespace lsp
         {
             class LSP_HIDDEN_MODIFIER X11CairoGradient: public IGradient
             {
+                public:
+                    typedef struct linear_t
+                    {
+                        float x1;
+                        float y1;
+                        float x2;
+                        float y2;
+                    } linear_t;
+
+                    typedef struct radial_t
+                    {
+                        float x1;
+                        float y1;
+                        float x2;
+                        float y2;
+                        float r;
+                    } radial_t;
+
                 protected:
-                    cairo_pattern_t *pCP;
+                    typedef struct color_t
+                    {
+                        float r, g, b, a;
+                    } color_t;
+
+                protected:
+                    cairo_pattern_t    *pCP;
+                    union
+                    {
+                        linear_t    sLinear;
+                        radial_t    sRadial;
+                    };
+                    color_t             sStart;
+                    color_t             sEnd;
+                    bool                bLinear;
+
+                protected:
+                    void drop_pattern();
 
                 public:
-                    explicit X11CairoGradient(cairo_pattern_t *cp);
-                    virtual ~X11CairoGradient();
+                    explicit X11CairoGradient(const linear_t & params);
+                    explicit X11CairoGradient(const radial_t & params);
+                    X11CairoGradient(const X11CairoGradient &) = delete;
+                    X11CairoGradient(X11CairoGradient &&) = delete;
+                    virtual ~X11CairoGradient() override;
+
+                    X11CairoGradient & operator = (const X11CairoGradient &) = delete;
+                    X11CairoGradient & operator = (X11CairoGradient &&) = delete;
+
+                public:
+                    virtual void set_start(float r, float g, float b, float a) override;
+                    virtual void set_stop(float r, float g, float b, float a) override;
 
                 public:
                     void apply(cairo_t *cr);
-
-                public:
-                    virtual void add_color(float offset, float r, float g, float b, float a);
             };
-        }
-    }
+
+        } /* namespace x11 */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */

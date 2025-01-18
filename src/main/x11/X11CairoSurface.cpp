@@ -115,13 +115,18 @@ namespace lsp
             IGradient *X11CairoSurface::linear_gradient(float x0, float y0, float x1, float y1)
             {
                 return new X11CairoGradient(
-                    ::cairo_pattern_create_linear(x0, y0, x1, y1));
+                    X11CairoGradient::linear_t {
+                        x0, y0,
+                        x1, y1});
             }
 
             IGradient *X11CairoSurface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
             {
                 return new X11CairoGradient(
-                    ::cairo_pattern_create_radial(cx0, cy0, 0, cx1, cy1, r));
+                    X11CairoGradient::radial_t {
+                        cx0, cy0,
+                        cx1, cy1,
+                        r});
             }
 
             X11CairoSurface::~X11CairoSurface()

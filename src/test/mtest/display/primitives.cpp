@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 6 июл. 2022 г.
@@ -102,10 +102,10 @@ MTEST_BEGIN("ws.display", primitives)
                             lsp_finally { delete g; };
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0xffff00);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             float a  = M_PI * i / 8.0f + M_PI / 2.0f;
                             float x0 = 16 * cosf(a), y0 = 16 * sinf(a);
@@ -138,10 +138,10 @@ MTEST_BEGIN("ws.display", primitives)
                             lsp_finally { delete g; };
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0x00ffff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             float r = 12 + 4 * sinf(M_PI * i / 8.0f);
                             s->fill_circle(g, 24.0f + 40 * i, y + 16, r);

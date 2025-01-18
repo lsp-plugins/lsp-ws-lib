@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 мая 2020 г.
@@ -88,10 +88,10 @@ MTEST_BEGIN("ws.display", rectangles)
                             lsp_finally { delete g; };
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0xffff00);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             s->fill_rect(g, i, 8.0f, 8 + 40*i, y, 32, 40);
                         }
@@ -106,10 +106,10 @@ MTEST_BEGIN("ws.display", rectangles)
                             lsp_finally { delete g; };
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0x00ffff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             ws::rectangle_t r;
                             r.nLeft     = 8 + 40*i;
@@ -153,10 +153,10 @@ MTEST_BEGIN("ws.display", rectangles)
                             lsp_finally { delete g; };
                             c.set_rgb24(0x0000ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0xffff00);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             s->wire_rect(g, i, 8.0f, 8 + 40*i, y, 32, 40, 1 + (i >> 2));
                         }
@@ -171,10 +171,10 @@ MTEST_BEGIN("ws.display", rectangles)
                             lsp_finally { delete g; };
                             c.set_rgb24(0xff00ff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(0.0f, c);
+                            g->set_start(c);
                             c.set_rgb24(0x00ffff);
                             c.alpha(i * 0.0625f);
-                            g->add_color(1.0f, c);
+                            g->set_stop(c);
 
                             ws::rectangle_t r;
                             r.nLeft     = 8 + 40*i;

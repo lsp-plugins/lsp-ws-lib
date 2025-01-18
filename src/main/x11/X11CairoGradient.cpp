@@ -31,12 +31,50 @@ namespace lsp
     {
         namespace x11
         {
-            X11CairoGradient::X11CairoGradient(cairo_pattern_t *cp)
+            X11CairoGradient::X11CairoGradient(const linear_t & params)
             {
-                pCP = cp;
+                pCP         = NULL;
+
+                sLinear     = params;
+
+                sStart.r    = 0.0f;
+                sStart.g    = 0.0f;
+                sStart.b    = 0.0f;
+                sStart.a    = 0.0f;
+
+                sEnd.r      = 1.0f;
+                sEnd.g      = 1.0f;
+                sEnd.b      = 1.0f;
+                sEnd.a      = 1.0f;
+
+                bLinear     = true;
+            }
+
+            X11CairoGradient::X11CairoGradient(const radial_t & params)
+            {
+                pCP         = NULL;
+
+                sRadial     = params;
+
+                sStart.r    = 0.0f;
+                sStart.g    = 0.0f;
+                sStart.b    = 0.0f;
+                sStart.a    = 0.0f;
+
+                sEnd.r      = 1.0f;
+                sEnd.g      = 1.0f;
+                sEnd.b      = 1.0f;
+                sEnd.a      = 1.0f;
+
+                bLinear     = false;
             }
 
             X11CairoGradient::~X11CairoGradient()
+            {
+                drop_pattern();
+            }
+
+            void X11CairoGradient::drop_pattern()
             {
                 if (pCP != NULL)
                 {
@@ -45,22 +83,43 @@ namespace lsp
                 }
             }
 
-            void X11CairoGradient::add_color(float offset, float r, float g, float b, float a)
-            {
-                if (pCP == NULL)
-                    return;
-
-                cairo_pattern_add_color_stop_rgba(pCP, offset, r, g, b, 1.0f - a);
-            }
-
             void X11CairoGradient::apply(cairo_t *cr)
             {
                 if (pCP == NULL)
-                    return;
+                {
+                    pCP = (bLinear) ?
+                        ::cairo_pattern_create_linear(sLinear.x1, sLinear.y1, sLinear.x2, sLinear.y2) :
+                        ::cairo_pattern_create_radial(sRadial.x1, sRadial.y1, 0, sRadial.x2, sRadial.y2, sRadial.r);
+
+                    ::cairo_pattern_add_color_stop_rgba(pCP, 0.0f, sStart.r, sStart.g, sStart.b, 1.0f - sStart.a);
+                    ::cairo_pattern_add_color_stop_rgba(pCP, 1.0f, sEnd.r, sEnd.g, sEnd.b, 1.0f - sEnd.a);
+                }
+
                 cairo_set_source(cr, pCP);
             }
-        }
-    }
+
+            void X11CairoGradient::set_start(float r, float g, float b, float a)
+            {
+                drop_pattern();
+
+                sStart.r = r;
+                sStart.g = g;
+                sStart.b = b;
+                sStart.a = a;
+            }
+
+            void X11CairoGradient::set_stop(float r, float g, float b, float a)
+            {
+                drop_pattern();
+
+                sEnd.r = r;
+                sEnd.g = g;
+                sEnd.b = b;
+                sEnd.a = a;
+            }
+
+        } /* namespace x11 */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
