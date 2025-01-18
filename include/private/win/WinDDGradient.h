@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -44,10 +44,6 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER WinDDGradient: public IGradient
             {
                 private:
-                    WinDDGradient & operator = (const WinDDGradient &);
-                    WinDDGradient(const WinDDGradient &);
-
-                private:
                     ID2D1RenderTarget  *pDC;
                     ID2D1Brush         *pBrush;
                     union
@@ -55,7 +51,7 @@ namespace lsp
                         D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES   sLinear;
                         D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES   sRadial;
                     };
-                    lltl::darray<D2D1_GRADIENT_STOP> vPoints;
+                    D2D1_GRADIENT_STOP  vPoints[2];
                     bool                bLinear;
 
                 private:
@@ -64,17 +60,24 @@ namespace lsp
                 public:
                     explicit WinDDGradient(ID2D1RenderTarget *dc, const D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES & props);
                     explicit WinDDGradient(ID2D1RenderTarget *dc, const D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES & props);
-                    virtual ~WinDDGradient();
+                    WinDDGradient(const WinDDGradient &) = delete;
+                    WinDDGradient(WinDDGradient &&) = delete;
+                    virtual ~WinDDGradient() override;
+
+                    WinDDGradient & operator = (const WinDDGradient &) = delete;
+                    WinDDGradient & operator = (WinDDGradient &&) = delete;
+
+                public:
+                    virtual void set_start(float r, float g, float b, float a=0.0f) override;
+                    virtual void set_start(const Color &c) override;
+                    virtual void set_start(const Color &c, float a) override;
+
+                    virtual void set_stop(float r, float g, float b, float a=0.0f) override;
+                    virtual void set_stop(const Color &c) override;
+                    virtual void set_stop(const Color &c, float a) override;
 
                 public:
                     ID2D1Brush     *get_brush();
-
-                public:
-                    virtual void add_color(float offset, float r, float g, float b, float a=0.0f);
-
-                    virtual void add_color(float offset, const Color &c);
-
-                    virtual void add_color(float offset, const Color &c, float a);
             };
 
         } /* namespace win */
