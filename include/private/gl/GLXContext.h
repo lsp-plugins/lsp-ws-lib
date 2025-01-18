@@ -44,11 +44,12 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER Context: public gl::IContext
             {
                 private:
-                    GLXContext          hContext;
-                    Window              hWindow;
+                    ::Display          *pDisplay;
+                    ::GLXContext        hContext;
+                    ::Window            hWindow;
 
                 public:
-                    explicit Context(GLXContext ctx, Window wnd);
+                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd);
                     virtual ~Context() override;
 
                 protected:

@@ -156,15 +156,23 @@ namespace lsp
             }
 
 
-            Context::Context(GLXContext ctx, Window window)
+            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window)
                 : IContext()
             {
+                pDisplay        = dpy;
                 hContext        = ctx;
                 hWindow         = window;
             }
 
             Context::~Context()
             {
+                if (hContext != NULL)
+                {
+                    glXDestroyContext(pDisplay, hContext);
+                    hContext        = NULL;
+                }
+                pDisplay        = NULL;
+                hWindow         = None;
             }
 
             status_t Context::do_activate()
@@ -219,7 +227,7 @@ namespace lsp
                     return NULL;
 
                 // Wrap the created context with context wrapper.
-                glx::Context *glx_ctx = new glx::Context(ctx, window);
+                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window);
                 if (glx_ctx == NULL)
                 {
                     glXDestroyContext(dpy, ctx);
