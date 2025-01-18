@@ -93,21 +93,23 @@ namespace lsp
             {
                 ISurface *result = NULL;
 
-            #ifdef USE_LIBGL
-                gl::context_param_t cp[4];
-                cp[0].id        = gl::DISPLAY;
-                cp[0].ptr       = dpy->x11display();
-                cp[1].id        = gl::SCREEN;
-                cp[1].sint      = screen;
-                cp[2].id        = gl::WINDOW;
-                cp[2].ulong     = window;
-                cp[3].id        = gl::END;
+            #if 1
+                #ifdef USE_LIBGL
+                    gl::context_param_t cp[4];
+                    cp[0].id        = gl::DISPLAY;
+                    cp[0].ptr       = dpy->x11display();
+                    cp[1].id        = gl::SCREEN;
+                    cp[1].sint      = screen;
+                    cp[2].id        = gl::WINDOW;
+                    cp[2].ulong     = window;
+                    cp[3].id        = gl::END;
 
-                gl::IContext *ctx   = gl::create_context(cp);
-                lsp_finally { safe_release(ctx); };
-                if (ctx != NULL)
-                    result = new gl::Surface(dpy, ctx, width, height);
-            #endif /* USE_LIBGL */
+                    gl::IContext *ctx   = gl::create_context(cp);
+                    lsp_finally { safe_release(ctx); };
+                    if (ctx != NULL)
+                        result = new gl::Surface(dpy, ctx, width, height);
+                #endif /* USE_LIBGL */
+            #endif
 
                 if (result == NULL)
                     result = new X11CairoSurface(dpy, window, visual, width, height);

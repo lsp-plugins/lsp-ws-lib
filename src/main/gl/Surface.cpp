@@ -52,6 +52,8 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = false;
+                bIsDrawing      = false;
+                bAntiAliasing   = true;
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -64,6 +66,8 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
+                bIsDrawing      = false;
+                bAntiAliasing   = true;
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -158,10 +162,43 @@ namespace lsp
                 {
                     pContext->activate();
                     glViewport(0, 0, nWidth, nHeight);
-
-                    ::glClearColor(0.0f, 0.75f, 1.0f, 0.0f);
-                    ::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 }
+
+                const float dx = 2.0f / float(nWidth);
+                const float dy = 2.0f / float(nHeight);
+
+                vMatrix[0]  = dx;
+                vMatrix[1]  = 0.0f;
+                vMatrix[2]  = 0.0f;
+                vMatrix[3]  = 0.0f;
+
+                vMatrix[4]  = 0.0f;
+                vMatrix[5]  = -dy;
+                vMatrix[6]  = 0.0f;
+                vMatrix[7]  = 0.0f;
+
+                vMatrix[8]  = 0.0f;
+                vMatrix[9]  = 0.0f;
+                vMatrix[10] = 1.0f;
+                vMatrix[11] = 0.0f;
+
+                vMatrix[12] = -1.0f;
+                vMatrix[13] = 1.0f;
+                vMatrix[14] = 0.0f;
+                vMatrix[15] = 1.0f;
+
+                // Set-up antialiasing
+                if (bAntiAliasing)
+                    glEnable(GL_MULTISAMPLE);
+                else
+                    glDisable(GL_MULTISAMPLE);
+
+                glMatrixMode(GL_MODELVIEW);
+                glLoadMatrixf(vMatrix);
+                glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+                glEnable(GL_BLEND);
+
+                bIsDrawing      = true;
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
@@ -188,6 +225,8 @@ namespace lsp
                     glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
                     pContext->deactivate();
                 }
+
+                bIsDrawing      = false;
             }
 
             void Surface::clear_rgb(uint32_t rgb)
@@ -202,7 +241,33 @@ namespace lsp
 
             void Surface::clear(const Color &color)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+
+                ::glClearColor(color.red(), color.green(), color.blue(), color.alpha());
+                ::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+//                const float w = 0.25f * nWidth;
+//                const float h = 0.25f * nHeight;
+//
+//                glDisable(GL_MULTISAMPLE);
+//                glBegin(GL_TRIANGLES);
+//                    glColor4f(1.0f, 0.0f, 0.0f, 0.0f);
+//                    glVertex2f(w * 2, h * 2);
+//                    glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
+//                    glVertex2f(w, 0);
+//                    glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+//                    glVertex2f(0, h*2);
+//                glEnd();
+//                glEnable(GL_MULTISAMPLE);
+//                glBegin(GL_TRIANGLES);
+//                    glColor4f(1.0f, 0.0f, 0.0f, 0.0f);
+//                    glVertex2f(w * 4, h * 4);
+//                    glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
+//                    glVertex2f(w * 3, h * 2);
+//                    glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+//                    glVertex2f(w * 2, h * 4);
+//                glEnd();
             }
 
             void Surface::wire_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
@@ -247,7 +312,41 @@ namespace lsp
 
             void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+                if (r <= 0.0f)
+                    return;
+                const float delta = a2 - a1;
+                if (delta == 0.0f)
+                    return;
+
+                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
+                const float ex  = cosf(a2) * r;
+                const float ey  = sinf(a2) * r;
+                const float dx  = cosf(alpha);
+                const float dy  = sinf(alpha);
+                const ssize_t count = delta / alpha;
+
+                float vx        = cosf(a1) * r;
+                float vy        = sinf(a1) * r;
+
+                glColor4f(c.red(), c.green(), c.blue(), c.alpha());
+                glBegin(GL_TRIANGLE_FAN);
+                    glVertex2f(x, y);
+                    glVertex2f(x + vx, y + vy);
+
+                    for (ssize_t i=0; i<count; ++i)
+                    {
+                        float nvx   = vx*dx - vy*dy;
+                        float nvy   = vx*dy + vy*dx;
+                        vx          = nvx;
+                        vy          = nvy;
+
+                        glVertex2f(x + vx, y + vy);
+                    }
+
+                    glVertex2f(x + ex, y + ey);
+                glEnd();
             }
 
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -257,7 +356,15 @@ namespace lsp
 
             void Surface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+
+                glColor4f(c.red(), c.green(), c.blue(), c.alpha());
+                glBegin(GL_TRIANGLES);
+                    glVertex2f(x0, y0);
+                    glVertex2f(x1, y1);
+                    glVertex2f(x2, y2);
+                glEnd();
             }
 
             bool Surface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -337,7 +444,49 @@ namespace lsp
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+                if (r <= 0.0f)
+                    return;
+                const float delta = a2 - a1;
+                if (delta == 0.0f)
+                    return;
+
+                const float hw  = width * 0.5f;
+                const float ro  = r + hw;
+                const float kr  = lsp_max(r - hw, 0.0f) / ro;
+
+                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / ro, M_PI_2) : lsp_min(-4.0f / ro, M_PI_2);
+                const float ex  = cosf(a2) * ro;
+                const float ey  = sinf(a2) * ro;
+
+                const float dx  = cosf(alpha);
+                const float dy  = sinf(alpha);
+                const ssize_t count = delta / alpha;
+
+                float vx        = cosf(a1) * ro;
+                float vy        = sinf(a1) * ro;
+
+                glColor4f(c.red(), c.green(), c.blue(), c.alpha());
+                glBegin(GL_TRIANGLE_STRIP);
+                    glVertex2f(x, y);
+                    glVertex2f(x + vx * kr, y + vy * kr);
+                    glVertex2f(x + vx, y + vy);
+
+                    for (ssize_t i=0; i<count; ++i)
+                    {
+                        float nvx   = vx*dx - vy*dy;
+                        float nvy   = vx*dy + vy*dx;
+                        vx          = nvx;
+                        vy          = nvy;
+
+                        glVertex2f(x + vx * kr, y + vy * kr);
+                        glVertex2f(x + vx, y + vy);
+                    }
+
+                    glVertex2f(x + ex * kr, y + ey * kr);
+                    glVertex2f(x + ex, y + ey);
+                glEnd();
             }
 
             void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -362,12 +511,40 @@ namespace lsp
 
             void Surface::fill_circle(const Color &c, float x, float y, float r)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+                if (r <= 0.0f)
+                    return;
+
+                const float alpha = lsp_min(4.0f / r, M_PI_2);
+                const float dx = cosf(alpha);
+                const float dy = sinf(alpha);
+                const size_t count = M_PI * 0.5f * r;
+
+                float vx = r;
+                float vy = 0.0f;
+
+                glColor4f(c.red(), c.green(), c.blue(), c.alpha());
+                glBegin(GL_TRIANGLE_FAN);
+                    glVertex2f(x, y);
+                    glVertex2f(x + vx, y + vy);
+
+                    for (size_t i=0; i<count; ++i)
+                    {
+                        float nvx   = vx*dx - vy*dy;
+                        float nvy   = vx*dy + vy*dx;
+                        vx          = nvx;
+                        vy          = nvy;
+
+                        glVertex2f(x + vx, y + vy);
+                    }
+
+                    glVertex2f(x + r, y);
+                glEnd();
             }
 
             void Surface::fill_circle(IGradient *g, float x, float y, float r)
             {
-                // TODO
             }
 
             void Surface::fill_frame(
@@ -381,14 +558,24 @@ namespace lsp
 
             bool Surface::get_antialiasing()
             {
-                // TODO
-                return false;
+                return bAntiAliasing;
             }
 
             bool Surface::set_antialiasing(bool set)
             {
-                // TODO
-                return false;
+                if (bAntiAliasing == set)
+                    return bAntiAliasing;
+
+                bAntiAliasing       = set;
+                if (bIsDrawing)
+                {
+                    if (bAntiAliasing)
+                        glEnable(GL_MULTISAMPLE);
+                    else
+                        glDisable(GL_MULTISAMPLE);
+                }
+
+                return !bAntiAliasing;
             }
 
             void Surface::clip_begin(float x, float y, float w, float h)

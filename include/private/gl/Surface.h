@@ -45,7 +45,11 @@ namespace lsp
                     gl::IContext           *pContext;
                     size_t                  nWidth;
                     size_t                  nHeight;
+                    float                   vMatrix[16];
+
                     bool                    bNested;
+                    bool                    bIsDrawing;         // Surface is currently in drawing mode
+                    bool                    bAntiAliasing;      // Anti-aliasing option
                 #ifdef LSP_DEBUG
                     size_t                  nNumClips;
                 #endif /* LSP_DEBUG */
