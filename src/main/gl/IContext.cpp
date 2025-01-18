@@ -30,7 +30,7 @@ namespace lsp
         {
             IContext::IContext()
             {
-                atomic_store(&nReferences, 0);
+                atomic_store(&nReferences, 1);
                 bActive     = false;
             }
 

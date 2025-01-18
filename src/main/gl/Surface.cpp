@@ -36,6 +36,8 @@
 #include <private/gl/Surface.h>
 #include <private/x11/X11Display.h>
 
+#include <GL/gl.h>
+
 namespace lsp
 {
     namespace ws
@@ -96,14 +98,22 @@ namespace lsp
                 return NULL;
             }
 
+            void Surface::do_destroy()
+            {
+                safe_release(pContext);
+
+                pDisplay        = NULL;
+                pContext        = NULL;
+            }
+
             Surface::~Surface()
             {
-                // TODO
+                do_destroy();
             }
 
             void Surface::destroy()
             {
-                // TODO
+                do_destroy();
             }
 
             bool Surface::valid() const
@@ -135,10 +145,23 @@ namespace lsp
 
             void Surface::begin()
             {
+                if (pContext == NULL)
+                    return;
+
                 // Force end() call
                 end();
 
-                // TODO
+                if (bNested)
+                {
+                }
+                else
+                {
+                    pContext->activate();
+                    glViewport(0, 0, nWidth, nHeight);
+
+                    ::glClearColor(0.0f, 0.75f, 1.0f, 0.0f);
+                    ::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                }
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
@@ -147,12 +170,24 @@ namespace lsp
 
             void Surface::end()
             {
-                // TODO
+                if (pContext == NULL)
+                    return;
 
             #ifdef LSP_DEBUG
                 if (nNumClips > 0)
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
+
+                if (bNested)
+                {
+                }
+                else
+                {
+                    glReadBuffer(GL_BACK);
+                    glDrawBuffer(GL_FRONT);
+                    glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
+                    pContext->deactivate();
+                }
             }
 
             void Surface::clear_rgb(uint32_t rgb)

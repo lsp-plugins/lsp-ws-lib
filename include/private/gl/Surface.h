@@ -51,6 +51,9 @@ namespace lsp
                 #endif /* LSP_DEBUG */
 
                 private:
+                    void do_destroy();
+
+                private:
                     /** Create nexted GL surface
                      *
                      * @param ctx OpenGL context

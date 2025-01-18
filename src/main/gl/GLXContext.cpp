@@ -177,11 +177,18 @@ namespace lsp
 
             status_t Context::do_activate()
             {
-                return STATUS_NOT_IMPLEMENTED;
+                if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
+                    return STATUS_UNKNOWN_ERR;
+                ::glDrawBuffer(GL_BACK);
+
+                return STATUS_OK;
             }
 
             status_t Context::do_deactivate()
             {
+                ::glXSwapBuffers(pDisplay, hWindow);
+                ::glXMakeCurrent(pDisplay, None, NULL);
+
                 return STATUS_NOT_IMPLEMENTED;
             }
 
