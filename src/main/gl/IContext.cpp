@@ -71,7 +71,7 @@ namespace lsp
                     return STATUS_NOT_BOUND;
                 status_t res = do_deactivate();
                 if (res == STATUS_OK)
-                    bActive     = true;
+                    bActive     = false;
                 return res;
             }
 

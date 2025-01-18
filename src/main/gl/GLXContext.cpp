@@ -189,7 +189,7 @@ namespace lsp
                 ::glXSwapBuffers(pDisplay, hWindow);
                 ::glXMakeCurrent(pDisplay, None, NULL);
 
-                return STATUS_NOT_IMPLEMENTED;
+                return STATUS_OK;
             }
 
             const char *Context::shader(gl::shader_t shader) const

@@ -162,6 +162,10 @@ namespace lsp
                 {
                     pContext->activate();
                     glViewport(0, 0, nWidth, nHeight);
+
+                    int max_texture_size = 0;
+                    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+                    lsp_trace("Max texture size = %d", max_texture_size);
                 }
 
                 const float dx = 2.0f / float(nWidth);
@@ -207,6 +211,8 @@ namespace lsp
 
             void Surface::end()
             {
+                if (!bIsDrawing)
+                    return;
                 if (pContext == NULL)
                     return;
 
