@@ -27,6 +27,7 @@
 #include <lsp-plug.in/common/types.h>
 
 #include <private/gl/IContext.h>
+#include <private/gl/Batch.h>
 
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/ws/IGradient.h>
@@ -38,11 +39,15 @@ namespace lsp
     {
         namespace gl
         {
+            /**
+             * Drawing surface
+             */
             class LSP_HIDDEN_MODIFIER Surface: public ISurface
             {
                 protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
+                    gl::Batch               sBatch;
                     size_t                  nWidth;
                     size_t                  nHeight;
                     float                   vMatrix[16];
