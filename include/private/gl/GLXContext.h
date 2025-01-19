@@ -73,7 +73,7 @@ namespace lsp
                     ::Display          *pDisplay;
                     ::GLXContext        hContext;
                     ::Window            hWindow;
-                    const vtbl_t       *pVtbl;
+                    const glx::vtbl_t  *pVtbl;
 
                     lltl::parray<program_t> vPrograms;
 
@@ -91,11 +91,12 @@ namespace lsp
                     virtual status_t    do_deactivate() override;
 
                 public:
-                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, vtbl_t *vtbl);
+                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl);
                     virtual ~Context() override;
 
                 public:
                     virtual status_t    program(size_t *id, gl::program_t program) override;
+                    virtual const gl::vtbl_t *vtbl() const override;
             };
 
             /**

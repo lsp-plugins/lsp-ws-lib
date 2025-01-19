@@ -27,6 +27,7 @@
 #include <lsp-plug.in/stdlib/string.h>
 
 #include <private/gl/glx_shaders.h>
+#include <private/gl/glx_vtbl.h>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -416,6 +417,11 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            const gl::vtbl_t *Context::vtbl() const
+            {
+                return pVtbl;
+            }
+
             gl::IContext *create_context(Display *dpy, int screen, Window window)
             {
                 // Choose FBConfig
@@ -424,7 +430,7 @@ namespace lsp
                     return NULL;
 
                 // Create virtual table
-                vtbl_t *vtbl            = create_vtbl();
+                glx::vtbl_t *vtbl       = glx::create_vtbl();
                 if (vtbl == NULL)
                     return NULL;
                 lsp_finally { free(vtbl); };

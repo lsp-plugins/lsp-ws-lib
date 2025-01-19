@@ -228,17 +228,23 @@ namespace lsp
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
 
+                lltl::darray<gl::uniform_t> vUniforms;
+                vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });
+                vUniforms.add(gl::uniform_t { NULL, gl::UNI_NONE, NULL });
+
                 // Execute batch
-                sBatch.execute(pContext);
+                sBatch.execute(pContext, vUniforms.array());
 
                 if (bNested)
                 {
                 }
                 else
                 {
-                    glReadBuffer(GL_BACK);
-                    glDrawBuffer(GL_FRONT);
-                    glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
+//                    glReadBuffer(GL_BACK);
+//                    glDrawBuffer(GL_FRONT);
+//                    glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
+//                    glReadBuffer(GL_FRONT);
+//                    glDrawBuffer(GL_BACK);
                     pContext->deactivate();
                 }
 
@@ -354,54 +360,27 @@ namespace lsp
                     return;
                 lsp_finally { sBatch.end(); };
 
-                // Fill batch
+                float vx        = cosf(a1) * r;
+                float vy        = sinf(a1) * r;
+
+                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
+                const size_t v0i    = sBatch.vertex(x, y, ci);
+                size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
+
+                for (ssize_t i=0; i<count; ++i)
                 {
-                    float vx        = cosf(a1) * r;
-                    float vy        = sinf(a1) * r;
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
 
-                    const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                    const size_t v0i    = sBatch.vertex(x, y, ci);
-                    size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
-
-                    for (ssize_t i=0; i<count; ++i)
-                    {
-                        float nvx   = vx*dx - vy*dy;
-                        float nvy   = vx*dy + vy*dx;
-                        vx          = nvx;
-                        vy          = nvy;
-
-                        sBatch.vertex(x + vx, y + vy, ci);
-                        sBatch.triangle(v0i, v1i, v1i + 1);
-                        ++v1i;
-                    }
-
-                    sBatch.vertex(x + ex, y + ey, ci);
+                    sBatch.vertex(x + vx, y + vy, ci);
                     sBatch.triangle(v0i, v1i, v1i + 1);
+                    ++v1i;
                 }
 
-                // TODO: remove this code after batch execution implementation complete
-                {
-                    float vx        = cosf(a1) * r;
-                    float vy        = sinf(a1) * r;
-
-                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
-                    glBegin(GL_TRIANGLE_FAN);
-                        glVertex2f(x, y);
-                        glVertex2f(x + vx, y + vy);
-
-                        for (ssize_t i=0; i<count; ++i)
-                        {
-                            float nvx   = vx*dx - vy*dy;
-                            float nvy   = vx*dy + vy*dx;
-                            vx          = nvx;
-                            vy          = nvy;
-
-                            glVertex2f(x + vx, y + vy);
-                        }
-
-                        glVertex2f(x + ex, y + ey);
-                    glEnd();
-                }
+                sBatch.vertex(x + ex, y + ey, ci);
+                sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -432,15 +411,15 @@ namespace lsp
                     sBatch.triangle(vi, vi+1, vi+2);
                 }
 
-                // TODO: remove this code after batch execution implementation complete
-                {
-                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
-                    glBegin(GL_TRIANGLES);
-                        glVertex2f(x0, y0);
-                        glVertex2f(x1, y1);
-                        glVertex2f(x2, y2);
-                    glEnd();
-                }
+//                // TODO: remove this code after batch execution implementation complete
+//                {
+//                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
+//                    glBegin(GL_TRIANGLES);
+//                        glVertex2f(x0, y0);
+//                        glVertex2f(x1, y1);
+//                        glVertex2f(x2, y2);
+//                    glEnd();
+//                }
             }
 
             bool Surface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -552,59 +531,31 @@ namespace lsp
                 lsp_finally { sBatch.end(); };
 
                 // Fill batch
-                {
-                    float vx        = cosf(a1) * ro;
-                    float vy        = sinf(a1) * ro;
+                float vx        = cosf(a1) * ro;
+                float vy        = sinf(a1) * ro;
 
-                    const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                    ssize_t v0i         = sBatch.vertex(x + vx * kr, y + vy * kr, ci);
+                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
+                ssize_t v0i         = sBatch.vertex(x + vx * kr, y + vy * kr, ci);
+                sBatch.vertex(x + vx, y + vy, ci);
+
+                for (ssize_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    sBatch.vertex(x + vx * kr, y + vy * kr, ci);
                     sBatch.vertex(x + vx, y + vy, ci);
-
-                    for (ssize_t i=0; i<count; ++i)
-                    {
-                        float nvx   = vx*dx - vy*dy;
-                        float nvy   = vx*dy + vy*dx;
-                        vx          = nvx;
-                        vy          = nvy;
-
-                        sBatch.vertex(x + vx * kr, y + vy * kr, ci);
-                        sBatch.vertex(x + vx, y + vy, ci);
-                        sBatch.triangle(v0i, v0i + 1, v0i + 2);
-                        sBatch.triangle(v0i + 1, v0i + 2, v0i + 3);
-                        v0i        += 2;
-                    }
-
-                    glVertex2f(x + ex * kr, y + ey * kr);
-                    glVertex2f(x + ex, y + ey);
                     sBatch.triangle(v0i, v0i + 1, v0i + 2);
-                    sBatch.triangle(v0i + 1, v0i + 2, v0i + 3);
+                    sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
+                    v0i        += 2;
                 }
 
-                // TODO: remove this code after batch execution implementation complete
-                {
-                    float vx        = cosf(a1) * ro;
-                    float vy        = sinf(a1) * ro;
-
-                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
-                    glBegin(GL_TRIANGLE_STRIP);
-                        glVertex2f(x + vx * kr, y + vy * kr);
-                        glVertex2f(x + vx, y + vy);
-
-                        for (ssize_t i=0; i<count; ++i)
-                        {
-                            float nvx   = vx*dx - vy*dy;
-                            float nvy   = vx*dy + vy*dx;
-                            vx          = nvx;
-                            vy          = nvy;
-
-                            glVertex2f(x + vx * kr, y + vy * kr);
-                            glVertex2f(x + vx, y + vy);
-                        }
-
-                        glVertex2f(x + ex * kr, y + ey * kr);
-                        glVertex2f(x + ex, y + ey);
-                    glEnd();
-                }
+                sBatch.vertex(x + ex * kr, y + ey * kr, ci);
+                sBatch.vertex(x + ex, y + ey, ci);
+                sBatch.triangle(v0i, v0i + 1, v0i + 2);
+                sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
             }
 
             void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -650,53 +601,27 @@ namespace lsp
                 lsp_finally { sBatch.end(); };
 
                 // Fill batch
+                float vx = r;
+                float vy = 0.0f;
+
+                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
+                const ssize_t v0i   = sBatch.vertex(x, y, ci);
+                size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
+
+                for (size_t i=0; i<count; ++i)
                 {
-                    float vx = r;
-                    float vy = 0.0f;
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
 
-                    const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                    const ssize_t v0i   = sBatch.vertex(x, y, ci);
-                    size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
-
-                    for (size_t i=0; i<count; ++i)
-                    {
-                        float nvx   = vx*dx - vy*dy;
-                        float nvy   = vx*dy + vy*dx;
-                        vx          = nvx;
-                        vy          = nvy;
-
-                        sBatch.vertex(x + vx, y + vy, ci);
-                        sBatch.triangle(v0i, v1i, v1i + 1);
-                        ++v1i;
-                    }
-
-                    sBatch.vertex(x + r, y, ci);
+                    sBatch.vertex(x + vx, y + vy, ci);
                     sBatch.triangle(v0i, v1i, v1i + 1);
+                    ++v1i;
                 }
 
-                // TODO: remove this code after batch execution implementation complete
-                {
-                    float vx = r;
-                    float vy = 0.0f;
-
-                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
-                    glBegin(GL_TRIANGLE_FAN);
-                        glVertex2f(x, y);
-                        glVertex2f(x + vx, y + vy);
-
-                        for (size_t i=0; i<count; ++i)
-                        {
-                            float nvx   = vx*dx - vy*dy;
-                            float nvy   = vx*dy + vy*dx;
-                            vx          = nvx;
-                            vy          = nvy;
-
-                            glVertex2f(x + vx, y + vy);
-                        }
-
-                        glVertex2f(x + r, y);
-                    glEnd();
-                }
+                sBatch.vertex(x + r, y, ci);
+                sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_circle(IGradient *g, float x, float y, float r)

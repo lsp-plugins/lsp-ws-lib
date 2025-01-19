@@ -91,6 +91,11 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
+            const vtbl_t *IContext::vtbl() const
+            {
+                return NULL;
+            }
+
             gl::IContext *create_context(const context_param_t *params)
             {
                 const context_param_t *display = NULL;

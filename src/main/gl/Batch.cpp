@@ -23,6 +23,8 @@
 
 #include <lsp-plug.in/common/debug.h>
 
+#include <stddef.h>
+
 namespace lsp
 {
     namespace ws
@@ -106,12 +108,12 @@ namespace lsp
                     draw->vertices.v        = NULL;
                     draw->vertices.count    = 0;
                     draw->vertices.capacity = 32;
+//                    draw->vertices.index    = 0;
 
                     draw->indices.data      = NULL;
                     draw->indices.count     = 0;
                     draw->indices.capacity  = 32;
-                    draw->indices.index     = 0;
-                    draw->indices.limit     = UINT8_MAX;
+                    draw->indices.szof      = sizeof(uint8_t);
 
                     lsp_finally { destroy(draw); };
 
@@ -132,8 +134,8 @@ namespace lsp
                 }
                 else
                 {
-                    // Store global index
-                    draw->indices.index     = draw->indices.count;
+//                    // Store global index
+//                    draw->vertices.index    = draw->vertices.count;
 
                     // Set current batch
                     pCurrent                = draw;
@@ -152,6 +154,7 @@ namespace lsp
                         destroy(draw);
                 }
                 vBatches.clear();
+                vColors.count   = 0;
 
                 // Try to add current batch to the list of batches
                 if (pCurrent != NULL)
@@ -173,8 +176,47 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Batch::execute(gl::IContext *ctx)
+            #define gl_offsetof(type, field) \
+                reinterpret_cast<void *>(offsetof(type, field))
+
+            void Batch::bind_uniforms(const gl::vtbl_t *vtbl, GLuint program, const gl::uniform_t *uniform)
             {
+                for ( ; (uniform != NULL) && (uniform->name != NULL); ++uniform)
+                {
+                    GLint location = vtbl->glGetUniformLocation(program, uniform->name);
+                    if (location < 0)
+                        continue;
+
+                    switch (uniform->type)
+                    {
+                        case UNI_FLOAT:     vtbl->glUniform1fv(location, 1, uniform->f32); break;
+                        case UNI_VEC2F:     vtbl->glUniform2fv(location, 1, uniform->f32); break;
+                        case UNI_VEC3F:     vtbl->glUniform3fv(location, 1, uniform->f32); break;
+                        case UNI_VEC4F:     vtbl->glUniform4fv(location, 1, uniform->f32); break;
+
+                        case UNI_INT:       vtbl->glUniform1iv(location, 1, uniform->i32); break;
+                        case UNI_VEC2I:     vtbl->glUniform2iv(location, 1, uniform->i32); break;
+                        case UNI_VEC3I:     vtbl->glUniform3iv(location, 1, uniform->i32); break;
+                        case UNI_VEC4I:     vtbl->glUniform4iv(location, 1, uniform->i32); break;
+
+                        case UNI_UINT:      vtbl->glUniform1uiv(location, 1, uniform->u32); break;
+                        case UNI_VEC2U:     vtbl->glUniform2uiv(location, 1, uniform->u32); break;
+                        case UNI_VEC3U:     vtbl->glUniform3uiv(location, 1, uniform->u32); break;
+                        case UNI_VEC4U:     vtbl->glUniform4uiv(location, 1, uniform->u32); break;
+
+                        case UNI_MAT4F:     vtbl->glUniformMatrix4fv(location, 1, GL_FALSE, uniform->f32); break;
+
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            status_t Batch::execute(gl::IContext *ctx, const uniform_t *uniforms)
+            {
+                if (pCurrent != NULL)
+                    return STATUS_BAD_STATE;
+
                 IF_TRACE(
                     lsp_trace("Batch: draws=%d,  colors=%d", int(vBatches.size()), int(vColors.count));
 
@@ -194,9 +236,89 @@ namespace lsp
                     }
                 );
 
-                // Cleanup color mapping
-                clear();
-                vColors.count       = 0;
+                // Cleanup buffer
+                lsp_finally { clear(); };
+
+                // Create VBO and VAO
+                const gl::vtbl_t *vtbl  = ctx->vtbl();
+
+                GLuint VBO[2], VAO;
+                vtbl->glGenBuffers(2, VBO);
+                vtbl->glGenVertexArrays(1, &VAO);
+                vtbl->glBindVertexArray(VAO);
+
+                lsp_finally {
+                    vtbl->glDeleteVertexArrays(1, &VAO);
+                    vtbl->glDeleteBuffers(2, VBO);
+                };
+
+                // Apply batches
+                size_t program_id = 0;
+                size_t prev_program_id = size_t(-1);
+
+                for (size_t i=0, n=vBatches.size(); i<n; ++i)
+                {
+                    draw_t *draw    = vBatches.uget(i);
+
+                    if (draw->header.enProgram == SIMPLE)
+                    {
+                        // Get the program
+                        status_t res = ctx->program(&program_id, gl::GEOMETRY);
+                        if (res != STATUS_OK)
+                            return res;
+
+                        // Enable program
+                        if (prev_program_id != program_id)
+                        {
+                            prev_program_id     = program_id;
+                            vtbl->glUseProgram(program_id);
+                            bind_uniforms(vtbl, program_id, uniforms);
+                        }
+
+                        const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
+
+                        vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+                        vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_DYNAMIC_DRAW);
+
+                        vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
+                        vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_DYNAMIC_DRAW);
+
+                        // position attribute
+                        if (a_vertex >= 0)
+                        {
+                            vtbl->glVertexAttribPointer(a_vertex, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
+                            vtbl->glEnableVertexAttribArray(a_vertex);
+                        }
+
+//                        // color attribute
+//                        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+//                        glEnableVertexAttribArray(1);
+
+//                        glDrawArrays(GL_TRIANGLES, 0, draw->indices.count);
+                        const GLenum index_type =
+                            (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :
+                            (draw->indices.szof > sizeof(uint8_t)) ? GL_UNSIGNED_SHORT :
+                            GL_UNSIGNED_BYTE;
+                        glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
+
+                        vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+                        vtbl->glBindVertexArray(0);
+                    }
+                    else
+                    {
+                        status_t res = ctx->program(&program_id, gl::MULTIPOLYGON);
+                        if (res != STATUS_OK)
+                            return res;
+
+                        // Enable program
+                        if (prev_program_id != program_id)
+                        {
+                            prev_program_id     = program_id;
+                            vtbl->glUseProgram(program_id);
+                            bind_uniforms(vtbl, program_id, uniforms);
+                        }
+                    }
+                }
 
                 // TODO
                 return STATUS_OK;
@@ -222,11 +344,11 @@ namespace lsp
                 }
 
                 // Append vertex
-                const size_t index  = buf.count++;
-                vertex_t *v         = &buf.v[index];
-                v->x                = x;
-                v->y                = y;
-                v->z                = z;
+                const uint32_t index    = buf.count++;
+                vertex_t *v             = &buf.v[index];
+                v->x                    = x;
+                v->y                    = y;
+                v->z                    = z;
 
                 return index;
             }
@@ -239,11 +361,11 @@ namespace lsp
                 );
 
                 // Check indices
+//                const size_t off    = pCurrent->vertices.index;
                 ibuffer_t & buf     = pCurrent->indices;
-                const size_t off    = buf.index;
-                a                  += off;
-                b                  += off;
-                c                  += off;
+//                a                  += off;
+//                b                  += off;
+//                c                  += off;
 
                 const size_t max_index  = lsp_max(a, b, c);
                 IF_DEBUG(
@@ -252,56 +374,44 @@ namespace lsp
                 );
 
                 const size_t new_size   = buf.count + 3;
+                const size_t szof       =
+                    (max_index > UINT16_MAX) ? sizeof(uint32_t) :
+                    (max_index > UINT8_MAX) ? sizeof(uint16_t) :
+                    sizeof(uint8_t);
 
                 // Check if we need to resize the buffer
-                if ((new_size >= buf.capacity) || (max_index > buf.limit))
+                if ((new_size >= buf.capacity) || (szof > buf.szof))
                 {
                     // Check if we need to widen the indices
                     const size_t new_cap    = (new_size > buf.capacity) ? buf.capacity << 1 : buf.capacity;
-                    const size_t limit      = lsp_max(max_index, buf.limit);
-                    const size_t szof       =
-                        (limit > UINT16_MAX) ? sizeof(uint32_t) :
-                        (limit > UINT8_MAX) ? sizeof(uint16_t) :
-                        sizeof(uint8_t);
-
                     void *data              = NULL;
-                    if (max_index > buf.limit)
+
+                    if (szof > buf.szof)
                     {
                         if ((data = malloc(new_cap * szof)) == NULL)
                             return -STATUS_NO_MEM;
 
                         // Perform widening
-                        if (max_index > UINT16_MAX)
+                        if (szof > sizeof(uint16_t))
                         {
-                            if (buf.limit > UINT8_MAX)
-                            {
-                                // Widen u16 -> u32
-                                convert_index(static_cast<uint32_t *>(data), buf.u16, buf.count);
-                                buf.limit           = UINT32_MAX;
-                            }
+                            if (buf.szof > sizeof(uint8_t))
+                                convert_index(static_cast<uint32_t *>(data), buf.u16, buf.count); // Widen u16 -> u32
                             else
-                            {
-                                // Widen u8 -> u32
-                                convert_index(static_cast<uint32_t *>(data), buf.u8, buf.count);
-                                buf.limit           = UINT32_MAX;
-                            }
+                                convert_index(static_cast<uint32_t *>(data), buf.u8, buf.count); // Widen u8 -> u32
                         }
-                        else if (max_index > UINT8_MAX)
-                        {
-                            // Widen u8 -> u16
-                            convert_index(static_cast<uint16_t *>(data), buf.u8, buf.count);
-                            buf.limit           = UINT16_MAX;
-                        }
+                        else if (szof > sizeof(uint8_t))
+                            convert_index(static_cast<uint16_t *>(data), buf.u8, buf.count); // Widen u8 -> u16
                         else
                             return -STATUS_BAD_STATE;
 
                         // Free previously allocated buffer
+                        buf.szof            = szof;
                         free(buf.data);
                     }
                     else
                     {
                         // We can perform simple realloc operation
-                        if ((data = realloc(buf.data, new_cap * szof)) == NULL)
+                        if ((data = realloc(buf.data, new_cap * buf.szof)) == NULL)
                             return -STATUS_NO_MEM;
                     }
 
@@ -311,26 +421,26 @@ namespace lsp
                 }
 
                 // Append vertex indices
-                const size_t index  = buf.count;
-                buf.count          += 3;
+                const uint32_t index    = buf.count;
+                buf.count              += 3;
 
-                if (buf.limit > UINT16_MAX)
+                if (buf.szof > sizeof(uint16_t))
                 {
-                    buf.u32[index]  = uint32_t(a);
-                    buf.u32[index+1]= uint32_t(b);
-                    buf.u32[index+2]= uint32_t(c);
+                    buf.u32[index]      = uint32_t(a);
+                    buf.u32[index+1]    = uint32_t(b);
+                    buf.u32[index+2]    = uint32_t(c);
                 }
-                else if (buf.limit > UINT8_MAX)
+                else if (buf.szof > sizeof(uint8_t))
                 {
-                    buf.u16[index]  = uint16_t(a);
-                    buf.u16[index+1]= uint16_t(b);
-                    buf.u16[index+2]= uint16_t(c);
+                    buf.u16[index]      = uint16_t(a);
+                    buf.u16[index+1]    = uint16_t(b);
+                    buf.u16[index+2]    = uint16_t(c);
                 }
                 else
                 {
-                    buf.u8[index]   = uint8_t(a);
-                    buf.u8[index+1] = uint8_t(b);
-                    buf.u8[index+2] = uint8_t(c);
+                    buf.u8[index]       = uint8_t(a);
+                    buf.u8[index+1]     = uint8_t(b);
+                    buf.u8[index+2]     = uint8_t(c);
                 }
 
                 return index;
@@ -347,7 +457,7 @@ namespace lsp
                 cbuffer_t & buf = vColors;
                 if (buf.count >= buf.capacity)
                 {
-                    const size_t new_cap    = buf.capacity << 1;
+                    const size_t new_cap    = buf.capacity << 2;
                     color_t *ptr            = static_cast<color_t *>(realloc(buf.c, sizeof(color_t) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;

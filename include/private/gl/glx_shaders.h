@@ -33,26 +33,22 @@ namespace lsp
             static const char *geometry_vertex_shader =
                 SHADER("#version 330 core")
                 SHADER("")
-                SHADER("uniform mat4 u_viewport;")
+                SHADER("uniform mat4 u_model;")
                 SHADER("")
                 SHADER("in vec3 a_vertex;")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
-                SHADER("    gl_Position = u_viewport * vec4(a_vertex.xy, 0.0f, 1.0f);")
+                SHADER("    gl_Position = u_model * vec4(a_vertex.xy, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
 
             static const char *geometry_fragment_shader =
                 SHADER("#version 330 core")
                 SHADER("")
-                SHADER("uniform mat4 u_viewport;")
-                SHADER("")
-                SHADER("out vec4 FragColor;")
-                SHADER("")
                 SHADER("void main()")
                 SHADER("{")
-                SHADER("    FragColor = vec4(1.0f, 1.0f, 1.0f, 0.5f);")
+                SHADER("    gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.5f);")
                 SHADER("}")
                 SHADER("");
 

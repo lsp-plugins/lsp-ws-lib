@@ -19,11 +19,11 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/gl/glx_vtbl.h>
 #include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/stdlib/string.h>
 
 #include <GL/glx.h>
+#include <private/gl/glx_vtbl.h>
 
 namespace lsp
 {
@@ -31,13 +31,14 @@ namespace lsp
     {
         namespace glx
         {
-            vtbl_t *create_vtbl()
+            glx::vtbl_t *create_vtbl()
             {
-                vtbl_t *vtbl = static_cast<vtbl_t *>(malloc(sizeof(vtbl_t)));
+                glx::vtbl_t *vtbl = static_cast<glx::vtbl_t *>(malloc(sizeof(glx::vtbl_t)));
                 if (vtbl == NULL)
                     return vtbl;
                 bzero(vtbl, sizeof(vtbl_t));
 
+                // GLX-specific stuff
                 vtbl->glXGetProcAddress = reinterpret_cast<decltype(vtbl_t::glXGetProcAddress)>(
                         glXGetProcAddressARB(reinterpret_cast<const GLubyte *>("glXGetProcAddress")));
 
@@ -57,6 +58,7 @@ namespace lsp
                 FETCH(glUseProgram);
                 FETCH(glGetProgramiv);
                 FETCH(glGetProgramInfoLog);
+                FETCH(glGetAttribLocation);
                 FETCH(glGetUniformLocation);
                 FETCH(glDeleteProgram);
 
@@ -68,6 +70,7 @@ namespace lsp
                 FETCH(glGetShaderInfoLog);
                 FETCH(glDeleteShader);
 
+                // Uniform operations
                 FETCH(glUniform1f);
                 FETCH(glUniform2f);
                 FETCH(glUniform3f);
@@ -101,6 +104,35 @@ namespace lsp
                 FETCH(glUniformMatrix4fv);
                 FETCH(glUniformMatrix4x2fv);
                 FETCH(glUniformMatrix4x3fv);
+
+                // Buffer operations
+                FETCH(glGenBuffers);
+                FETCH(glBindBuffer);
+                FETCH(glBufferData);
+                FETCH(glNamedBufferData);
+                FETCH(glBufferSubData);
+                FETCH(glNamedBufferSubData);
+                FETCH(glMapBuffer);
+                FETCH(glMapNamedBuffer);
+                FETCH(glMapBufferRange);
+                FETCH(glMapNamedBufferRange);
+                FETCH(glFlushMappedBufferRange);
+                FETCH(glFlushMappedNamedBufferRange);
+                FETCH(glUnmapBuffer);
+                FETCH(glUnmapNamedBuffer);
+                FETCH(glDeleteBuffers);
+
+                // Vertex array operations
+                FETCH(glGenVertexArrays);
+                FETCH(glBindVertexArray);
+                FETCH(glDeleteVertexArrays);
+                FETCH(glEnableVertexAttribArray);
+                FETCH(glEnableVertexArrayAttrib);
+                FETCH(glDisableVertexAttribArray);
+                FETCH(glDisableVertexArrayAttrib);
+                FETCH(glVertexAttribPointer);
+                FETCH(glVertexAttribIPointer);
+                FETCH(glVertexAttribLPointer);
 
                 return vtbl;
             }

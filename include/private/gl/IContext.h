@@ -25,6 +25,8 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 
+#include <private/gl/vtbl.h>
+
 namespace lsp
 {
     namespace ws
@@ -103,6 +105,7 @@ namespace lsp
                      */
                     status_t deactivate();
 
+                public:
                     /**
                      * Get shader program for rendering
                      * @param program shader program identifier
@@ -110,6 +113,12 @@ namespace lsp
                      * @return pointer identifier of shader program or negative error code
                      */
                     virtual status_t program(size_t *id, program_t program);
+
+                    /**
+                     * Obtain virtual table of OpenGL functions
+                     * @return virtual table of OpenGL functions
+                     */
+                    virtual const vtbl_t   *vtbl() const;
             };
 
             template <class T>

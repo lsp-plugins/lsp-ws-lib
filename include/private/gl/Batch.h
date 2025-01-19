@@ -28,6 +28,8 @@
 
 #include <private/gl/IContext.h>
 
+#include <GL/gl.h>
+
 namespace lsp
 {
     namespace ws
@@ -45,6 +47,40 @@ namespace lsp
                 batch_program_t enProgram;
                 bool            bMultisampling;
             } batch_header_t;
+
+            enum uniform_type_t
+            {
+                UNI_NONE,
+
+                UNI_FLOAT,
+                UNI_VEC2F,
+                UNI_VEC3F,
+                UNI_VEC4F,
+
+                UNI_INT,
+                UNI_VEC2I,
+                UNI_VEC3I,
+                UNI_VEC4I,
+
+                UNI_UINT,
+                UNI_VEC2U,
+                UNI_VEC3U,
+                UNI_VEC4U,
+
+                UNI_MAT4F,
+            };
+
+            typedef struct uniform_t
+            {
+                const char     *name;
+                uniform_type_t  type;
+                union {
+                    const void    *raw;
+                    const GLfloat *f32;
+                    const GLint   *i32;
+                    const GLuint  *u32;
+                };
+            } uniform_t;
 
 
             class Batch
@@ -68,8 +104,9 @@ namespace lsp
                     typedef struct vbuffer_t
                     {
                         vertex_t   *v;
-                        size_t      count;
-                        size_t      capacity;
+                        uint32_t    count;
+                        uint32_t    capacity;
+//                        uint32_t    index;
                     } vbuffer_t;
 
                     typedef struct ibuffer_t
@@ -81,10 +118,9 @@ namespace lsp
                             void       *data;
                         };
 
-                        size_t      count;
-                        size_t      capacity;
-                        uint32_t    index;
-                        uint32_t    limit;
+                        uint32_t    count;
+                        uint32_t    capacity;
+                        uint32_t    szof;
                     } ibuffer_t;
 
                     typedef struct cbuffer_t
@@ -109,6 +145,8 @@ namespace lsp
                 private:
                     static inline bool header_mismatch(const batch_header_t & a, const batch_header_t & b);
                     static void destroy(draw_t *draw);
+
+                    static void bind_uniforms(const gl::vtbl_t *vtbl, GLuint program, const gl::uniform_t *uniform);
 
                 public:
                     Batch();
@@ -142,9 +180,10 @@ namespace lsp
                     /**
                      * Execute batch on a context
                      * @param ctx context
+                     * @param uniforms uniforms for rendering
                      * @return status of operation
                      */
-                    status_t execute(gl::IContext *ctx);
+                    status_t execute(gl::IContext *ctx, const uniform_t *uniforms);
 
                     /**
                      * Clear batch
