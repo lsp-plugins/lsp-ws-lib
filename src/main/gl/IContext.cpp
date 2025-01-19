@@ -59,9 +59,10 @@ namespace lsp
             {
                 if (bActive)
                     return STATUS_ALREADY_BOUND;
-                status_t res = do_activate();
-                if (res == STATUS_OK)
-                    bActive     = true;
+                bActive         = true;
+                status_t res    = do_activate();
+                if (res != STATUS_OK)
+                    bActive         = false;
                 return res;
             }
 
@@ -71,7 +72,7 @@ namespace lsp
                     return STATUS_NOT_BOUND;
                 status_t res = do_deactivate();
                 if (res == STATUS_OK)
-                    bActive     = false;
+                    bActive         = false;
                 return res;
             }
 
@@ -85,9 +86,9 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            const char *IContext::shader(gl::shader_t shader) const
+            status_t IContext::program(size_t *id, program_t program)
             {
-                return NULL;
+                return STATUS_NOT_IMPLEMENTED;
             }
 
             gl::IContext *create_context(const context_param_t *params)

@@ -26,8 +26,12 @@
 
 #if defined(USE_LIBX11)
 
-#include <private/gl/IContext.h>
+#include <lsp-plug.in/lltl/parray.h>
 
+#include <private/gl/IContext.h>
+#include <private/gl/glx_vtbl.h>
+
+#include <GL/gl.h>
 #include <GL/glx.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -44,18 +48,54 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER Context: public gl::IContext
             {
                 private:
+                    enum pflags_t
+                    {
+                        PF_VERTEX       = 1 << 0,
+                        PF_FRAGMENT     = 1 << 1,
+                        PF_PROGRAM      = 1 << 2,
+                    };
+
+                    enum compile_status_t
+                    {
+                        SHADER,
+                        PROGRAM
+                    };
+
+                    typedef struct program_t
+                    {
+                        GLuint          nVertexId;
+                        GLuint          nFragmentId;
+                        GLuint          nProgramId;
+                        uint32_t        nFlags;
+                    } program_t;
+
+                private:
                     ::Display          *pDisplay;
                     ::GLXContext        hContext;
                     ::Window            hWindow;
+                    const vtbl_t       *pVtbl;
 
-                public:
-                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd);
-                    virtual ~Context() override;
+                    lltl::parray<program_t> vPrograms;
+
+                private:
+                    static const char  *vertex_shader(size_t program_id);
+                    static const char  *fragment_shader(size_t program_id);
+                    static bool         check_gl_error(const char *context);
+
+                private:
+                    void                destroy(program_t *prg);
+                    bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
 
                 protected:
                     virtual status_t    do_activate() override;
                     virtual status_t    do_deactivate() override;
-                    virtual const char *shader(gl::shader_t shader) const override;
+
+                public:
+                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, vtbl_t *vtbl);
+                    virtual ~Context() override;
+
+                public:
+                    virtual status_t    program(size_t *id, gl::program_t program) override;
             };
 
             /**

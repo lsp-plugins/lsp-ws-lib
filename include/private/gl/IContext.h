@@ -55,10 +55,10 @@ namespace lsp
             } context_param_t;
 
 
-            enum shader_t
+            enum program_t
             {
-                VERTEX_SHADER,
-                FRAGMENT_SHADER,
+                GEOMETRY,
+                MULTIPOLYGON,
             };
 
             class LSP_HIDDEN_MODIFIER IContext
@@ -105,10 +105,11 @@ namespace lsp
 
                     /**
                      * Get shader program for rendering
-                     * @param shader program
-                     * @return pointer to shader program or NULL
+                     * @param program shader program identifier
+                     * @param id pointer to store the identifier of the program
+                     * @return pointer identifier of shader program or negative error code
                      */
-                    virtual const char *shader(shader_t shader) const;
+                    virtual status_t program(size_t *id, program_t program);
             };
 
             template <class T>

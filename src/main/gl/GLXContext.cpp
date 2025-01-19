@@ -26,6 +26,10 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
 
+#include <private/gl/glx_shaders.h>
+
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <GL/glx.h>
 
 namespace lsp
@@ -155,24 +159,60 @@ namespace lsp
                 return NULL;
             }
 
+            void Context::destroy(program_t *prg)
+            {
+                if (prg == NULL)
+                    return;
 
-            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window)
+                if (prg->nFlags & PF_PROGRAM)
+                    pVtbl->glDeleteProgram(prg->nProgramId);
+                if (prg->nFlags & PF_VERTEX)
+                    pVtbl->glDeleteShader(prg->nVertexId);
+                if (prg->nFlags & PF_FRAGMENT)
+                    pVtbl->glDeleteShader(prg->nFragmentId);
+
+                free(prg);
+            }
+
+            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window, vtbl_t *vtbl)
                 : IContext()
             {
                 pDisplay        = dpy;
                 hContext        = ctx;
                 hWindow         = window;
+                pVtbl           = vtbl;
             }
 
             Context::~Context()
             {
                 if (hContext != NULL)
                 {
+                    ::Display *dpy = glXGetCurrentDisplay();
+                    ::Drawable drawable = glXGetCurrentDrawable();
+                    GLXContext ctx = glXGetCurrentContext();
+
+                    // Destroy associated programs if they are
+                    if (::glXMakeCurrent(pDisplay, hWindow, hContext))
+                    {
+                        lsp_finally { ::glXMakeCurrent(dpy, drawable, ctx); };
+
+                        for (size_t i=0, n=vPrograms.size(); i<n; ++i)
+                            destroy(vPrograms.uget(i));
+                        vPrograms.flush();
+                    }
+
+                    // Destroy context
                     glXDestroyContext(pDisplay, hContext);
                     hContext        = NULL;
                 }
                 pDisplay        = NULL;
                 hWindow         = None;
+
+                if (pVtbl != NULL)
+                {
+                    free(const_cast<vtbl_t *>(pVtbl));
+                    pVtbl           = NULL;
+                }
             }
 
             status_t Context::do_activate()
@@ -180,6 +220,9 @@ namespace lsp
                 if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
                     return STATUS_UNKNOWN_ERR;
                 ::glDrawBuffer(GL_BACK);
+
+                size_t id = 0;
+                program(&id, gl::GEOMETRY);
 
                 return STATUS_OK;
             }
@@ -192,9 +235,185 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            const char *Context::shader(gl::shader_t shader) const
+            const char *Context::vertex_shader(size_t program_id)
             {
+                if (program_id == gl::GEOMETRY)
+                    return glx::geometry_vertex_shader;
                 return NULL;
+            }
+
+            const char *Context::fragment_shader(size_t program_id)
+            {
+                if (program_id == gl::GEOMETRY)
+                    return glx::geometry_fragment_shader;
+                return NULL;
+            }
+
+            bool Context::check_gl_error(const char *context)
+            {
+                const GLenum error = glGetError();
+                if (error == GL_NO_ERROR)
+                    return false;
+
+                lsp_error("OpenGL error while performing operation '%s': code=%d", context, int(error));
+                return true;
+            }
+
+            bool Context::check_compile_status(const char *context, GLenum id, compile_status_t type)
+            {
+                int success;
+                char log[1024];
+
+                if (type == SHADER)
+                {
+                    pVtbl->glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+                    if (success)
+                        return false;
+
+                    pVtbl->glGetShaderInfoLog(id, sizeof(log), NULL, log);
+                    lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);
+                    return true;
+                }
+                else if (type == PROGRAM)
+                {
+                    pVtbl->glGetProgramiv(id, GL_LINK_STATUS, &success);
+                    if (success)
+                        return false;
+
+                    pVtbl->glGetProgramInfoLog(id, 1024, NULL, log);
+                    lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);
+                    return true;
+                }
+
+                return false;
+            }
+
+            status_t Context::program(size_t *id, gl::program_t program)
+            {
+                if (!active())
+                    return STATUS_BAD_STATE;
+
+                const size_t index = size_t(program);
+                program_t *prog = vPrograms.get(index);
+                if (prog == NULL)
+                {
+                    // Obtain source code for shaders
+                    const char *vertex  = vertex_shader(index);
+                    if (vertex == NULL)
+                    {
+                        lsp_error("Vertex shader not defined for program id=%d", int(index));
+                        return STATUS_BAD_STATE;
+                    }
+
+                    const char *fragment= fragment_shader(index);
+                    if (fragment == NULL)
+                    {
+                        lsp_error("Fragment shader not defined for program id=%d", int(index));
+                        return STATUS_BAD_STATE;
+                    }
+
+                    // Create new program
+                    program_t *prg  = static_cast<program_t *>(malloc(sizeof(program_t)));
+                    if (prg == NULL)
+                        return STATUS_NO_MEM;
+
+                    prg->nVertexId  = 0;
+                    prg->nFragmentId= 0;
+                    prg->nProgramId = 0;
+                    prg->nFlags     = 0;
+                    lsp_finally { destroy(prg); };
+
+                    // Compile vertex shader
+                    if ((prg->nVertexId = pVtbl->glCreateShader(GL_VERTEX_SHADER)) == 0)
+                    {
+                        check_gl_error("create vertex shader");
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    prg->nFlags    |= PF_VERTEX;
+                    pVtbl->glShaderSource(prg->nVertexId, 1, &vertex, NULL);
+                    if (check_gl_error("set vertex shader source"))
+                        return STATUS_UNKNOWN_ERR;
+                    pVtbl->glCompileShader(prg->nVertexId);
+                    if (check_compile_status("compile vertex shader", prg->nVertexId, SHADER))
+                    {
+                        lsp_trace("Vertex shader:\n%s", vertex);
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    if (check_gl_error("compile vertex shader"))
+                        return STATUS_UNKNOWN_ERR;
+
+                    // Compile fragment shader
+                    if ((prg->nFragmentId = pVtbl->glCreateShader(GL_FRAGMENT_SHADER)) == 0)
+                    {
+                        check_gl_error("create fragment shader");
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    prg->nFlags    |= PF_FRAGMENT;
+                    pVtbl->glShaderSource(prg->nFragmentId, 1, &fragment, NULL);
+                    if (check_gl_error("set fragment shader source"))
+                        return STATUS_UNKNOWN_ERR;
+                    pVtbl->glCompileShader(prg->nFragmentId);
+                    if (check_compile_status("compile fragment shader", prg->nFragmentId, SHADER))
+                    {
+                        lsp_trace("Fragment shader:\n%s", vertex);
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    if (check_gl_error("compile fragment shader"))
+                        return STATUS_UNKNOWN_ERR;
+
+                    // Link program
+                    if ((prg->nProgramId = pVtbl->glCreateProgram()) == 0)
+                    {
+                        check_gl_error("create program");
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    prg->nFlags    |= PF_PROGRAM;
+                    pVtbl->glAttachShader(prg->nProgramId, prg->nVertexId);
+                    if (check_gl_error("attach vertex shader to program"))
+                        return STATUS_UNKNOWN_ERR;
+                    pVtbl->glAttachShader(prg->nProgramId, prg->nFragmentId);
+                    if (check_gl_error("attach fragment shader to program"))
+                        return STATUS_UNKNOWN_ERR;
+                    pVtbl->glLinkProgram(prg->nProgramId);
+                    if (check_compile_status("link program", prg->nProgramId, PROGRAM))
+                    {
+                        lsp_trace("Vertex shader:\n%s", vertex);
+                        lsp_trace("Fragment shader:\n%s", vertex);
+                        return STATUS_UNKNOWN_ERR;
+                    }
+                    if (check_gl_error("link program"))
+                        return STATUS_UNKNOWN_ERR;
+
+                    // Now we can delete compiled shaders
+                    pVtbl->glDeleteShader(prg->nVertexId);
+                    if (check_gl_error("delete vertex shader"))
+                        return STATUS_UNKNOWN_ERR;
+                    prg->nFlags    &= ~PF_VERTEX;
+
+                    pVtbl->glDeleteShader(prg->nFragmentId);
+                    if (check_gl_error("delete fragment shader"))
+                        return STATUS_UNKNOWN_ERR;
+                    prg->nFlags    &= ~PF_FRAGMENT;
+
+                    // Add program to list
+                    const size_t count  = index + 1 - vPrograms.size();
+                    if (count > 0)
+                    {
+                        program_t **ptr     = vPrograms.append_n(count);
+                        if (ptr == NULL)
+                            return STATUS_NO_MEM;
+                        for (size_t i=0; i<count; ++i)
+                            ptr[i]              = NULL;
+                    }
+                    if (!vPrograms.set(index, prg))
+                        return STATUS_UNKNOWN_ERR;
+
+                    prog            = release_ptr(prg);
+                }
+
+                *id = prog->nProgramId;
+
+                return STATUS_OK;
             }
 
             gl::IContext *create_context(Display *dpy, int screen, Window window)
@@ -204,26 +423,25 @@ namespace lsp
                 if (fb_config == NULL)
                     return NULL;
 
+                // Create virtual table
+                vtbl_t *vtbl            = create_vtbl();
+                if (vtbl == NULL)
+                    return NULL;
+                lsp_finally { free(vtbl); };
+
                 // Try to create OpenGL 3.0+ context
                 GLXContext ctx = NULL;
-
                 const char *extensions = glXQueryExtensionsString(dpy, screen);
-                if (check_gl_extension(extensions, "GLX_ARB_create_context"))
+                if ((check_gl_extension(extensions, "GLX_ARB_create_context")) &&
+                    (vtbl->glXCreateContextAttribsARB != NULL))
                 {
-                    glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
-                    glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)
-                             glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB" );
-
-                    if (glXCreateContextAttribsARB)
-                    {
-                        ctx = glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_context_attribs );
-                        if (ctx == NULL)
-                            ctx = glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_context_attribs );
-                        if (ctx == NULL)
-                            ctx = glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_legacy_context_attribs );
-                        if (ctx == NULL)
-                            ctx = glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_legacy_context_attribs );
-                    }
+                    ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_context_attribs);
+                    if (ctx == NULL)
+                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_context_attribs);
+                    if (ctx == NULL)
+                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_legacy_context_attribs);
+                    if (ctx == NULL)
+                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_legacy_context_attribs);
                 }
 
                 if (ctx == NULL)
@@ -234,13 +452,14 @@ namespace lsp
                     return NULL;
 
                 // Wrap the created context with context wrapper.
-                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window);
+                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl);
                 if (glx_ctx == NULL)
                 {
                     glXDestroyContext(dpy, ctx);
                     return NULL;
                 }
 
+                vtbl            = NULL;
                 return glx_ctx;
             }
         } /* namespace glx */
