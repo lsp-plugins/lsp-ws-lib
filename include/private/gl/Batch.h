@@ -148,6 +148,9 @@ namespace lsp
 
                     static void bind_uniforms(const gl::vtbl_t *vtbl, GLuint program, const gl::uniform_t *uniform);
 
+                private:
+                    ssize_t         alloc_indices(size_t count, size_t max_index);
+
                 public:
                     Batch();
                     Batch(const Batch &) = delete;
@@ -196,7 +199,7 @@ namespace lsp
                      * @param x vertex X coordinate
                      * @param y vertex Y coordinate
                      * @param z vertex Z coordinate
-                     * @return absolute index of vertex in vertex buffer or negative error code
+                     * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
                      */
                     ssize_t vertex(float x, float y, float z);
 
@@ -208,6 +211,16 @@ namespace lsp
                      * @return absolute index of record in index buffer or negative error code
                      */
                     ssize_t triangle(size_t a, size_t b, size_t c);
+
+                    /**
+                     * Add rectangle
+                     * @param a relative index of the first vertex
+                     * @param b relative index of the second vertex
+                     * @param c relative index of the third vertex
+                     * @param d relative index of the fourth vertex
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t rectangle(size_t a, size_t b, size_t c, size_t d);
 
                     /**
                      * Add color

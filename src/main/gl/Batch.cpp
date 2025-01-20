@@ -353,34 +353,24 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::triangle(size_t a, size_t b, size_t c)
+            ssize_t Batch::alloc_indices(size_t count, size_t max_index)
             {
-                IF_DEBUG(
-                    if (pCurrent == NULL)
-                        return -STATUS_BAD_STATE;
-                );
-
                 // Check indices
-//                const size_t off    = pCurrent->vertices.index;
-                ibuffer_t & buf     = pCurrent->indices;
-//                a                  += off;
-//                b                  += off;
-//                c                  += off;
-
-                const size_t max_index  = lsp_max(a, b, c);
                 IF_DEBUG(
                     if (max_index > UINT32_MAX)
                         return -STATUS_OVERFLOW;
                 );
 
-                const size_t new_size   = buf.count + 3;
+                // Check indices
+                ibuffer_t & buf     = pCurrent->indices;
+                const size_t new_size   = buf.count + count;
                 const size_t szof       =
                     (max_index > UINT16_MAX) ? sizeof(uint32_t) :
                     (max_index > UINT8_MAX) ? sizeof(uint16_t) :
                     sizeof(uint8_t);
 
                 // Check if we need to resize the buffer
-                if ((new_size >= buf.capacity) || (szof > buf.szof))
+                if ((new_size > buf.capacity) || (szof > buf.szof))
                 {
                     // Check if we need to widen the indices
                     const size_t new_cap    = (new_size > buf.capacity) ? buf.capacity << 1 : buf.capacity;
@@ -420,10 +410,26 @@ namespace lsp
                     buf.capacity        = new_cap;
                 }
 
-                // Append vertex indices
-                const uint32_t index    = buf.count;
-                buf.count              += 3;
+                // Return allocated indices
+                const ssize_t result    = buf.count;
+                buf.count              += count;
 
+                return result;
+            }
+
+            ssize_t Batch::triangle(size_t a, size_t b, size_t c)
+            {
+                IF_DEBUG(
+                    if (pCurrent == NULL)
+                        return -STATUS_BAD_STATE;
+                );
+
+                const ssize_t index     = alloc_indices(3, lsp_max(a, b, c));
+                if (index < 0)
+                    return index;
+
+                // Append vertex indices
+                ibuffer_t & buf     = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
                     buf.u32[index]      = uint32_t(a);
@@ -441,6 +447,50 @@ namespace lsp
                     buf.u8[index]       = uint8_t(a);
                     buf.u8[index+1]     = uint8_t(b);
                     buf.u8[index+2]     = uint8_t(c);
+                }
+
+                return index;
+            }
+
+            ssize_t Batch::rectangle(size_t a, size_t b, size_t c, size_t d)
+            {
+                IF_DEBUG(
+                    if (pCurrent == NULL)
+                        return -STATUS_BAD_STATE;
+                );
+
+                const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
+                if (index < 0)
+                    return index;
+
+                // Append vertex indices
+                ibuffer_t & buf     = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    buf.u32[index]      = uint32_t(a);
+                    buf.u32[index+1]    = uint32_t(b);
+                    buf.u32[index+2]    = uint32_t(c);
+                    buf.u32[index+3]    = uint32_t(c);
+                    buf.u32[index+4]    = uint32_t(d);
+                    buf.u32[index+5]    = uint32_t(a);
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    buf.u16[index]      = uint16_t(a);
+                    buf.u16[index+1]    = uint16_t(b);
+                    buf.u16[index+2]    = uint16_t(c);
+                    buf.u16[index+3]    = uint16_t(c);
+                    buf.u16[index+4]    = uint16_t(d);
+                    buf.u16[index+5]    = uint16_t(a);
+                }
+                else
+                {
+                    buf.u8[index]       = uint8_t(a);
+                    buf.u8[index+1]     = uint8_t(b);
+                    buf.u8[index+2]     = uint8_t(c);
+                    buf.u8[index+3]     = uint8_t(c);
+                    buf.u8[index+4]     = uint8_t(d);
+                    buf.u8[index+5]     = uint8_t(a);
                 }
 
                 return index;

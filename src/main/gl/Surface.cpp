@@ -547,15 +547,17 @@ namespace lsp
 
                     sBatch.vertex(x + vx * kr, y + vy * kr, ci);
                     sBatch.vertex(x + vx, y + vy, ci);
-                    sBatch.triangle(v0i, v0i + 1, v0i + 2);
-                    sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
+                    sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+//                    sBatch.triangle(v0i, v0i + 1, v0i + 2);
+//                    sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
                     v0i        += 2;
                 }
 
                 sBatch.vertex(x + ex * kr, y + ey * kr, ci);
                 sBatch.vertex(x + ex, y + ey, ci);
-                sBatch.triangle(v0i, v0i + 1, v0i + 2);
-                sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
+                sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+//                sBatch.triangle(v0i, v0i + 1, v0i + 2);
+//                sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
             }
 
             void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
