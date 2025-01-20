@@ -34,6 +34,7 @@
 
 #include <private/freetype/FontManager.h>
 #include <private/gl/Batch.h>
+#include <private/gl/Gradient.h>
 #include <private/gl/Surface.h>
 #include <private/x11/X11Display.h>
 
@@ -99,14 +100,19 @@ namespace lsp
 
             IGradient *Surface::linear_gradient(float x0, float y0, float x1, float y1)
             {
-                // TODO
-                return NULL;
+                return new gl::Gradient(
+                    gl::Gradient::linear_t {
+                        x0, y0,
+                        x1, y1});
             }
 
             IGradient *Surface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
             {
-                // TODO
-                return NULL;
+                return new gl::Gradient(
+                    gl::Gradient::radial_t {
+                        cx0, cy0,
+                        cx1, cy1,
+                        r});
             }
 
             void Surface::do_destroy()
@@ -187,7 +193,7 @@ namespace lsp
                 buf     = serialize_clipping(buf);
                 serialize_color(buf, r, g, b, a);
 
-                return make_command(index, C_FIXED);
+                return make_command(index, C_SOLID);
             }
 
             ssize_t Surface::start_batch(batch_program_t program, const Color & color)
@@ -212,7 +218,37 @@ namespace lsp
                 buf     = serialize_clipping(buf);
                 serialize_color(buf, color);
 
-                return make_command(index, C_FIXED);
+                return make_command(index, C_SOLID);
+            }
+
+            ssize_t Surface::start_batch(batch_program_t program, const IGradient * g)
+            {
+                if (!bIsDrawing)
+                    return -STATUS_BAD_STATE;
+                if (g == NULL)
+                    return -STATUS_BAD_ARGUMENTS;
+
+                // Start batch
+                status_t res = sBatch.begin(gl::batch_header_t {
+                    program,
+                    bAntiAliasing,
+                });
+                if (res != STATUS_OK)
+                    return -res;
+
+                const gl::Gradient *grad = static_cast<const gl::Gradient *>(g);
+                const size_t szof = grad->serial_size();
+
+                // Allocate place for command
+                float *buf = NULL;
+                ssize_t index = sBatch.command(&buf, (szof + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+                grad->serialize(buf);
+
+                return make_command(index, grad->linear() ? C_LINEAR : C_RADIAL);
             }
 
             void Surface::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -560,7 +596,14 @@ namespace lsp
 
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
             }
 
             void Surface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -696,6 +739,14 @@ namespace lsp
 
             void Surface::fill_circle(IGradient *g, float x, float y, float r)
             {
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_circle(uint32_t(res), x, y, r);
             }
 
             void Surface::fill_frame(

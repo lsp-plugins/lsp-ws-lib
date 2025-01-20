@@ -47,7 +47,7 @@ namespace lsp
                 private:
                     enum cmd_color_t
                     {
-                        C_FIXED     = 0,
+                        C_SOLID     = 0,
                         C_LINEAR    = 1,
                         C_RADIAL    = 2,
                         C_TEXTURE   = 3
@@ -97,6 +97,7 @@ namespace lsp
                 private:
                     ssize_t start_batch(batch_program_t program, const Color & color);
                     ssize_t start_batch(batch_program_t program, float r, float g, float b, float a);
+                    ssize_t start_batch(batch_program_t program, const IGradient * g);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
 
                     inline float *serialize_clipping(float *dst) const;

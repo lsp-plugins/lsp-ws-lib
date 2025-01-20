@@ -68,11 +68,25 @@ namespace lsp
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
-                SHADER("    if (b_coloring == 0)")
+                SHADER("    int index = b_index;")
+                SHADER("    if (b_coloring == 0)") // Solid color
                 SHADER("    {")
-                SHADER("        gl_FragColor = texelFetch(u_buf_commands, b_index);")
+                SHADER("        gl_FragColor = texelFetch(u_buf_commands, index);")
                 SHADER("    }")
-                SHADER("    else")
+                SHADER("    else if (b_coloring == 1)") // Linear gradient
+                SHADER("    {")
+                SHADER("        vec4 cs = texelFetch(u_buf_commands, index);") // Start color
+                SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);") // End color
+                SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);") // Gradient parameters
+                SHADER("        vec2 dv = gp.zw - gp.xy;") // Gradient direction vector
+                SHADER("        vec2 dp = gl_FragCoord.xy - gp.xy;") // Dot direction vector
+                SHADER("        gl_FragColor = mix(cs, ce, clamp(dot(dv, dp) / dot(dv, dv), 0.0f, 1.0f));")
+                SHADER("    }")
+                SHADER("    else if (b_coloring == 2)") // Radial gradient
+                SHADER("    {")
+                SHADER("        gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.5f);")
+                SHADER("    }")
+                SHADER("    else") // Texture-based fill
                 SHADER("    {")
                 SHADER("        gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.5f);")
                 SHADER("    }")
