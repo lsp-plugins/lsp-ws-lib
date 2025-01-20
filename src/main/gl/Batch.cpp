@@ -64,33 +64,31 @@ namespace lsp
 
             Batch::Batch()
             {
-                vColors.c           = NULL;
-                vColors.count       = 0;
-                vColors.capacity    = 0;
+                vCommands.data      = NULL;
+                vCommands.count     = 0;
+                vCommands.capacity  = 0;
                 pCurrent            = NULL;
             }
 
             Batch::~Batch()
             {
                 clear();
-                if (vColors.c != NULL)
+                if (vCommands.data != NULL)
                 {
-                    free(vColors.c);
-                    vColors.c           = NULL;
+                    free(vCommands.data);
+                    vCommands.data      = NULL;
                 }
             }
 
             status_t Batch::init()
             {
-                constexpr size_t start_capacity = 16;
-                vColors.c           = static_cast<color_t *>(malloc(sizeof(color_t) * start_capacity * start_capacity));
-                if (vColors.c == NULL)
+                vCommands.count     = 0;
+                vCommands.capacity  = 256;
+                vCommands.data      = static_cast<float *>(malloc(sizeof(float) * vCommands.capacity));
+                if (vCommands.data == NULL)
                     return STATUS_NO_MEM;
 
-                vColors.count       = 0;
-                vColors.capacity    = start_capacity * start_capacity;
-
-                bzero(vColors.c, vColors.capacity * sizeof(color_t));
+                bzero(vCommands.data, vCommands.capacity * sizeof(float));
 
                 return STATUS_OK;
             }
@@ -154,7 +152,7 @@ namespace lsp
                         destroy(draw);
                 }
                 vBatches.clear();
-                vColors.count   = 0;
+                vCommands.count     = 0;
 
                 // Try to add current batch to the list of batches
                 if (pCurrent != NULL)
@@ -218,7 +216,7 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 IF_TRACE(
-                    lsp_trace("Batch: draws=%d,  colors=%d", int(vBatches.size()), int(vColors.count));
+                    lsp_trace("Batch: draws=%d,  commands=%d", int(vBatches.size()), int(vCommands.count));
 
                     for (size_t i=0, n=vBatches.size(); i<n; ++i)
                     {
@@ -242,14 +240,18 @@ namespace lsp
                 // Create VBO and VAO
                 const gl::vtbl_t *vtbl  = ctx->vtbl();
 
-                GLuint VBO[2], VAO;
-                vtbl->glGenBuffers(2, VBO);
+                GLuint VBO[3];
+                GLuint VAO;
+                GLuint cmd_texture;
+                vtbl->glGenBuffers(3, VBO);
                 vtbl->glGenVertexArrays(1, &VAO);
                 vtbl->glBindVertexArray(VAO);
+                vtbl->glGenTextures(1, &cmd_texture);
 
                 lsp_finally {
                     vtbl->glDeleteVertexArrays(1, &VAO);
-                    vtbl->glDeleteBuffers(2, VBO);
+                    vtbl->glDeleteBuffers(3, VBO);
+                    vtbl->glDeleteTextures(1, &cmd_texture);
                 };
 
                 // Apply batches
@@ -275,19 +277,50 @@ namespace lsp
                             bind_uniforms(vtbl, program_id, uniforms);
                         }
 
-                        const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
-
+                        // Vertex buffer
                         vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-                        vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_DYNAMIC_DRAW);
+                        vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
 
+                        // Element array buffer
                         vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
-                        vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_DYNAMIC_DRAW);
+                        vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
+
+                        // Command buffer
+                        const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
+                        if (u_commands > 0)
+                        {
+                            vtbl->glUniform1i(program_id, 0);
+
+                            vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
+                            vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
+                            vtbl->glActiveTexture(GL_TEXTURE0);
+
+                            vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
+                            vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
+                        }
+
+                        // Bind vertex attributes
+                        const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
+                        const GLint a_texcoord = vtbl->glGetAttribLocation(program_id, "a_texcoord");
+                        const GLint a_command = vtbl->glGetAttribLocation(program_id, "a_command");
 
                         // position attribute
                         if (a_vertex >= 0)
                         {
-                            vtbl->glVertexAttribPointer(a_vertex, 3, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
+                            vtbl->glVertexAttribPointer(a_vertex, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
                             vtbl->glEnableVertexAttribArray(a_vertex);
+                        }
+                        // texture coordinates
+                        if (a_texcoord >= 0)
+                        {
+                            vtbl->glVertexAttribPointer(a_texcoord, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, s));
+                            vtbl->glEnableVertexAttribArray(a_texcoord);
+                        }
+                        // draw command
+                        if (a_command >= 0)
+                        {
+                            vtbl->glVertexAttribIPointer(a_command, 1, GL_UNSIGNED_INT, sizeof(vertex_t), gl_offsetof(vertex_t, cmd));
+                            vtbl->glEnableVertexAttribArray(a_command);
                         }
 
 //                        // color attribute
@@ -299,10 +332,16 @@ namespace lsp
                             (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :
                             (draw->indices.szof > sizeof(uint8_t)) ? GL_UNSIGNED_SHORT :
                             GL_UNSIGNED_BYTE;
+
+
+
+                        // Draw content
                         glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
 
+                        // Reset state
                         vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
                         vtbl->glBindVertexArray(0);
+                        vtbl->glUseProgram(0);
                     }
                     else
                     {
@@ -324,7 +363,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            ssize_t Batch::vertex(float x, float y, float z)
+            ssize_t Batch::alloc_vertices(size_t count)
             {
                 IF_DEBUG(
                     if (pCurrent == NULL)
@@ -333,7 +372,7 @@ namespace lsp
 
                 // Check if we need to resize the buffer
                 vbuffer_t & buf = pCurrent->vertices;
-                if (buf.count >= buf.capacity)
+                if ((buf.count + count) > buf.capacity)
                 {
                     const size_t new_cap    = buf.capacity << 1;
                     vertex_t *ptr           = static_cast<vertex_t *>(realloc(buf.v, sizeof(vertex_t) * new_cap));
@@ -343,12 +382,42 @@ namespace lsp
                     buf.capacity            = new_cap;
                 }
 
-                // Append vertex
-                const uint32_t index    = buf.count++;
+                // Allocate vertices
+                const ssize_t index = buf.count;
+                buf.count          += count;
+                return index;
+            }
+
+            ssize_t Batch::vertex(uint32_t cmd, float x, float y)
+            {
+                const ssize_t index     = alloc_vertices(1);
+                if (index < 0)
+                    return index;
+
+                vbuffer_t & buf         = pCurrent->vertices;
                 vertex_t *v             = &buf.v[index];
                 v->x                    = x;
                 v->y                    = y;
-                v->z                    = z;
+                v->s                    = 0.0f;
+                v->t                    = 0.0f;
+                v->cmd                  = cmd;
+
+                return index;
+            }
+
+            ssize_t Batch::vertex(uint32_t cmd, float x, float y, float s, float t)
+            {
+                const ssize_t index     = alloc_vertices(1);
+                if (index < 0)
+                    return index;
+
+                vbuffer_t & buf         = pCurrent->vertices;
+                vertex_t *v             = &buf.v[index];
+                v->x                    = x;
+                v->y                    = y;
+                v->s                    = s;
+                v->t                    = t;
+                v->cmd                  = cmd;
 
                 return index;
             }
@@ -419,16 +488,10 @@ namespace lsp
 
             ssize_t Batch::triangle(size_t a, size_t b, size_t c)
             {
-                IF_DEBUG(
-                    if (pCurrent == NULL)
-                        return -STATUS_BAD_STATE;
-                );
-
                 const ssize_t index     = alloc_indices(3, lsp_max(a, b, c));
                 if (index < 0)
                     return index;
 
-                // Append vertex indices
                 ibuffer_t & buf     = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
@@ -454,11 +517,6 @@ namespace lsp
 
             ssize_t Batch::rectangle(size_t a, size_t b, size_t c, size_t d)
             {
-                IF_DEBUG(
-                    if (pCurrent == NULL)
-                        return -STATUS_BAD_STATE;
-                );
-
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
                 if (index < 0)
                     return index;
@@ -496,34 +554,39 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::color(float r, float g, float b, float a)
+            ssize_t Batch::command(float **data, size_t length)
             {
                 IF_DEBUG(
                     if (pCurrent == NULL)
                         return -STATUS_BAD_STATE;
                 );
 
+                const size_t to_alloc   = (length + 3) & (~size_t(3));
+
                 // Check if we need to resize the buffer
-                cbuffer_t & buf = vColors;
-                if (buf.count >= buf.capacity)
+                cbuffer_t & buf     = vCommands;
+                if ((buf.count + to_alloc) >= buf.capacity)
                 {
-                    const size_t new_cap    = buf.capacity << 2;
-                    color_t *ptr            = static_cast<color_t *>(realloc(buf.c, sizeof(color_t) * new_cap));
+                    const size_t new_cap    = buf.capacity << 1;
+                    float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
-                    buf.c                   = ptr;
+                    buf.data                = ptr;
                     buf.capacity            = new_cap;
                 }
 
                 // Append vertex
-                const size_t index  = buf.count++;
-                color_t *v          = &buf.c[index];
-                v->r                = r;
-                v->g                = g;
-                v->b                = b;
-                v->a                = a;
+                const uint32_t index    = buf.count;
+                buf.count              += to_alloc;
 
-                return index;
+                // Clean up the unused tail
+                float *result           = &buf.data[index];
+                for ( ; length < to_alloc; ++length)
+                    result[length]          = 0.0f;
+
+                *data           = result;
+
+                return index >> 2;
             }
 
         } /* namespace gl */

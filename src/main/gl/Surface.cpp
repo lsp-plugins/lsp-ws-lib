@@ -52,15 +52,15 @@ namespace lsp
                 pContext        = safe_acquire(ctx);
                 nWidth          = width;
                 nHeight         = height;
+                nNumClips       = 0;
                 bNested         = false;
                 bIsDrawing      = false;
                 bAntiAliasing   = true;
 
-                sBatch.init();
+                bzero(vMatrix, sizeof(float) * 16);
+                bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
 
-            #ifdef LSP_DEBUG
-                nNumClips       = 0;
-            #endif /* LSP_DEBUG */
+                sBatch.init();
             }
 
             Surface::Surface(size_t width, size_t height)
@@ -70,14 +70,14 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
+                nNumClips       = 0;
                 bIsDrawing      = false;
                 bAntiAliasing   = true;
 
-                sBatch.init();
+                bzero(vMatrix, sizeof(float) * 16);
+                bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
 
-            #ifdef LSP_DEBUG
-                nNumClips       = 0;
-            #endif /* LSP_DEBUG */
+                sBatch.init();
             }
 
             IDisplay *Surface::display()
@@ -125,6 +125,91 @@ namespace lsp
             void Surface::destroy()
             {
                 do_destroy();
+            }
+
+            inline ssize_t Surface::make_command(ssize_t index, cmd_color_t color) const
+            {
+                return (index << 5) | (size_t(color) << 3) | nNumClips;
+            }
+
+            float *Surface::serialize_clipping(float *dst) const
+            {
+                for (size_t i=0; i<nNumClips; ++i)
+                {
+                    const clip_rect_t *r = &vClips[i];
+                    dst[0]      = r->left;
+                    dst[1]      = r->top;
+                    dst[2]      = r->right;
+                    dst[3]      = r->bottom;
+
+                    dst        += 4;
+                }
+
+                return dst;
+            }
+
+            inline float *Surface::serialize_color(float *dst, float r, float g, float b, float a)
+            {
+                dst[0]      = r;
+                dst[1]      = g;
+                dst[2]      = b;
+                dst[3]      = a;
+
+                return dst + 4;
+            }
+
+            inline float *Surface::serialize_color(float *dst, const Color & c)
+            {
+                dst[0]      = c.red();
+                dst[1]      = c.green();
+                dst[2]      = c.blue();
+                dst[3]      = c.alpha();
+
+                return dst + 4;
+            }
+
+            ssize_t Surface::start_batch(batch_program_t program, float r, float g, float b, float a)
+            {
+                // Start batch
+                status_t res = sBatch.begin(gl::batch_header_t {
+                    program,
+                    bAntiAliasing,
+                });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+                serialize_color(buf, r, g, b, a);
+
+                return make_command(index, C_FIXED);
+            }
+
+            ssize_t Surface::start_batch(batch_program_t program, const Color & color)
+            {
+                // Start batch
+                status_t res = sBatch.begin(gl::batch_header_t {
+                    program,
+                    bAntiAliasing,
+                });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+                serialize_color(buf, color);
+
+                return make_command(index, C_FIXED);
             }
 
             bool Surface::valid() const
@@ -352,20 +437,18 @@ namespace lsp
                 const ssize_t count = delta / alpha;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    gl::SIMPLE,
-                    bAntiAliasing,
-                });
-                if (res != STATUS_OK)
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
+                const uint32_t ci   = uint32_t(res);
 
-                float vx        = cosf(a1) * r;
-                float vy        = sinf(a1) * r;
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
 
-                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                const size_t v0i    = sBatch.vertex(x, y, ci);
-                size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
+                const size_t v0i    = sBatch.vertex(ci, x, y);
+                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
 
                 for (ssize_t i=0; i<count; ++i)
                 {
@@ -374,12 +457,12 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(x + vx, y + vy, ci);
+                    sBatch.vertex(ci, x + vx, y + vy);
                     sBatch.triangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
-                sBatch.vertex(x + ex, y + ey, ci);
+                sBatch.vertex(ci, x + ex, y + ey);
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
@@ -394,32 +477,17 @@ namespace lsp
                     return;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    gl::SIMPLE,
-                    bAntiAliasing,
-                });
-                if (res != STATUS_OK)
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
                 // Fill batch with single triangle
-                {
-                    const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                    const ssize_t vi    = sBatch.vertex(x0, y0, ci);
-                    sBatch.vertex(x1, y1, ci);
-                    sBatch.vertex(x2, y2, ci);
-                    sBatch.triangle(vi, vi+1, vi+2);
-                }
-
-//                // TODO: remove this code after batch execution implementation complete
-//                {
-//                    glColor4f(c.red(), c.green(), c.blue(), c.alpha());
-//                    glBegin(GL_TRIANGLES);
-//                        glVertex2f(x0, y0);
-//                        glVertex2f(x1, y1);
-//                        glVertex2f(x2, y2);
-//                    glEnd();
-//                }
+                const uint32_t ci   = uint32_t(res);
+                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
+                sBatch.vertex(ci, x1, y1);
+                sBatch.vertex(ci, x2, y2);
+                sBatch.triangle(vi, vi + 1, vi + 2);
             }
 
             bool Surface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -522,11 +590,8 @@ namespace lsp
                 const ssize_t count = delta / alpha;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    gl::SIMPLE,
-                    bAntiAliasing,
-                });
-                if (res != STATUS_OK)
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
@@ -534,9 +599,9 @@ namespace lsp
                 float vx        = cosf(a1) * ro;
                 float vy        = sinf(a1) * ro;
 
-                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                ssize_t v0i         = sBatch.vertex(x + vx * kr, y + vy * kr, ci);
-                sBatch.vertex(x + vx, y + vy, ci);
+                const uint32_t ci   = uint32_t(res);
+                ssize_t v0i         = sBatch.vertex(ci, x + vx * kr, y + vy * kr);
+                sBatch.vertex(ci, x + vx, y + vy);
 
                 for (ssize_t i=0; i<count; ++i)
                 {
@@ -545,19 +610,15 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(x + vx * kr, y + vy * kr, ci);
-                    sBatch.vertex(x + vx, y + vy, ci);
+                    sBatch.vertex(ci, x + vx * kr, y + vy * kr);
+                    sBatch.vertex(ci, x + vx, y + vy);
                     sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
-//                    sBatch.triangle(v0i, v0i + 1, v0i + 2);
-//                    sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
                     v0i        += 2;
                 }
 
-                sBatch.vertex(x + ex * kr, y + ey * kr, ci);
-                sBatch.vertex(x + ex, y + ey, ci);
+                sBatch.vertex(ci, x + ex * kr, y + ey * kr);
+                sBatch.vertex(ci, x + ex, y + ey);
                 sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
-//                sBatch.triangle(v0i, v0i + 1, v0i + 2);
-//                sBatch.triangle(v0i + 2, v0i + 1, v0i + 3);
             }
 
             void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -594,11 +655,8 @@ namespace lsp
                 const size_t count = M_PI * 0.5f * r;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    gl::SIMPLE,
-                    bAntiAliasing,
-                });
-                if (res != STATUS_OK)
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
@@ -606,9 +664,9 @@ namespace lsp
                 float vx = r;
                 float vy = 0.0f;
 
-                const float ci      = sBatch.color(c.red(), c.green(), c.blue(), c.alpha());
-                const ssize_t v0i   = sBatch.vertex(x, y, ci);
-                size_t v1i          = sBatch.vertex(x + vx, y + vy, ci);
+                const uint32_t ci   = uint32_t(res);
+                const ssize_t v0i   = sBatch.vertex(ci, x, y);
+                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
 
                 for (size_t i=0; i<count; ++i)
                 {
@@ -617,12 +675,12 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(x + vx, y + vy, ci);
+                    sBatch.vertex(ci, x + vx, y + vy);
                     sBatch.triangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
-                sBatch.vertex(x + r, y, ci);
+                sBatch.vertex(ci, x + r, y);
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
@@ -663,21 +721,33 @@ namespace lsp
 
             void Surface::clip_begin(float x, float y, float w, float h)
             {
-            #ifdef LSP_DEBUG
-                ++nNumClips;
-            #endif /* LSP_DEBUG */
+                if (!bIsDrawing)
+                    return;
+
+                if (nNumClips >= MAX_CLIPS)
+                {
+                    lsp_error("Too many clipping regions specified (%d)", int(nNumClips + 1));
+                    return;
+                }
+
+                clip_rect_t *rect = &vClips[nNumClips++];
+                rect->left      = x;
+                rect->top       = y;
+                rect->right     = x + w;
+                rect->bottom    = y + h;
             }
 
             void Surface::clip_end()
             {
-            #ifdef LSP_DEBUG
+                if (!bIsDrawing)
+                    return;
+
                 if (nNumClips <= 0)
                 {
                     lsp_error("Mismatched number of clip_begin() and clip_end() calls");
                     return;
                 }
-                -- nNumClips;
-            #endif /* LSP_DEBUG */
+                --nNumClips;
             }
 
         } /* namespace gl */

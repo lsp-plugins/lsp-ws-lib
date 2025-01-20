@@ -44,20 +44,43 @@ namespace lsp
              */
             class LSP_HIDDEN_MODIFIER Surface: public ISurface
             {
+                private:
+                    enum cmd_color_t
+                    {
+                        C_FIXED     = 0,
+                        C_LINEAR    = 1,
+                        C_RADIAL    = 2,
+                        C_TEXTURE   = 3
+                    };
+
+                    typedef struct clip_rect_t
+                    {
+                        float               left;
+                        float               top;
+                        float               right;
+                        float               bottom;
+                    } clip_rect_t;
+
+                    typedef struct color_t
+                    {
+                        float               r, g, b, a;
+                    } color_t;
+
+                    static constexpr size_t MAX_CLIPS       = 8;
+
                 protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
                     gl::Batch               sBatch;
                     size_t                  nWidth;
                     size_t                  nHeight;
+                    size_t                  nNumClips;
                     float                   vMatrix[16];
+                    clip_rect_t             vClips[MAX_CLIPS];
 
                     bool                    bNested;
                     bool                    bIsDrawing;         // Surface is currently in drawing mode
                     bool                    bAntiAliasing;      // Anti-aliasing option
-                #ifdef LSP_DEBUG
-                    size_t                  nNumClips;
-                #endif /* LSP_DEBUG */
 
                 private:
                     void do_destroy();
@@ -70,6 +93,15 @@ namespace lsp
                      * @param height surface height
                      */
                     explicit Surface(size_t width, size_t height);
+
+                private:
+                    ssize_t start_batch(batch_program_t program, const Color & color);
+                    ssize_t start_batch(batch_program_t program, float r, float g, float b, float a);
+                    inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
+
+                    inline float *serialize_clipping(float *dst) const;
+                    static inline float *serialize_color(float *dst, float r, float g, float b, float a);
+                    static inline float *serialize_color(float *dst, const Color & c);
 
                 public:
                     /** Create GL surface

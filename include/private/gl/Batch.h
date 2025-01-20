@@ -88,25 +88,18 @@ namespace lsp
                 private:
                     typedef struct vertex_t
                     {
-                        float       x;
-                        float       y;
-                        float       z;
+                        float       x;      // X Coordinate
+                        float       y;      // Y Coordinate
+                        float       s;      // Texture Coordinate S
+                        float       t;      // Texture Coordinate T
+                        uint32_t    cmd;    // Draw command
                     } vertex_t;
-
-                    typedef struct color_t
-                    {
-                        float       r;
-                        float       g;
-                        float       b;
-                        float       a;
-                    } color_t;
 
                     typedef struct vbuffer_t
                     {
                         vertex_t   *v;
                         uint32_t    count;
                         uint32_t    capacity;
-//                        uint32_t    index;
                     } vbuffer_t;
 
                     typedef struct ibuffer_t
@@ -125,9 +118,9 @@ namespace lsp
 
                     typedef struct cbuffer_t
                     {
-                        color_t    *c;
-                        size_t      count;
-                        size_t      capacity;
+                        float      *data;
+                        uint32_t    count;
+                        uint32_t    capacity;
                     } cbuffer_t;
 
                     typedef struct draw_t
@@ -138,7 +131,7 @@ namespace lsp
                     } draw_t;
 
                 private:
-                    cbuffer_t               vColors;
+                    cbuffer_t               vCommands;
                     lltl::parray<draw_t>    vBatches;
                     draw_t                 *pCurrent;
 
@@ -150,6 +143,7 @@ namespace lsp
 
                 private:
                     ssize_t         alloc_indices(size_t count, size_t max_index);
+                    ssize_t         alloc_vertices(size_t count);
 
                 public:
                     Batch();
@@ -196,12 +190,23 @@ namespace lsp
                 public:
                     /**
                      * Add vertex
+                     * @param cmd command for a vertex
                      * @param x vertex X coordinate
                      * @param y vertex Y coordinate
-                     * @param z vertex Z coordinate
                      * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
                      */
-                    ssize_t vertex(float x, float y, float z);
+                    ssize_t vertex(uint32_t cmd, float x, float y);
+
+                    /**
+                     * Add vertex with texture coordinates
+                     * @param cmd command for a vertex
+                     * @param x vertex X coordinate
+                     * @param y vertex Y coordinate
+                     * @param s texture coordinate S
+                     * @param t texture coordinate T
+                     * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
+                     */
+                    ssize_t vertex(uint32_t cmd, float x, float y, float s, float t);
 
                     /**
                      * Add triangle
@@ -223,14 +228,12 @@ namespace lsp
                     ssize_t rectangle(size_t a, size_t b, size_t c, size_t d);
 
                     /**
-                     * Add color
-                     * @param r red component
-                     * @param g green component
-                     * @param b blue component
-                     * @param a alpha component
-                     * @return absolute index of color in color buffer or negative error code
+                     * Add command
+                     * @param length length of command in floats
+                     * @param buf pointer to store the pointer to the beginning of the buffer
+                     * @return index of the batch in the buffer or negative error code
                      */
-                    ssize_t color(float r, float g, float b, float a);
+                    ssize_t command(float **data, size_t length);
             };
 
         } /* namespace gl */

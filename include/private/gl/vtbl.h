@@ -104,6 +104,29 @@ namespace lsp
                 GLboolean   (* glUnmapNamedBuffer)(GLuint buffer);
                 void        (* glDeleteBuffers)(GLsizei n, const GLuint * buffers);
 
+                // Texture operations
+                void        (* glGenTextures)(GLsizei n, GLuint * textures);
+                void        (* glActiveTexture)(GLenum texture);
+                void        (* glTexBuffer)(GLenum target, GLenum internalformat, GLuint buffer);
+                void        (* glTextureBuffer)(GLuint texture, GLenum internalformat, GLuint buffer);
+                void        (* glTexImage1D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void * data);
+                void        (* glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void * data);
+                void        (* glTexImage3D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void * data);
+                void        (* glTexParameterf)(GLenum target, GLenum pname, GLfloat param);
+                void        (* glTexParameteri)(GLenum target, GLenum pname, GLint param);
+                void        (* glTextureParameterf)(GLuint texture, GLenum pname, GLfloat param);
+                void        (* glTextureParameteri)(GLuint texture, GLenum pname, GLint param);
+                void        (* glTexParameterfv)(GLenum target, GLenum pname, const GLfloat * params);
+                void        (* glTexParameteriv)(GLenum target, GLenum pname, const GLint * params);
+                void        (* glTexParameterIiv)(GLenum target, GLenum pname, const GLint * params);
+                void        (* glTexParameterIuiv)(GLenum target, GLenum pname, const GLuint * params);
+                void        (* glTextureParameterfv)(GLuint texture, GLenum pname, const GLfloat *params);
+                void        (* glTextureParameteriv)(GLuint texture, GLenum pname, const GLint *params);
+                void        (* glTextureParameterIiv)(GLuint texture, GLenum pname, const GLint *params);
+                void        (* glTextureParameterIuiv)(GLuint texture, GLenum pname, const GLuint *params);
+                void        (* glBindTexture)(GLenum target, GLuint texture);
+                void        (* glDeleteTextures)(GLsizei n, const GLuint * textures);
+
                 // Vertex array operations
                 void        (* glGenVertexArrays)(GLsizei n, GLuint *arrays);
                 void        (* glBindVertexArray)(GLuint array);

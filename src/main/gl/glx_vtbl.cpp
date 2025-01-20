@@ -122,6 +122,29 @@ namespace lsp
                 FETCH(glUnmapNamedBuffer);
                 FETCH(glDeleteBuffers);
 
+                // Texture operations
+                FETCH(glGenTextures);
+                FETCH(glActiveTexture);
+                FETCH(glTexBuffer);
+                FETCH(glTextureBuffer);
+                FETCH(glTexImage1D);
+                FETCH(glTexImage2D);
+                FETCH(glTexImage3D);
+                FETCH(glTexParameterf);
+                FETCH(glTexParameteri);
+                FETCH(glTextureParameterf);
+                FETCH(glTextureParameteri);
+                FETCH(glTexParameterfv);
+                FETCH(glTexParameteriv);
+                FETCH(glTexParameterIiv);
+                FETCH(glTexParameterIuiv);
+                FETCH(glTextureParameterfv);
+                FETCH(glTextureParameteriv);
+                FETCH(glTextureParameterIiv);
+                FETCH(glTextureParameterIuiv);
+                FETCH(glBindTexture);
+                FETCH(glDeleteTextures);
+
                 // Vertex array operations
                 FETCH(glGenVertexArrays);
                 FETCH(glBindVertexArray);
