@@ -103,6 +103,11 @@ namespace lsp
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
                     static inline float *serialize_color(float *dst, const Color & c);
 
+                    void fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2);
+                    void fill_circle(uint32_t ci, float x, float y, float r);
+                    void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
+                    void fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2);
+
                 public:
                     /** Create GL surface
                      *

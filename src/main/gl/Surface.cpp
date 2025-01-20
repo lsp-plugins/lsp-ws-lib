@@ -192,6 +192,9 @@ namespace lsp
 
             ssize_t Surface::start_batch(batch_program_t program, const Color & color)
             {
+                if (!bIsDrawing)
+                    return -STATUS_BAD_STATE;
+
                 // Start batch
                 status_t res = sBatch.begin(gl::batch_header_t {
                     program,
@@ -210,6 +213,132 @@ namespace lsp
                 serialize_color(buf, color);
 
                 return make_command(index, C_FIXED);
+            }
+
+            void Surface::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
+            {
+                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
+                sBatch.vertex(ci, x1, y1);
+                sBatch.vertex(ci, x2, y2);
+                sBatch.triangle(vi, vi + 1, vi + 2);
+            }
+
+            void Surface::fill_circle(uint32_t ci, float x, float y, float r)
+            {
+                // Compute parameters
+                if (r <= 0.0f)
+                    return;
+                const float alpha = lsp_min(4.0f / r, M_PI_2);
+                const float dx = cosf(alpha);
+                const float dy = sinf(alpha);
+                const size_t count = M_PI * 0.5f * r;
+
+                // Fill batch
+                float vx = r;
+                float vy = 0.0f;
+
+                const ssize_t v0i   = sBatch.vertex(ci, x, y);
+                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+
+                for (size_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    sBatch.vertex(ci, x + vx, y + vy);
+                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    ++v1i;
+                }
+
+                sBatch.vertex(ci, x + r, y);
+                sBatch.triangle(v0i, v1i, v1i + 1);
+            }
+
+            void Surface::fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2)
+            {
+                // Compute parameters
+                if (r <= 0.0f)
+                    return;
+                const float delta = a2 - a1;
+                if (delta == 0.0f)
+                    return;
+
+                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
+                const float ex  = cosf(a2) * r;
+                const float ey  = sinf(a2) * r;
+                const float dx  = cosf(alpha);
+                const float dy  = sinf(alpha);
+                const ssize_t count = delta / alpha;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
+
+                const size_t v0i    = sBatch.vertex(ci, x, y);
+                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+
+                for (ssize_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    sBatch.vertex(ci, x + vx, y + vy);
+                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    ++v1i;
+                }
+
+                sBatch.vertex(ci, x + ex, y + ey);
+                sBatch.triangle(v0i, v1i, v1i + 1);
+            }
+
+            void Surface::wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width)
+            {
+                // Compute parameters
+                if (r <= 0.0f)
+                    return;
+                const float delta = a2 - a1;
+                if (delta == 0.0f)
+                    return;
+
+                const float hw  = width * 0.5f;
+                const float ro  = r + hw;
+                const float kr  = lsp_max(r - hw, 0.0f) / ro;
+
+                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / ro, M_PI_2) : lsp_min(-4.0f / ro, M_PI_2);
+                const float ex  = cosf(a2) * ro;
+                const float ey  = sinf(a2) * ro;
+
+                const float dx  = cosf(alpha);
+                const float dy  = sinf(alpha);
+                const ssize_t count = delta / alpha;
+
+                // Fill batch
+                float vx        = cosf(a1) * ro;
+                float vy        = sinf(a1) * ro;
+
+                ssize_t v0i         = sBatch.vertex(ci, x + vx * kr, y + vy * kr);
+                sBatch.vertex(ci, x + vx, y + vy);
+
+                for (ssize_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    sBatch.vertex(ci, x + vx * kr, y + vy * kr);
+                    sBatch.vertex(ci, x + vx, y + vy);
+                    sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+                    v0i        += 2;
+                }
+
+                sBatch.vertex(ci, x + ex * kr, y + ey * kr);
+                sBatch.vertex(ci, x + ex, y + ey);
+                sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
             }
 
             bool Surface::valid() const
@@ -419,51 +548,14 @@ namespace lsp
 
             void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
-                if (!bIsDrawing)
-                    return;
-
-                // Compute parameters
-                if (r <= 0.0f)
-                    return;
-                const float delta = a2 - a1;
-                if (delta == 0.0f)
-                    return;
-
-                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
-                const float ex  = cosf(a2) * r;
-                const float ey  = sinf(a2) * r;
-                const float dx  = cosf(alpha);
-                const float dy  = sinf(alpha);
-                const ssize_t count = delta / alpha;
-
                 // Start batch
                 const ssize_t res = start_batch(gl::SIMPLE, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
-                const uint32_t ci   = uint32_t(res);
 
-                // Generate the geometry
-                float vx            = cosf(a1) * r;
-                float vy            = sinf(a1) * r;
-
-                const size_t v0i    = sBatch.vertex(ci, x, y);
-                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
-
-                for (ssize_t i=0; i<count; ++i)
-                {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
-
-                    sBatch.vertex(ci, x + vx, y + vy);
-                    sBatch.triangle(v0i, v1i, v1i + 1);
-                    ++v1i;
-                }
-
-                sBatch.vertex(ci, x + ex, y + ey);
-                sBatch.triangle(v0i, v1i, v1i + 1);
+                // Draw geometry
+                fill_sector(uint32_t(res), x, y, r, a1, a2);
             }
 
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -473,21 +565,14 @@ namespace lsp
 
             void Surface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                if (!bIsDrawing)
-                    return;
-
                 // Start batch
                 const ssize_t res = start_batch(gl::SIMPLE, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
-                // Fill batch with single triangle
-                const uint32_t ci   = uint32_t(res);
-                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
-                sBatch.vertex(ci, x1, y1);
-                sBatch.vertex(ci, x2, y2);
-                sBatch.triangle(vi, vi + 1, vi + 2);
+                // Draw geometry
+                fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
             }
 
             bool Surface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -567,58 +652,14 @@ namespace lsp
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
-                if (!bIsDrawing)
-                    return;
-
-                // Compute parameters
-                if (r <= 0.0f)
-                    return;
-                const float delta = a2 - a1;
-                if (delta == 0.0f)
-                    return;
-
-                const float hw  = width * 0.5f;
-                const float ro  = r + hw;
-                const float kr  = lsp_max(r - hw, 0.0f) / ro;
-
-                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / ro, M_PI_2) : lsp_min(-4.0f / ro, M_PI_2);
-                const float ex  = cosf(a2) * ro;
-                const float ey  = sinf(a2) * ro;
-
-                const float dx  = cosf(alpha);
-                const float dy  = sinf(alpha);
-                const ssize_t count = delta / alpha;
-
                 // Start batch
                 const ssize_t res = start_batch(gl::SIMPLE, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
-                // Fill batch
-                float vx        = cosf(a1) * ro;
-                float vy        = sinf(a1) * ro;
-
-                const uint32_t ci   = uint32_t(res);
-                ssize_t v0i         = sBatch.vertex(ci, x + vx * kr, y + vy * kr);
-                sBatch.vertex(ci, x + vx, y + vy);
-
-                for (ssize_t i=0; i<count; ++i)
-                {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
-
-                    sBatch.vertex(ci, x + vx * kr, y + vy * kr);
-                    sBatch.vertex(ci, x + vx, y + vy);
-                    sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
-                    v0i        += 2;
-                }
-
-                sBatch.vertex(ci, x + ex * kr, y + ey * kr);
-                sBatch.vertex(ci, x + ex, y + ey);
-                sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+                // Draw geometry
+                wire_arc(uint32_t(res), x, y, r, a1, a2, width);
             }
 
             void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
@@ -643,45 +684,14 @@ namespace lsp
 
             void Surface::fill_circle(const Color &c, float x, float y, float r)
             {
-                if (!bIsDrawing)
-                    return;
-
-                // Compute parameters
-                if (r <= 0.0f)
-                    return;
-                const float alpha = lsp_min(4.0f / r, M_PI_2);
-                const float dx = cosf(alpha);
-                const float dy = sinf(alpha);
-                const size_t count = M_PI * 0.5f * r;
-
                 // Start batch
                 const ssize_t res = start_batch(gl::SIMPLE, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
 
-                // Fill batch
-                float vx = r;
-                float vy = 0.0f;
-
-                const uint32_t ci   = uint32_t(res);
-                const ssize_t v0i   = sBatch.vertex(ci, x, y);
-                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
-
-                for (size_t i=0; i<count; ++i)
-                {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
-
-                    sBatch.vertex(ci, x + vx, y + vy);
-                    sBatch.triangle(v0i, v1i, v1i + 1);
-                    ++v1i;
-                }
-
-                sBatch.vertex(ci, x + r, y);
-                sBatch.triangle(v0i, v1i, v1i + 1);
+                // Draw geometry
+                fill_circle(uint32_t(res), x, y, r);
             }
 
             void Surface::fill_circle(IGradient *g, float x, float y, float r)

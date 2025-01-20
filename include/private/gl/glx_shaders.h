@@ -64,6 +64,8 @@ namespace lsp
                 SHADER("flat in int b_coloring;")
                 SHADER("flat in int b_clips;")
                 SHADER("")
+                SHADER("layout(origin_upper_left) in vec4 gl_FragCoord;")
+                SHADER("")
                 SHADER("void main()")
                 SHADER("{")
                 SHADER("    if (b_coloring == 0)")
