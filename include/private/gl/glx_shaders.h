@@ -84,7 +84,17 @@ namespace lsp
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 2)") // Radial gradient
                 SHADER("    {")
-                SHADER("        gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.5f);")
+                SHADER("        vec4 cs = texelFetch(u_buf_commands, index);") // Start color
+                SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);") // End color
+                SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);") // Gradient parameters: center {xc, yc} and focal {xf, yf}
+                SHADER("        vec4 r  = texelFetch(u_buf_commands, index + 3);") // Radius (R)
+                SHADER("        vec2 d  = gl_FragCoord.xy - gp.zw;")               // D = {x, y} - {xf, yf }
+                SHADER("        vec2 f  = gp.zw - gp.xy;")                         // F = {xf, yf} - {xc, yc }
+                SHADER("        float a = dot(d.xy, d.xy);")                       // a = D*D = { Dx*Dx + Dy*Dy }
+                SHADER("        float b = 2.0f * dot(f.xy, d.xy);")                // b = 2*F*D = { 2*Fx*Dx + 2*Fy*Dy }
+                SHADER("        float c = dot(f.xy, f.xy) - r.x*r.x;")             // c = F*F = { Fx*Fx + Fy*Fy - R*R }
+                SHADER("        float k = (2.0f*a)/(sqrt(b*b - 4.0f*a*c)-b);")     // k = 1/t
+                SHADER("        gl_FragColor = mix(cs, ce, clamp(k, 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else") // Texture-based fill
                 SHADER("    {")
