@@ -431,6 +431,53 @@ namespace lsp
                 fill_rect(ci, left, top, right, bottom);
             }
 
+            void Surface::wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            {
+                const float xr      = radius - line_width * 0.5f;
+                const float right   = left + width;
+                const float bottom  = top + height;
+
+                // Bounds of horizontal and vertical rectangles
+                float top_l         = left;
+                float top_r         = right;
+                float bot_l         = top_l;
+                float bot_r         = top_r;
+                float lef_t         = top + line_width;
+                float lef_b         = bottom - line_width;
+                float rig_t         = lef_t;
+                float rig_b         = lef_b;
+
+                if (mask & SURFMASK_LT_CORNER)
+                {
+                    top_l           = left + radius;
+                    lef_t           = top + radius;
+                    wire_arc(ci, top_l, lef_t, xr, M_PI, M_PI * 1.5f, line_width);
+                }
+                if (mask & SURFMASK_RT_CORNER)
+                {
+                    top_r           = right - radius;
+                    rig_t           = top + radius;
+                    wire_arc(ci, top_r, rig_t, xr, M_PI * 1.5f, M_PI * 2.0f, line_width);
+                }
+                if (mask & SURFMASK_LB_CORNER)
+                {
+                    bot_l           = left + radius;
+                    lef_b           = bottom - radius;
+                    wire_arc(ci, bot_l, lef_b, xr, M_PI * 0.5f, M_PI, line_width);
+                }
+                if (mask & SURFMASK_RB_CORNER)
+                {
+                    bot_r           = right - radius;
+                    rig_b           = bottom - radius;
+                    wire_arc(ci, bot_r, rig_b, xr, 0.0f, M_PI * 0.5f, line_width);
+                }
+
+                fill_rect(ci, top_l, top, top_r, top + line_width);
+                fill_rect(ci, bot_l, bottom - line_width, bot_r, bottom);
+                fill_rect(ci, left, lef_t, left + line_width, lef_b);
+                fill_rect(ci, right - line_width, rig_t, right, rig_b);
+            }
+
             bool Surface::valid() const
             {
                 return pContext != NULL;
@@ -596,24 +643,52 @@ namespace lsp
 //                glEnd();
             }
 
-            void Surface::wire_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            void Surface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                wire_rect(uint32_t(res), mask, radius, left, top, width, height, line_width);
             }
 
-            void Surface::wire_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
+            void Surface::wire_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                wire_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight, line_width);
             }
 
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                wire_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight, line_width);
             }
 
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                wire_rect(uint32_t(res), mask, radius, left, top, width, height, line_width);
             }
 
             void Surface::fill_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height)
