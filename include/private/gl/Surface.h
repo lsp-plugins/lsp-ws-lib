@@ -108,6 +108,8 @@ namespace lsp
                     void fill_circle(uint32_t ci, float x, float y, float r);
                     void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
                     void fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2);
+                    void fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height);
+                    void fill_rect(uint32_t ci, float x0, float y0, float x1, float y1);
 
                 public:
                     /** Create GL surface

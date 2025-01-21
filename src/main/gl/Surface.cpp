@@ -259,6 +259,15 @@ namespace lsp
                 sBatch.triangle(vi, vi + 1, vi + 2);
             }
 
+            void Surface::fill_rect(uint32_t ci, float x0, float y0, float x1, float y1)
+            {
+                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
+                sBatch.vertex(ci, x0, y1);
+                sBatch.vertex(ci, x1, y1);
+                sBatch.vertex(ci, x1, y0);
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+            }
+
             void Surface::fill_circle(uint32_t ci, float x, float y, float r)
             {
                 // Compute parameters
@@ -375,6 +384,51 @@ namespace lsp
                 sBatch.vertex(ci, x + ex * kr, y + ey * kr);
                 sBatch.vertex(ci, x + ex, y + ey);
                 sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+            }
+
+            void Surface::fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height)
+            {
+                float right     = left + width;
+                float bottom    = top + height;
+
+                if (mask & SURFMASK_T_CORNER)
+                {
+                    float l         = left;
+                    float r         = right;
+                    top            += radius;
+
+                    if (mask & SURFMASK_LT_CORNER)
+                    {
+                        l              += radius;
+                        fill_sector(ci, l, top, radius, M_PI, M_PI * 1.5f);
+                    }
+                    if (mask & SURFMASK_RT_CORNER)
+                    {
+                        r              -= radius;
+                        fill_sector(ci, r, top, radius, M_PI * 1.5f, M_PI * 2.0f);
+                    }
+                    fill_rect(ci, l, top - radius, r, top);
+                }
+                if (mask & SURFMASK_B_CORNER)
+                {
+                    float l         = left;
+                    float r         = right;
+                    bottom         -= radius;
+
+                    if (mask & SURFMASK_LB_CORNER)
+                    {
+                        l              += radius;
+                        fill_sector(ci, l, bottom, radius, M_PI * 0.5f, M_PI);
+                    }
+                    if (mask & SURFMASK_RB_CORNER)
+                    {
+                        r              -= radius;
+                        fill_sector(ci, r, bottom, radius, 0.0f, M_PI * 0.5f);
+                    }
+                    fill_rect(ci, l, bottom, r, bottom + radius);
+                }
+
+                fill_rect(ci, left, top, right, bottom);
             }
 
             bool Surface::valid() const
@@ -562,24 +616,52 @@ namespace lsp
                 // TODO
             }
 
-            void Surface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
+            void Surface::fill_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                fill_rect(uint32_t(res), mask, radius, left, top, width, height);
             }
 
-            void Surface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+            void Surface::fill_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                fill_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                fill_rect(uint32_t(res), mask, radius, left, top, width, height);
             }
 
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                fill_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
             void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
