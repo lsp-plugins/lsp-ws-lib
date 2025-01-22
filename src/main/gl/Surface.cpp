@@ -176,14 +176,20 @@ namespace lsp
                 return dst + 4;
             }
 
+            uint32_t Surface::enrich_flags(uint32_t flags) const
+            {
+                if (bAntiAliasing)
+                    flags      |= BATCH_MULTISAMPLE;
+                return flags;
+            }
+
             ssize_t Surface::start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a)
             {
                 // Start batch
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        flags,
-                        bAntiAliasing,
+                        enrich_flags(flags),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -209,8 +215,7 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        flags,
-                        bAntiAliasing,
+                        enrich_flags(flags),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -238,8 +243,7 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        flags,
-                        bAntiAliasing,
+                        enrich_flags(flags),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -274,6 +278,37 @@ namespace lsp
                 sBatch.vertex(ci, x1, y1);
                 sBatch.vertex(ci, x1, y0);
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+            }
+
+            void Surface::fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n)
+            {
+                if (n < 3)
+                    return;
+
+                const ssize_t v0i   = sBatch.vertex(ci, x[0], y[0]);
+                ssize_t vi          = sBatch.vertex(ci, x[1], y[1]);
+
+                rect.left           = lsp_min(x[0], x[1]);
+                rect.top            = lsp_min(y[0], y[1]);
+                rect.right          = lsp_max(x[0], x[1]);
+                rect.bottom         = lsp_max(y[0], y[1]);
+
+                for (size_t i=2; i<n; ++i)
+                {
+                    rect.left           = lsp_min(rect.left, x[i]);
+                    rect.top            = lsp_min(rect.top, y[i]);
+                    rect.right          = lsp_max(rect.right, x[i]);
+                    rect.bottom         = lsp_max(rect.bottom, y[i]);
+
+                    sBatch.vertex(ci, x[i], y[i]);
+                    sBatch.triangle(v0i, vi, vi + 1);
+                    ++vi;
+                }
+
+                rect.left           = lsp_max(rect.left, 0.0f);
+                rect.top            = lsp_max(rect.top, 0.0f);
+                rect.right          = lsp_min(rect.right, float(nWidth));
+                rect.bottom         = lsp_min(rect.bottom, float(nHeight));
             }
 
             void Surface::fill_circle(uint32_t ci, float x, float y, float r)
@@ -646,6 +681,7 @@ namespace lsp
                 glLoadMatrixf(vMatrix);
                 glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
                 glEnable(GL_BLEND);
+                glDisable(GL_DEPTH_TEST);
 
                 bIsDrawing      = true;
 
@@ -956,14 +992,86 @@ namespace lsp
                 wire_arc(uint32_t(res), x, y, r, a1, a2, width);
             }
 
-            void Surface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
+            void Surface::fill_poly(const Color & c, const float *x, const float *y, size_t n)
             {
-                // TODO
+                // Some optimizations
+                if (n <= 3)
+                {
+                    if (n == 3)
+                    {
+                        // Start batch
+                        const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
+                        if (res < 0)
+                            return;
+                        lsp_finally { sBatch.end(); };
+
+                        // Draw geometry
+                        fill_triangle(uint32_t(res), x[0], y[0], x[1], y[1], x[2], y[2]);
+                    }
+                    return;
+                }
+
+                // Start first batch on stencil buffer
+                clip_rect_t rect;
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    fill_triangle_fan(size_t(res), rect, x, y, n);
+                }
+
+                // Start second batch on color buffer with stencil apply
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, c);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
+                }
             }
 
-            void Surface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
+            void Surface::fill_poly(IGradient *g, const float *x, const float *y, size_t n)
             {
-                // TODO
+                // Some optimizations
+                if (n <= 3)
+                {
+                    if (n == 3)
+                    {
+                        // Start batch
+                        const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
+                        if (res < 0)
+                            return;
+                        lsp_finally { sBatch.end(); };
+
+                        // Draw geometry
+                        fill_triangle(uint32_t(res), x[0], y[0], x[1], y[1], x[2], y[2]);
+                    }
+                    return;
+                }
+
+                // Start first batch on stencil buffer
+                clip_rect_t rect;
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    fill_triangle_fan(size_t(res), rect, x, y, n);
+                }
+
+                // Start second batch on color buffer with stencil apply
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, g);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
+                }
             }
 
             void Surface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
@@ -1043,19 +1151,9 @@ namespace lsp
 
             bool Surface::set_antialiasing(bool set)
             {
-                if (bAntiAliasing == set)
-                    return bAntiAliasing;
-
+                const bool old = bAntiAliasing;
                 bAntiAliasing       = set;
-                if (bIsDrawing)
-                {
-                    if (bAntiAliasing)
-                        glEnable(GL_MULTISAMPLE);
-                    else
-                        glDisable(GL_MULTISAMPLE);
-                }
-
-                return !bAntiAliasing;
+                return old;
             }
 
             void Surface::clip_begin(float x, float y, float w, float h)

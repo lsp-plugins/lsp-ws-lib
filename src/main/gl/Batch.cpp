@@ -34,8 +34,7 @@ namespace lsp
             inline bool Batch::header_mismatch(const batch_header_t & a, const batch_header_t & b)
             {
                 return (a.enProgram != b.enProgram) ||
-                       (a.nFlags != b.nFlags) ||
-                       (a.bMultisampling != b.bMultisampling);
+                       (a.nFlags != b.nFlags);
             }
 
             template<class D, class S>
@@ -217,28 +216,10 @@ namespace lsp
                 if (pCurrent != NULL)
                     return STATUS_BAD_STATE;
 
-                IF_TRACE(
-                    lsp_trace("Batch: draws=%d,  commands=%dv (%d bytes)",
-                        int(vBatches.size()),
-                        int(vCommands.count),
-                        int(vCommands.count * sizeof(float)));
-
-                    for (size_t i=0, n=vBatches.size(); i<n; ++i)
-                    {
-                        draw_t *draw    = vBatches.uget(i);
-                        const char *type = "unknown";
-                        if (draw->header.enProgram == SIMPLE)
-                            type    = "simple";
-                        else if (draw->header.enProgram == STENCIL)
-                            type    = "stencil";
-
-                        lsp_trace("  draw #%3d: type=%s, multisampling=%s, vertices=%d (%d bytes), indices=%d (%d bytes)",
-                            int(i), type, (draw->header.bMultisampling) ? " true" : "false",
-                            int(draw->vertices.count), int(draw->vertices.count * sizeof(vertex_t)),
-                            int(draw->indices.count), int(draw->indices.count * draw->indices.szof));
-
-                    }
-                );
+                lsp_trace("Batch: draws=%d,  commands=%dv (%d bytes)",
+                    int(vBatches.size()),
+                    int(vCommands.count),
+                    int(vCommands.count * sizeof(float)));
 
                 // Cleanup buffer
                 lsp_finally { clear(); };
@@ -255,9 +236,12 @@ namespace lsp
                 vtbl->glGenTextures(1, &cmd_texture);
 
                 lsp_finally {
+                    // Reset state
+                    vtbl->glBindVertexArray(0);
                     vtbl->glDeleteVertexArrays(1, &VAO);
                     vtbl->glDeleteBuffers(3, VBO);
                     vtbl->glDeleteTextures(1, &cmd_texture);
+                    vtbl->glUseProgram(0);
                 };
 
                 // Apply batches
@@ -269,13 +253,37 @@ namespace lsp
                     draw_t *draw        = vBatches.uget(i);
                     const size_t flags  = draw->header.nFlags;
 
+                    IF_TRACE(
+                        {
+                            const char *type = "unknown";
+                            if (draw->header.enProgram == SIMPLE)
+                                type    = "simple";
+                            else if (draw->header.enProgram == STENCIL)
+                                type    = "stencil";
+
+                            lsp_trace("  draw #%3d: type=%s, flags=0x%08x, vertices=%d (%d bytes), indices=%d (%d bytes)",
+                                int(i), type, int(draw->header.nFlags),
+                                int(draw->vertices.count), int(draw->vertices.count * sizeof(vertex_t)),
+                                int(draw->indices.count), int(draw->indices.count * draw->indices.szof));
+
+                        });
+
+                    // Control multisampling
+                    if (flags & BATCH_MULTISAMPLE)
+                        glEnable(GL_MULTISAMPLE);
+                    else
+                        glDisable(GL_MULTISAMPLE);
+
                     // Configure color buffer
                     const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;
                     glColorMask(color_mask, color_mask, color_mask, color_mask);
 
                     // Configure stencil buffer
                     if (flags & BATCH_CLEAR_STENCIL)
+                    {
+                        glStencilMask(0x01);
                         glClear(GL_STENCIL_BUFFER_BIT);
+                    }
                     switch (flags & BATCH_STENCIL_OP_MASK)
                     {
                         case BATCH_STENCIL_OP_OR:
@@ -296,12 +304,13 @@ namespace lsp
                             glEnable(GL_STENCIL_TEST);
                             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                             glStencilFunc(GL_EQUAL, 0x01, 0x01);
-                            glStencilMask(0x01);
+                            glStencilMask(0x00);
                             break;
 
                         case BATCH_STENCIL_OP_NONE:
                         default:
                             glDisable(GL_STENCIL_TEST);
+                            glStencilMask(0x00);
                             break;
                     }
 
@@ -366,25 +375,18 @@ namespace lsp
                             vtbl->glEnableVertexAttribArray(a_command);
                         }
 
-//                        // color attribute
-//                        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-//                        glEnableVertexAttribArray(1);
-
-//                        glDrawArrays(GL_TRIANGLES, 0, draw->indices.count);
                         const GLenum index_type =
                             (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :
                             (draw->indices.szof > sizeof(uint8_t)) ? GL_UNSIGNED_SHORT :
                             GL_UNSIGNED_BYTE;
 
-
-
                         // Draw content
                         glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
 
-                        // Reset state
+                        // Unbind buffers
                         vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
-                        vtbl->glBindVertexArray(0);
-                        vtbl->glUseProgram(0);
+                        vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                        vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
                     }
                     else
                     {

@@ -44,10 +44,11 @@ namespace lsp
 
             enum batch_flags_t
             {
-                BATCH_WRITE_COLOR           = 1 << 0,
-                BATCH_CLEAR_STENCIL         = 1 << 1,
+                BATCH_MULTISAMPLE           = 1 << 0,
+                BATCH_WRITE_COLOR           = 1 << 1,
+                BATCH_CLEAR_STENCIL         = 1 << 2,
 
-                BATCH_STENCIL_OP_MASK       = 0x03 << 2,
+                BATCH_STENCIL_OP_MASK       = 0x03 << 3,
                 BATCH_STENCIL_OP_NONE       = 0x00 << 3,
                 BATCH_STENCIL_OP_OR         = 0x01 << 3,
                 BATCH_STENCIL_OP_XOR        = 0x02 << 3,
@@ -58,7 +59,6 @@ namespace lsp
             {
                 batch_program_t enProgram;
                 uint32_t        nFlags;
-                bool            bMultisampling;
             } batch_header_t;
 
             enum uniform_type_t

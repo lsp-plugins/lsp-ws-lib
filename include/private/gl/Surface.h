@@ -95,6 +95,8 @@ namespace lsp
                     explicit Surface(size_t width, size_t height);
 
                 private:
+                    uint32_t enrich_flags(uint32_t flags) const;
+                    ssize_t start_batch(batch_program_t program, uint32_t flags);
                     ssize_t start_batch(batch_program_t program, uint32_t flags, const Color & color);
                     ssize_t start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a);
                     ssize_t start_batch(batch_program_t program, uint32_t flags, const IGradient * g);
@@ -106,6 +108,7 @@ namespace lsp
 
                     void fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2);
                     void fill_rect(uint32_t ci, float x0, float y0, float x1, float y1);
+                    void fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n);
                     void fill_circle(uint32_t ci, float x, float y, float r);
                     void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
                     void fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2);
