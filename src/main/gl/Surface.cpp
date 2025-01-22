@@ -340,6 +340,43 @@ namespace lsp
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
+            void Surface::fill_corner(uint32_t ci, float x, float y, float xd, float yd, float r, float a)
+            {
+                // Compute parameters
+                if (r <= 0.0f)
+                    return;
+
+                const float delta = M_PI * 0.5f;
+                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
+                const float dx  = cosf(alpha);
+                const float dy  = sinf(alpha);
+                const ssize_t count = delta / alpha;
+
+                // Generate the geometry
+                float vx            = cosf(a) * r;
+                float vy            = sinf(a) * r;
+                const float ex      = -vy;
+                const float ey      = vx;
+
+                const size_t v0i    = sBatch.vertex(ci, xd, yd);
+                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+
+                for (ssize_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    sBatch.vertex(ci, x + vx, y + vy);
+                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    ++v1i;
+                }
+
+                sBatch.vertex(ci, x + ex, y + ey);
+                sBatch.triangle(v0i, v1i, v1i + 1);
+            }
+
             void Surface::wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width)
             {
                 // Compute parameters
@@ -476,6 +513,48 @@ namespace lsp
                 fill_rect(ci, bot_l, bottom - line_width, bot_r, bottom);
                 fill_rect(ci, left, lef_t, left + line_width, lef_b);
                 fill_rect(ci, right - line_width, rig_t, right, rig_b);
+            }
+
+            void Surface::fill_frame(
+                uint32_t ci,
+                size_t flags, float r,
+                float fx, float fy, float fw, float fh,
+                float ix, float iy, float iw, float ih)
+            {
+                const float fxe = fx + fw;
+                const float fye = fy + fh;
+                const float ixe = ix + iw;
+                const float iye = iy + ih;
+
+                // Simple case
+                if ((ix >= fxe) || (ixe < fx) || (iy >= fye) || (iye < fy))
+                {
+                    fill_rect(ci, fx, fy, fw, fh);
+                    return;
+                }
+                else if ((ix <= fx) && (ixe >= fxe) && (iy <= fy) && (iye >= fye))
+                    return;
+
+                if (fy < iy) // Top rectangle
+                    fill_rect(ci, fx, fy, fxe, iy);
+                if (fye > iye) // Bottom rectangle
+                    fill_rect(ci, fx, iye, fxe, fye);
+
+                const float vt  = lsp_max(fy, iy);
+                const float vb  = lsp_min(fye, iye);
+                if (fx < ix) // Left rectangle
+                    fill_rect(ci, fx, vt, ix, vb);
+                if (fxe > ixe) // Right rectangle
+                    fill_rect(ci, ixe, vt, fxe, vb);
+
+                if (flags & SURFMASK_LT_CORNER)
+                    fill_corner(ci, ix + r, iy + r, ix, iy, r, M_PI);
+                if (flags & SURFMASK_RT_CORNER)
+                    fill_corner(ci, ixe - r, iy + r, ixe, iy, r, 1.5f *M_PI);
+                if (flags & SURFMASK_LB_CORNER)
+                    fill_corner(ci, ix + r, iye - r, ix, iye, r, 0.5f * M_PI);
+                if (flags & SURFMASK_RB_CORNER)
+                    fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
             }
 
             bool Surface::valid() const
@@ -907,12 +986,39 @@ namespace lsp
             }
 
             void Surface::fill_frame(
-                const Color &color,
+                const Color &c,
                 size_t flags, float radius,
                 float fx, float fy, float fw, float fh,
                 float ix, float iy, float iw, float ih)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_frame(
+                    uint32_t(res), flags, radius,
+                    fx, fy, fw, fh,ix, iy, iw, ih);
+            }
+
+            void Surface::fill_frame(
+                const Color &c,
+                size_t flags, float radius,
+                const ws::rectangle_t *out, const ws::rectangle_t *in)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_frame(
+                    uint32_t(res), flags, radius,
+                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
+                    in->nLeft, in->nTop, in->nWidth, in->nHeight);
             }
 
             bool Surface::get_antialiasing()

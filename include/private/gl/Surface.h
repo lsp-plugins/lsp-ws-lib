@@ -109,8 +109,10 @@ namespace lsp
                     void fill_circle(uint32_t ci, float x, float y, float r);
                     void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
                     void fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2);
+                    void fill_corner(uint32_t ci, float x0, float y0, float xd, float yd, float r, float a);
                     void fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height);
                     void wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width);
+                    void fill_frame(uint32_t ci, size_t flags, float radius, float fx, float fy, float fw, float fh, float ix, float iy, float iw, float ih);
 
                 public:
                     /** Create GL surface
@@ -210,6 +212,10 @@ namespace lsp
                         size_t flags, float radius,
                         float fx, float fy, float fw, float fh,
                         float ix, float iy, float iw, float ih) override;
+                    virtual void fill_frame(
+                        const Color &color,
+                        size_t flags, float radius,
+                        const ws::rectangle_t *out, const ws::rectangle_t *in) override;
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
