@@ -69,6 +69,18 @@ namespace lsp
                 SHADER("void main()")
                 SHADER("{")
                 SHADER("    int index = b_index;")
+                SHADER("") // Apply clipping
+                SHADER("    for (int i=0; i<b_clips; ++i)")
+                SHADER("    {")
+                SHADER("        vec4 rect = texelFetch(u_buf_commands, index);") // Axis-aligned bound box
+                SHADER("        if ((gl_FragCoord.x < rect.x) ||")
+                SHADER("            (gl_FragCoord.y < rect.y) ||")
+                SHADER("            (gl_FragCoord.x > rect.z) ||")
+                SHADER("            (gl_FragCoord.y > rect.w))")
+                SHADER("            discard;")
+                SHADER("        ++index;")
+                SHADER("    }")
+                SHADER("") // Compute color of fragment
                 SHADER("    if (b_coloring == 0)") // Solid color
                 SHADER("    {")
                 SHADER("        gl_FragColor = texelFetch(u_buf_commands, index);")

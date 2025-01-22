@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 7 июл. 2022 г.
@@ -54,10 +54,14 @@ MTEST_BEGIN("ws.display", clipping)
                         s->begin();
                         s->clear(c);
 
+                        s->clip_begin(32, 32, pWnd->width() - 64, pWnd->height() - 64);
+                        c.green(0.75f);
+                        s->clear(c);
+
                         float hw = pWnd->width()  * 0.5f;
                         float hh = pWnd->height() * 0.5f;
 
-                        s->clip_begin(32, 32, pWnd->width() - 64, pWnd->height() - 64);
+                        s->clip_begin(64, 64, pWnd->width() - 128, pWnd->height() - 128);
 
                         // Clear with blue
                         c.set_rgb24(0x0088cc);
@@ -78,6 +82,22 @@ MTEST_BEGIN("ws.display", clipping)
                         }
 
                         s->fill_poly(c, vx, vy, N + 1);
+
+                        s->clip_end();
+
+                        // Draw the multiline
+                        c.set_rgb24(0x00ccff);
+
+                        for (size_t i=0; i<=N; ++i)
+                        {
+                            float a = (M_PI * 2.0f * i) / N;
+                            float r = 0.9f - (i & 1) * 0.3f;
+
+                            vx[i]   = hw * (1.0f + r * cosf(a));
+                            vy[i]   = hh * (1.0f + r * sinf(a));
+                        }
+
+                        s->wire_poly(c, 5, vx, vy, N + 1);
 
                         s->clip_end();
                         s->end();

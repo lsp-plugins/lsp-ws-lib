@@ -95,9 +95,9 @@ namespace lsp
                     explicit Surface(size_t width, size_t height);
 
                 private:
-                    ssize_t start_batch(batch_program_t program, const Color & color);
-                    ssize_t start_batch(batch_program_t program, float r, float g, float b, float a);
-                    ssize_t start_batch(batch_program_t program, const IGradient * g);
+                    ssize_t start_batch(batch_program_t program, uint32_t flags, const Color & color);
+                    ssize_t start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a);
+                    ssize_t start_batch(batch_program_t program, uint32_t flags, const IGradient * g);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
 
                     inline float *serialize_clipping(float *dst) const;

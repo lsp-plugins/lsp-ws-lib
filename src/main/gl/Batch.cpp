@@ -33,7 +33,9 @@ namespace lsp
         {
             inline bool Batch::header_mismatch(const batch_header_t & a, const batch_header_t & b)
             {
-                return (a.enProgram != b.enProgram) || (a.bMultisampling != b.bMultisampling);
+                return (a.enProgram != b.enProgram) ||
+                       (a.nFlags != b.nFlags) ||
+                       (a.bMultisampling != b.bMultisampling);
             }
 
             template<class D, class S>
@@ -216,7 +218,10 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 IF_TRACE(
-                    lsp_trace("Batch: draws=%d,  commands=%d", int(vBatches.size()), int(vCommands.count));
+                    lsp_trace("Batch: draws=%d,  commands=%dv (%d bytes)",
+                        int(vBatches.size()),
+                        int(vCommands.count),
+                        int(vCommands.count * sizeof(float)));
 
                     for (size_t i=0, n=vBatches.size(); i<n; ++i)
                     {
@@ -227,9 +232,10 @@ namespace lsp
                         else if (draw->header.enProgram == STENCIL)
                             type    = "stencil";
 
-                        lsp_trace("  draw #%3d: type=%s, multisampling=%s, vertices=%d, indices=%d",
+                        lsp_trace("  draw #%3d: type=%s, multisampling=%s, vertices=%d (%d bytes), indices=%d (%d bytes)",
                             int(i), type, (draw->header.bMultisampling) ? " true" : "false",
-                            int(draw->vertices.count), int (draw->indices.count));
+                            int(draw->vertices.count), int(draw->vertices.count * sizeof(vertex_t)),
+                            int(draw->indices.count), int(draw->indices.count * draw->indices.szof));
 
                     }
                 );
@@ -260,7 +266,44 @@ namespace lsp
 
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
-                    draw_t *draw    = vBatches.uget(i);
+                    draw_t *draw        = vBatches.uget(i);
+                    const size_t flags  = draw->header.nFlags;
+
+                    // Configure color buffer
+                    const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;
+                    glColorMask(color_mask, color_mask, color_mask, color_mask);
+
+                    // Configure stencil buffer
+                    if (flags & BATCH_CLEAR_STENCIL)
+                        glClear(GL_STENCIL_BUFFER_BIT);
+                    switch (flags & BATCH_STENCIL_OP_MASK)
+                    {
+                        case BATCH_STENCIL_OP_OR:
+                            glEnable(GL_STENCIL_TEST);
+                            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+                            glStencilFunc(GL_ALWAYS, 0x01, 0x01);
+                            glStencilMask(0x01);
+                            break;
+
+                        case BATCH_STENCIL_OP_XOR:
+                            glEnable(GL_STENCIL_TEST);
+                            glStencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
+                            glStencilFunc(GL_ALWAYS, 0x01, 0x01);
+                            glStencilMask(0x01);
+                            break;
+
+                        case BATCH_STENCIL_OP_APPLY:
+                            glEnable(GL_STENCIL_TEST);
+                            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+                            glStencilFunc(GL_EQUAL, 0x01, 0x01);
+                            glStencilMask(0x01);
+                            break;
+
+                        case BATCH_STENCIL_OP_NONE:
+                        default:
+                            glDisable(GL_STENCIL_TEST);
+                            break;
+                    }
 
                     if (draw->header.enProgram == SIMPLE)
                     {

@@ -176,13 +176,15 @@ namespace lsp
                 return dst + 4;
             }
 
-            ssize_t Surface::start_batch(batch_program_t program, float r, float g, float b, float a)
+            ssize_t Surface::start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a)
             {
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    program,
-                    bAntiAliasing,
-                });
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        flags,
+                        bAntiAliasing,
+                    });
                 if (res != STATUS_OK)
                     return -res;
 
@@ -198,16 +200,18 @@ namespace lsp
                 return make_command(index, C_SOLID);
             }
 
-            ssize_t Surface::start_batch(batch_program_t program, const Color & color)
+            ssize_t Surface::start_batch(batch_program_t program, uint32_t flags, const Color & color)
             {
                 if (!bIsDrawing)
                     return -STATUS_BAD_STATE;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    program,
-                    bAntiAliasing,
-                });
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        flags,
+                        bAntiAliasing,
+                    });
                 if (res != STATUS_OK)
                     return -res;
 
@@ -223,7 +227,7 @@ namespace lsp
                 return make_command(index, C_SOLID);
             }
 
-            ssize_t Surface::start_batch(batch_program_t program, const IGradient * g)
+            ssize_t Surface::start_batch(batch_program_t program, uint32_t flags, const IGradient * g)
             {
                 if (!bIsDrawing)
                     return -STATUS_BAD_STATE;
@@ -231,10 +235,12 @@ namespace lsp
                     return -STATUS_BAD_ARGUMENTS;
 
                 // Start batch
-                status_t res = sBatch.begin(gl::batch_header_t {
-                    program,
-                    bAntiAliasing,
-                });
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        flags,
+                        bAntiAliasing,
+                    });
                 if (res != STATUS_OK)
                     return -res;
 
@@ -685,46 +691,56 @@ namespace lsp
 
             void Surface::clear_rgb(uint32_t rgb)
             {
-                if (!bIsDrawing)
-                    return;
-                sBatch.clear();
-
-                ::glClearColor(
+                // Start batch
+                const ssize_t res = start_batch(
+                    gl::SIMPLE,
+                    gl::BATCH_WRITE_COLOR,
                     float((rgb >> 16) & 0xff) * k_color,
                     float((rgb >> 8) & 0xff) * k_color,
                     float(rgb & 0xff) * k_color,
                     0.0f);
-                ::glClear(GL_COLOR_BUFFER_BIT);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
             }
 
             void Surface::clear_rgba(uint32_t rgba)
             {
-                if (!bIsDrawing)
-                    return;
-                sBatch.clear();
-
-                ::glClearColor(
+                // Start batch
+                const ssize_t res = start_batch(
+                    gl::SIMPLE,
+                    gl::BATCH_WRITE_COLOR,
                     float((rgba >> 16) & 0xff) * k_color,
                     float((rgba >> 8) & 0xff) * k_color,
                     float(rgba & 0xff) * k_color,
                     float((rgba >> 24) & 0xff) * k_color);
-                ::glClear(GL_COLOR_BUFFER_BIT);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
             }
 
             void Surface::clear(const Color &c)
             {
-                if (!bIsDrawing)
+                // Start batch
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
+                if (res < 0)
                     return;
-                sBatch.clear();
+                lsp_finally { sBatch.end(); };
 
-                ::glClearColor(c.red(), c.green(), c.blue(), c.alpha());
-                ::glClear(GL_COLOR_BUFFER_BIT);
+                // Draw geometry
+                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
             }
 
             void Surface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -736,7 +752,7 @@ namespace lsp
             void Surface::wire_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -748,7 +764,7 @@ namespace lsp
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -760,7 +776,7 @@ namespace lsp
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -772,7 +788,7 @@ namespace lsp
             void Surface::fill_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -784,7 +800,7 @@ namespace lsp
             void Surface::fill_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -796,7 +812,7 @@ namespace lsp
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -808,7 +824,7 @@ namespace lsp
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -820,7 +836,7 @@ namespace lsp
             void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -832,7 +848,7 @@ namespace lsp
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -844,7 +860,7 @@ namespace lsp
             void Surface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -931,7 +947,7 @@ namespace lsp
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -963,7 +979,7 @@ namespace lsp
             void Surface::fill_circle(const Color &c, float x, float y, float r)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -975,7 +991,7 @@ namespace lsp
             void Surface::fill_circle(IGradient *g, float x, float y, float r)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, g);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, g);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -991,7 +1007,7 @@ namespace lsp
                 float ix, float iy, float iw, float ih)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -1008,7 +1024,7 @@ namespace lsp
                 const ws::rectangle_t *out, const ws::rectangle_t *in)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::SIMPLE, c);
+                const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
