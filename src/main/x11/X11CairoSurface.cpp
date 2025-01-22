@@ -39,6 +39,8 @@ namespace lsp
     {
         namespace x11
         {
+            constexpr float k_color = 1.0f / 255.0f;
+
             static inline cairo_antialias_t decode_antialiasing(const Font &f)
             {
                 switch (f.antialiasing())
@@ -425,9 +427,9 @@ namespace lsp
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
                 ::cairo_set_source_rgba(pCR,
-                    float((rgb >> 16) & 0xff)/255.0f,
-                    float((rgb >> 8) & 0xff)/255.0f,
-                    float(rgb & 0xff)/255.0f,
+                    float((rgb >> 16) & 0xff) * k_color,
+                    float((rgb >> 8) & 0xff) * k_color,
+                    float(rgb & 0xff) * k_color,
                     0.0f
                 );
                 ::cairo_paint(pCR);
@@ -442,10 +444,10 @@ namespace lsp
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
                 ::cairo_set_source_rgba(pCR,
-                    float((rgba >> 16) & 0xff)/255.0f,
-                    float((rgba >> 8) & 0xff)/255.0f,
-                    float(rgba & 0xff)/255.0f,
-                    float((rgba >> 24) & 0xff)/255.0f
+                    float((rgba >> 16) & 0xff) * k_color,
+                    float((rgba >> 8) & 0xff) * k_color,
+                    float(rgba & 0xff) * k_color,
+                    float((rgba >> 24) & 0xff) * k_color
                 );
                 ::cairo_paint(pCR);
                 ::cairo_set_operator (pCR, op);

@@ -46,6 +46,8 @@ namespace lsp
     {
         namespace gl
         {
+            constexpr float k_color = 1.0f / 255.0f;
+
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
                 ISurface(width, height, ST_OPENGL)
             {
@@ -683,43 +685,40 @@ namespace lsp
 
             void Surface::clear_rgb(uint32_t rgb)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+                sBatch.clear();
+
+                ::glClearColor(
+                    float((rgb >> 16) & 0xff) * k_color,
+                    float((rgb >> 8) & 0xff) * k_color,
+                    float(rgb & 0xff) * k_color,
+                    0.0f);
+                ::glClear(GL_COLOR_BUFFER_BIT);
             }
 
             void Surface::clear_rgba(uint32_t rgba)
             {
-                // TODO
+                if (!bIsDrawing)
+                    return;
+                sBatch.clear();
+
+                ::glClearColor(
+                    float((rgba >> 16) & 0xff) * k_color,
+                    float((rgba >> 8) & 0xff) * k_color,
+                    float(rgba & 0xff) * k_color,
+                    float((rgba >> 24) & 0xff) * k_color);
+                ::glClear(GL_COLOR_BUFFER_BIT);
             }
 
-            void Surface::clear(const Color &color)
+            void Surface::clear(const Color &c)
             {
                 if (!bIsDrawing)
                     return;
+                sBatch.clear();
 
-                ::glClearColor(color.red(), color.green(), color.blue(), color.alpha());
-                ::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-//                const float w = 0.25f * nWidth;
-//                const float h = 0.25f * nHeight;
-//
-//                glDisable(GL_MULTISAMPLE);
-//                glBegin(GL_TRIANGLES);
-//                    glColor4f(1.0f, 0.0f, 0.0f, 0.0f);
-//                    glVertex2f(w * 2, h * 2);
-//                    glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
-//                    glVertex2f(w, 0);
-//                    glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
-//                    glVertex2f(0, h*2);
-//                glEnd();
-//                glEnable(GL_MULTISAMPLE);
-//                glBegin(GL_TRIANGLES);
-//                    glColor4f(1.0f, 0.0f, 0.0f, 0.0f);
-//                    glVertex2f(w * 4, h * 4);
-//                    glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
-//                    glVertex2f(w * 3, h * 2);
-//                    glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
-//                    glVertex2f(w * 2, h * 4);
-//                glEnd();
+                ::glClearColor(c.red(), c.green(), c.blue(), c.alpha());
+                ::glClear(GL_COLOR_BUFFER_BIT);
             }
 
             void Surface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
