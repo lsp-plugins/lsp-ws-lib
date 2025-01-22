@@ -339,15 +339,5 @@ namespace lsp
             return false;
         }
 
-        surf_line_cap_t ISurface::get_line_cap()
-        {
-            return SURFLCAP_BUTT;
-        }
-
-        surf_line_cap_t ISurface::set_line_cap(surf_line_cap_t lc)
-        {
-            return SURFLCAP_BUTT;
-        }
-
     } /* namespace ws */
 } /* namespace lsp */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -1718,54 +1718,6 @@ namespace lsp
                 return old;
             }
 
-            surf_line_cap_t WinDDSurface::get_line_cap()
-            {
-                if (bad_state())
-                    return SURFLCAP_BUTT;
-
-                if (pStrokeStyle == NULL)
-                    return SURFLCAP_BUTT;
-                switch (pStrokeStyle->GetStartCap())
-                {
-                    case D2D1_CAP_STYLE_FLAT: return SURFLCAP_BUTT;
-                    case D2D1_CAP_STYLE_ROUND: return SURFLCAP_ROUND;
-                    case D2D1_CAP_STYLE_SQUARE: return SURFLCAP_SQUARE;
-                    default: break;
-                }
-                return SURFLCAP_BUTT;
-            }
-
-            surf_line_cap_t WinDDSurface::set_line_cap(surf_line_cap_t lc)
-            {
-                if (bad_state())
-                    return SURFLCAP_BUTT;
-
-                // Check that line cap has changed
-                surf_line_cap_t old_style = get_line_cap();
-                if (old_style == lc)
-                    return old_style;
-
-                // Create new stroke style
-                D2D1_CAP_STYLE cap_style;
-                switch (lc)
-                {
-                    case SURFLCAP_BUTT: cap_style = D2D1_CAP_STYLE_FLAT; break;
-                    case SURFLCAP_ROUND: cap_style = D2D1_CAP_STYLE_ROUND; break;
-                    case SURFLCAP_SQUARE: cap_style = D2D1_CAP_STYLE_SQUARE; break;
-                    default: cap_style = D2D1_CAP_STYLE_FLAT; break;
-                }
-
-                // Create new stroke style if needed
-                safe_release(pStrokeStyle);
-                pShared->pDisplay->d2d_factory()->CreateStrokeStyle(
-                    D2D1::StrokeStyleProperties(cap_style, cap_style),
-                    NULL,
-                    0,
-                    &pStrokeStyle);
-
-                // Return previous stroke style
-                return old_style;
-            }
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

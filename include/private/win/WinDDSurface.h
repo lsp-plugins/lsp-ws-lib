@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -173,9 +173,6 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
-
-                    virtual surf_line_cap_t get_line_cap() override;
-                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
 
                 public:
                     void        sync_size();

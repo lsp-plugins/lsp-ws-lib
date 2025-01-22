@@ -45,13 +45,6 @@ namespace lsp
     {
         class IDisplay;
 
-        enum surf_line_cap_t
-        {
-            SURFLCAP_BUTT,
-            SURFLCAP_ROUND,
-            SURFLCAP_SQUARE
-        };
-
         /** Common drawing surface interface
          *
          */
@@ -733,18 +726,6 @@ namespace lsp
                  */
                 virtual bool set_antialiasing(bool set);
 
-                /** Get line cap
-                 *
-                 * @return line cap
-                 */
-                virtual surf_line_cap_t get_line_cap();
-
-                /** Set line cap
-                 *
-                 * @param lc line cap
-                 * @return line cap
-                 */
-                virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
         };
 
     } /* namespace ws */

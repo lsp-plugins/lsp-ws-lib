@@ -1556,37 +1556,6 @@ namespace lsp
                 return old;
             }
 
-            surf_line_cap_t X11CairoSurface::get_line_cap()
-            {
-                if (pCR == NULL)
-                    return SURFLCAP_BUTT;
-
-                cairo_line_cap_t old = cairo_get_line_cap(pCR);
-
-                return
-                    (old == CAIRO_LINE_CAP_BUTT) ? SURFLCAP_BUTT :
-                    (old == CAIRO_LINE_CAP_ROUND) ? SURFLCAP_ROUND : SURFLCAP_SQUARE;
-            }
-
-            surf_line_cap_t X11CairoSurface::set_line_cap(surf_line_cap_t lc)
-            {
-                if (pCR == NULL)
-                    return SURFLCAP_BUTT;
-
-                cairo_line_cap_t old = cairo_get_line_cap(pCR);
-
-                cairo_line_cap_t cap =
-                    (lc == SURFLCAP_BUTT) ? CAIRO_LINE_CAP_BUTT :
-                    (lc == SURFLCAP_ROUND) ? CAIRO_LINE_CAP_ROUND :
-                    CAIRO_LINE_CAP_SQUARE;
-
-                cairo_set_line_cap(pCR, cap);
-
-                return
-                    (old == CAIRO_LINE_CAP_BUTT) ? SURFLCAP_BUTT :
-                    (old == CAIRO_LINE_CAP_ROUND) ? SURFLCAP_ROUND : SURFLCAP_SQUARE;
-            }
-
             void X11CairoSurface::clip_begin(float x, float y, float w, float h)
             {
                 if (pCR == NULL)
@@ -1619,8 +1588,7 @@ namespace lsp
                 cairo_restore(pCR);
             }
 
-        }
-
+        } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */
 
