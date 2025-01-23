@@ -183,6 +183,22 @@ namespace lsp
                 return flags;
             }
 
+            inline void Surface::extend_rect(clip_rect_t &rect, float x, float y)
+            {
+                rect.left           = lsp_min(rect.left, x);
+                rect.top            = lsp_min(rect.top, y);
+                rect.right          = lsp_max(rect.right, x);
+                rect.bottom         = lsp_max(rect.bottom, y);
+            }
+
+            inline void Surface::limit_rect(clip_rect_t & rect)
+            {
+                rect.left           = lsp_max(rect.left, 0.0f);
+                rect.top            = lsp_max(rect.top, 0.0f);
+                rect.right          = lsp_min(rect.right, float(nWidth));
+                rect.bottom         = lsp_min(rect.bottom, float(nHeight));
+            }
+
             ssize_t Surface::start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a)
             {
                 // Start batch
@@ -280,6 +296,10 @@ namespace lsp
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
+            void Surface::draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width)
+            {
+            }
+
             void Surface::fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n)
             {
                 if (n < 3)
@@ -295,20 +315,13 @@ namespace lsp
 
                 for (size_t i=2; i<n; ++i)
                 {
-                    rect.left           = lsp_min(rect.left, x[i]);
-                    rect.top            = lsp_min(rect.top, y[i]);
-                    rect.right          = lsp_max(rect.right, x[i]);
-                    rect.bottom         = lsp_max(rect.bottom, y[i]);
-
+                    extend_rect(rect, x[i], y[i]);
                     sBatch.vertex(ci, x[i], y[i]);
                     sBatch.triangle(v0i, vi, vi + 1);
                     ++vi;
                 }
 
-                rect.left           = lsp_max(rect.left, 0.0f);
-                rect.top            = lsp_max(rect.top, 0.0f);
-                rect.right          = lsp_min(rect.right, float(nWidth));
-                rect.bottom         = lsp_min(rect.bottom, float(nHeight));
+                limit_rect(rect);
             }
 
             void Surface::fill_circle(uint32_t ci, float x, float y, float r)
@@ -600,6 +613,104 @@ namespace lsp
                     fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
             }
 
+            void Surface::draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            {
+                size_t i;
+                float dx, dy, d;
+                float kd, ndx, ndy;
+                float px, py;
+
+                rect.left       = nWidth;
+                rect.top        = nHeight;
+                rect.right      = 0.0f;
+                rect.bottom     = 0.0f;
+
+                // Find first not short segment
+                width          *= 0.5f;
+                size_t si       = 0;
+                for (i = 1; i <= n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                        break;
+                }
+                if (i > n)
+                    return;
+
+                // Draw first segment
+                kd              = width / sqrtf(d);
+                ndx             = -dy * kd;
+                ndy             = dx * kd;
+
+                px              = x[i] + ndx;
+                py              = y[i] + ndy;
+                extend_rect(rect, px, py);
+                ssize_t vi      = sBatch.vertex(ci, px, py);
+
+                px              = x[i] - ndx;
+                py              = y[i] - ndy;
+                extend_rect(rect, px, py);
+                sBatch.vertex(ci, px, py);
+
+                px              = x[si] - ndx;
+                py              = y[si] - ndy;
+                extend_rect(rect, px, py);
+                sBatch.vertex(ci, px, py);
+
+                px              = x[si] + ndx;
+                py              = y[si] + ndy;
+                extend_rect(rect, px, py);
+                sBatch.vertex(ci, px, py);
+
+                sBatch.rectangle(vi, vi+1, vi+2, vi+3);
+                si                  = i++;
+
+                // Draw the rest segments
+                for (; i < n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                    {
+                        kd              = width / sqrtf(d);
+                        ndx             = -dy * kd;
+                        ndy             = dx * kd;
+
+                        px              = x[i] + ndx;
+                        py              = y[i] + ndy;
+                        extend_rect(rect, px, py);
+                        sBatch.vertex(ci, px, py);
+
+                        px              = x[i] - ndx;
+                        py              = y[i] - ndy;
+                        extend_rect(rect, px, py);
+                        sBatch.vertex(ci, px, py);
+
+                        px              = x[si] - ndx;
+                        py              = y[si] - ndy;
+                        extend_rect(rect, px, py);
+                        sBatch.vertex(ci, px, py);
+
+                        px              = x[si] + ndx;
+                        py              = y[si] + ndy;
+                        extend_rect(rect, px, py);
+                        sBatch.vertex(ci, px, py);
+
+                        sBatch.rectangle(vi + 4, vi + 5, vi + 6, vi + 7);
+                        sBatch.rectangle(vi, vi + 6, vi + 1, vi + 7);
+
+                        si              = i;
+                        vi             += 4;
+                    }
+                }
+
+                // Limit the rectangle
+                limit_rect(rect);
+            }
+
             bool Surface::valid() const
             {
                 return pContext != NULL;
@@ -702,7 +813,7 @@ namespace lsp
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
 
-                lltl::darray<gl::uniform_t> vUniforms;
+                vUniforms.clear();
                 vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });
                 vUniforms.add(gl::uniform_t { NULL, gl::UNI_NONE, NULL });
 
@@ -1074,14 +1185,53 @@ namespace lsp
                 }
             }
 
-            void Surface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
+            void Surface::wire_poly(const Color & c, float width, const float *x, const float *y, size_t n)
             {
-                // TODO
+                if (width < 1e-6f)
+                    return;
+
+                if (n <= 2)
+                {
+                    if (n == 2)
+                    {
+                        // Start batch
+                        const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR, c);
+                        if (res < 0)
+                            return;
+                        lsp_finally { sBatch.end(); };
+
+                        // Draw geometry
+                        draw_line(uint32_t(res), x[0], y[0], x[1], y[1], width);
+                    }
+                    return;
+                }
+
+                // Start first batch on stencil buffer
+                clip_rect_t rect;
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    draw_polyline(size_t(res), rect, x, y, width, n);
+                }
+
+                // Start second batch on color buffer with stencil apply
+                {
+                    const ssize_t res = start_batch(gl::SIMPLE, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, c);
+                    if (res < 0)
+                        return;
+                    lsp_finally{ sBatch.end(); };
+
+                    fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
+                }
             }
 
             void Surface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
-                // TODO
+                fill_poly(fill, x, y, n);
+                wire_poly(wire, width, x, y, n);
             }
 
             void Surface::fill_circle(const Color &c, float x, float y, float r)

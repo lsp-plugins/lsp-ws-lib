@@ -216,7 +216,7 @@ namespace lsp
                 if (pCurrent != NULL)
                     return STATUS_BAD_STATE;
 
-                lsp_trace("Batch: draws=%d,  commands=%dv (%d bytes)",
+                lsp_trace("Batch: draws=%d,  commands=%d (%d bytes)",
                     int(vBatches.size()),
                     int(vCommands.count),
                     int(vCommands.count * sizeof(float)));
@@ -599,18 +599,18 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::command(float **data, size_t length)
+            ssize_t Batch::command(float **data, size_t count)
             {
                 IF_DEBUG(
                     if (pCurrent == NULL)
                         return -STATUS_BAD_STATE;
                 );
 
-                const size_t to_alloc   = (length + 3) & (~size_t(3));
+                const size_t to_alloc   = (count + 3) & (~size_t(3));
 
                 // Check if we need to resize the buffer
                 cbuffer_t & buf     = vCommands;
-                if ((buf.count + to_alloc) >= buf.capacity)
+                if ((buf.count + to_alloc) > buf.capacity)
                 {
                     const size_t new_cap    = buf.capacity << 1;
                     float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap));
@@ -626,8 +626,8 @@ namespace lsp
 
                 // Clean up the unused tail
                 float *result           = &buf.data[index];
-                for ( ; length < to_alloc; ++length)
-                    result[length]          = 0.0f;
+                for ( ; count < to_alloc; ++count)
+                    result[count]           = 0.0f;
 
                 *data           = result;
 

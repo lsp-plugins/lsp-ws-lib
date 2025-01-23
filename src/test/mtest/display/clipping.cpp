@@ -99,6 +99,19 @@ MTEST_BEGIN("ws.display", clipping)
 
                         s->wire_poly(c, 5, vx, vy, N + 1);
 
+                        // Draw polygon with fill
+                        for (size_t i=0; i<=N; ++i)
+                        {
+                            float a     = (M_PI * 2.0f * i) / N;
+                            vx[i]       = hw + (i * 4.0f - N*2.0f);
+                            vy[i]       = hh + sinf(a) * N * 2.0f;
+                        }
+
+                        c.set_rgb(1.0f, 0.0f, 0.0f);
+                        Color c2(c, 0.5f);
+
+                        s->draw_poly(c2, c, 5.0f, vx, vy, N + 1);
+
                         s->clip_end();
                         s->end();
 

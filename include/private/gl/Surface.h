@@ -77,6 +77,7 @@ namespace lsp
                     size_t                  nNumClips;
                     float                   vMatrix[16];
                     clip_rect_t             vClips[MAX_CLIPS];
+                    lltl::darray<gl::uniform_t> vUniforms;
 
                     bool                    bNested;
                     bool                    bIsDrawing;         // Surface is currently in drawing mode
@@ -106,8 +107,12 @@ namespace lsp
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
                     static inline float *serialize_color(float *dst, const Color & c);
 
+                    static inline void extend_rect(clip_rect_t & rect, float x, float y);
+                    inline void limit_rect(clip_rect_t & rect);
+
                     void fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2);
                     void fill_rect(uint32_t ci, float x0, float y0, float x1, float y1);
+                    void draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width);
                     void fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n);
                     void fill_circle(uint32_t ci, float x, float y, float r);
                     void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
@@ -116,6 +121,7 @@ namespace lsp
                     void fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height);
                     void wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width);
                     void fill_frame(uint32_t ci, size_t flags, float radius, float fx, float fy, float fw, float fh, float ix, float iy, float iw, float ih);
+                    void draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
 
                 public:
                     /** Create GL surface

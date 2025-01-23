@@ -242,11 +242,11 @@ namespace lsp
 
                     /**
                      * Add command
-                     * @param length length of command in floats
+                     * @param count length of command in 32-bit floats
                      * @param buf pointer to store the pointer to the beginning of the buffer
                      * @return index of the batch in the buffer or negative error code
                      */
-                    ssize_t command(float **data, size_t length);
+                    ssize_t command(float **data, size_t count);
             };
 
         } /* namespace gl */
