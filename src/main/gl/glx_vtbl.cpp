@@ -130,6 +130,12 @@ namespace lsp
                 FETCH(glTexImage1D);
                 FETCH(glTexImage2D);
                 FETCH(glTexImage3D);
+                FETCH(glTexSubImage1D);
+                FETCH(glTexSubImage2D);
+                FETCH(glTexSubImage3D);
+                FETCH(glTextureSubImage1D);
+                FETCH(glTextureSubImage3D);
+                FETCH(glTextureSubImage2D);
                 FETCH(glTexParameterf);
                 FETCH(glTexParameteri);
                 FETCH(glTextureParameterf);
@@ -156,6 +162,10 @@ namespace lsp
                 FETCH(glVertexAttribPointer);
                 FETCH(glVertexAttribIPointer);
                 FETCH(glVertexAttribLPointer);
+
+                // Misc operations
+                FETCH(glPixelStoref);
+                FETCH(glPixelStorei);
 
                 return vtbl;
             }

@@ -49,6 +49,8 @@ namespace lsp
                 if (draw == NULL)
                     return;
 
+                safe_release(draw->header.pTexture);
+
                 if (draw->vertices.v != NULL)
                 {
                     free(draw->vertices.v);
@@ -107,7 +109,8 @@ namespace lsp
                     draw->vertices.v        = NULL;
                     draw->vertices.count    = 0;
                     draw->vertices.capacity = 32;
-//                    draw->vertices.index    = 0;
+
+                    safe_acquire(draw->header.pTexture);
 
                     draw->indices.data      = NULL;
                     draw->indices.count     = 0;
@@ -339,7 +342,7 @@ namespace lsp
                     const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
                     if (u_commands > 0)
                     {
-                        vtbl->glUniform1i(program_id, 0);
+                        vtbl->glUniform1i(u_commands, 0);
 
                         vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
                         vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
@@ -347,6 +350,18 @@ namespace lsp
 
                         vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
                         vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
+                    }
+
+                    // Texture
+                    gl::Texture *tex = draw->header.pTexture;
+                    if ((tex != NULL) && (tex->valid()))
+                    {
+                        const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
+                        if (u_texture > 0)
+                        {
+                            vtbl->glUniform1i(u_texture, 1);
+                            draw->header.pTexture->activate(GL_TEXTURE1);
+                        }
                     }
 
                     // Bind vertex attributes

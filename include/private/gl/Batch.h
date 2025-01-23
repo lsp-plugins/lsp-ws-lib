@@ -27,6 +27,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <private/gl/IContext.h>
+#include <private/gl/Texture.h>
 
 #include <GL/gl.h>
 
@@ -49,10 +50,11 @@ namespace lsp
                 BATCH_STENCIL_OP_APPLY      = 0x03 << 3,
             };
 
-            typedef struct batch_header_t
+            typedef struct LSP_HIDDEN_MODIFIER batch_header_t
             {
                 gl::program_t   enProgram;
                 uint32_t        nFlags;
+                gl::Texture    *pTexture;
             } batch_header_t;
 
             enum uniform_type_t
@@ -77,7 +79,7 @@ namespace lsp
                 UNI_MAT4F,
             };
 
-            typedef struct uniform_t
+            typedef struct LSP_HIDDEN_MODIFIER uniform_t
             {
                 const char     *name;
                 uniform_type_t  type;
@@ -90,7 +92,7 @@ namespace lsp
             } uniform_t;
 
 
-            class Batch
+            class LSP_HIDDEN_MODIFIER Batch
             {
                 private:
                     typedef struct vertex_t

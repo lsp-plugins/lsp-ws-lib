@@ -206,6 +206,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -232,6 +233,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -260,6 +262,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;

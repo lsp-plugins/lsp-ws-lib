@@ -201,7 +201,7 @@ namespace lsp
                  * @param data pointer to data array
                  * @param width the width of the image
                  * @param height the height of the image
-                 * @param strid the size of the row in bytes
+                 * @param stride the size of the row in bytes
                  * @param x offset from left
                  * @param y offset from top
                  * @param sx surface scale x

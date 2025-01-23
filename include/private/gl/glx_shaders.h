@@ -58,6 +58,7 @@ namespace lsp
                 SHADER("#version 330 core")
                 SHADER("")
                 SHADER("uniform samplerBuffer u_buf_commands;")
+                SHADER("uniform sampler2D u_texture;")
                 SHADER("")
                 SHADER("in vec2 b_texcoord;")
                 SHADER("flat in int b_index;")
