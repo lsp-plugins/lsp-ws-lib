@@ -97,10 +97,10 @@ namespace lsp
 
                 private:
                     uint32_t enrich_flags(uint32_t flags) const;
-                    ssize_t start_batch(batch_program_t program, uint32_t flags);
-                    ssize_t start_batch(batch_program_t program, uint32_t flags, const Color & color);
-                    ssize_t start_batch(batch_program_t program, uint32_t flags, float r, float g, float b, float a);
-                    ssize_t start_batch(batch_program_t program, uint32_t flags, const IGradient * g);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags, const Color & color);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags, const IGradient * g);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
 
                     inline float *serialize_clipping(float *dst) const;
@@ -122,6 +122,7 @@ namespace lsp
                     void wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width);
                     void fill_frame(uint32_t ci, size_t flags, float radius, float fx, float fy, float fw, float fh, float ix, float iy, float iw, float ih);
                     void draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
+                    void draw_polyline(uint32_t ci, const float *x, const float *y, float width, size_t n);
 
                 public:
                     /** Create GL surface

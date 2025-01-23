@@ -36,12 +36,6 @@ namespace lsp
     {
         namespace gl
         {
-            enum batch_program_t
-            {
-                SIMPLE,
-                STENCIL
-            };
-
             enum batch_flags_t
             {
                 BATCH_MULTISAMPLE           = 1 << 0,
@@ -57,7 +51,7 @@ namespace lsp
 
             typedef struct batch_header_t
             {
-                batch_program_t enProgram;
+                gl::program_t   enProgram;
                 uint32_t        nFlags;
             } batch_header_t;
 

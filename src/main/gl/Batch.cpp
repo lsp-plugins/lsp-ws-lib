@@ -256,8 +256,8 @@ namespace lsp
                     IF_TRACE(
                         {
                             const char *type = "unknown";
-                            if (draw->header.enProgram == SIMPLE)
-                                type    = "simple";
+                            if (draw->header.enProgram == GEOMETRY)
+                                type    = "geometry";
                             else if (draw->header.enProgram == STENCIL)
                                 type    = "stencil";
 
@@ -314,97 +314,79 @@ namespace lsp
                             break;
                     }
 
-                    if (draw->header.enProgram == SIMPLE)
+                    // Get the program
+                    status_t res = ctx->program(&program_id, draw->header.enProgram);
+                    if (res != STATUS_OK)
+                        return res;
+
+                    // Enable program
+                    if (prev_program_id != program_id)
                     {
-                        // Get the program
-                        status_t res = ctx->program(&program_id, gl::GEOMETRY);
-                        if (res != STATUS_OK)
-                            return res;
-
-                        // Enable program
-                        if (prev_program_id != program_id)
-                        {
-                            prev_program_id     = program_id;
-                            vtbl->glUseProgram(program_id);
-                            bind_uniforms(vtbl, program_id, uniforms);
-                        }
-
-                        // Vertex buffer
-                        vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-                        vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
-
-                        // Element array buffer
-                        vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
-                        vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
-
-                        // Command buffer
-                        const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
-                        if (u_commands > 0)
-                        {
-                            vtbl->glUniform1i(program_id, 0);
-
-                            vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
-                            vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
-                            vtbl->glActiveTexture(GL_TEXTURE0);
-
-                            vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
-                            vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
-                        }
-
-                        // Bind vertex attributes
-                        const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
-                        const GLint a_texcoord = vtbl->glGetAttribLocation(program_id, "a_texcoord");
-                        const GLint a_command = vtbl->glGetAttribLocation(program_id, "a_command");
-
-                        // position attribute
-                        if (a_vertex >= 0)
-                        {
-                            vtbl->glVertexAttribPointer(a_vertex, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
-                            vtbl->glEnableVertexAttribArray(a_vertex);
-                        }
-                        // texture coordinates
-                        if (a_texcoord >= 0)
-                        {
-                            vtbl->glVertexAttribPointer(a_texcoord, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, s));
-                            vtbl->glEnableVertexAttribArray(a_texcoord);
-                        }
-                        // draw command
-                        if (a_command >= 0)
-                        {
-                            vtbl->glVertexAttribIPointer(a_command, 1, GL_UNSIGNED_INT, sizeof(vertex_t), gl_offsetof(vertex_t, cmd));
-                            vtbl->glEnableVertexAttribArray(a_command);
-                        }
-
-                        const GLenum index_type =
-                            (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :
-                            (draw->indices.szof > sizeof(uint8_t)) ? GL_UNSIGNED_SHORT :
-                            GL_UNSIGNED_BYTE;
-
-                        // Draw content
-                        glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
-
-                        // Unbind buffers
-                        vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
-                        vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-                        vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
+                        prev_program_id     = program_id;
+                        vtbl->glUseProgram(program_id);
+                        bind_uniforms(vtbl, program_id, uniforms);
                     }
-                    else
+
+                    // Vertex buffer
+                    vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+                    vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
+
+                    // Element array buffer
+                    vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
+                    vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
+
+                    // Command buffer
+                    const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
+                    if (u_commands > 0)
                     {
-                        status_t res = ctx->program(&program_id, gl::MULTIPOLYGON);
-                        if (res != STATUS_OK)
-                            return res;
+                        vtbl->glUniform1i(program_id, 0);
 
-                        // Enable program
-                        if (prev_program_id != program_id)
-                        {
-                            prev_program_id     = program_id;
-                            vtbl->glUseProgram(program_id);
-                            bind_uniforms(vtbl, program_id, uniforms);
-                        }
+                        vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
+                        vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
+                        vtbl->glActiveTexture(GL_TEXTURE0);
+
+                        vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
+                        vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
                     }
+
+                    // Bind vertex attributes
+                    const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
+                    const GLint a_texcoord = vtbl->glGetAttribLocation(program_id, "a_texcoord");
+                    const GLint a_command = vtbl->glGetAttribLocation(program_id, "a_command");
+
+                    // position attribute
+                    if (a_vertex >= 0)
+                    {
+                        vtbl->glVertexAttribPointer(a_vertex, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
+                        vtbl->glEnableVertexAttribArray(a_vertex);
+                    }
+                    // texture coordinates
+                    if (a_texcoord >= 0)
+                    {
+                        vtbl->glVertexAttribPointer(a_texcoord, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, s));
+                        vtbl->glEnableVertexAttribArray(a_texcoord);
+                    }
+                    // draw command
+                    if (a_command >= 0)
+                    {
+                        vtbl->glVertexAttribIPointer(a_command, 1, GL_UNSIGNED_INT, sizeof(vertex_t), gl_offsetof(vertex_t, cmd));
+                        vtbl->glEnableVertexAttribArray(a_command);
+                    }
+
+                    const GLenum index_type =
+                        (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :
+                        (draw->indices.szof > sizeof(uint8_t)) ? GL_UNSIGNED_SHORT :
+                        GL_UNSIGNED_BYTE;
+
+                    // Draw content
+                    glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
+
+                    // Unbind buffers
+                    vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                    vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
                 }
 
-                // TODO
                 return STATUS_OK;
             }
 

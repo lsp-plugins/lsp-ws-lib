@@ -238,26 +238,43 @@ namespace lsp
 
             const char *Context::vertex_shader(size_t program_id)
             {
-                if (program_id == gl::GEOMETRY)
-                    return glx::geometry_vertex_shader;
+                switch (program_id)
+                {
+                    case gl::GEOMETRY: return glx::geometry_vertex_shader;
+                    case gl::STENCIL: return glx::stencil_vertex_shader;
+                    default: break;
+                }
                 return NULL;
             }
 
             const char *Context::fragment_shader(size_t program_id)
             {
-                if (program_id == gl::GEOMETRY)
-                    return glx::geometry_fragment_shader;
+                switch (program_id)
+                {
+                    case gl::GEOMETRY: return glx::geometry_fragment_shader;
+                    case gl::STENCIL: return glx::stencil_fragment_shader;
+                    default: break;
+                }
                 return NULL;
+            }
+
+            void Context::clear_errors()
+            {
+                while (glGetError() != GL_NO_ERROR);
             }
 
             bool Context::check_gl_error(const char *context)
             {
-                const GLenum error = glGetError();
-                if (error == GL_NO_ERROR)
-                    return false;
+                size_t count = 0;
+                while (true)
+                {
+                    const GLenum error = glGetError();
+                    if (error == GL_NO_ERROR)
+                        return count > 0;
 
-                lsp_error("OpenGL error while performing operation '%s': code=%d", context, int(error));
-                return true;
+                    lsp_error("OpenGL error while performing operation '%s': code=0x%x", context, int(error));
+                    ++count;
+                }
             }
 
             bool Context::check_compile_status(const char *context, GLenum id, compile_status_t type)
@@ -293,6 +310,8 @@ namespace lsp
             {
                 if (!active())
                     return STATUS_BAD_STATE;
+
+                clear_errors();
 
                 const size_t index = size_t(program);
                 program_t *prog = vPrograms.get(index);

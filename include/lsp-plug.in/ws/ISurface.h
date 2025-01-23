@@ -595,10 +595,10 @@ namespace lsp
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
-                 * @param left
-                 * @param right
-                 * @param top
-                 * @param bottom
+                 * @param left coordinates of left culling boundary
+                 * @param right coordinates of right culling boundary
+                 * @param top corrdinates of top culling boundary
+                 * @param bottom coordinates of bottom culling boundary
                  * @param width line width
                  */
                 virtual void parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width);

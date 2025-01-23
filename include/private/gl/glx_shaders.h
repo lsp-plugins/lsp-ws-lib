@@ -115,6 +115,28 @@ namespace lsp
                 SHADER("}")
                 SHADER("");
 
+            static const char *stencil_vertex_shader =
+                SHADER("#version 330 core")
+                SHADER("")
+                SHADER("uniform mat4 u_model;")
+                SHADER("")
+                SHADER("in vec2 a_vertex;")
+                SHADER("")
+                SHADER("void main()")
+                SHADER("{")
+                SHADER("    gl_Position = u_model * vec4(a_vertex, 0.0f, 1.0f);")
+                SHADER("}")
+                SHADER("");
+
+            static const char *stencil_fragment_shader =
+                SHADER("#version 330 core")
+                SHADER("")
+                SHADER("void main()")
+                SHADER("{")
+                SHADER("    gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.0f);")
+                SHADER("}")
+                SHADER("");
+
             #undef SHADER
         } /* namespace glx */
     } /* namespace ws */

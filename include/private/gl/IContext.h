@@ -60,7 +60,7 @@ namespace lsp
             enum program_t
             {
                 GEOMETRY,
-                MULTIPOLYGON,
+                STENCIL,
             };
 
             class LSP_HIDDEN_MODIFIER IContext
