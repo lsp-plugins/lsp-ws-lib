@@ -38,9 +38,11 @@ namespace lsp
         {
             enum texture_format_t
             {
-                TEXTURE_UNKNOWN,    // No texture format specified
                 TEXTURE_RGBA32,     // 32-bit color with 8 bits per red, gree, blue and alpha components
-                TEXTURE_ALPHA8      // 8-bit alpha component
+                TEXTURE_ALPHA8,     // 8-bit alpha component
+                TEXTURE_PRGBA32,    // 32-bit color with 8 bits per red, gree, blue and alpha components, alpha is premultiplied
+
+                TEXTURE_UNKNOWN,    // No texture format specified
             };
 
             class LSP_HIDDEN_MODIFIER Texture

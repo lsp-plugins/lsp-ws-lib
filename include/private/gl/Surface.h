@@ -101,11 +101,14 @@ namespace lsp
                     ssize_t start_batch(gl::program_t program, uint32_t flags, const Color & color);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, const IGradient * g);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, float a);
+                    ssize_t start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, const Color & color);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
 
                     inline float *serialize_clipping(float *dst) const;
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
                     static inline float *serialize_color(float *dst, const Color & c);
+                    static inline float *serialize_texture(float *dst, const gl::Texture *t);
 
                     static inline void extend_rect(clip_rect_t & rect, float x, float y);
                     inline void limit_rect(clip_rect_t & rect);

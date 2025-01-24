@@ -176,6 +176,16 @@ namespace lsp
                 return dst + 4;
             }
 
+            inline float *Surface::serialize_texture(float *dst, const gl::Texture *t)
+            {
+                dst[0]      = float(t->width());
+                dst[1]      = float(t->height());
+                dst[2]      = t->format();
+                dst[3]      = 0.0f;
+
+                return dst + 4;
+            }
+
             uint32_t Surface::enrich_flags(uint32_t flags) const
             {
                 if (bAntiAliasing)
@@ -280,6 +290,66 @@ namespace lsp
                 grad->serialize(buf);
 
                 return make_command(index, grad->linear() ? C_LINEAR : C_RADIAL);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, float a)
+            {
+                if (!bIsDrawing)
+                    return -STATUS_BAD_STATE;
+                if (t == NULL)
+                    return -STATUS_BAD_ARGUMENTS;
+
+                // Start batch
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        enrich_flags(flags),
+                        t,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+                buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, a);
+                buf     = serialize_texture(buf, t);
+
+                return make_command(index, C_TEXTURE);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, const Color & color)
+            {
+                if (!bIsDrawing)
+                    return -STATUS_BAD_STATE;
+                if (t == NULL)
+                    return -STATUS_BAD_ARGUMENTS;
+
+                // Start batch
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        enrich_flags(flags),
+                        t,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+                buf     = serialize_color(buf, color);
+                buf     = serialize_texture(buf, t);
+
+                return make_command(index, C_TEXTURE);
             }
 
             void Surface::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -797,7 +867,34 @@ namespace lsp
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)
             {
-                // TODO
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                gl::Texture *tex = new gl::Texture(pContext);
+                if (tex == NULL)
+                    return;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                if (tex->set_image(data, width, height, stride, TEXTURE_PRGBA32) != STATUS_OK)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_PREMULTIPLIED_ALPHA, tex, a);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const uint32_t ci   = uint32_t(res);
+                const float xe      = x + width * sx;
+                const float ye      = y + height * sy;
+
+                const ssize_t vi    = sBatch.vertex(ci, x, y, 0.0f, 0.0f);
+                sBatch.vertex(ci, x, ye, 0.0f, 1.0f);
+                sBatch.vertex(ci, xe, ye, 1.0f, 1.0f);
+                sBatch.vertex(ci, xe, y, 1.0f, 0.0f);
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::begin()
@@ -852,8 +949,6 @@ namespace lsp
 
                 glMatrixMode(GL_MODELVIEW);
                 glLoadMatrixf(vMatrix);
-                glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
-                glEnable(GL_BLEND);
                 glDisable(GL_DEPTH_TEST);
 
                 bIsDrawing      = true;

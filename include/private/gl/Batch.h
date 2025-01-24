@@ -39,15 +39,16 @@ namespace lsp
         {
             enum batch_flags_t
             {
-                BATCH_MULTISAMPLE           = 1 << 0,
-                BATCH_WRITE_COLOR           = 1 << 1,
-                BATCH_CLEAR_STENCIL         = 1 << 2,
+                BATCH_STENCIL_OP_MASK       = 0x03 << 0,
+                BATCH_STENCIL_OP_NONE       = 0x00 << 0,
+                BATCH_STENCIL_OP_OR         = 0x01 << 0,
+                BATCH_STENCIL_OP_XOR        = 0x02 << 0,
+                BATCH_STENCIL_OP_APPLY      = 0x03 << 0,
 
-                BATCH_STENCIL_OP_MASK       = 0x03 << 3,
-                BATCH_STENCIL_OP_NONE       = 0x00 << 3,
-                BATCH_STENCIL_OP_OR         = 0x01 << 3,
-                BATCH_STENCIL_OP_XOR        = 0x02 << 3,
-                BATCH_STENCIL_OP_APPLY      = 0x03 << 3,
+                BATCH_MULTISAMPLE           = 1 << 2,
+                BATCH_WRITE_COLOR           = 1 << 3,
+                BATCH_CLEAR_STENCIL         = 1 << 4,
+                BATCH_PREMULTIPLIED_ALPHA   = 1 << 5,
             };
 
             typedef struct LSP_HIDDEN_MODIFIER batch_header_t

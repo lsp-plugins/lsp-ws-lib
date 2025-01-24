@@ -34,7 +34,8 @@ namespace lsp
             inline bool Batch::header_mismatch(const batch_header_t & a, const batch_header_t & b)
             {
                 return (a.enProgram != b.enProgram) ||
-                       (a.nFlags != b.nFlags);
+                       (a.nFlags != b.nFlags) ||
+                       (a.pTexture != b.pTexture);
             }
 
             template<class D, class S>
@@ -174,6 +175,13 @@ namespace lsp
                 if (pCurrent == NULL)
                     return STATUS_BAD_STATE;
 
+                // Remove batch if it is empty
+                if ((pCurrent->vertices.count == 0) || (pCurrent->indices.count == 0))
+                {
+                    vBatches.pop();
+                    destroy(pCurrent);
+                }
+
                 pCurrent    = NULL;
                 return STATUS_OK;
             }
@@ -277,6 +285,13 @@ namespace lsp
                     else
                         glDisable(GL_MULTISAMPLE);
 
+                    // Blending function
+                    if (flags & BATCH_PREMULTIPLIED_ALPHA)
+                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    else
+                        glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+                    glEnable(GL_BLEND);
+
                     // Configure color buffer
                     const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;
                     glColorMask(color_mask, color_mask, color_mask, color_mask);
@@ -346,22 +361,21 @@ namespace lsp
 
                         vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
                         vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
-                        vtbl->glActiveTexture(GL_TEXTURE0);
 
+                        vtbl->glActiveTexture(GL_TEXTURE0);
                         vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
                         vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
                     }
 
-                    // Texture
-                    gl::Texture *tex = draw->header.pTexture;
-                    if ((tex != NULL) && (tex->valid()))
+                    // Optional texture
+                    const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
+                    if (u_texture > 0)
                     {
-                        const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
-                        if (u_texture > 0)
-                        {
-                            vtbl->glUniform1i(u_texture, 1);
+                        vtbl->glUniform1i(u_texture, 1);
+
+                        gl::Texture *tex = draw->header.pTexture;
+                        if ((tex != NULL) && (tex->valid()))
                             draw->header.pTexture->activate(GL_TEXTURE1);
-                        }
                     }
 
                     // Bind vertex attributes

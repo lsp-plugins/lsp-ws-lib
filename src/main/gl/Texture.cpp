@@ -21,6 +21,9 @@
 
 #include <private/gl/Texture.h>
 
+#include <GL/gl.h>
+#include <lsp-plug.in/common/debug.h>
+
 namespace lsp
 {
     namespace ws
@@ -66,8 +69,7 @@ namespace lsp
 
                 const vtbl_t *vtbl = pContext->vtbl();
                 const size_t pixel_size = (format == gl::TEXTURE_ALPHA8) ? sizeof(uint8_t) : sizeof(uint32_t);
-                const GLuint internal_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
-                const GLuint tex_format = (format == gl::TEXTURE_ALPHA8) ? GL_R8 : GL_RGBA8;
+                const GLuint tex_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_BGRA;
 
                 if (nTextureId == 0)
                 {
@@ -80,7 +82,7 @@ namespace lsp
                 lsp_finally { vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); };
 
                 vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
-                vtbl->glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
+                vtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
                 vtbl->glBindTexture(GL_TEXTURE_2D, 0);
 
                 nWidth      = uint32_t(width);
@@ -101,7 +103,7 @@ namespace lsp
 
                 const vtbl_t *vtbl = pContext->vtbl();
                 const size_t pixel_size = (enFormat == gl::TEXTURE_ALPHA8) ? sizeof(uint8_t) : sizeof(uint32_t);
-                const GLuint tex_format = (enFormat == gl::TEXTURE_ALPHA8) ? GL_R8 : GL_RGBA8;
+                const GLuint tex_format = (enFormat == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
 
                 vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, stride / pixel_size);
                 lsp_finally { vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); };
@@ -122,7 +124,13 @@ namespace lsp
                     return;
 
                 const vtbl_t *vtbl = pContext->vtbl();
+                vtbl->glActiveTexture(texture_id);
                 vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
+
+                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             }
 
             void Texture::reset()

@@ -196,7 +196,8 @@ namespace lsp
 
                 /** Draw surface from BGRA32 memory chunk where alpha is premultiplied.
                  * That means that alpha of 0xff defines fully opaque color and 0x00
-                 * defines fully transient color.
+                 * defines fully transient color. That's why 50% transparent red is 0x80800000,
+                 * not 0x80ff0000
                  *
                  * @param data pointer to data array
                  * @param width the width of the image
