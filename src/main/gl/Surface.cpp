@@ -897,6 +897,18 @@ namespace lsp
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
+            status_t Surface::resize(size_t width, size_t height)
+            {
+                if (!bNested)
+                {
+                    nWidth      = width;
+                    nHeight     = height;
+                    return STATUS_OK;
+                }
+
+                return STATUS_NOT_IMPLEMENTED;
+            }
+
             void Surface::begin()
             {
                 if (pContext == NULL)
