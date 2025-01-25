@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -748,7 +748,11 @@ namespace lsp
                         sSize.nHeight       = ev->nHeight;
 
                         if (pSurface != NULL)
-                            pSurface->sync_size();
+                        {
+                            RECT rc;
+                            GetClientRect(hWindow, &rc);
+                            pSurface->resize(rc.right - rc.left, rc.bottom - rc.top);
+                        }
                         break;
                     }
 

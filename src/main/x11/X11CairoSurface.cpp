@@ -163,12 +163,12 @@ namespace lsp
                 return pSurface != NULL;
             }
 
-            bool X11CairoSurface::resize(size_t width, size_t height)
+            status_t X11CairoSurface::resize(size_t width, size_t height)
             {
                 if (nType == ST_XLIB)
                 {
                     ::cairo_xlib_surface_set_size(pSurface, width, height);
-                    return true;
+                    return STATUS_OK;
                 }
 
                 // Create new surface and cairo
@@ -180,13 +180,13 @@ namespace lsp
 //                    s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
 
                 if (s == NULL)
-                    return false;
+                    return STATUS_NO_MEM;
 
                 cairo_t *cr         = ::cairo_create(s);
                 if (cr == NULL)
                 {
                     cairo_surface_destroy(s);
-                    return false;
+                    return STATUS_NO_MEM;
                 }
 
                 // Draw previous content
@@ -206,7 +206,7 @@ namespace lsp
                 else
                     ::cairo_destroy(cr);
 
-                return false;
+                return STATUS_OK;
             }
 
             void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)

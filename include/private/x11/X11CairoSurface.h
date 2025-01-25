@@ -106,14 +106,7 @@ namespace lsp
                     virtual void destroy() override;
                     virtual bool valid() const override;
 
-                public:
-                    /** resize cairo surface if possible
-                     *
-                     * @param width new width
-                     * @param height new height
-                     * @return true on success
-                     */
-                    bool resize(size_t width, size_t height);
+                    virtual status_t resize(size_t width, size_t height) override;
 
                 public:
                     virtual IDisplay *display() override;

@@ -231,26 +231,25 @@ namespace lsp
                 safe_release(pDC);
             }
 
-            void WinDDSurface::sync_size()
+            status_t WinDDSurface::resize(size_t width, size_t height)
             {
                 if ((pShared == NULL) || (pShared->hWindow == NULL))
-                    return;
+                    return STATUS_BAD_STATE;
 
-                RECT rc;
-                D2D1_SIZE_U size;
-                GetClientRect(pShared->hWindow, &rc);
-
-                nWidth      = rc.right - rc.left;
-                nHeight     = rc.bottom - rc.top;
+                nWidth      = width;
+                nHeight     = height;
 
                 if (pDC != NULL)
                 {
                     ID2D1HwndRenderTarget *ht   = static_cast<ID2D1HwndRenderTarget *>(pDC);
 
-                    size.width      = nWidth;
-                    size.height     = nHeight;
+                    D2D1_SIZE_U size;
+                    size.width      = width;
+                    size.height     = height;
                     ht->Resize(&size);
                 }
+
+                return STATUS_OK;
             }
 
             void WinDDSurface::clear(const Color &color)

@@ -97,6 +97,7 @@ namespace lsp
 
                     virtual ISurface *create(size_t width, size_t height) override;
                     virtual ISurface *create_copy() override;
+                    virtual status_t resize(size_t width, size_t height) override;
 
                     virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
                     virtual IGradient *radial_gradient
@@ -175,7 +176,6 @@ namespace lsp
                     virtual bool set_antialiasing(bool set) override;
 
                 public:
-                    void        sync_size();
                     void        invalidate();
             };
 

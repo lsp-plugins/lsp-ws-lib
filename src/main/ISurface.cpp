@@ -63,6 +63,11 @@ namespace lsp
             return new ISurface(nWidth, nHeight, ST_UNKNOWN);
         }
 
+        status_t ISurface::resize(size_t width, size_t height)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
         void ISurface::destroy()
         {
         }

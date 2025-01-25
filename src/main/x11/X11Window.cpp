@@ -525,10 +525,7 @@ namespace lsp
                         sSize.nWidth        = ev->nWidth;
                         sSize.nHeight       = ev->nHeight;
                         if (pSurface != NULL)
-                        {
-                            X11CairoSurface *surface = static_cast<X11CairoSurface *>(pSurface);
-                            surface->resize(sSize.nWidth, sSize.nHeight);
-                        }
+                            pSurface->resize(sSize.nWidth, sSize.nHeight);
                         break;
                     }
 

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -45,15 +45,11 @@ namespace lsp
     {
         class IDisplay;
 
-        /** Common drawing surface interface
-         *
+        /**
+         * Common drawing surface interface
          */
         class LSP_WS_LIB_PUBLIC ISurface
         {
-            private:
-                ISurface & operator = (const ISurface &);
-                ISurface(const ISurface &);
-
             protected:
                 size_t          nWidth;
                 size_t          nHeight;
@@ -64,7 +60,12 @@ namespace lsp
 
             public:
                 explicit ISurface();
+                ISurface(const ISurface &) = delete;
+                ISurface(ISurface &&) = delete;
                 virtual ~ISurface();
+
+                ISurface & operator = (const ISurface &) = delete;
+                ISurface & operator = (ISurface &&) = delete;
 
             public:
                 /** Get surface width
@@ -104,6 +105,16 @@ namespace lsp
                  * @return copy of current surface
                  */
                 virtual ISurface *create_copy();
+
+                /**
+                 * Resize the surface. There is no guarantee about the image content
+                 * stored inside of the surface.
+                 *
+                 * @param width new width of the surface
+                 * @param height new height of the surface
+                 * @return status of operation
+                 */
+                virtual status_t resize(size_t width, size_t height);
 
                 /** Create linear gradient
                  *
