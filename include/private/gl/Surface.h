@@ -19,8 +19,8 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef PRIVATE_X11_X11GLSURFACE_H_
-#define PRIVATE_X11_X11GLSURFACE_H_
+#ifndef PRIVATE_GL_GLSURFACE_H_
+#define PRIVATE_GL_GLSURFACE_H_
 
 #include <lsp-plug.in/ws/version.h>
 
@@ -86,8 +86,8 @@ namespace lsp
                 private:
                     void do_destroy();
 
-                private:
-                    /** Create nexted GL surface
+                protected:
+                    /** Create nested GL surface
                      *
                      * @param ctx OpenGL context
                      * @param width surface width
@@ -95,7 +95,15 @@ namespace lsp
                      */
                     explicit Surface(size_t width, size_t height);
 
-                private:
+                    /**
+                     * Factory method for creating nested surface with proper class type
+                     * @param width width of the nested surface
+                     * @param height heigth of the nested surface
+                     * @return pointer to created surface
+                     */
+                    virtual Surface        *create_nested(size_t width, size_t height);
+
+                protected:
                     uint32_t enrich_flags(uint32_t flags) const;
                     ssize_t start_batch(gl::program_t program, uint32_t flags);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, const Color & color);
@@ -195,14 +203,6 @@ namespace lsp
                     virtual void fill_circle(IGradient *g, float x, float y, float r) override;
                     virtual void wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width) override;
 
-                    virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
-                    virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
-
                     virtual void line(const Color &c, float x0, float y0, float x1, float y1, float width) override;
                     virtual void line(IGradient *g, float x0, float y0, float x1, float y1, float width) override;
 
@@ -240,4 +240,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* PRIVATE_X11_X11GLSURFACE_H_ */
+#endif /* PRIVATE_GL_GLSURFACE_H_ */

@@ -83,6 +83,11 @@ namespace lsp
                 sBatch.init();
             }
 
+            Surface *Surface::create_nested(size_t width, size_t height)
+            {
+                return new Surface(width, height);
+            }
+
             IDisplay *Surface::display()
             {
                 return pDisplay;
@@ -90,7 +95,7 @@ namespace lsp
 
             ISurface *Surface::create(size_t width, size_t height)
             {
-                Surface *s = new Surface(width, height);
+                Surface *s = create_nested(width, height);
                 if (s != NULL)
                 {
                     s->pDisplay     = pDisplay;
@@ -1183,53 +1188,6 @@ namespace lsp
 
                 // Draw geometry
                 fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
-            }
-
-            bool Surface::get_font_parameters(const Font &f, font_parameters_t *fp)
-            {
-                // TODO
-
-                return false;
-            }
-
-            bool Surface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
-            {
-                if (text == NULL)
-                    return false;
-
-                // TODO
-
-                return true;
-            }
-
-            bool Surface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
-            {
-                if (text == NULL)
-                    return false;
-
-                // TODO
-
-                return true;
-            }
-
-            void Surface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
-            {
-                // TODO
-            }
-
-            void Surface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
-            {
-                // TODO
-            }
-
-            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
-            {
-                // TODO
-            }
-
-            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
-            {
-                // TODO
             }
 
             void Surface::line(const Color &color, float x0, float y0, float x1, float y1, float width)

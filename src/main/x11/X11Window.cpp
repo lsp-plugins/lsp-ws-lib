@@ -33,6 +33,7 @@
 #include <private/x11/X11Window.h>
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
+#include <private/x11/X11GLSurface.h>
 
 #include <limits.h>
 #include <errno.h>
@@ -107,7 +108,7 @@ namespace lsp
                     gl::IContext *ctx   = gl::create_context(cp);
                     lsp_finally { safe_release(ctx); };
                     if (ctx != NULL)
-                        result = new gl::Surface(dpy, ctx, width, height);
+                        result = new X11GLSurface(dpy, ctx, width, height);
                 #endif /* USE_LIBGL */
             #endif
 
