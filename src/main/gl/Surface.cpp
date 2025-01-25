@@ -181,6 +181,16 @@ namespace lsp
                 return dst + 4;
             }
 
+            inline float *Surface::serialize_color_ialpha(float *dst, const Color & c)
+            {
+                dst[0]      = c.red();
+                dst[1]      = c.green();
+                dst[2]      = c.blue();
+                dst[3]      = 1.0f - c.alpha();
+
+                return dst + 4;
+            }
+
             inline float *Surface::serialize_texture(float *dst, const gl::Texture *t)
             {
                 dst[0]      = float(t->width());
@@ -321,7 +331,7 @@ namespace lsp
                     return index;
 
                 buf     = serialize_clipping(buf);
-                buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, a);
+                buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, 1.0f - a);
                 buf     = serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
@@ -351,7 +361,7 @@ namespace lsp
                     return index;
 
                 buf     = serialize_clipping(buf);
-                buf     = serialize_color(buf, color);
+                buf     = serialize_color_ialpha(buf, color);
                 buf     = serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);

@@ -50,33 +50,257 @@ namespace lsp
 
             bool X11GLSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
+                // Get font parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pX11Display->font_manager();
+                if (mgr != NULL)
+                {
+                    if (mgr->get_font_parameters(&f, fp))
+                        return true;
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                fp->Ascent          = 0.0f;
+                fp->Descent         = 0.0f;
+                fp->Height          = 0.0f;
                 return false;
             }
 
             bool X11GLSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
             {
+                if (text == NULL)
+                    return false;
+
+                // Get text parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pX11Display->font_manager();
+                if (mgr != NULL)
+                {
+                    LSPString tmp;
+                    if (!tmp.set_utf8(text))
+                        return false;
+
+                    ft::text_range_t tr;
+                    if (mgr->get_text_parameters(&f, &tr, &tmp, 0, tmp.length()))
+                    {
+                        tp->XBearing    = tr.x_bearing;
+                        tp->YBearing    = tr.y_bearing;
+                        tp->Width       = tr.width;
+                        tp->Height      = tr.height;
+                        tp->XAdvance    = tr.x_advance;
+                        tp->YAdvance    = tr.y_advance;
+                        return true;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                tp->XBearing        = 0.0f;
+                tp->YBearing        = 0.0f;
+                tp->Width           = 0.0f;
+                tp->Height          = 0.0f;
+                tp->XAdvance        = 0.0f;
+                tp->YAdvance        = 0.0f;
+
                 return false;
             }
 
             bool X11GLSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
+                if (text == NULL)
+                    return false;
+
+                // Get text parameter using font manager
+            #ifdef USE_LIBFREETYPE
+                ft::FontManager *mgr = pX11Display->font_manager();
+                if (mgr != NULL)
+                {
+                    ft::text_range_t tr;
+                    if (mgr->get_text_parameters(&f, &tr, text, first, last))
+                    {
+                        tp->XBearing    = tr.x_bearing;
+                        tp->YBearing    = tr.y_bearing;
+                        tp->Width       = tr.width;
+                        tp->Height      = tr.height;
+                        tp->XAdvance    = tr.x_advance;
+                        tp->YAdvance    = tr.y_advance;
+                        return true;
+                    }
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                tp->XBearing        = 0.0f;
+                tp->YBearing        = 0.0f;
+                tp->Width           = 0.0f;
+                tp->Height          = 0.0f;
+                tp->XAdvance        = 0.0f;
+                tp->YAdvance        = 0.0f;
+
                 return false;
             }
 
             void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
             {
+                if (text == NULL)
+                    return;
+
+                LSPString tmp;
+                if (!tmp.set_utf8(text))
+                    return;
+
+                out_text(f, color, x, y, &tmp, 0, tmp.length());
             }
 
             void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
+                if (!bIsDrawing)
+                    return;
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+            #ifdef USE_LIBFREETYPE
+                // Rasterize text string
+                ft::FontManager *mgr = pX11Display->font_manager();
+                if (mgr == NULL)
+                    return;
+
+                ft::text_range_t tr;
+                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                if (bitmap == NULL)
+                    return;
+                lsp_finally { ft::free_bitmap(bitmap); };
+
+                // Allocate texture
+                gl::Texture *tex = new gl::Texture(pContext);
+                if (tex == NULL)
+                    return;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                if (tex->set_image(bitmap->data, bitmap->width, bitmap->height, bitmap->stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
+                    return;
+
+                // Output the text
+                {
+                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+                    if (res < 0)
+                        return;
+                    lsp_finally { sBatch.end(); };
+
+                    // Draw primitives
+                    x                  += tr.x_bearing;
+                    y                  += tr.y_bearing;
+
+                    const uint32_t ci   = uint32_t(res);
+                    const float xe      = x + bitmap->width;
+                    const float ye      = y + bitmap->height;
+
+                    const ssize_t vi    = sBatch.vertex(ci, x, y, 0.0f, 0.0f);
+                    sBatch.vertex(ci, x, ye, 0.0f, 1.0f);
+                    sBatch.vertex(ci, xe, ye, 1.0f, 1.0f);
+                    sBatch.vertex(ci, xe, y, 1.0f, 0.0f);
+                    sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                }
+
+                // Draw underline if required
+                if (f.is_underline())
+                {
+                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                    if (res < 0)
+                        return;
+                    lsp_finally { sBatch.end(); };
+
+                    const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                    fill_rect(uint32_t(res),
+                        x, y + tr.y_advance + 1.0f + width * 0.5f,
+                        x + tr.x_advance, y + tr.y_advance + 1.0f + width * 1.5f);
+                }
+
+            #endif /* USE_LIBFREETYPE */
             }
 
             void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
             {
+                if (text == NULL)
+                    return;
+
+                LSPString tmp;
+                if (!tmp.set_utf8(text))
+                    return;
+
+                out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
             }
 
             void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
+                if (!bIsDrawing)
+                    return;
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+            #ifdef USE_LIBFREETYPE
+                // Rasterize text string
+                ft::FontManager *mgr = pX11Display->font_manager();
+                if (mgr == NULL)
+                    return;
+
+                ft::text_range_t tr;
+                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                if (bitmap == NULL)
+                    return;
+                lsp_finally { ft::free_bitmap(bitmap); };
+
+                // Allocate texture
+                gl::Texture *tex = new gl::Texture(pContext);
+                if (tex == NULL)
+                    return;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                if (tex->set_image(bitmap->data, bitmap->width, bitmap->height, bitmap->stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
+                    return;
+
+                // Output the text
+                float r_w, r_h, fx, fy;
+                {
+                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+                    if (res < 0)
+                        return;
+                    lsp_finally { sBatch.end(); };
+
+                    // Draw primitives
+                    r_w                 = tr.x_advance;
+                    r_h                 = -tr.y_bearing;
+                    fx                  = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
+                    fy                  = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                    x                  += tr.x_bearing;
+                    y                  += tr.y_bearing;
+
+                    const uint32_t ci   = uint32_t(res);
+                    const float xe      = x + bitmap->width;
+                    const float ye      = y + bitmap->height;
+
+                    const ssize_t vi    = sBatch.vertex(ci, x, y, 0.0f, 0.0f);
+                    sBatch.vertex(ci, x, ye, 0.0f, 1.0f);
+                    sBatch.vertex(ci, xe, ye, 1.0f, 1.0f);
+                    sBatch.vertex(ci, xe, y, 1.0f, 0.0f);
+                    sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                }
+
+                // Draw underline if required
+                if (f.is_underline())
+                {
+                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                    if (res < 0)
+                        return;
+                    lsp_finally { sBatch.end(); };
+
+                    const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                    fill_rect(uint32_t(res),
+                        fx, fy + tr.y_advance + 1 + width * 0.5f,
+                        fx + tr.x_advance, fy + tr.y_advance + 1 + width * 1.5f);
+                }
+
+            #endif /* USE_LIBFREETYPE */
             }
 
         } /* namespace x11 */

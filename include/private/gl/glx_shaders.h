@@ -118,11 +118,11 @@ namespace lsp
                 SHADER("        vec4 tcolor = texture(u_texture, b_texcoord);")     // Get color from texture
                 SHADER("        int format = int(tp.z);")                           // Get texture format
                 SHADER("        if (format == 0)") // Usual RGBA
-                SHADER("            gl_FragColor = vec4(tcolor.rgb * mc.rgb, tcolor.a * (1.0f - mc.a));")
+                SHADER("            gl_FragColor = vec4(tcolor.rgb * mc.rgb, tcolor.a * mc.a);")
                 SHADER("        else if (format == 1)") // Alpha-blending channel
-                SHADER("            gl_FragColor = vec4(mc.rgb, mc.a * tcolor.a);")
+                SHADER("            gl_FragColor = vec4(mc.rgb, mc.a * (1.0f - tcolor.r));") // vec4(mc.rgb, mc.a * tcolor.a);")
                 SHADER("        else") // if (format == 2) // Pre-multiplied RGBA in texture
-                SHADER("            gl_FragColor = vec4(tcolor.rgb * mc.rgb * (1.0f - mc.a), tcolor.a * (1.0f - mc.a));")
+                SHADER("            gl_FragColor = vec4(tcolor.rgb * mc.rgb * mc.a, tcolor.a * mc.a);")
                 SHADER("    }")
                 SHADER("}")
                 SHADER("");

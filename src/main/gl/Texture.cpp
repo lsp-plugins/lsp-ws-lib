@@ -70,6 +70,7 @@ namespace lsp
                 const vtbl_t *vtbl = pContext->vtbl();
                 const size_t pixel_size = (format == gl::TEXTURE_ALPHA8) ? sizeof(uint8_t) : sizeof(uint32_t);
                 const GLuint tex_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_BGRA;
+                const GLuint int_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
 
                 if (nTextureId == 0)
                 {
@@ -82,7 +83,7 @@ namespace lsp
                 lsp_finally { vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); };
 
                 vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
-                vtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
+                vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
                 vtbl->glBindTexture(GL_TEXTURE_2D, 0);
 
                 nWidth      = uint32_t(width);
@@ -142,6 +143,15 @@ namespace lsp
 
                 const vtbl_t *vtbl = pContext->vtbl();
                 vtbl->glDeleteTextures(1, &nTextureId);
+            }
+
+            size_t Texture::size() const
+            {
+                if (enFormat == gl::TEXTURE_UNKNOWN)
+                    return 0;
+
+                const size_t szof = (enFormat == gl::TEXTURE_ALPHA8) ? sizeof(uint8_t) : sizeof(uint32_t);
+                return size_t(nWidth) * size_t(nHeight) * szof;
             }
 
         } /* namespace gl */

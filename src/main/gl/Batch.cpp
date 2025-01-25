@@ -259,6 +259,15 @@ namespace lsp
                 size_t program_id = 0;
                 size_t prev_program_id = size_t(-1);
 
+                IF_TRACE(
+                    size_t vertices = 0;
+                    size_t vertex_bytes = 0;
+                    size_t indices = 0;
+                    size_t index_bytes = 0;
+                    size_t textures = 0;
+                    size_t texture_bytes = 0;
+                );
+
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
                     draw_t *draw        = vBatches.uget(i);
@@ -272,12 +281,21 @@ namespace lsp
                             else if (draw->header.enProgram == STENCIL)
                                 type    = "stencil";
 
-                            lsp_trace("  draw #%3d: type=%s, flags=0x%08x, vertices=%d (%d bytes), indices=%d (%d bytes)",
+                            lsp_trace("  draw #%3d: type=%s, flags=0x%08x, texture=%p (%d bytes), vertices=%d (%d bytes), indices=%d (%d bytes)",
                                 int(i), type, int(draw->header.nFlags),
+                                draw->header.pTexture,
+                                (draw->header.pTexture != NULL) ? draw->header.pTexture->size() : 0,
                                 int(draw->vertices.count), int(draw->vertices.count * sizeof(vertex_t)),
                                 int(draw->indices.count), int(draw->indices.count * draw->indices.szof));
 
-                        });
+                            vertices       += draw->vertices.count;
+                            vertex_bytes   += draw->vertices.count * sizeof(vertex_t);
+                            indices        += draw->indices.count;
+                            index_bytes    += draw->indices.count * draw->indices.szof;
+                            textures       += (draw->header.pTexture != NULL) ? 1 : 0;
+                            texture_bytes  += (draw->header.pTexture != NULL) ? draw->header.pTexture->size() : 0;
+                        }
+                    );
 
                     // Control multisampling
                     if (flags & BATCH_MULTISAMPLE)
@@ -415,6 +433,13 @@ namespace lsp
                     vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
                     vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
                 }
+
+                IF_TRACE(
+                    lsp_trace("  TOTAL: textures=%d (%d bytes), vertices=%d (%d bytes), indices=%d (%d bytes)",
+                        int(textures), int(texture_bytes),
+                        int(vertices), int(vertex_bytes),
+                        int(indices), int(index_bytes));
+                );
 
                 return STATUS_OK;
             }

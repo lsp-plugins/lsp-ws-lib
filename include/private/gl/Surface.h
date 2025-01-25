@@ -116,6 +116,7 @@ namespace lsp
                     inline float *serialize_clipping(float *dst) const;
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
                     static inline float *serialize_color(float *dst, const Color & c);
+                    static inline float *serialize_color_ialpha(float *dst, const Color & c);
                     static inline float *serialize_texture(float *dst, const gl::Texture *t);
 
                     static inline void extend_rect(clip_rect_t & rect, float x, float y);

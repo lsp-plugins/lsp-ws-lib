@@ -38,11 +38,10 @@ namespace lsp
         {
             enum texture_format_t
             {
-                TEXTURE_RGBA32,     // 32-bit color with 8 bits per red, gree, blue and alpha components
-                TEXTURE_ALPHA8,     // 8-bit alpha component
-                TEXTURE_PRGBA32,    // 32-bit color with 8 bits per red, gree, blue and alpha components, alpha is premultiplied
-
-                TEXTURE_UNKNOWN,    // No texture format specified
+                TEXTURE_UNKNOWN     = -1,    // No texture format specified
+                TEXTURE_RGBA32      = 0,     // 32-bit color with 8 bits per red, gree, blue and alpha components
+                TEXTURE_ALPHA8      = 1,     // 8-bit alpha component
+                TEXTURE_PRGBA32     = 2,     // 32-bit color with 8 bits per red, gree, blue and alpha components, alpha is premultiplied
             };
 
             class LSP_HIDDEN_MODIFIER Texture
@@ -75,10 +74,35 @@ namespace lsp
                     void                reset();
 
                 public:
+                    /**
+                     * Check validity of texture
+                     * @return validity of texture
+                     */
                     inline bool valid() const { return enFormat != TEXTURE_UNKNOWN; }
+
+                    /**
+                     * Get texture format
+                     * @return texture format
+                     */
                     inline texture_format_t format() const { return enFormat; }
+
+                    /**
+                     * Get texture width
+                     * @return texture width
+                     */
                     inline uint32_t width() const { return nWidth; }
+
+                    /**
+                     * Get texture height
+                     * @return texture height
+                     */
                     inline uint32_t height() const { return nHeight; }
+
+                    /**
+                     * Get texture size
+                     * @return the texture size in memory
+                     */
+                    size_t size() const;
             };
 
         } /* namespace gl */
