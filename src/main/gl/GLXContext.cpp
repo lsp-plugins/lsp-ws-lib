@@ -104,6 +104,7 @@ namespace lsp
                 GLXFBConfig result = NULL;
                 int max_sample_buffers = -1;
                 int max_samples = -1;
+                const int max_multisampling = 8;
 
                 for (const int * const *atts = fb_params; *atts != NULL; ++atts)
                 {
@@ -122,6 +123,8 @@ namespace lsp
                         int samples = 0;
                         glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLE_BUFFERS, &sample_buffers);
                         glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLES, &samples);
+                        if (samples > max_multisampling)
+                            continue;
 
                         if ((max_sample_buffers < 0) || ((sample_buffers >= max_sample_buffers) && (samples >= max_samples)))
                         {
