@@ -486,7 +486,7 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::vertex(uint32_t cmd, float x, float y, float s, float t)
+            ssize_t Batch::textured_vertex(uint32_t cmd, float x, float y, float s, float t)
             {
                 const ssize_t index     = alloc_vertices(1);
                 if (index < 0)

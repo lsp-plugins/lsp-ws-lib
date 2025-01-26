@@ -216,7 +216,7 @@ namespace lsp
                      * @param t texture coordinate T
                      * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
                      */
-                    ssize_t vertex(uint32_t cmd, float x, float y, float s, float t);
+                    ssize_t textured_vertex(uint32_t cmd, float x, float y, float s, float t);
 
                     /**
                      * Identifier of the next vertex that will be allocated on addition call

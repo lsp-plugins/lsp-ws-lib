@@ -923,10 +923,10 @@ namespace lsp
                 const float xe      = x + width * sx;
                 const float ye      = y + height * sy;
 
-                const ssize_t vi    = sBatch.vertex(ci, x, y, 0.0f, 0.0f);
-                sBatch.vertex(ci, x, ye, 0.0f, 1.0f);
-                sBatch.vertex(ci, xe, ye, 1.0f, 1.0f);
-                sBatch.vertex(ci, xe, y, 1.0f, 0.0f);
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
+                sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
+                sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
+                sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
