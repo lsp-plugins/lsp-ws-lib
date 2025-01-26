@@ -503,6 +503,16 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::next_vertex_index() const
+            {
+                IF_DEBUG(
+                    if (pCurrent == NULL)
+                        return -STATUS_BAD_STATE;
+                );
+
+                return pCurrent->vertices.count;
+            }
+
             ssize_t Batch::alloc_indices(size_t count, size_t max_index)
             {
                 // Check indices

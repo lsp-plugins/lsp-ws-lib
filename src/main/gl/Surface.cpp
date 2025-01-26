@@ -1242,14 +1242,40 @@ namespace lsp
                 draw_line(uint32_t(res), x0, y0, x1, y1, width);
             }
 
-            void Surface::parametric_line(const Color &color, float a, float b, float c, float width)
+            void Surface::parametric_line(const Color & color, float a, float b, float c, float width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw the line
+                if (fabs(a) > fabs(b))
+                    draw_line(uint32_t(res), - c / a, 0.0f, -(c + b*nHeight)/a, nHeight, width);
+                else
+                    draw_line(uint32_t(res), 0.0f, - c / b, nWidth, -(c + a*nWidth)/b, width);
             }
 
             void Surface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw the line
+                if (fabs(a) > fabs(b))
+                    draw_line(uint32_t(res),
+                        roundf(-(c + b*top)/a), roundf(top),
+                        roundf(-(c + b*bottom)/a), roundf(bottom),
+                        width);
+                else
+                    draw_line(uint32_t(res),
+                        roundf(left), roundf(-(c + a*left)/b),
+                        roundf(right), roundf(-(c + a*right)/b),
+                        width);
             }
 
             void Surface::parametric_bar(
@@ -1257,7 +1283,38 @@ namespace lsp
                 float a1, float b1, float c1, float a2, float b2, float c2,
                 float left, float right, float top, float bottom)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw the primitive
+                const ssize_t vi    = sBatch.next_vertex_index();
+                const uint32_t ci   = uint32_t(res);
+                if (fabs(a1) > fabs(b1))
+                {
+                    sBatch.vertex(ci, -(c1 + b1*top)/a1, top);
+                    sBatch.vertex(ci, -(c1 + b1*bottom)/a1, bottom);
+                }
+                else
+                {
+                    sBatch.vertex(ci, left, -(c1 + a1*left)/b1);
+                    sBatch.vertex(ci, right, -(c1 + a1*right)/b1);
+                }
+
+                if (fabs(a2) > fabs(b2))
+                {
+                    sBatch.vertex(ci, -(c2 + b2*bottom)/a2, bottom);
+                    sBatch.vertex(ci, -(c2 + b2*top)/a2, top);
+                }
+                else
+                {
+                    sBatch.vertex(ci, right, -(c2 + a2*right)/b2);
+                    sBatch.vertex(ci, left, -(c2 + a2*left)/b2);
+                }
+
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)

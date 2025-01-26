@@ -219,6 +219,12 @@ namespace lsp
                     ssize_t vertex(uint32_t cmd, float x, float y, float s, float t);
 
                     /**
+                     * Identifier of the next vertex that will be allocated on addition call
+                     * @return identifier of the next allocated vertex
+                     */
+                    ssize_t next_vertex_index() const;
+
+                    /**
                      * Add triangle
                      * @param a relative index of the first vertex
                      * @param b relative index of the second vertex
