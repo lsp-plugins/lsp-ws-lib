@@ -386,6 +386,24 @@ namespace lsp
 
             void Surface::draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width)
             {
+                // Find first not short segment
+                width          *= 0.5f;
+                const float dx  = x1 - x0;
+                const float dy  = y1 - y0;
+                const float d   = dx*dx + dy*dy;
+                if (d <= 1e-10f)
+                    return;
+
+                // Draw first segment
+                const float kd  = width / sqrtf(d);
+                const float ndx = -dy * kd;
+                const float ndy = dx * kd;
+
+                const ssize_t vi = sBatch.vertex(ci, x0 + ndx, y0 + ndy);
+                sBatch.vertex(ci, x0 - ndx, y0 - ndy);
+                sBatch.vertex(ci, x1 - ndx, y1 - ndy);
+                sBatch.vertex(ci, x1 + ndx, y1 + ndy);
+                sBatch.rectangle(vi, vi+1, vi+2, vi+3);
             }
 
             void Surface::fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n)
@@ -1200,14 +1218,28 @@ namespace lsp
                 fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
             }
 
-            void Surface::line(const Color &color, float x0, float y0, float x1, float y1, float width)
+            void Surface::line(const Color & c, float x0, float y0, float x1, float y1, float width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                draw_line(uint32_t(res), x0, y0, x1, y1, width);
             }
 
             void Surface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
             {
-                // TODO
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                draw_line(uint32_t(res), x0, y0, x1, y1, width);
             }
 
             void Surface::parametric_line(const Color &color, float a, float b, float c, float width)
