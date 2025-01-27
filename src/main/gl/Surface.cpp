@@ -194,7 +194,7 @@ namespace lsp
                 dst[0]      = float(t->width());
                 dst[1]      = float(t->height());
                 dst[2]      = t->format();
-                dst[3]      = 0.0f;
+                dst[3]      = t->multisampling();
 
                 return dst + 4;
             }
@@ -1101,16 +1101,16 @@ namespace lsp
                         vtbl->glGenFramebuffers(1, &fb_id);
                         vtbl->glBindFramebuffer(GL_FRAMEBUFFER, fb_id);
 
-                        pTexture->set_image(NULL, nWidth, nHeight, 0, gl::TEXTURE_RGBA32);
+                        pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_RGBA32, pContext->multisample());
 
-                        vtbl->glBindTexture(GL_TEXTURE_2D, pTexture->id());
-                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                        vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
+                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-                        vtbl->glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pTexture->id(), 0);
+                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, pTexture->id(), 0);
 
                         // Set the list of draw buffers.
-                        GLenum buffers[1] = {GL_COLOR_ATTACHMENT0};
+                        GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
                         vtbl->glDrawBuffers(1, buffers);
 
                         GLenum status = vtbl->glCheckFramebufferStatus(GL_FRAMEBUFFER);

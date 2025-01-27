@@ -38,6 +38,7 @@ namespace lsp
                 nWidth          = 0;
                 nHeight         = 0;
                 enFormat        = gl::TEXTURE_UNKNOWN;
+                nMulti          = 0;
             }
 
             Texture::~Texture()
@@ -59,6 +60,44 @@ namespace lsp
                     delete this;
                 }
                 return result;
+            }
+
+            status_t Texture::init_multisample(size_t width, size_t height, texture_format_t format, size_t samples)
+            {
+                if (pContext == NULL)
+                    return STATUS_BAD_STATE;
+                if (format == gl::TEXTURE_UNKNOWN)
+                    return STATUS_INVALID_VALUE;
+
+                const vtbl_t *vtbl = pContext->vtbl();
+                const GLuint int_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
+
+                if (nTextureId == 0)
+                {
+                    glGenTextures(1, &nTextureId);
+                    if (nTextureId == 0)
+                        return STATUS_NO_MEM;
+                }
+
+                if (samples > 0)
+                {
+                    vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, nTextureId);
+                    vtbl->glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8, int_format, width, height, GL_FALSE);
+                    vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+                }
+                else
+                {
+                    vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
+                    vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, int_format, GL_UNSIGNED_BYTE, NULL);
+                    vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                }
+
+                nWidth      = uint32_t(width);
+                nHeight     = uint32_t(height);
+                enFormat    = format;
+                nMulti      = GLuint(samples);
+
+                return STATUS_OK;
             }
 
             status_t Texture::set_image(const void *buf, size_t width, size_t height, size_t stride, texture_format_t format)
@@ -90,6 +129,7 @@ namespace lsp
                 nWidth      = uint32_t(width);
                 nHeight     = uint32_t(height);
                 enFormat    = format;
+                nMulti      = 0;
 
                 return STATUS_OK;
             }
@@ -116,6 +156,7 @@ namespace lsp
 
                 nWidth      = lsp_max(nWidth, uint32_t(x + width));
                 nHeight     = lsp_max(nHeight, uint32_t(y + height));
+                nMulti      = 0;
 
                 return STATUS_OK;
             }
@@ -126,13 +167,15 @@ namespace lsp
                     return;
 
                 const vtbl_t *vtbl = pContext->vtbl();
-                vtbl->glActiveTexture(texture_id);
-                vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
 
-                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                const GLenum texture = (nMulti > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+
+                vtbl->glActiveTexture(texture_id);
+                vtbl->glBindTexture(texture, nTextureId);
+                vtbl->glTexParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                vtbl->glTexParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                vtbl->glTexParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                vtbl->glTexParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             }
 
             void Texture::reset()
@@ -145,6 +188,7 @@ namespace lsp
                 const vtbl_t *vtbl = pContext->vtbl();
                 vtbl->glDeleteTextures(1, &nTextureId);
                 nTextureId      = 0;
+                nMulti          = 0;
             }
 
             size_t Texture::size() const
@@ -153,7 +197,8 @@ namespace lsp
                     return 0;
 
                 const size_t szof = (enFormat == gl::TEXTURE_ALPHA8) ? sizeof(uint8_t) : sizeof(uint32_t);
-                return size_t(nWidth) * size_t(nHeight) * szof;
+                const size_t samples = lsp_max(nMulti, GLuint(1));
+                return size_t(nWidth) * size_t(nHeight) * szof * samples;
             }
 
         } /* namespace gl */

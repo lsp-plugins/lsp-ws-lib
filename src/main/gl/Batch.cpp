@@ -397,6 +397,15 @@ namespace lsp
                         if ((tex != NULL) && (tex->valid()))
                             draw->header.pTexture->activate(GL_TEXTURE1);
                     }
+                    const GLint u_ms_texture = vtbl->glGetUniformLocation(program_id, "u_ms_texture");
+                    if (u_texture > 0)
+                    {
+                        vtbl->glUniform1i(u_ms_texture, 2);
+
+                        gl::Texture *tex = draw->header.pTexture;
+                        if ((tex != NULL) && (tex->valid()))
+                            draw->header.pTexture->activate(GL_TEXTURE2);
+                    }
 
                     // Bind vertex attributes
                     const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");

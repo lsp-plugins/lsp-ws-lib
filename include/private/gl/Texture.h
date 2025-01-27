@@ -53,6 +53,7 @@ namespace lsp
                     uint32_t            nWidth;
                     uint32_t            nHeight;
                     texture_format_t    enFormat;
+                    GLuint              nMulti;
 
                 public:
                     Texture(IContext *ctx);
@@ -68,6 +69,7 @@ namespace lsp
                     uatomic_t           reference_down();
 
                 public:
+                    status_t            init_multisample(size_t width, size_t height, texture_format_t format, size_t samples);
                     status_t            set_image(const void *buf, size_t width, size_t height, size_t stride, texture_format_t format);
                     status_t            set_subimage(const void *buf, size_t x, size_t y, size_t width, size_t height, size_t stride);
                     void                activate(GLuint texture_id);
@@ -109,6 +111,12 @@ namespace lsp
                      * @return texture identifier
                      */
                     inline GLuint id() const        { return nTextureId; }
+
+                    /**
+                     * Get multisampling flag
+                     * @return multisampling flag
+                     */
+                    inline uint32_t multisampling() const   { return nMulti; }
             };
 
         } /* namespace gl */

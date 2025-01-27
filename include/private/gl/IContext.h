@@ -119,6 +119,12 @@ namespace lsp
                      * @return virtual table of OpenGL functions
                      */
                     virtual const vtbl_t   *vtbl() const;
+
+                    /**
+                     * Get multisampling factor
+                     * @return multisampling factor
+                     */
+                    virtual uint32_t multisample() const;
             };
 
             template <class T>

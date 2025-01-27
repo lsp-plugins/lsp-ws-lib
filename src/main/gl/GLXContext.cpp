@@ -178,13 +178,19 @@ namespace lsp
                 free(prg);
             }
 
-            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window, vtbl_t *vtbl)
+            uint32_t Context::multisample() const
+            {
+                return nMultisample;
+            }
+
+            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window, vtbl_t *vtbl, uint32_t multisample)
                 : IContext()
             {
                 pDisplay        = dpy;
                 hContext        = ctx;
                 hWindow         = window;
                 pVtbl           = vtbl;
+                nMultisample    = multisample;
             }
 
             Context::~Context()
@@ -283,7 +289,10 @@ namespace lsp
             bool Context::check_compile_status(const char *context, GLenum id, compile_status_t type)
             {
                 int success;
-                char log[1024];
+                constexpr size_t MESSAGE_SIZE = 8192;
+
+                char *log = new char[MESSAGE_SIZE];
+                lsp_finally { delete log; };
 
                 if (type == SHADER)
                 {
@@ -291,7 +300,7 @@ namespace lsp
                     if (success)
                         return false;
 
-                    pVtbl->glGetShaderInfoLog(id, sizeof(log), NULL, log);
+                    pVtbl->glGetShaderInfoLog(id, MESSAGE_SIZE, NULL, log);
                     lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);
                     return true;
                 }
@@ -301,7 +310,7 @@ namespace lsp
                     if (success)
                         return false;
 
-                    pVtbl->glGetProgramInfoLog(id, 1024, NULL, log);
+                    pVtbl->glGetProgramInfoLog(id, MESSAGE_SIZE, NULL, log);
                     lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);
                     return true;
                 }
@@ -480,7 +489,9 @@ namespace lsp
                     return NULL;
 
                 // Wrap the created context with context wrapper.
-                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl);
+                int max_multisampling = 0;
+                glXGetFBConfigAttrib(dpy, fb_config, GLX_SAMPLES, &max_multisampling);
+                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl, max_multisampling);
                 if (glx_ctx == NULL)
                 {
                     glXDestroyContext(dpy, ctx);

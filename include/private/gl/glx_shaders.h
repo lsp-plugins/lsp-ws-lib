@@ -59,6 +59,7 @@ namespace lsp
                 SHADER("")
                 SHADER("uniform samplerBuffer u_buf_commands;")
                 SHADER("uniform sampler2D u_texture;")
+                SHADER("uniform sampler2DMS u_ms_texture;")
                 SHADER("")
                 SHADER("in vec2 b_texcoord;")
                 SHADER("flat in int b_index;")
@@ -66,6 +67,19 @@ namespace lsp
                 SHADER("flat in int b_clips;")
                 SHADER("")
                 SHADER("layout(origin_upper_left) in vec4 gl_FragCoord;")
+                SHADER("")
+                SHADER("vec4 textureMultisample(sampler2DMS sampler, vec2 coord, float factor)")
+                SHADER("{")
+                SHADER("    vec4 color = vec4(0.0);")
+                SHADER("    ivec2 tsize = textureSize(u_ms_texture);")
+                SHADER("    ivec2 tcoord = ivec2(coord * vec2(tsize));")
+                SHADER("    int samples = int(factor);")
+                SHADER("")
+                SHADER("    for (int i = 0; i < samples; ++i)")
+                SHADER("        color += texelFetch(sampler, tcoord, i);")
+                SHADER("")
+                SHADER("    return color / factor;")
+                SHADER("}")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
@@ -112,10 +126,10 @@ namespace lsp
                 SHADER("    else") // if (b_coloring == 3) Texture-based fill
                 SHADER("    {")
                 SHADER("        vec4 mc = texelFetch(u_buf_commands, index);")      // Modulating color
-                SHADER("        vec4 tp = texelFetch(u_buf_commands, index + 1);")  // Texture parameters: initial size { w, h }, format
-                SHADER("        vec2 ts = vec2(textureSize(u_texture, 0));")        // Get actual texture size
-                SHADER("        vec2 tcoord = b_texcoord * (tp.xy / ts);")          // Compute new texture coordinates if texture coordinates have changed
-                SHADER("        vec4 tcolor = texture(u_texture, b_texcoord);")     // Get color from texture
+                SHADER("        vec4 tp = texelFetch(u_buf_commands, index + 1);")  // Texture parameters: initial size { w, h }, format, multisampling
+                SHADER("        vec4 tcolor = (tp.w > 0.5f) ? ")                    // Get color from texture
+                SHADER("            textureMultisample(u_ms_texture, b_texcoord, tp.w) :")
+                SHADER("            texture(u_texture, b_texcoord);")
                 SHADER("        int format = int(tp.z);")                           // Get texture format
                 SHADER("        if (format == 0)") // Usual RGBA
                 SHADER("            gl_FragColor = vec4(tcolor.rgb * mc.rgb, tcolor.a * mc.a);")

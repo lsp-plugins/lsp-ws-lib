@@ -143,6 +143,7 @@ namespace lsp
                 FETCH(glTextureBuffer);
                 FETCH(glTexImage1D);
                 FETCH(glTexImage2D);
+                FETCH(glTexImage2DMultisample);
                 FETCH(glTexImage3D);
                 FETCH(glTexSubImage1D);
                 FETCH(glTexSubImage2D);

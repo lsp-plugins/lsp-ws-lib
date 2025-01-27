@@ -96,6 +96,11 @@ namespace lsp
                 return NULL;
             }
 
+            uint32_t IContext::multisample() const
+            {
+                return 0;
+            }
+
             gl::IContext *create_context(const context_param_t *params)
             {
                 const context_param_t *display = NULL;
