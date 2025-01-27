@@ -103,6 +103,12 @@ namespace lsp
                      * @return the texture size in memory
                      */
                     size_t size() const;
+
+                    /**
+                     * Get texture identifier
+                     * @return texture identifier
+                     */
+                    inline GLuint id() const        { return nTextureId; }
             };
 
         } /* namespace gl */

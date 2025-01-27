@@ -53,6 +53,7 @@ namespace lsp
             {
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
+                pTexture        = NULL;
                 nWidth          = width;
                 nHeight         = height;
                 nNumClips       = 0;
@@ -67,10 +68,12 @@ namespace lsp
                 sync_matrix();
             }
 
-            Surface::Surface(size_t width, size_t height)
+            Surface::Surface(size_t width, size_t height):
+                ISurface(width, height, ST_OPENGL)
             {
                 pDisplay        = NULL;
                 pContext        = NULL;
+                pTexture        = NULL;
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
@@ -913,7 +916,32 @@ namespace lsp
 
             void Surface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
-                // TODO
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                if (s->type() != ST_OPENGL)
+                    return;
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                gl::Texture *t = gls->pTexture;
+                if (t == NULL)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const uint32_t ci   = uint32_t(res);
+                const float xe      = x + t->width() * sx;
+                const float ye      = y + t->height() * sy;
+
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
+                sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
+                sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
+                sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
@@ -1007,23 +1035,64 @@ namespace lsp
                 vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });
                 vUniforms.add(gl::uniform_t { NULL, gl::UNI_NONE, NULL });
 
+                // Framebuffer
+                const gl::vtbl_t *vtbl = pContext->vtbl();
+                GLuint fb_id = 0;
+
                 // Set-up rendering destination
                 if (bNested)
                 {
+                    if (pTexture == NULL)
+                        pTexture        = new gl::Texture(pContext);
+                    if (pTexture != NULL)
+                    {
+                        vtbl->glGenFramebuffers(1, &fb_id);
+                        vtbl->glBindFramebuffer(GL_FRAMEBUFFER, fb_id);
+
+                        pTexture->set_image(NULL, nWidth, nHeight, 0, gl::TEXTURE_RGBA32);
+
+                        vtbl->glBindTexture(GL_TEXTURE_2D, pTexture->id());
+                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+                        vtbl->glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, pTexture->id(), 0);
+
+                        // Set the list of draw buffers.
+                        GLenum buffers[1] = {GL_COLOR_ATTACHMENT0};
+                        vtbl->glDrawBuffers(1, buffers);
+
+                        GLenum status = vtbl->glCheckFramebufferStatus(GL_FRAMEBUFFER);
+                        if (status != GL_FRAMEBUFFER_COMPLETE)
+                            lsp_warn("Framebuffer status: 0x%x", int(status));
+                    }
                 }
-                else
-                    glViewport(0, 0, nWidth, nHeight);
+
+                glViewport(0, 0, nWidth, nHeight);
 
                 // Execute batch
                 if (pContext->active())
+                {
+                    if (bNested)
+                    {
+                        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                        glClear(GL_COLOR_BUFFER_BIT);
+                    }
+
                     sBatch.execute(pContext, vUniforms.array());
+                }
+
+                if ((bNested) && (fb_id != 0))
+                {
+                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    vtbl->glDeleteFramebuffers(1, &fb_id);
+                }
+
+                // Deactivate OpenGL context
+                if (!bNested)
+                    pContext->deactivate();
 
                 // Reset drawing flag
                 bIsDrawing      = false;
-
-                // Deactivate GLX context
-                if (!bNested)
-                    pContext->deactivate();
             }
 
             void Surface::clear_rgb(uint32_t rgb)

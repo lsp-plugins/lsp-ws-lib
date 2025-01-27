@@ -71,6 +71,7 @@ namespace lsp
                 protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
+                    gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::Batch               sBatch;
                     size_t                  nWidth;
                     size_t                  nHeight;

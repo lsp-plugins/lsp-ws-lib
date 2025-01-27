@@ -70,6 +70,20 @@ namespace lsp
                 FETCH(glGetShaderInfoLog);
                 FETCH(glDeleteShader);
 
+                // Framebuffer operations
+                FETCH(glGenFramebuffers);
+                FETCH(glBindFramebuffer);
+                FETCH(glDeleteFramebuffers);
+                FETCH(glFramebufferTexture);
+                FETCH(glFramebufferTexture1D);
+                FETCH(glFramebufferTexture2D);
+                FETCH(glFramebufferTexture3D);
+                FETCH(glNamedFramebufferTexture);
+                FETCH(glDrawBuffers);
+                FETCH(glNamedFramebufferDrawBuffers);
+                FETCH(glCheckFramebufferStatus);
+                FETCH(glCheckNamedFramebufferStatus);
+
                 // Uniform operations
                 FETCH(glUniform1f);
                 FETCH(glUniform2f);

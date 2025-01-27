@@ -87,6 +87,20 @@ namespace lsp
                 void GLAPIENTRY         (* glUniformMatrix4x2fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
                 void GLAPIENTRY         (* glUniformMatrix4x3fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 
+                // Framebuffer operations
+                void GLAPIENTRY         (* glGenFramebuffers)(GLsizei n, GLuint *ids);
+                void GLAPIENTRY         (* glBindFramebuffer)(GLenum target, GLuint framebuffer);
+                void GLAPIENTRY         (* glDeleteFramebuffers)(GLsizei n, GLuint *framebuffers);
+                void GLAPIENTRY         (* glFramebufferTexture)(GLenum target, GLenum attachment, GLuint texture, GLint level);
+                void GLAPIENTRY         (* glFramebufferTexture1D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+                void GLAPIENTRY         (* glFramebufferTexture2D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+                void GLAPIENTRY         (* glFramebufferTexture3D)(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint layer);
+                void GLAPIENTRY         (* glNamedFramebufferTexture)(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level);
+                void GLAPIENTRY         (* glDrawBuffers)(GLsizei n, const GLenum *bufs);
+                void GLAPIENTRY         (* glNamedFramebufferDrawBuffers)(GLuint framebuffer, GLsizei n, const GLenum *bufs);
+                GLenum GLAPIENTRY       (* glCheckFramebufferStatus)(GLenum target);
+                GLenum GLAPIENTRY       (* glCheckNamedFramebufferStatus)(GLuint framebuffer, GLenum target);
+
                 // Buffer operations
                 void GLAPIENTRY         (* glGenBuffers)(GLsizei n, GLuint * buffers);
                 void GLAPIENTRY         (* glBindBuffer)(GLenum target, GLuint buffer);
