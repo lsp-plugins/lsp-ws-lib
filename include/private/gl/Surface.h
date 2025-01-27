@@ -105,6 +105,8 @@ namespace lsp
 
                 protected:
                     uint32_t enrich_flags(uint32_t flags) const;
+                    void sync_matrix();
+
                     ssize_t start_batch(gl::program_t program, uint32_t flags);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, const Color & color);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a);

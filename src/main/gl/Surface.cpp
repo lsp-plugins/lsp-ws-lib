@@ -64,6 +64,7 @@ namespace lsp
                 bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
 
                 sBatch.init();
+                sync_matrix();
             }
 
             Surface::Surface(size_t width, size_t height)
@@ -81,6 +82,7 @@ namespace lsp
                 bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
 
                 sBatch.init();
+                sync_matrix();
             }
 
             Surface *Surface::create_nested(size_t width, size_t height)
@@ -124,6 +126,7 @@ namespace lsp
 
             void Surface::do_destroy()
             {
+                sBatch.clear();
                 safe_release(pContext);
 
                 pDisplay        = NULL;
@@ -199,6 +202,33 @@ namespace lsp
                 dst[3]      = 0.0f;
 
                 return dst + 4;
+            }
+
+            void Surface::sync_matrix()
+            {
+                // Set-up drawing matrix
+                const float dx = 2.0f / float(nWidth);
+                const float dy = 2.0f / float(nHeight);
+
+                vMatrix[0]  = dx;
+                vMatrix[1]  = 0.0f;
+                vMatrix[2]  = 0.0f;
+                vMatrix[3]  = 0.0f;
+
+                vMatrix[4]  = 0.0f;
+                vMatrix[5]  = -dy;
+                vMatrix[6]  = 0.0f;
+                vMatrix[7]  = 0.0f;
+
+                vMatrix[8]  = 0.0f;
+                vMatrix[9]  = 0.0f;
+                vMatrix[10] = 1.0f;
+                vMatrix[11] = 0.0f;
+
+                vMatrix[12] = -1.0f;
+                vMatrix[13] = 1.0f;
+                vMatrix[14] = 0.0f;
+                vMatrix[15] = 1.0f;
             }
 
             uint32_t Surface::enrich_flags(uint32_t flags) const
@@ -950,51 +980,9 @@ namespace lsp
                 // Force end() call
                 end();
 
-                if (bNested)
-                {
-                }
-                else
-                {
+                // Activate GLX context
+                if (!bNested)
                     pContext->activate();
-                    glViewport(0, 0, nWidth, nHeight);
-
-                    int max_texture_size = 0;
-                    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-                    lsp_trace("Max texture size = %d", max_texture_size);
-                }
-
-                const float dx = 2.0f / float(nWidth);
-                const float dy = 2.0f / float(nHeight);
-
-                vMatrix[0]  = dx;
-                vMatrix[1]  = 0.0f;
-                vMatrix[2]  = 0.0f;
-                vMatrix[3]  = 0.0f;
-
-                vMatrix[4]  = 0.0f;
-                vMatrix[5]  = -dy;
-                vMatrix[6]  = 0.0f;
-                vMatrix[7]  = 0.0f;
-
-                vMatrix[8]  = 0.0f;
-                vMatrix[9]  = 0.0f;
-                vMatrix[10] = 1.0f;
-                vMatrix[11] = 0.0f;
-
-                vMatrix[12] = -1.0f;
-                vMatrix[13] = 1.0f;
-                vMatrix[14] = 0.0f;
-                vMatrix[15] = 1.0f;
-
-                // Set-up antialiasing
-                if (bAntiAliasing)
-                    glEnable(GL_MULTISAMPLE);
-                else
-                    glDisable(GL_MULTISAMPLE);
-
-                glMatrixMode(GL_MODELVIEW);
-                glLoadMatrixf(vMatrix);
-                glDisable(GL_DEPTH_TEST);
 
                 bIsDrawing      = true;
 
@@ -1019,23 +1007,23 @@ namespace lsp
                 vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });
                 vUniforms.add(gl::uniform_t { NULL, gl::UNI_NONE, NULL });
 
-                // Execute batch
-                sBatch.execute(pContext, vUniforms.array());
-
+                // Set-up rendering destination
                 if (bNested)
                 {
                 }
                 else
-                {
-//                    glReadBuffer(GL_BACK);
-//                    glDrawBuffer(GL_FRONT);
-//                    glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
-//                    glReadBuffer(GL_FRONT);
-//                    glDrawBuffer(GL_BACK);
-                    pContext->deactivate();
-                }
+                    glViewport(0, 0, nWidth, nHeight);
 
+                // Execute batch
+                if (pContext->active())
+                    sBatch.execute(pContext, vUniforms.array());
+
+                // Reset drawing flag
                 bIsDrawing      = false;
+
+                // Deactivate GLX context
+                if (!bNested)
+                    pContext->deactivate();
             }
 
             void Surface::clear_rgb(uint32_t rgb)

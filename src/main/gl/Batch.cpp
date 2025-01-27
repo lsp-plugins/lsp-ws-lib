@@ -268,6 +268,8 @@ namespace lsp
                     size_t texture_bytes = 0;
                 );
 
+                glDisable(GL_DEPTH_TEST);
+
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
                     draw_t *draw        = vBatches.uget(i);

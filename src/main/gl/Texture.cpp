@@ -42,6 +42,7 @@ namespace lsp
 
             Texture::~Texture()
             {
+                reset();
             }
 
             uatomic_t Texture::reference_up()
@@ -143,6 +144,7 @@ namespace lsp
 
                 const vtbl_t *vtbl = pContext->vtbl();
                 vtbl->glDeleteTextures(1, &nTextureId);
+                nTextureId      = 0;
             }
 
             size_t Texture::size() const
