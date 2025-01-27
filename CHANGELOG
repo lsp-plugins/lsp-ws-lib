@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.27 ===
+* Added support of system fonts lookup in FontManager.
 * Updated Drag&Drop handling to be more optimistic: if nested widget does not
   reject Drag&Drop operation, then we try to handle the Drag&Drop operation by
   the parent widget.

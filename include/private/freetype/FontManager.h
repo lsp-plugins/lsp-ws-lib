@@ -77,6 +77,7 @@ namespace lsp
                     static void             dereference(face_t *face);
                     face_t                 *select_font_face(const Font *f);
                     face_t                 *find_face(const face_id_t *id);
+                    face_t                 *lookup_face(const face_id_t *id);
 
                 public:
                     FontManager();

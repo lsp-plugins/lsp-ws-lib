@@ -23,6 +23,7 @@
 
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/io/InFileStream.h>
+#include <lsp-plug.in/stdlib/string.h>
 
 #include <private/freetype/FontManager.h>
 #include <private/freetype/bitmap.h>
@@ -30,6 +31,8 @@
 #include <private/freetype/face.h>
 #include <private/freetype/glyph.h>
 #include <private/freetype/types.h>
+
+#include <fontconfig/fontconfig.h>
 
 namespace lsp
 {
@@ -496,9 +499,9 @@ namespace lsp
                 nGlyphRemoval               = 0;
             }
 
-            face_t *FontManager::find_face(const face_id_t *id)
+            face_t *FontManager::lookup_face(const face_id_t *id)
             {
-                size_t selector = id->flags & (FID_BOLD | FID_ITALIC);
+                const size_t selector = id->flags & (FID_BOLD | FID_ITALIC);
 
                 for (size_t i=0, n=vFaces.size(); i<n; ++i)
                 {
@@ -511,6 +514,88 @@ namespace lsp
                 }
 
                 return NULL;
+            }
+
+            face_t *FontManager::find_face(const face_id_t *id)
+            {
+                // Lookup previously registered font faces
+                face_t *face = lookup_face(id);
+                if (face != NULL)
+                    return face;
+
+                // Lookup system font faces and add to list
+                FcPattern *pattern = FcPatternCreate();
+                if (pattern == NULL)
+                    return NULL;
+                lsp_finally { FcPatternDestroy(pattern); };
+
+                FcObjectSet *object_set = FcObjectSetBuild (FC_FAMILY, FC_STYLE, FC_SLANT, FC_WEIGHT, FC_FILE, NULL);
+                if (object_set == NULL)
+                    return NULL;
+                lsp_finally { FcObjectSetDestroy(object_set); };
+
+                FcFontSet *font_set = FcFontList(NULL, pattern, object_set);
+                if (font_set == NULL)
+                    return NULL;
+                lsp_finally { FcFontSetDestroy(font_set); };
+
+                LSPString font_path;
+                size_t added = 0;
+                for (int i=0; i<font_set->nfont; ++i)
+                {
+                    FcPattern *fp = font_set->fonts[i];
+
+                    // Validate family match
+                    FcChar8* family = NULL;
+                    if (FcPatternGetString(fp, FC_FAMILY, 0, &family) != FcResultMatch)
+                        continue;
+                    if ((strcasecmp(reinterpret_cast<const char *>(family), id->name)) != 0)
+                        continue;
+
+                    // Check weight
+                    int weight = 0;
+                    if (FcPatternGetInteger(fp, FC_WEIGHT, 0, &weight) != FcResultMatch)
+                        continue;
+
+                    if (id->flags & FID_BOLD)
+                    {
+                        if (weight < FC_WEIGHT_MEDIUM)
+                            continue;
+                    }
+                    else if (weight >= FC_WEIGHT_MEDIUM)
+                        continue;
+
+                    // Check slant
+                    int slant = 0;
+                    if (FcPatternGetInteger(fp, FC_SLANT, 0, &slant) != FcResultMatch)
+                        continue;
+                    if (id->flags & FID_ITALIC)
+                    {
+                        if ((slant != FC_SLANT_ITALIC) && (slant != FC_SLANT_OBLIQUE))
+                            continue;
+                    }
+                    else if ((slant == FC_SLANT_ITALIC) || (slant == FC_SLANT_OBLIQUE))
+                        continue;
+
+                    // Path
+                    FcChar8* path = NULL;
+                    if (FcPatternGetString(fp, FC_FILE, 0, &path) != FcResultMatch)
+                        continue;
+                    if (!font_path.set_native(reinterpret_cast<const char *>(path)))
+                        continue;
+
+                    // Style
+                    FcChar8* style = NULL;
+                    if (FcPatternGetString(fp, FC_STYLE, 0, &style) != FcResultMatch)
+                        continue;
+                    lsp_trace("Registering font family=%s, style=%s, weight=%d, slant=%d, path=%s",
+                        family, style, weight, slant, path);
+
+                    if (add(id->name, reinterpret_cast<const char *>(path)) == STATUS_OK)
+                        ++added;
+                }
+
+                return (added > 0) ? lookup_face(id) : NULL;
             }
 
             face_t *FontManager::select_font_face(const Font *f)
