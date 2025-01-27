@@ -156,12 +156,12 @@ namespace lsp
                 for (size_t i=0; i<nNumClips; ++i)
                 {
                     const clip_rect_t *r = &vClips[i];
-                    dst[0]      = r->left;
-                    dst[1]      = r->top;
-                    dst[2]      = r->right;
-                    dst[3]      = r->bottom;
+                    dst[0]          = r->left;
+                    dst[1]          = r->top;
+                    dst[2]          = r->right;
+                    dst[3]          = r->bottom;
 
-                    dst        += 4;
+                    dst            += 4;
                 }
 
                 return dst;
@@ -169,30 +169,22 @@ namespace lsp
 
             inline float *Surface::serialize_color(float *dst, float r, float g, float b, float a)
             {
-                dst[0]      = r;
-                dst[1]      = g;
-                dst[2]      = b;
-                dst[3]      = a;
+                a               = 1.0f - a;
+                dst[0]          = r * a;
+                dst[1]          = g * a;
+                dst[2]          = b * a;
+                dst[3]          = a;
 
                 return dst + 4;
             }
 
             inline float *Surface::serialize_color(float *dst, const Color & c)
             {
-                dst[0]      = c.red();
-                dst[1]      = c.green();
-                dst[2]      = c.blue();
-                dst[3]      = c.alpha();
-
-                return dst + 4;
-            }
-
-            inline float *Surface::serialize_color_ialpha(float *dst, const Color & c)
-            {
-                dst[0]      = c.red();
-                dst[1]      = c.green();
-                dst[2]      = c.blue();
-                dst[3]      = 1.0f - c.alpha();
+                const float a   = 1.0f - c.alpha();
+                dst[0]          = c.red() * a;
+                dst[1]          = c.green() * a;
+                dst[2]          = c.blue() * a;
+                dst[3]          = a;
 
                 return dst + 4;
             }
@@ -364,7 +356,7 @@ namespace lsp
                     return index;
 
                 buf     = serialize_clipping(buf);
-                buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, 1.0f - a);
+                buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, a);
                 buf     = serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
@@ -394,7 +386,7 @@ namespace lsp
                     return index;
 
                 buf     = serialize_clipping(buf);
-                buf     = serialize_color_ialpha(buf, color);
+                buf     = serialize_color(buf, color);
                 buf     = serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
@@ -946,12 +938,74 @@ namespace lsp
 
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
-                // TODO
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                if (s->type() != ST_OPENGL)
+                    return;
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                gl::Texture *t = gls->pTexture;
+                if (t == NULL)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const uint32_t ci   = uint32_t(res);
+                const float ca      = cosf(ra) * sx;
+                const float sa      = sinf(ra) * sx;
+
+                const float v1x     = ca * s->width();
+                const float v1y     = sa * s->width();
+                const float v2x     = -sa * s->height();
+                const float v2y     = ca * s->height();
+
+                // Draw picture
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
+                sBatch.textured_vertex(ci, x + v2x, y + v2y, 0.0f, 1.0f);
+                sBatch.textured_vertex(ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 1.0f);
+                sBatch.textured_vertex(ci, x + v1x, y + v1y, 1.0f, 0.0f);
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
-                // TODO
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                if (s->type() != ST_OPENGL)
+                    return;
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                gl::Texture *t = gls->pTexture;
+                if (t == NULL)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const float kw      = 1.0f / t->width();
+                const float kh      = 1.0f / t->height();
+                const uint32_t ci   = uint32_t(res);
+                const float xe      = x + sw;
+                const float ye      = y + sh;
+                const float sxb     = sx * kw;
+                const float syb     = sy * kh;
+                const float sxe     = (sx + sw) * kw;
+                const float sye     = (sy + sh) * kh;
+
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, sxb, syb);
+                sBatch.textured_vertex(ci, x, ye, sxb, sye);
+                sBatch.textured_vertex(ci, xe, ye, sxe, sye);
+                sBatch.textured_vertex(ci, xe, y, sxe, syb);
+                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_raw(
@@ -990,14 +1044,11 @@ namespace lsp
 
             status_t Surface::resize(size_t width, size_t height)
             {
-                if (!bNested)
-                {
-                    nWidth      = width;
-                    nHeight     = height;
-                    return STATUS_OK;
-                }
+                nWidth      = width;
+                nHeight     = height;
+                sync_matrix();
 
-                return STATUS_NOT_IMPLEMENTED;
+                return STATUS_OK;
             }
 
             void Surface::begin()
@@ -1012,6 +1063,7 @@ namespace lsp
                 if (!bNested)
                     pContext->activate();
 
+                sBatch.clear();
                 bIsDrawing      = true;
 
             #ifdef LSP_DEBUG
@@ -1074,7 +1126,7 @@ namespace lsp
                 {
                     if (bNested)
                     {
-                        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+                        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
                         glClear(GL_COLOR_BUFFER_BIT);
                     }
 

@@ -306,10 +306,10 @@ namespace lsp
                         glDisable(GL_MULTISAMPLE);
 
                     // Blending function
-                    if (flags & BATCH_PREMULTIPLIED_ALPHA)
-                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-                    else
-                        glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+//                    if (flags & BATCH_PREMULTIPLIED_ALPHA)
+                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+//                    else
+//                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                     glEnable(GL_BLEND);
 
                     // Configure color buffer

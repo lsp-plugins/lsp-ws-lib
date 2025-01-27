@@ -90,15 +90,18 @@ namespace lsp
 
             float *Gradient::serialize(float *buf) const
             {
-                buf[0]  = sStart.r;
-                buf[1]  = sStart.g;
-                buf[2]  = sStart.b;
-                buf[3]  = sStart.a;
+                const float sa  = 1.0f - sStart.a;
+                const float ea  = 1.0f - sEnd.a;
 
-                buf[4]  = sEnd.r;
-                buf[5]  = sEnd.g;
-                buf[6]  = sEnd.b;
-                buf[7]  = sEnd.a;
+                buf[0]  = sStart.r * sa;
+                buf[1]  = sStart.g * sa;
+                buf[2]  = sStart.b * sa;
+                buf[3]  = sa;
+
+                buf[4]  = sEnd.r * ea;
+                buf[5]  = sEnd.g * ea;
+                buf[6]  = sEnd.b * ea;
+                buf[7]  = ea;
 
                 if (bLinear)
                 {
