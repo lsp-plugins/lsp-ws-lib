@@ -1028,8 +1028,8 @@ namespace lsp
                         setSourceRGBA(color);
                         r_w   = tr.x_advance;
                         r_h   = -tr.y_bearing;
-                        fx    = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                        fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                        fx    = truncf(x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                        fy    = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
                         cairo_mask_surface(pCR, fs, fx + tr.x_bearing, fy + tr.y_bearing);
 
                         // Draw underline if required

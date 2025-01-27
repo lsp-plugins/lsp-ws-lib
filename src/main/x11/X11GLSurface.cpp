@@ -20,6 +20,7 @@
  */
 
 #include <private/x11/X11GLSurface.h>
+#include <lsp-plug.in/stdlib/math.h>
 
 namespace lsp
 {
@@ -270,10 +271,10 @@ namespace lsp
                     // Draw primitives
                     r_w                 = tr.x_advance;
                     r_h                 = -tr.y_bearing;
-                    fx                  = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                    fy                  = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
-                    x                  += tr.x_bearing;
-                    y                  += tr.y_bearing;
+                    fx                  = truncf(x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                    fy                  = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
+                    x                   = fx + float(tr.x_bearing);
+                    y                   = fy + float(tr.y_bearing);
 
                     const uint32_t ci   = uint32_t(res);
                     const float xe      = x + bitmap->width;
@@ -296,8 +297,8 @@ namespace lsp
 
                     const float width = lsp_max(1.0f, f.get_size() / 12.0f);
                     fill_rect(uint32_t(res),
-                        fx, fy + tr.y_advance + 1 + width * 0.5f,
-                        fx + tr.x_advance, fy + tr.y_advance + 1 + width * 1.5f);
+                        fx, fy + tr.y_advance + 1.0f + width * 0.5f,
+                        fx + tr.x_advance, fy + tr.y_advance + 1.0f + width * 1.5f);
                 }
 
             #endif /* USE_LIBFREETYPE */
