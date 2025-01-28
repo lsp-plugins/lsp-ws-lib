@@ -32,6 +32,7 @@ namespace lsp
             {
                 atomic_store(&nReferences, 1);
                 bActive     = false;
+                bValid      = true;
             }
 
             IContext::~IContext()
@@ -74,6 +75,16 @@ namespace lsp
                 if (res == STATUS_OK)
                     bActive         = false;
                 return res;
+            }
+
+            void IContext::invalidate()
+            {
+                bValid          = false;
+            }
+
+            bool IContext::valid() const
+            {
+                return bValid;
             }
 
             status_t IContext::do_activate()

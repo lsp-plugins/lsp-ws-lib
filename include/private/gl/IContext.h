@@ -68,6 +68,7 @@ namespace lsp
                 private:
                     uatomic_t       nReferences;
                     bool            bActive;
+                    bool            bValid;
 
                 public:
                     IContext();
@@ -104,6 +105,17 @@ namespace lsp
                      * @return status of operation
                      */
                     status_t deactivate();
+
+                    /**
+                     * Mark OpenGL context as invalid
+                     */
+                    void invalidate();
+
+                    /**
+                     * Check validity of OpenGL context
+                     * @return true of OpenGL context is valid
+                     */
+                    bool valid() const;
 
                 public:
                     /**

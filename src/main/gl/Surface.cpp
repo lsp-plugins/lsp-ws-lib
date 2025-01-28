@@ -130,6 +130,12 @@ namespace lsp
             void Surface::do_destroy()
             {
                 sBatch.clear();
+                if (!bNested)
+                {
+                    if (pContext != NULL)
+                        pContext->invalidate();
+                }
+
                 safe_release(pContext);
 
                 pDisplay        = NULL;
@@ -903,7 +909,7 @@ namespace lsp
 
             bool Surface::valid() const
             {
-                return pContext != NULL;
+                return (pContext != NULL) && (pContext->valid());
             }
 
             void Surface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
