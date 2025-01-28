@@ -291,14 +291,17 @@ namespace lsp
                 int success;
                 constexpr size_t MESSAGE_SIZE = 8192;
 
-                char *log = new char[MESSAGE_SIZE];
-                lsp_finally { delete log; };
-
                 if (type == SHADER)
                 {
                     pVtbl->glGetShaderiv(id, GL_COMPILE_STATUS, &success);
                     if (success)
                         return false;
+
+                    char *log = new char[MESSAGE_SIZE];
+                    lsp_finally {
+                        if (log != NULL)
+                            delete[] log;
+                    };
 
                     pVtbl->glGetShaderInfoLog(id, MESSAGE_SIZE, NULL, log);
                     lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);
@@ -309,6 +312,12 @@ namespace lsp
                     pVtbl->glGetProgramiv(id, GL_LINK_STATUS, &success);
                     if (success)
                         return false;
+
+                    char *log = new char[MESSAGE_SIZE];
+                    lsp_finally {
+                        if (log != NULL)
+                            delete[] log;
+                    };
 
                     pVtbl->glGetProgramInfoLog(id, MESSAGE_SIZE, NULL, log);
                     lsp_error("OpenGL error while performing operation '%s':\n%s", context, log);

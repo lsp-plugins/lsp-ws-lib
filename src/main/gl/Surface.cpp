@@ -759,7 +759,7 @@ namespace lsp
                 // Find first not short segment
                 width          *= 0.5f;
                 size_t si       = 0;
-                for (i = 1; i <= n; ++i)
+                for (i = 1; i < n; ++i)
                 {
                     dx              = x[i] - x[si];
                     dy              = y[i] - y[si];
@@ -767,7 +767,7 @@ namespace lsp
                     if (d > 1e-10f)
                         break;
                 }
-                if (i > n)
+                if (i >= n)
                     return;
 
                 // Draw first segment
@@ -851,7 +851,7 @@ namespace lsp
                 // Find first not short segment
                 width          *= 0.5f;
                 size_t si       = 0;
-                for (i = 1; i <= n; ++i)
+                for (i = 1; i < n; ++i)
                 {
                     dx              = x[i] - x[si];
                     dy              = y[i] - y[si];
@@ -859,7 +859,7 @@ namespace lsp
                     if (d > 1e-10f)
                         break;
                 }
-                if (i > n)
+                if (i >= n)
                     return;
 
                 // Draw first segment
