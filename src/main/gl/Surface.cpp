@@ -1251,7 +1251,7 @@ namespace lsp
             void Surface::clear(const Color &c)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, c);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };

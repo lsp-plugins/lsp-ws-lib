@@ -48,6 +48,7 @@ namespace lsp
                 BATCH_MULTISAMPLE           = 1 << 2,
                 BATCH_WRITE_COLOR           = 1 << 3,
                 BATCH_CLEAR_STENCIL         = 1 << 4,
+                BATCH_NO_BLENDING           = 1 << 5,
 
                 BATCH_IMPORTANT_FLAGS       = BATCH_CLEAR_STENCIL,
             };

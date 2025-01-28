@@ -322,7 +322,10 @@ namespace lsp
                     gl::Texture *texture = draw->header.pTexture;
 
                     // Blending function
-                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    if (flags & BATCH_NO_BLENDING)
+                        glBlendFunc(GL_ONE, GL_ZERO);
+                    else
+                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
                     glEnable(GL_BLEND);
 
                     // Configure color buffer
