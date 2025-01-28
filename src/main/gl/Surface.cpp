@@ -979,13 +979,16 @@ namespace lsp
 
                 // Draw primitives
                 const uint32_t ci   = uint32_t(res);
-                const float ca      = cosf(ra) * sx;
-                const float sa      = sinf(ra) * sx;
+                const float ca      = cosf(ra);
+                const float sa      = sinf(ra);
 
-                const float v1x     = ca * s->width();
-                const float v1y     = sa * s->width();
-                const float v2x     = -sa * s->height();
-                const float v2y     = ca * s->height();
+                sx                 *= s->width();
+                sy                 *= s->height();
+
+                const float v1x     = ca * sx;
+                const float v1y     = sa * sx;
+                const float v2x     = -sa * sy;
+                const float v2y     = ca * sy;
 
                 // Draw picture
                 const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 1.0f);
