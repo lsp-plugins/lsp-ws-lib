@@ -82,7 +82,7 @@ namespace lsp
                 if (samples > 0)
                 {
                     vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, nTextureId);
-                    vtbl->glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8, int_format, width, height, GL_FALSE);
+                    vtbl->glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 8, int_format, width, height, GL_TRUE);
                     vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
                 }
                 else

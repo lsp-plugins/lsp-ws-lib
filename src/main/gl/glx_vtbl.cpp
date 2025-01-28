@@ -84,6 +84,17 @@ namespace lsp
                 FETCH(glCheckFramebufferStatus);
                 FETCH(glCheckNamedFramebufferStatus);
 
+                // Renderbuffer operations
+                FETCH(glGenRenderbuffers);
+                FETCH(glDeleteRenderbuffers);
+                FETCH(glFramebufferRenderbuffer);
+                FETCH(glNamedFramebufferRenderbuffer);
+                FETCH(glBindRenderbuffer);
+                FETCH(glRenderbufferStorage);
+                FETCH(glNamedRenderbufferStorage);
+                FETCH(glRenderbufferStorageMultisample);
+                FETCH(glNamedRenderbufferStorageMultisample);
+
                 // Uniform operations
                 FETCH(glUniform1f);
                 FETCH(glUniform2f);

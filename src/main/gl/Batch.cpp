@@ -305,11 +305,14 @@ namespace lsp
                     else
                         glDisable(GL_MULTISAMPLE);
 
+                    gl::Texture *texture = draw->header.pTexture;
+
                     // Blending function
-//                    if (flags & BATCH_PREMULTIPLIED_ALPHA)
-                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-//                    else
+//                    if ((texture != NULL) && (texture->format() == gl::TEXTURE_RGBA32))
 //                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//                    else
+                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
                     glEnable(GL_BLEND);
 
                     // Configure color buffer
@@ -401,9 +404,7 @@ namespace lsp
                     if (u_texture > 0)
                     {
                         vtbl->glUniform1i(u_ms_texture, 2);
-
-                        gl::Texture *tex = draw->header.pTexture;
-                        if ((tex != NULL) && (tex->valid()))
+                        if ((texture != NULL) && (texture->valid()))
                             draw->header.pTexture->activate(GL_TEXTURE2);
                     }
 

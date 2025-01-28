@@ -74,6 +74,7 @@ namespace lsp
                     gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::Batch               sBatch;
                     GLuint                  nFramebufferId;
+                    GLuint                  nStencilBufferId;
                     size_t                  nWidth;
                     size_t                  nHeight;
                     size_t                  nNumClips;

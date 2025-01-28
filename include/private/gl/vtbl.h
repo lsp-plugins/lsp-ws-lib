@@ -101,6 +101,17 @@ namespace lsp
                 GLenum GLAPIENTRY       (* glCheckFramebufferStatus)(GLenum target);
                 GLenum GLAPIENTRY       (* glCheckNamedFramebufferStatus)(GLuint framebuffer, GLenum target);
 
+                // Renderbuffer operations
+                void GLAPIENTRY         (* glGenRenderbuffers)(GLsizei n, GLuint *renderbuffers);
+                void GLAPIENTRY         (* glDeleteRenderbuffers)(GLsizei n, GLuint *renderbuffers);
+                void GLAPIENTRY         (* glFramebufferRenderbuffer)(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+                void GLAPIENTRY         (* glNamedFramebufferRenderbuffer)(GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
+                void GLAPIENTRY         (* glBindRenderbuffer)(GLenum target, GLuint renderbuffer);
+                void GLAPIENTRY         (* glRenderbufferStorage)(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+                void GLAPIENTRY         (* glNamedRenderbufferStorage)(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height);
+                void GLAPIENTRY         (* glRenderbufferStorageMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+                void GLAPIENTRY         (* glNamedRenderbufferStorageMultisample)(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+
                 // Buffer operations
                 void GLAPIENTRY         (* glGenBuffers)(GLsizei n, GLuint * buffers);
                 void GLAPIENTRY         (* glBindBuffer)(GLenum target, GLuint buffer);

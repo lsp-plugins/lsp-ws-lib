@@ -55,6 +55,7 @@ namespace lsp
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
                 nFramebufferId  = 0;
+                nStencilBufferId= 0;
                 nWidth          = width;
                 nHeight         = height;
                 nNumClips       = 0;
@@ -76,6 +77,7 @@ namespace lsp
                 pContext        = NULL;
                 pTexture        = NULL;
                 nFramebufferId  = 0;
+                nStencilBufferId= 0;
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
@@ -139,6 +141,11 @@ namespace lsp
                     {
                         pContext->free_framebuffer(nFramebufferId);
                         nFramebufferId = 0;
+                    }
+                    if (nStencilBufferId != 0)
+                    {
+                        pContext->free_framebuffer(nStencilBufferId);
+                        nStencilBufferId = 0;
                     }
 
                     if (!bNested)
@@ -476,10 +483,10 @@ namespace lsp
                 // Compute parameters
                 if (r <= 0.0f)
                     return;
-                const float alpha = lsp_min(M_PI / r, M_PI_4);
-                const float dx = cosf(alpha);
-                const float dy = sinf(alpha);
-                const size_t count = M_PI * 0.5f * r;
+                const float phi     = lsp_min(M_PI / r, M_PI_4);
+                const float dx      = cosf(phi);
+                const float dy      = sinf(phi);
+                const size_t count  = M_PI * 2.0f / phi;
 
                 // Fill batch
                 float vx = r;
@@ -513,12 +520,12 @@ namespace lsp
                 if (delta == 0.0f)
                     return;
 
-                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
-                const float ex  = cosf(a2) * r;
-                const float ey  = sinf(a2) * r;
-                const float dx  = cosf(alpha);
-                const float dy  = sinf(alpha);
-                const ssize_t count = delta / alpha;
+                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float ex      = cosf(a2) * r;
+                const float ey      = sinf(a2) * r;
+                const float dx      = cosf(phi);
+                const float dy      = sinf(phi);
+                const ssize_t count = delta / phi;
 
                 // Generate the geometry
                 float vx            = cosf(a1) * r;
@@ -549,11 +556,11 @@ namespace lsp
                 if (r <= 0.0f)
                     return;
 
-                const float delta = M_PI * 0.5f;
-                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
-                const float dx  = cosf(alpha);
-                const float dy  = sinf(alpha);
-                const ssize_t count = delta / alpha;
+                const float delta   = M_PI * 0.5f;
+                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float dx      = cosf(phi);
+                const float dy      = sinf(phi);
+                const ssize_t count = delta / phi;
 
                 // Generate the geometry
                 float vx            = cosf(a) * r;
@@ -589,17 +596,17 @@ namespace lsp
                 if (delta == 0.0f)
                     return;
 
-                const float hw  = width * 0.5f;
-                const float ro  = r + hw;
-                const float kr  = lsp_max(r - hw, 0.0f) / ro;
+                const float hw      = width * 0.5f;
+                const float ro      = r + hw;
+                const float kr      = lsp_max(r - hw, 0.0f) / ro;
 
-                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / ro, M_PI_4) : lsp_min(-M_PI / ro, M_PI_4);
-                const float ex  = cosf(a2) * ro;
-                const float ey  = sinf(a2) * ro;
+                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / ro, M_PI_4) : lsp_min(-M_PI / ro, M_PI_4);
+                const float ex      = cosf(a2) * ro;
+                const float ey      = sinf(a2) * ro;
 
-                const float dx  = cosf(alpha);
-                const float dy  = sinf(alpha);
-                const ssize_t count = delta / alpha;
+                const float dx      = cosf(phi);
+                const float dy      = sinf(phi);
+                const ssize_t count = delta / phi;
 
                 // Fill batch
                 float vx        = cosf(a1) * ro;
@@ -1041,7 +1048,7 @@ namespace lsp
                     return;
 
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_PREMULTIPLIED_ALPHA, tex, a);
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, a);
                 if (res < 0)
                     return;
                 lsp_finally { sBatch.end(); };
@@ -1115,11 +1122,12 @@ namespace lsp
 
                 // Framebuffer
                 const gl::vtbl_t *vtbl = pContext->vtbl();
+                const size_t multisample = pContext->multisample();
 
                 // Set-up rendering destination
                 if (bNested)
                 {
-                    // Ensure that framebuffer is set
+                    // Ensure that framebuffer is set and bind it
                     GLuint fb_id    = nFramebufferId;
                     if (fb_id == 0)
                     {
@@ -1127,50 +1135,70 @@ namespace lsp
                         if (nFramebufferId == 0)
                             return;
                     }
+                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, nFramebufferId);
+                    lsp_finally {
+                        vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    };
 
-                    // Ensure that texture is initialized
+                    // Ensure that target texture is initialized
                     if (pTexture == NULL)
                     {
                         pTexture        = new gl::Texture(pContext);
                         if (pTexture == NULL)
                             return;
-
-                        if (pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_RGBA32, pContext->multisample()) != STATUS_OK)
+                        if (pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_PRGBA32, multisample) != STATUS_OK)
                             return;
                     }
-
-                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, nFramebufferId);
-
                     vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
                     vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                     vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
                     vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, pTexture->id(), 0);
 
+                    // Ensure that stencil buffer is set and bind it
+                    if (nStencilBufferId == 0)
+                    {
+                        vtbl->glGenRenderbuffers(1, &nStencilBufferId);
+                        if (nStencilBufferId == 0)
+                            return;
+
+                        vtbl->glBindRenderbuffer(GL_RENDERBUFFER, nStencilBufferId);
+                        if (multisample > 0)
+                            vtbl->glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH24_STENCIL8, nWidth, nHeight);
+                        else
+                            vtbl->glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, nWidth, nHeight);
+                        vtbl->glBindRenderbuffer(GL_RENDERBUFFER, 0);
+                    }
+
+                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, nStencilBufferId);
+
                     // Set the list of draw buffers.
-                    GLenum buffers[1] = { GL_COLOR_ATTACHMENT0 };
+                    GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
                     vtbl->glDrawBuffers(1, buffers);
+
+
 
                     GLenum status = vtbl->glCheckFramebufferStatus(GL_FRAMEBUFFER);
                     if (status != GL_FRAMEBUFFER_COMPLETE)
                         lsp_warn("Framebuffer status: 0x%x", int(status));
 
                     glViewport(0, 0, nWidth, nHeight);
+
+                    // Cleanup buffer if it was just created
                     if (fb_id == 0)
                     {
                         vtbl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
                         vtbl->glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
                     }
 
+                    // Execute batch
                     if (pContext->active())
                         sBatch.execute(pContext, vUniforms.array());
-
-                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 }
                 else
                 {
                     glViewport(0, 0, nWidth, nHeight);
 
+                    // Execute batch
                     if (pContext->active())
                         sBatch.execute(pContext, vUniforms.array());
 

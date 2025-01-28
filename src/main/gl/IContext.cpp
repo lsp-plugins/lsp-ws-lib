@@ -64,6 +64,11 @@ namespace lsp
                     vtbl->glDeleteFramebuffers(vGcFramebuffer.size(), vGcFramebuffer.first());
                     vGcFramebuffer.clear();
                 }
+                if (vGcRenderbuffer.size() > 0)
+                {
+                    vtbl->glDeleteRenderbuffers(vGcRenderbuffer.size(), vGcRenderbuffer.first());
+                    vGcRenderbuffer.clear();
+                }
                 if (vGcTexture.size() > 0)
                 {
                     vtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());

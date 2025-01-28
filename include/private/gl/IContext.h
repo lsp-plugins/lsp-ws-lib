@@ -72,6 +72,7 @@ namespace lsp
                     bool            bValid;
 
                     lltl::darray<GLuint> vGcFramebuffer;
+                    lltl::darray<GLuint> vGcRenderbuffer;
                     lltl::darray<GLuint> vGcTexture;
 
                 public:
