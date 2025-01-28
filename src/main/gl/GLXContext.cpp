@@ -239,7 +239,7 @@ namespace lsp
 
             status_t Context::do_deactivate()
             {
-                ::glXSwapBuffers(pDisplay, hWindow);
+//                ::glXSwapBuffers(pDisplay, hWindow);
                 ::glXMakeCurrent(pDisplay, None, NULL);
 
                 return STATUS_OK;

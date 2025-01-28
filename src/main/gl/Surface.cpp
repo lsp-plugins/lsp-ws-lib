@@ -1095,13 +1095,15 @@ namespace lsp
                 if (bNested)
                 {
                     if (pTexture == NULL)
+                    {
                         pTexture        = new gl::Texture(pContext);
+                        if (pTexture != NULL)
+                            pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_RGBA32, pContext->multisample());
+                    }
                     if (pTexture != NULL)
                     {
                         vtbl->glGenFramebuffers(1, &fb_id);
                         vtbl->glBindFramebuffer(GL_FRAMEBUFFER, fb_id);
-
-                        pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_RGBA32, pContext->multisample());
 
                         vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
                         vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -1124,12 +1126,6 @@ namespace lsp
                 // Execute batch
                 if (pContext->active())
                 {
-                    if (bNested)
-                    {
-                        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                        glClear(GL_COLOR_BUFFER_BIT);
-                    }
-
                     sBatch.execute(pContext, vUniforms.array());
                 }
 
@@ -1141,7 +1137,13 @@ namespace lsp
 
                 // Deactivate OpenGL context
                 if (!bNested)
+                {
+                    // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
+                    ::glReadBuffer(GL_BACK);
+                    ::glDrawBuffer(GL_FRONT);
+                    ::glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
                     pContext->deactivate();
+                }
 
                 // Reset drawing flag
                 bIsDrawing      = false;
