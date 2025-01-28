@@ -523,6 +523,9 @@ namespace lsp
                 if (face != NULL)
                     return face;
 
+                // Cleanup FontConfig state on exit
+                lsp_finally { FcFini(); };
+
                 // Lookup system font faces and add to list
                 FcPattern *pattern = FcPatternCreate();
                 if (pattern == NULL)
