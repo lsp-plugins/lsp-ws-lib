@@ -66,6 +66,9 @@ MTEST_BEGIN("ws.display", surface)
                                 c.set_rgba32(0x88cccc00);
                                 x->wire_rect(c, SURFMASK_NO_CORNER, 0.0f, 0.0f, 0.0f, 160, 100, 25.0f);
 
+                                c.set_rgba32(0x00ff0000);
+                                x->fill_rect(c, SURFMASK_NO_CORNER, 0.0f, 0.0f, 0.0f, 10.0f, 10.0f);
+
                                 c.set_rgba32(0x8800ccff);
                                 x->fill_rect(c, SURFMASK_NONE, 0.0f, 0.0f, 0.0f, 80.0f, 100.0f);
                                 c.set_rgb24(0xccff00);

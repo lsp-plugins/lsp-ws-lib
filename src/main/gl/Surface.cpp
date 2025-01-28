@@ -929,10 +929,10 @@ namespace lsp
                 const float xe      = x + t->width() * sx;
                 const float ye      = y + t->height() * sy;
 
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
-                sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
-                sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
-                sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 1.0f);
+                sBatch.textured_vertex(ci, x, ye, 0.0f, 0.0f);
+                sBatch.textured_vertex(ci, xe, ye, 1.0f, 0.0f);
+                sBatch.textured_vertex(ci, xe, y, 1.0f, 1.0f);
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -965,10 +965,10 @@ namespace lsp
                 const float v2y     = ca * s->height();
 
                 // Draw picture
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
-                sBatch.textured_vertex(ci, x + v2x, y + v2y, 0.0f, 1.0f);
-                sBatch.textured_vertex(ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 1.0f);
-                sBatch.textured_vertex(ci, x + v1x, y + v1y, 1.0f, 0.0f);
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 1.0f);
+                sBatch.textured_vertex(ci, x + v2x, y + v2y, 0.0f, 0.0f);
+                sBatch.textured_vertex(ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 0.0f);
+                sBatch.textured_vertex(ci, x + v1x, y + v1y, 1.0f, 1.0f);
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -1001,10 +1001,10 @@ namespace lsp
                 const float sxe     = (sx + sw) * kw;
                 const float sye     = (sy + sh) * kh;
 
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, sxb, syb);
-                sBatch.textured_vertex(ci, x, ye, sxb, sye);
-                sBatch.textured_vertex(ci, xe, ye, sxe, sye);
-                sBatch.textured_vertex(ci, xe, y, sxe, syb);
+                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, sxb, sye);
+                sBatch.textured_vertex(ci, x, ye, sxb, syb);
+                sBatch.textured_vertex(ci, xe, ye, sxe, syb);
+                sBatch.textured_vertex(ci, xe, y, sxe, sye);
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
