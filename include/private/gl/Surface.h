@@ -73,6 +73,7 @@ namespace lsp
                     gl::IContext           *pContext;
                     gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::Batch               sBatch;
+                    GLuint                  nFramebufferId;
                     size_t                  nWidth;
                     size_t                  nHeight;
                     size_t                  nNumClips;

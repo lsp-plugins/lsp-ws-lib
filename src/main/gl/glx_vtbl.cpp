@@ -182,6 +182,10 @@ namespace lsp
                 FETCH(glPixelStoref);
                 FETCH(glPixelStorei);
 
+                // Drawing operations
+                FETCH(glClearColor);
+                FETCH(glClear);
+
                 return vtbl;
             }
 

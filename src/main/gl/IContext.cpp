@@ -56,14 +56,33 @@ namespace lsp
                 return result;
             }
 
+            void IContext::perform_gc()
+            {
+                const vtbl_t *vtbl  = this->vtbl();
+                if (vGcFramebuffer.size() > 0)
+                {
+                    vtbl->glDeleteFramebuffers(vGcFramebuffer.size(), vGcFramebuffer.first());
+                    vGcFramebuffer.clear();
+                }
+                if (vGcTexture.size() > 0)
+                {
+                    vtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());
+                    vGcTexture.clear();
+                }
+            }
+
             status_t IContext::activate()
             {
                 if (bActive)
                     return STATUS_ALREADY_BOUND;
                 bActive         = true;
+
                 status_t res    = do_activate();
                 if (res != STATUS_OK)
                     bActive         = false;
+                else
+                    perform_gc();
+
                 return res;
             }
 
@@ -71,6 +90,9 @@ namespace lsp
             {
                 if (!bActive)
                     return STATUS_NOT_BOUND;
+
+                perform_gc();
+
                 status_t res = do_deactivate();
                 if (res == STATUS_OK)
                     bActive         = false;
@@ -110,6 +132,16 @@ namespace lsp
             uint32_t IContext::multisample() const
             {
                 return 0;
+            }
+
+            void IContext::free_framebuffer(GLuint id)
+            {
+                vGcFramebuffer.add(&id);
+            }
+
+            void IContext::free_texture(GLuint id)
+            {
+                vGcTexture.add(&id);
             }
 
             gl::IContext *create_context(const context_param_t *params)

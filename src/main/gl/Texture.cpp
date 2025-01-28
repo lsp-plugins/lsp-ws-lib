@@ -74,7 +74,7 @@ namespace lsp
 
                 if (nTextureId == 0)
                 {
-                    glGenTextures(1, &nTextureId);
+                    vtbl->glGenTextures(1, &nTextureId);
                     if (nTextureId == 0)
                         return STATUS_NO_MEM;
                 }
@@ -180,15 +180,17 @@ namespace lsp
 
             void Texture::reset()
             {
-                if (nTextureId == 0)
-                    return;
                 if (pContext == NULL)
                     return;
 
-                const vtbl_t *vtbl = pContext->vtbl();
-                vtbl->glDeleteTextures(1, &nTextureId);
-                nTextureId      = 0;
-                nMulti          = 0;
+                if (nTextureId != 0)
+                {
+                    pContext->free_texture(nTextureId);
+                    nTextureId      = 0;
+                    nMulti          = 0;
+                }
+
+                safe_release(pContext);
             }
 
             size_t Texture::size() const

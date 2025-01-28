@@ -206,9 +206,13 @@ namespace lsp
                     {
                         lsp_finally { ::glXMakeCurrent(dpy, drawable, ctx); };
 
+                        // Destroy shaders and programs
                         for (size_t i=0, n=vPrograms.size(); i<n; ++i)
                             destroy(vPrograms.uget(i));
                         vPrograms.flush();
+
+                        // Cleanup garbage
+                        perform_gc();
                     }
 
                     // Destroy context

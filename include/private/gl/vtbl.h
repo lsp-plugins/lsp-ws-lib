@@ -163,6 +163,10 @@ namespace lsp
                 // Miscellaneous functions
                 void GLAPIENTRY         (* glPixelStoref)(GLenum pname, GLfloat param);
                 void GLAPIENTRY         (* glPixelStorei)(GLenum pname, GLint param);
+
+                // Drawing operations
+                void GLAPIENTRY         (* glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
+                void GLAPIENTRY         (* glClear)(GLbitfield mask);
             } vtbl_t;
 
         } /* namespace gl */

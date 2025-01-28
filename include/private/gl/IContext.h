@@ -24,6 +24,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/lltl/darray.h>
 
 #include <private/gl/vtbl.h>
 
@@ -70,6 +71,9 @@ namespace lsp
                     bool            bActive;
                     bool            bValid;
 
+                    lltl::darray<GLuint> vGcFramebuffer;
+                    lltl::darray<GLuint> vGcTexture;
+
                 public:
                     IContext();
                     IContext(const IContext &) = delete;
@@ -82,6 +86,9 @@ namespace lsp
                 public:
                     uatomic_t   reference_up();
                     uatomic_t   reference_down();
+
+                protected:
+                    void        perform_gc();
 
                 protected:
                     virtual status_t    do_activate();
@@ -137,6 +144,19 @@ namespace lsp
                      * @return multisampling factor
                      */
                     virtual uint32_t multisample() const;
+
+                public:
+                    /**
+                     * Put framebuffer to list of destruction
+                     * @param id framebuffer identifier
+                     */
+                    virtual void free_framebuffer(GLuint id);
+
+                    /**
+                     * Put texture to list of destruction
+                     * @param id texture identifier
+                     */
+                    virtual void free_texture(GLuint id);
             };
 
             template <class T>
