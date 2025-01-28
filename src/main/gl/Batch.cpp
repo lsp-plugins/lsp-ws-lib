@@ -178,8 +178,11 @@ namespace lsp
                 // Remove batch if it is empty
                 if ((pCurrent->vertices.count == 0) || (pCurrent->indices.count == 0))
                 {
-                    vBatches.pop();
-                    destroy(pCurrent);
+                    if (!(pCurrent->header.nFlags & BATCH_IMPORTANT_FLAGS))
+                    {
+                        vBatches.pop();
+                        destroy(pCurrent);
+                    }
                 }
 
                 pCurrent    = NULL;
@@ -299,6 +302,17 @@ namespace lsp
 //                        }
 //                    );
 
+                    // Configure stencil buffer
+                    if (flags & BATCH_CLEAR_STENCIL)
+                    {
+                        glStencilMask(0x01);
+                        glClear(GL_STENCIL_BUFFER_BIT);
+                    }
+
+                    // Check batch size
+                    if (draw->vertices.count <= 0)
+                        continue;
+
                     // Control multisampling
                     if (flags & BATCH_MULTISAMPLE)
                         glEnable(GL_MULTISAMPLE);
@@ -308,23 +322,13 @@ namespace lsp
                     gl::Texture *texture = draw->header.pTexture;
 
                     // Blending function
-//                    if ((texture != NULL) && (texture->format() == gl::TEXTURE_RGBA32))
-//                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//                    else
-                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
+                    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
                     glEnable(GL_BLEND);
 
                     // Configure color buffer
                     const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;
                     glColorMask(color_mask, color_mask, color_mask, color_mask);
 
-                    // Configure stencil buffer
-                    if (flags & BATCH_CLEAR_STENCIL)
-                    {
-                        glStencilMask(0x01);
-                        glClear(GL_STENCIL_BUFFER_BIT);
-                    }
                     switch (flags & BATCH_STENCIL_OP_MASK)
                     {
                         case BATCH_STENCIL_OP_OR:

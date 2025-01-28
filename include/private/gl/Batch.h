@@ -48,6 +48,8 @@ namespace lsp
                 BATCH_MULTISAMPLE           = 1 << 2,
                 BATCH_WRITE_COLOR           = 1 << 3,
                 BATCH_CLEAR_STENCIL         = 1 << 4,
+
+                BATCH_IMPORTANT_FLAGS       = BATCH_CLEAR_STENCIL,
             };
 
             typedef struct LSP_HIDDEN_MODIFIER batch_header_t

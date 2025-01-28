@@ -1178,8 +1178,6 @@ namespace lsp
                     GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
                     vtbl->glDrawBuffers(1, buffers);
 
-
-
                     GLenum status = vtbl->glCheckFramebufferStatus(GL_FRAMEBUFFER);
                     if (status != GL_FRAMEBUFFER_COMPLETE)
                         lsp_warn("Framebuffer status: 0x%x", int(status));
@@ -1206,6 +1204,7 @@ namespace lsp
                         sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
+                    ::glFlush();
                     ::glReadBuffer(GL_BACK);
                     ::glDrawBuffer(GL_FRONT);
                     ::glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
