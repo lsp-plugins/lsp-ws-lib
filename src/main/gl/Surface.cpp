@@ -466,7 +466,7 @@ namespace lsp
                 // Compute parameters
                 if (r <= 0.0f)
                     return;
-                const float alpha = lsp_min(4.0f / r, M_PI_2);
+                const float alpha = lsp_min(M_PI / r, M_PI_4);
                 const float dx = cosf(alpha);
                 const float dy = sinf(alpha);
                 const size_t count = M_PI * 0.5f * r;
@@ -503,7 +503,7 @@ namespace lsp
                 if (delta == 0.0f)
                     return;
 
-                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
+                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
                 const float ex  = cosf(a2) * r;
                 const float ey  = sinf(a2) * r;
                 const float dx  = cosf(alpha);
@@ -540,7 +540,7 @@ namespace lsp
                     return;
 
                 const float delta = M_PI * 0.5f;
-                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / r, M_PI_2) : lsp_min(-4.0f / r, M_PI_2);
+                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
                 const float dx  = cosf(alpha);
                 const float dy  = sinf(alpha);
                 const ssize_t count = delta / alpha;
@@ -583,7 +583,7 @@ namespace lsp
                 const float ro  = r + hw;
                 const float kr  = lsp_max(r - hw, 0.0f) / ro;
 
-                const float alpha = (delta > 0.0f) ? lsp_min(4.0f / ro, M_PI_2) : lsp_min(-4.0f / ro, M_PI_2);
+                const float alpha = (delta > 0.0f) ? lsp_min(M_PI / ro, M_PI_4) : lsp_min(-M_PI / ro, M_PI_4);
                 const float ex  = cosf(a2) * ro;
                 const float ey  = sinf(a2) * ro;
 
