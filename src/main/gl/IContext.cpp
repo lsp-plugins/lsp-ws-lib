@@ -22,6 +22,8 @@
 #include <private/gl/IContext.h>
 #include <private/gl/GLXContext.h>
 
+#include <lsp-plug.in/common/debug.h>
+
 namespace lsp
 {
     namespace ws
@@ -106,6 +108,7 @@ namespace lsp
 
             void IContext::invalidate()
             {
+                lsp_trace("OpenGL context invalidated ptr=%p", this);
                 bValid          = false;
             }
 

@@ -68,6 +68,8 @@ namespace lsp
 
                 sBatch.init();
                 sync_matrix();
+
+                lsp_trace("primary surface created ptr=%p", this);
             }
 
             Surface::Surface(size_t width, size_t height):
@@ -149,7 +151,10 @@ namespace lsp
                     }
 
                     if (!bNested)
+                    {
                         pContext->invalidate();
+                        lsp_trace("primary surface destroyed ptr=%p", this);
+                    }
                 }
 
                 safe_release(pTexture);
@@ -1097,6 +1102,8 @@ namespace lsp
                 // Activate GLX context
                 if (!bNested)
                     pContext->activate();
+                else if (!pContext->active())
+                    lsp_warn("OpenGL root context is not active");
 
                 sBatch.clear();
                 bIsDrawing      = true;
@@ -1110,6 +1117,8 @@ namespace lsp
             {
                 if (!bIsDrawing)
                     return;
+                lsp_finally { bIsDrawing = false; };
+
                 if (pContext == NULL)
                     return;
 
@@ -1117,7 +1126,6 @@ namespace lsp
                 if (nNumClips > 0)
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
-                lsp_finally { bIsDrawing = false; };
 
                 vUniforms.clear();
                 vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });

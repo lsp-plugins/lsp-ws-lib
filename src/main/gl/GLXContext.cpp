@@ -191,6 +191,8 @@ namespace lsp
                 hWindow         = window;
                 pVtbl           = vtbl;
                 nMultisample    = multisample;
+
+                lsp_trace("Created GLX context ptr=%p", this);
             }
 
             Context::~Context()
@@ -227,13 +229,16 @@ namespace lsp
                     free(const_cast<vtbl_t *>(pVtbl));
                     pVtbl           = NULL;
                 }
+
+                lsp_trace("Destroyed GLX context ptr=%p", this);
             }
 
             status_t Context::do_activate()
             {
                 if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
                     return STATUS_UNKNOWN_ERR;
-                ::glDrawBuffer(GL_BACK);
+
+                pVtbl->glDrawBuffer(GL_BACK);
 
                 size_t id = 0;
                 program(&id, gl::GEOMETRY);

@@ -128,6 +128,8 @@ namespace lsp
                 GLboolean GLAPIENTRY    (* glUnmapBuffer)(GLenum target);
                 GLboolean GLAPIENTRY    (* glUnmapNamedBuffer)(GLuint buffer);
                 void GLAPIENTRY         (* glDeleteBuffers)(GLsizei n, const GLuint * buffers);
+                void GLAPIENTRY         (* glDrawBuffer)(GLenum buf);
+                void GLAPIENTRY         (* glNamedFramebufferDrawBuffer)(GLuint framebuffer, GLenum buf);
 
                 // Texture operations
                 void GLAPIENTRY         (* glGenTextures)(GLsizei n, GLuint * textures);

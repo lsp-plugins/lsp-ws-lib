@@ -146,6 +146,8 @@ namespace lsp
                 FETCH(glUnmapBuffer);
                 FETCH(glUnmapNamedBuffer);
                 FETCH(glDeleteBuffers);
+                FETCH(glDrawBuffer);
+                FETCH(glNamedFramebufferDrawBuffer);
 
                 // Texture operations
                 FETCH(glGenTextures);
