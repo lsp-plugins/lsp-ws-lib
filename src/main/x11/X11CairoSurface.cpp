@@ -97,21 +97,6 @@ namespace lsp
                 return new X11CairoSurface(pDisplay, pSurface, width, height);
             }
 
-            ISurface *X11CairoSurface::create_copy()
-            {
-                X11CairoSurface *s = new X11CairoSurface(pDisplay, pSurface, nWidth, nHeight);
-                if (s == NULL)
-                    return NULL;
-
-                // Draw one surface on another
-                s->begin();
-                    ::cairo_set_source_surface(s->pCR, pSurface, 0.0f, 0.0f);
-                    ::cairo_paint(s->pCR);
-                s->end();
-
-                return s;
-            }
-
             IGradient *X11CairoSurface::linear_gradient(float x0, float y0, float x1, float y1)
             {
                 return new X11CairoGradient(

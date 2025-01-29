@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -56,11 +56,6 @@ namespace lsp
         ISurface *ISurface::create(size_t width, size_t height)
         {
             return new ISurface(width, height, ST_UNKNOWN);
-        }
-
-        ISurface *ISurface::create_copy()
-        {
-            return new ISurface(nWidth, nHeight, ST_UNKNOWN);
         }
 
         status_t ISurface::resize(size_t width, size_t height)

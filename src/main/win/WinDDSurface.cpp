@@ -1278,50 +1278,6 @@ namespace lsp
                 return new WinDDSurface(pShared, dc, width, height);
             }
 
-            ISurface *WinDDSurface::create_copy()
-            {
-                if (bad_state())
-                    return NULL;
-                if (type() != ST_IMAGE)
-                    return NULL;
-
-                // Get the bitmap of the surface
-                ID2D1BitmapRenderTarget *sdc= static_cast<ID2D1BitmapRenderTarget *>(pDC);
-                ID2D1Bitmap *bm             = NULL;
-                if (FAILED(sdc->GetBitmap(&bm)))
-                    return NULL;
-                lsp_finally{ safe_release(bm); };
-
-                // Create new render target
-                D2D1_SIZE_F desiredSize = D2D1::SizeF(nWidth, nHeight);
-                D2D1_SIZE_U desiredPixelSize = D2D1::SizeU(nWidth, nHeight);
-                D2D1_PIXEL_FORMAT pixelFormat = D2D1::PixelFormat(
-                    DXGI_FORMAT_B8G8R8A8_UNORM,
-                    D2D1_ALPHA_MODE_PREMULTIPLIED);
-
-                ID2D1BitmapRenderTarget *dc = NULL;
-                HRESULT hr = pDC->CreateCompatibleRenderTarget(
-                    &desiredSize,
-                    &desiredPixelSize,
-                    &pixelFormat,
-                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE,
-                    &dc);
-                if (FAILED(hr))
-                    return NULL;
-
-                // Copy contents
-                dc->BeginDraw();
-                    dc->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-                    dc->DrawBitmap(
-                        bm,
-                        D2D1::RectF(0, 0, nWidth, nHeight),
-                        1.0f,
-                        D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
-                dc->EndDraw();
-
-                return new WinDDSurface(pShared, dc, nWidth, nHeight);
-            }
-
             void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
                 if (bad_state())

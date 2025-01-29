@@ -101,12 +101,6 @@ namespace lsp
                 virtual ISurface *create(size_t width, size_t height);
 
                 /**
-                 * Create copy of current surface
-                 * @return copy of current surface
-                 */
-                virtual ISurface *create_copy();
-
-                /**
                  * Resize the surface. There is no guarantee about the image content
                  * stored inside of the surface.
                  *
