@@ -56,7 +56,8 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
-                pSurface        = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+                pRoot           = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -68,6 +69,7 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
+                pRoot           = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
@@ -80,6 +82,7 @@ namespace lsp
                 pDisplay        = dpy;
                 pCR             = NULL;
                 pFO             = NULL;
+                pRoot           = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 //                pSurface        = ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
             #ifdef LSP_DEBUG
@@ -116,10 +119,10 @@ namespace lsp
 
             X11CairoSurface::~X11CairoSurface()
             {
-                destroy_context();
+                destroy_context(true);
             }
 
-            void X11CairoSurface::destroy_context()
+            void X11CairoSurface::destroy_context(bool root)
             {
                 if (pFO != NULL)
                 {
@@ -136,11 +139,16 @@ namespace lsp
                     cairo_surface_destroy(pSurface);
                     pSurface        = NULL;
                 }
+                if ((pRoot != NULL) && (root))
+                {
+                    cairo_surface_destroy(pSurface);
+                    pRoot           = NULL;
+                }
             }
 
             void X11CairoSurface::destroy()
             {
-                destroy_context();
+                destroy_context(true);
             }
 
             bool X11CairoSurface::valid() const
@@ -150,15 +158,12 @@ namespace lsp
 
             status_t X11CairoSurface::resize(size_t width, size_t height)
             {
-                if (nType == ST_XLIB)
-                {
-                    ::cairo_xlib_surface_set_size(pSurface, width, height);
-                    return STATUS_OK;
-                }
+                if (pRoot != NULL)
+                    ::cairo_xlib_surface_set_size(pRoot, width, height);
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
-                if (nType == ST_IMAGE)
+                if ((nType == ST_IMAGE) || (nType == ST_XLIB))
                     s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 else if (nType == ST_SIMILAR)
                     s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
@@ -179,7 +184,7 @@ namespace lsp
                 ::cairo_fill(cr);
 
                 // Destroy previously used context
-                destroy_context();
+                destroy_context(false);
 
                 // Update context
                 pSurface            = s;
@@ -262,7 +267,7 @@ namespace lsp
             void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
                 surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_IMAGE))
+                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
                 if (pCR == NULL)
                     return;
@@ -368,6 +373,21 @@ namespace lsp
                 }
 
                 ::cairo_surface_flush(pSurface);
+
+                // Copy back surface to front surface if it is present
+                if (pRoot != NULL)
+                {
+                    cairo_t *cr = ::cairo_create(pRoot);
+                    if (cr == NULL)
+                        return;
+                    lsp_finally {
+                        cairo_destroy(pCR);
+                    };
+
+                    ::cairo_set_source_surface(cr, pSurface, 0, 0);
+                    ::cairo_paint(cr);
+                    ::cairo_surface_flush(pRoot);
+                }
             }
 
             void X11CairoSurface::set_current_font(font_context_t *ctx, const Font &f)

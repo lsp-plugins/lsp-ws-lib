@@ -46,6 +46,7 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER X11CairoSurface: public ISurface
             {
                 protected:
+                    cairo_surface_t        *pRoot;
                     cairo_surface_t        *pSurface;
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
@@ -62,7 +63,7 @@ namespace lsp
                     } font_context_t;
 
                 protected:
-                    void                destroy_context();
+                    void                destroy_context(bool root);
 
                     inline void         setSourceRGB(const Color &col);
                     inline void         setSourceRGBA(const Color &col);
