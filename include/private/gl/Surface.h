@@ -24,60 +24,57 @@
 
 #include <lsp-plug.in/ws/version.h>
 
-#if defined(USE_LIBX11)
-
 #include <lsp-plug.in/common/types.h>
 
-#include <private/x11/X11Display.h>
+#include <private/gl/IContext.h>
 
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/ws/IGradient.h>
 #include <lsp-plug.in/ws/ISurface.h>
 
-#include <X11/Xlib.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
-
 namespace lsp
 {
     namespace ws
     {
-        namespace x11
+        namespace gl
         {
-            class LSP_HIDDEN_MODIFIER X11GLSurface: public ISurface
+            class LSP_HIDDEN_MODIFIER Surface: public ISurface
             {
                 protected:
-                    X11Display             *pDisplay;
-                    GLXContext              pContext;
+                    IDisplay               *pDisplay;
+                    gl::IContext           *pContext;
+                    size_t                  nWidth;
+                    size_t                  nHeight;
+                    bool                    bNested;
                 #ifdef LSP_DEBUG
                     size_t                  nNumClips;
                 #endif /* LSP_DEBUG */
 
+                private:
+                    /** Create nexted GL surface
+                     *
+                     * @param ctx OpenGL context
+                     * @param width surface width
+                     * @param height surface height
+                     */
+                    explicit Surface(size_t width, size_t height);
+
                 public:
                     /** Create GL surface
                      *
-                     * @param dpy display
-                     * @param drawabledrawable
-                     * @param visual visual
+                     * @param display associated display
+                     * @param ctx OpenGL context
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit X11GLSurface(X11Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height);
+                    explicit Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height);
 
-                    /** Create image surface
-                     *
-                     * @param context nested glx context
-                     * @param width surface width
-                     * @param height surface height
-                     */
-                    explicit X11GLSurface(X11Display *dpy, GLXContext context, size_t width, size_t height);
+                    Surface(const Surface &) = delete;
+                    Surface(Surface &&) = delete;
+                    virtual ~Surface();
 
-                    X11GLSurface(const X11GLSurface &) = delete;
-                    X11GLSurface(X11GLSurface &&) = delete;
-                    virtual ~X11GLSurface();
-
-                    X11GLSurface & operator = (const X11GLSurface &) = delete;
-                    X11GLSurface & operator = (X11GLSurface &&) = delete;
+                    Surface & operator = (const Surface &) = delete;
+                    Surface & operator = (Surface &&) = delete;
 
                     virtual void destroy() override;
                     virtual bool valid() const override;
@@ -163,17 +160,10 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
-
-                    virtual surf_line_cap_t get_line_cap() override;
-                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
             };
 
-        } /* namespace x11 */
+        } /* namespace gl */
     } /* namespace ws */
 } /* namespace lsp */
-
-#endif /* defined(USE_LIBX11) */
-
-
 
 #endif /* PRIVATE_X11_X11GLSURFACE_H_ */

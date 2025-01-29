@@ -31,6 +31,30 @@ namespace lsp
     {
         namespace gl
         {
+            enum context_param_id_t
+            {
+                END = 0,
+                DISPLAY = 1,
+                SCREEN = 2,
+                WINDOW = 3,
+            };
+
+            typedef struct context_param_t
+            {
+                context_param_id_t id;
+                union
+                {
+                    void           *ptr;
+                    const char     *text;
+                    bool            flag;
+                    signed int      sint;
+                    unsigned int    uint;
+                    signed long     slong;
+                    unsigned long   ulong;
+                };
+            } context_param_t;
+
+
             enum shader_t
             {
                 VERTEX_SHADER,
@@ -104,6 +128,13 @@ namespace lsp
                 ptr->reference_down();
                 ptr = NULL;
             }
+
+            /**
+             * Create OpenGL context using specified params
+             * @param params specified params
+             * @return pointer to created context or NULL
+             */
+            gl::IContext *create_context(const context_param_t *params);
 
         } /* namespace gl */
     } /* namespace ws */

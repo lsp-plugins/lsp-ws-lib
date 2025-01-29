@@ -100,7 +100,7 @@ namespace lsp
                 int max_sample_buffers = -1;
                 int max_samples = -1;
 
-                for (const int * const *atts = fb_params; atts != NULL; ++atts)
+                for (const int * const *atts = fb_params; *atts != NULL; ++atts)
                 {
                     // Get framebuffer configurations
                     int fbcount = 0;
@@ -122,7 +122,7 @@ namespace lsp
                         {
                             result              = fbc;
                             max_sample_buffers  = sample_buffers;
-                            samples             = max_samples;
+                            max_samples         = samples;
                         }
                     }
 
@@ -156,10 +156,11 @@ namespace lsp
             }
 
 
-            Context::Context(GLXContext ctx)
+            Context::Context(GLXContext ctx, Window window)
                 : IContext()
             {
                 hContext        = ctx;
+                hWindow         = window;
             }
 
             Context::~Context()
@@ -181,15 +182,12 @@ namespace lsp
                 return NULL;
             }
 
-            gl::IContext *create_context(Display *dpy)
+            gl::IContext *create_context(Display *dpy, int screen, Window window)
             {
-                const int screen = DefaultScreen(dpy);
-
                 // Choose FBConfig
                 GLXFBConfig fb_config = choose_fb_config(dpy, screen);
                 if (fb_config == NULL)
                     return NULL;
-
 
                 // Try to create OpenGL 3.0+ context
                 GLXContext ctx = NULL;
@@ -221,7 +219,7 @@ namespace lsp
                     return NULL;
 
                 // Wrap the created context with context wrapper.
-                glx::Context *glx_ctx = new glx::Context(ctx);
+                glx::Context *glx_ctx = new glx::Context(ctx, window);
                 if (glx_ctx == NULL)
                 {
                     glXDestroyContext(dpy, ctx);

@@ -44,10 +44,11 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER Context: public gl::IContext
             {
                 private:
-                    GLXContext        hContext;
+                    GLXContext          hContext;
+                    Window              hWindow;
 
                 public:
-                    explicit Context(GLXContext ctx);
+                    explicit Context(GLXContext ctx, Window wnd);
                     virtual ~Context() override;
 
                 protected:
@@ -56,7 +57,14 @@ namespace lsp
                     virtual const char *shader(gl::shader_t shader) const override;
             };
 
-            gl::IContext *create_context(Display *dpy);
+            /**
+             * Create GLX context
+             * @param dpy display
+             * @param screen screen
+             * @param window associated window
+             * @return pointer to created context or NULL
+             */
+            gl::IContext *create_context(Display *dpy, int screen, Window window);
 
         } /* namespace glx */
     } /* namespace ws */

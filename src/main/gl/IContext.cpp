@@ -20,6 +20,7 @@
  */
 
 #include <private/gl/IContext.h>
+#include <private/gl/GLXContext.h>
 
 namespace lsp
 {
@@ -87,6 +88,46 @@ namespace lsp
             const char *IContext::shader(gl::shader_t shader) const
             {
                 return NULL;
+            }
+
+            gl::IContext *create_context(const context_param_t *params)
+            {
+                const context_param_t *display = NULL;
+                const context_param_t *screen = NULL;
+                const context_param_t *window = NULL;
+
+                for (; (params != NULL) && (params->id != gl::END); ++params)
+                {
+                    switch (params->id)
+                    {
+                        case gl::DISPLAY:
+                            display     = params;
+                            break;
+                        case gl::SCREEN:
+                            screen      = params;
+                            break;
+                        case gl::WINDOW:
+                            window      = params;
+                            break;
+                        default:
+                            return NULL;
+                    }
+                }
+
+                gl::IContext *result = NULL;
+
+            #if defined(USE_LIBX11)
+                if ((result == NULL) && (display != NULL) && (window != NULL))
+                {
+                    ::Display *dpy = static_cast<::Display *>(display->ptr);
+                    ::Window wnd = window->ulong;
+                    const int scr = (screen != NULL) ? screen->sint : DefaultScreen(dpy);
+
+                    result = glx::create_context(dpy, scr, wnd);
+                }
+            #endif /* defined(USE_LIBX11) */
+
+                return result;
             }
 
         } /* namespace gl */

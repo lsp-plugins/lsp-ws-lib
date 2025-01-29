@@ -28,6 +28,7 @@
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
+#include <private/gl/Surface.h>
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
 #include <private/x11/X11Display.h>
@@ -86,6 +87,32 @@ namespace lsp
                 }
             #endif /* USE_LIBGL */
                 return NULL;
+            }
+
+            static ISurface *create_surface(X11Display *dpy, int screen, Window window, Visual *visual, size_t width, size_t height)
+            {
+                ISurface *result = NULL;
+
+            #ifdef USE_LIBGL
+                gl::context_param_t cp[4];
+                cp[0].id        = gl::DISPLAY;
+                cp[0].ptr       = dpy->x11display();
+                cp[1].id        = gl::SCREEN;
+                cp[1].sint      = screen;
+                cp[2].id        = gl::WINDOW;
+                cp[2].ulong     = window;
+                cp[3].id        = gl::END;
+
+                gl::IContext *ctx   = gl::create_context(cp);
+                lsp_finally { safe_release(ctx); };
+                if (ctx != NULL)
+                    result = new gl::Surface(dpy, ctx, width, height);
+            #endif /* USE_LIBGL */
+
+                if (result == NULL)
+                    result = new X11CairoSurface(dpy, window, visual, width, height);
+
+                return result;
             }
 
             X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): IWindow(core, handler)
@@ -550,9 +577,9 @@ namespace lsp
                         // Create surface
                         Display *dpy    = pX11Display->x11display();
                         ::Visual *v     = (pVisualInfo != NULL) ? pVisualInfo->visual : DefaultVisual(dpy, screen());
-                        pSurface        = new X11CairoSurface(
-                                              static_cast<X11Display *>(pDisplay),
-                                              hWindow, v, sSize.nWidth, sSize.nHeight);
+                        pSurface        = create_surface(
+                            static_cast<X11Display *>(pDisplay), int(screen()), hWindow, v,
+                            sSize.nWidth, sSize.nHeight);
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)
