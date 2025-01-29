@@ -130,6 +130,8 @@ namespace lsp
                 void GLAPIENTRY         (* glDeleteBuffers)(GLsizei n, const GLuint * buffers);
                 void GLAPIENTRY         (* glDrawBuffer)(GLenum buf);
                 void GLAPIENTRY         (* glNamedFramebufferDrawBuffer)(GLuint framebuffer, GLenum buf);
+                void GLAPIENTRY         (* glReadBuffer)(GLenum mode);
+                void GLAPIENTRY         (* glNamedFramebufferReadBuffer)(GLuint framebuffer, GLenum mode);
 
                 // Texture operations
                 void GLAPIENTRY         (* glGenTextures)(GLsizei n, GLuint * textures);
@@ -180,6 +182,23 @@ namespace lsp
                 // Drawing operations
                 void GLAPIENTRY         (* glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
                 void GLAPIENTRY         (* glClear)(GLbitfield mask);
+                void GLAPIENTRY         (* glBlitFramebuffer)(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+                void GLAPIENTRY         (* glBlitNamedFramebuffer)(GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+                void GLAPIENTRY         (* glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
+                void GLAPIENTRY         (* glFlush)();
+                void GLAPIENTRY         (* glFinish)();
+                void GLAPIENTRY         (* glEnable)(GLenum cap);
+                void GLAPIENTRY         (* glDisable)(GLenum cap);
+                void GLAPIENTRY         (* glEnablei)(GLenum cap, GLuint index);
+                void GLAPIENTRY         (* glDisablei)(GLenum cap, GLuint index);
+                void GLAPIENTRY         (* glDrawElements)(GLenum mode, GLsizei count, GLenum type, const void * indices);
+                void GLAPIENTRY         (* glStencilMask)(GLuint mask);
+                void GLAPIENTRY         (* glBlendFunc)(GLenum sfactor, GLenum dfactor);
+                void GLAPIENTRY         (* glBlendFunci)(GLuint buf, GLenum sfactor, GLenum dfactor);
+                void GLAPIENTRY         (* glStencilOp)(GLenum sfail, GLenum dpfail, GLenum dppass);
+                void GLAPIENTRY         (* glStencilFunc)(GLenum func, GLint ref, GLuint mask);
+                void GLAPIENTRY         (* glColorMask)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
+                void GLAPIENTRY         (* glColorMaski)(GLuint buf, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
             } vtbl_t;
 
         } /* namespace gl */

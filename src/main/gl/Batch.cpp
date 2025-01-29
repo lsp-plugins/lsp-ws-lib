@@ -271,7 +271,7 @@ namespace lsp
 //                    size_t texture_bytes = 0;
 //                );
 
-                glDisable(GL_DEPTH_TEST);
+                vtbl->glDisable(GL_DEPTH_TEST);
 
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
@@ -305,8 +305,8 @@ namespace lsp
                     // Configure stencil buffer
                     if (flags & BATCH_CLEAR_STENCIL)
                     {
-                        glStencilMask(0x01);
-                        glClear(GL_STENCIL_BUFFER_BIT);
+                        vtbl->glStencilMask(0x01);
+                        vtbl->glClear(GL_STENCIL_BUFFER_BIT);
                     }
 
                     // Check batch size
@@ -315,50 +315,50 @@ namespace lsp
 
                     // Control multisampling
                     if (flags & BATCH_MULTISAMPLE)
-                        glEnable(GL_MULTISAMPLE);
+                        vtbl->glEnable(GL_MULTISAMPLE);
                     else
-                        glDisable(GL_MULTISAMPLE);
+                        vtbl->glDisable(GL_MULTISAMPLE);
 
                     gl::Texture *texture = draw->header.pTexture;
 
                     // Blending function
                     if (flags & BATCH_NO_BLENDING)
-                        glBlendFunc(GL_ONE, GL_ZERO);
+                        vtbl->glBlendFunc(GL_ONE, GL_ZERO);
                     else
-                        glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-                    glEnable(GL_BLEND);
+                        vtbl->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                    vtbl->glEnable(GL_BLEND);
 
                     // Configure color buffer
                     const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;
-                    glColorMask(color_mask, color_mask, color_mask, color_mask);
+                    vtbl->glColorMask(color_mask, color_mask, color_mask, color_mask);
 
                     switch (flags & BATCH_STENCIL_OP_MASK)
                     {
                         case BATCH_STENCIL_OP_OR:
-                            glEnable(GL_STENCIL_TEST);
-                            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-                            glStencilFunc(GL_ALWAYS, 0x01, 0x01);
-                            glStencilMask(0x01);
+                            vtbl->glEnable(GL_STENCIL_TEST);
+                            vtbl->glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+                            vtbl->glStencilFunc(GL_ALWAYS, 0x01, 0x01);
+                            vtbl->glStencilMask(0x01);
                             break;
 
                         case BATCH_STENCIL_OP_XOR:
-                            glEnable(GL_STENCIL_TEST);
-                            glStencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
-                            glStencilFunc(GL_ALWAYS, 0x01, 0x01);
-                            glStencilMask(0x01);
+                            vtbl->glEnable(GL_STENCIL_TEST);
+                            vtbl->glStencilOp(GL_KEEP, GL_KEEP, GL_INVERT);
+                            vtbl->glStencilFunc(GL_ALWAYS, 0x01, 0x01);
+                            vtbl->glStencilMask(0x01);
                             break;
 
                         case BATCH_STENCIL_OP_APPLY:
-                            glEnable(GL_STENCIL_TEST);
-                            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-                            glStencilFunc(GL_EQUAL, 0x01, 0x01);
-                            glStencilMask(0x00);
+                            vtbl->glEnable(GL_STENCIL_TEST);
+                            vtbl->glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+                            vtbl->glStencilFunc(GL_EQUAL, 0x01, 0x01);
+                            vtbl->glStencilMask(0x00);
                             break;
 
                         case BATCH_STENCIL_OP_NONE:
                         default:
-                            glDisable(GL_STENCIL_TEST);
-                            glStencilMask(0x00);
+                            vtbl->glDisable(GL_STENCIL_TEST);
+                            vtbl->glStencilMask(0x00);
                             break;
                     }
 
@@ -445,7 +445,7 @@ namespace lsp
                         GL_UNSIGNED_BYTE;
 
                     // Draw content
-                    glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
+                    vtbl->glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
 
                     // Unbind buffers
                     vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);

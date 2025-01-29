@@ -148,6 +148,8 @@ namespace lsp
                 FETCH(glDeleteBuffers);
                 FETCH(glDrawBuffer);
                 FETCH(glNamedFramebufferDrawBuffer);
+                FETCH(glReadBuffer);
+                FETCH(glNamedFramebufferReadBuffer);
 
                 // Texture operations
                 FETCH(glGenTextures);
@@ -198,6 +200,23 @@ namespace lsp
                 // Drawing operations
                 FETCH(glClearColor);
                 FETCH(glClear);
+                FETCH(glBlitFramebuffer);
+                FETCH(glBlitNamedFramebuffer);
+                FETCH(glViewport);
+                FETCH(glFlush);
+                FETCH(glFinish);
+                FETCH(glEnable);
+                FETCH(glDisable);
+                FETCH(glEnablei);
+                FETCH(glDisablei);
+                FETCH(glDrawElements);
+                FETCH(glStencilMask);
+                FETCH(glBlendFunc);
+                FETCH(glBlendFunci);
+                FETCH(glStencilOp);
+                FETCH(glStencilFunc);
+                FETCH(glColorMask);
+                FETCH(glColorMaski);
 
                 return vtbl;
             }

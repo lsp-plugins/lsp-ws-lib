@@ -1190,7 +1190,7 @@ namespace lsp
                     if (status != GL_FRAMEBUFFER_COMPLETE)
                         lsp_warn("Framebuffer status: 0x%x", int(status));
 
-                    glViewport(0, 0, nWidth, nHeight);
+                    vtbl->glViewport(0, 0, nWidth, nHeight);
 
                     // Cleanup buffer if it was just created
                     if (fb_id == 0)
@@ -1205,17 +1205,20 @@ namespace lsp
                 }
                 else
                 {
-                    glViewport(0, 0, nWidth, nHeight);
+                    vtbl->glViewport(0, 0, nWidth, nHeight);
 
                     // Execute batch
                     if (pContext->active())
                         sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
-                    ::glFlush();
-                    ::glReadBuffer(GL_BACK);
-                    ::glDrawBuffer(GL_FRONT);
-                    ::glCopyPixels(0, 0, nWidth, nHeight, GL_COLOR);
+                    vtbl->glFinish();
+                    vtbl->glReadBuffer(GL_BACK);
+                    vtbl->glDrawBuffer(GL_FRONT);
+                    vtbl->glBlitFramebuffer(
+                        0, 0, nWidth, nHeight,
+                        0, 0, nWidth, nHeight,
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
                     pContext->deactivate();
                 }
             }

@@ -114,7 +114,7 @@ namespace lsp
 
                 if (nTextureId == 0)
                 {
-                    glGenTextures(1, &nTextureId);
+                    vtbl->glGenTextures(1, &nTextureId);
                     if (nTextureId == 0)
                         return STATUS_NO_MEM;
                 }
