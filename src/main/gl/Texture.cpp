@@ -121,12 +121,16 @@ namespace lsp
                         return STATUS_NO_MEM;
                 }
 
-                vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, stride / pixel_size);
-                lsp_finally { vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); };
+                const GLuint num_of_pixels = stride / pixel_size;
+                if (num_of_pixels != width)
+                    vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, num_of_pixels);
 
                 vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
                 vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
                 vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+
+                if (num_of_pixels != width)
+                    vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
                 nWidth      = uint32_t(width);
                 nHeight     = uint32_t(height);

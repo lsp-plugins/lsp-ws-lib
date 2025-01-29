@@ -43,6 +43,7 @@ namespace lsp
                 SHADER("flat out int b_index;")
                 SHADER("flat out int b_coloring;")
                 SHADER("flat out int b_clips;")
+                SHADER("out vec2 b_frag_coord;")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
@@ -50,6 +51,8 @@ namespace lsp
                 SHADER("    b_index = int(a_command >> 5);")
                 SHADER("    b_coloring = int(a_command >> 3) & 0x3;")
                 SHADER("    b_clips = int(a_command & 0x7u);")
+                SHADER("    b_frag_coord = a_vertex;")
+                SHADER("")
                 SHADER("    gl_Position = u_model * vec4(a_vertex, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
@@ -65,8 +68,7 @@ namespace lsp
                 SHADER("flat in int b_index;")
                 SHADER("flat in int b_coloring;")
                 SHADER("flat in int b_clips;")
-                SHADER("")
-                SHADER("layout(origin_upper_left) in vec4 gl_FragCoord;")
+                SHADER("in vec2 b_frag_coord;")
                 SHADER("")
                 SHADER("vec4 textureMultisample(sampler2DMS sampler, vec2 coord, float factor)")
                 SHADER("{")
@@ -88,10 +90,10 @@ namespace lsp
                 SHADER("    for (int i=0; i<b_clips; ++i)")
                 SHADER("    {")
                 SHADER("        vec4 rect = texelFetch(u_buf_commands, index);") // Axis-aligned bound box
-                SHADER("        if ((gl_FragCoord.x < rect.x) ||")
-                SHADER("            (gl_FragCoord.y < rect.y) ||")
-                SHADER("            (gl_FragCoord.x > rect.z) ||")
-                SHADER("            (gl_FragCoord.y > rect.w))")
+                SHADER("        if ((b_frag_coord.x < rect.x) ||")
+                SHADER("            (b_frag_coord.y < rect.y) ||")
+                SHADER("            (b_frag_coord.x > rect.z) ||")
+                SHADER("            (b_frag_coord.y > rect.w))")
                 SHADER("            discard;")
                 SHADER("        ++index;")
                 SHADER("    }")
@@ -106,7 +108,7 @@ namespace lsp
                 SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);")  // End color
                 SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);")  // Gradient parameters
                 SHADER("        vec2 dv = gp.zw - gp.xy;") // Gradient direction vector
-                SHADER("        vec2 dp = gl_FragCoord.xy - gp.xy;") // Dot direction vector
+                SHADER("        vec2 dp = b_frag_coord - gp.xy;") // Dot direction vector
                 SHADER("        gl_FragColor = mix(cs, ce, clamp(dot(dv, dp) / dot(dv, dv), 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 2)") // Radial gradient
@@ -115,7 +117,7 @@ namespace lsp
                 SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);")  // End color
                 SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);")  // Gradient parameters: center {xc, yc} and focal {xf, yf}
                 SHADER("        vec4 r  = texelFetch(u_buf_commands, index + 3);")  // Radius (R)
-                SHADER("        vec2 d  = gl_FragCoord.xy - gp.zw;")                // D = {x, y} - {xf, yf }
+                SHADER("        vec2 d  = b_frag_coord.xy - gp.zw;")                // D = {x, y} - {xf, yf }
                 SHADER("        vec2 f  = gp.zw - gp.xy;")                          // F = {xf, yf} - {xc, yc }
                 SHADER("        float a = dot(d.xy, d.xy);")                        // a = D*D = { Dx*Dx + Dy*Dy }
                 SHADER("        float b = 2.0f * dot(f.xy, d.xy);")                 // b = 2*F*D = { 2*Fx*Dx + 2*Fy*Dy }
