@@ -43,6 +43,8 @@ namespace lsp
 
             Texture::~Texture()
             {
+                if (nTextureId != 0)
+                    lsp_trace("this=%p, id=%d", this, int(nTextureId));
                 reset();
             }
 

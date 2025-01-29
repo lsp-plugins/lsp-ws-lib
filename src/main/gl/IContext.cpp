@@ -73,6 +73,11 @@ namespace lsp
                 }
                 if (vGcTexture.size() > 0)
                 {
+//                    GLuint *tex_id = vGcTexture.first();
+
+//                    for (size_t i=0; i<vGcTexture.size(); ++i)
+//                        lsp_trace("glDeleteTextures id=%d", int(tex_id[i]));
+
                     vtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());
                     vGcTexture.clear();
                 }
