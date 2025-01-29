@@ -1160,10 +1160,20 @@ namespace lsp
                         if (pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_PRGBA32, multisample) != STATUS_OK)
                             return;
                     }
-                    vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
-                    vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                    vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, pTexture->id(), 0);
+                    if (multisample > 0)
+                    {
+                        vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
+                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, pTexture->id(), 0);
+                    }
+                    else
+                    {
+                        vtbl->glBindTexture(GL_TEXTURE_2D, pTexture->id());
+                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pTexture->id(), 0);
+                    }
 
                     // Ensure that stencil buffer is set and bind it
                     if (nStencilBufferId == 0)
