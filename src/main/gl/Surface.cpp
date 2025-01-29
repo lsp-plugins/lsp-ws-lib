@@ -1184,13 +1184,13 @@ namespace lsp
 
                         vtbl->glBindRenderbuffer(GL_RENDERBUFFER, nStencilBufferId);
                         if (multisample > 0)
-                            vtbl->glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_DEPTH24_STENCIL8, nWidth, nHeight);
+                            vtbl->glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_STENCIL_INDEX8, nWidth, nHeight);
                         else
-                            vtbl->glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, nWidth, nHeight);
+                            vtbl->glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, nWidth, nHeight);
                         vtbl->glBindRenderbuffer(GL_RENDERBUFFER, 0);
                     }
 
-                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, nStencilBufferId);
+                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, nStencilBufferId);
 
                     // Set the list of draw buffers.
                     GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
@@ -1212,6 +1212,16 @@ namespace lsp
                     // Execute batch
                     if (pContext->active())
                         sBatch.execute(pContext, vUniforms.array());
+
+                    // Unbind
+                    vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+
+                    // Unbind texture
+                    if (multisample > 0)
+                        vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+                    else
+                        vtbl->glBindTexture(GL_TEXTURE_2D, 0);
                 }
                 else
                 {
