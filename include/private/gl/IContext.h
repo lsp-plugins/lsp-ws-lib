@@ -68,7 +68,6 @@ namespace lsp
             {
                 private:
                     uatomic_t       nReferences;
-                    bool            bActive;
                     bool            bValid;
 
                     lltl::darray<GLuint> vGcFramebuffer;
@@ -91,28 +90,24 @@ namespace lsp
                 protected:
                     void        perform_gc();
 
-                protected:
-                    virtual status_t    do_activate();
-                    virtual status_t    do_deactivate();
-
                 public:
                     /**
                      * Check if context is currently active
                      * @return true if context is currently active
                      */
-                    inline bool active() const  { return bActive; }
+                    virtual bool active() const;
 
                     /**
                      * Activate context
                      * @return status of operation
                      */
-                    status_t activate();
+                    virtual status_t activate();
 
                     /**
                      * Deactivate context
                      * @return status of operation
                      */
-                    status_t deactivate();
+                    virtual status_t deactivate();
 
                     /**
                      * Mark OpenGL context as invalid

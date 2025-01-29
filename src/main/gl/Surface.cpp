@@ -279,6 +279,9 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a)
             {
+                if (!bIsDrawing)
+                    return -STATUS_BAD_STATE;
+
                 // Start batch
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
@@ -941,6 +944,7 @@ namespace lsp
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
+
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
                 gl::Texture *t = gls->pTexture;
                 if (t == NULL)
@@ -971,6 +975,7 @@ namespace lsp
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
+
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
                 gl::Texture *t = gls->pTexture;
                 if (t == NULL)
@@ -1008,6 +1013,7 @@ namespace lsp
                 // Create texture
                 if (!bIsDrawing)
                     return;
+
                 if (s->type() != ST_OPENGL)
                     return;
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
@@ -1046,6 +1052,11 @@ namespace lsp
                 // Create texture
                 if (!bIsDrawing)
                     return;
+
+                // Activate context
+                if (pContext->activate() != STATUS_OK)
+                    return;
+
                 gl::Texture *tex = new gl::Texture(pContext);
                 if (tex == NULL)
                     return;
@@ -1100,13 +1111,15 @@ namespace lsp
                 end();
 
                 // Activate GLX context
-                if (!bNested)
-                    pContext->activate();
-                else if (!pContext->active())
-                    lsp_warn("OpenGL root context is not active");
+                if (bNested)
+                    bIsDrawing  = true;
+                else
+                {
+                    if (pContext->activate() == STATUS_OK)
+                        bIsDrawing  = true;
+                }
 
                 sBatch.clear();
-                bIsDrawing      = true;
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
@@ -1117,9 +1130,13 @@ namespace lsp
             {
                 if (!bIsDrawing)
                     return;
-                lsp_finally { bIsDrawing = false; };
+                lsp_finally
+                {
+                    sBatch.clear();
+                    bIsDrawing = false;
+                };
 
-                if (pContext == NULL)
+                if (pContext->activate() != STATUS_OK)
                     return;
 
             #ifdef LSP_DEBUG
@@ -1225,6 +1242,8 @@ namespace lsp
                 }
                 else
                 {
+                    // Set drawing buffer and viewport
+                    vtbl->glDrawBuffer(GL_BACK);
                     vtbl->glViewport(0, 0, nWidth, nHeight);
 
                     // Execute batch
@@ -1232,13 +1251,14 @@ namespace lsp
                         sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
-                    vtbl->glFinish();
                     vtbl->glReadBuffer(GL_BACK);
                     vtbl->glDrawBuffer(GL_FRONT);
                     vtbl->glBlitFramebuffer(
                         0, 0, nWidth, nHeight,
                         0, 0, nWidth, nHeight,
                         GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+                    // Deactivate context
                     pContext->deactivate();
                 }
             }

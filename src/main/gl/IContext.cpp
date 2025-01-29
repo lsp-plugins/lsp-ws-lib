@@ -33,7 +33,6 @@ namespace lsp
             IContext::IContext()
             {
                 atomic_store(&nReferences, 1);
-                bActive     = false;
                 bValid      = true;
             }
 
@@ -50,11 +49,7 @@ namespace lsp
             {
                 uatomic_t result = atomic_add(&nReferences, -1) - 1;
                 if (result == 0)
-                {
-                    if (active())
-                        deactivate();
                     delete this;
-                }
                 return result;
             }
 
@@ -83,32 +78,20 @@ namespace lsp
                 }
             }
 
+            bool IContext::active() const
+            {
+                return false;
+            }
+
             status_t IContext::activate()
             {
-                if (bActive)
-                    return STATUS_ALREADY_BOUND;
-                bActive         = true;
-
-                status_t res    = do_activate();
-                if (res != STATUS_OK)
-                    bActive         = false;
-                else
-                    perform_gc();
-
-                return res;
+                return STATUS_NOT_IMPLEMENTED;
             }
 
             status_t IContext::deactivate()
             {
-                if (!bActive)
-                    return STATUS_NOT_BOUND;
-
                 perform_gc();
-
-                status_t res = do_deactivate();
-                if (res == STATUS_OK)
-                    bActive         = false;
-                return res;
+                return STATUS_NOT_IMPLEMENTED;
             }
 
             void IContext::invalidate()
@@ -120,16 +103,6 @@ namespace lsp
             bool IContext::valid() const
             {
                 return bValid;
-            }
-
-            status_t IContext::do_activate()
-            {
-                return STATUS_NOT_IMPLEMENTED;
-            }
-
-            status_t IContext::do_deactivate()
-            {
-                return STATUS_NOT_IMPLEMENTED;
             }
 
             status_t IContext::program(size_t *id, program_t program)

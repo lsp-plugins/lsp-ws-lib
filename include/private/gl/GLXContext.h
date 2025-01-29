@@ -88,15 +88,14 @@ namespace lsp
                     void                clear_errors();
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
 
-                protected:
-                    virtual status_t    do_activate() override;
-                    virtual status_t    do_deactivate() override;
-
                 public:
                     explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl, uint32_t multisample);
                     virtual ~Context() override;
 
                 public:
+                    virtual bool        active() const override;
+                    virtual status_t    activate() override;
+                    virtual status_t    deactivate() override;
                     virtual status_t    program(size_t *id, gl::program_t program) override;
                     virtual const gl::vtbl_t *vtbl() const override;
                     virtual uint32_t    multisample() const override;

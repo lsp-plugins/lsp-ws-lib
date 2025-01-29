@@ -66,14 +66,6 @@ namespace lsp
                 None
             };
 
-            static const int glx_legacy_context_attribs[] =
-            {
-                GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-                GLX_CONTEXT_MINOR_VERSION_ARB, 0,
-                None
-            };
-
-
             typedef GLXContext (*glXCreateContextAttribsARBProc)(
                 Display *dpy,
                 GLXFBConfig config,
@@ -121,8 +113,8 @@ namespace lsp
                         GLXFBConfig fbc = fb_list[i];
                         int sample_buffers = 0;
                         int samples = 0;
-                        glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLE_BUFFERS, &sample_buffers);
-                        glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLES, &samples);
+                        ::glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLE_BUFFERS, &sample_buffers);
+                        ::glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLES, &samples);
                         if (samples > max_multisampling)
                             continue;
 
@@ -145,12 +137,12 @@ namespace lsp
                         int depth_size = 0;
                         int stencil_size = 0;
 
-                        glXGetFBConfigAttrib(dpy, result, GLX_RED_SIZE, &red_size);
-                        glXGetFBConfigAttrib(dpy, result, GLX_GREEN_SIZE, &green_size);
-                        glXGetFBConfigAttrib(dpy, result, GLX_BLUE_SIZE, &blue_size);
-                        glXGetFBConfigAttrib(dpy, result, GLX_ALPHA_SIZE, &alpha_size);
-                        glXGetFBConfigAttrib(dpy, result, GLX_DEPTH_SIZE, &depth_size);
-                        glXGetFBConfigAttrib(dpy, result, GLX_STENCIL_SIZE, &stencil_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_RED_SIZE, &red_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_GREEN_SIZE, &green_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_BLUE_SIZE, &blue_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_ALPHA_SIZE, &alpha_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_DEPTH_SIZE, &depth_size);
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_STENCIL_SIZE, &stencil_size);
 
                         lsp_trace("Selected fb_config: rgba={%d, %d, %d, %d}, depth=%d, stencil=%d, multisampling={%d, %d}",
                             red_size, green_size, blue_size, alpha_size, depth_size, stencil_size, max_sample_buffers, max_samples);
@@ -233,21 +225,30 @@ namespace lsp
                 lsp_trace("Destroyed GLX context ptr=%p", this);
             }
 
-            status_t Context::do_activate()
+            bool Context::active() const
             {
+                GLXContext ctx = ::glXGetCurrentContext();
+                return ctx == hContext;
+            }
+
+            status_t Context::activate()
+            {
+                if (::glXGetCurrentContext() == hContext)
+                    return STATUS_OK;
+
                 if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
                     return STATUS_UNKNOWN_ERR;
-
-                pVtbl->glDrawBuffer(GL_BACK);
-
-                size_t id = 0;
-                program(&id, gl::GEOMETRY);
 
                 return STATUS_OK;
             }
 
-            status_t Context::do_deactivate()
+            status_t Context::deactivate()
             {
+                if (::glXGetCurrentContext() != hContext)
+                    return STATUS_BAD_STATE;
+
+                perform_gc();
+
                 ::glXSwapBuffers(pDisplay, hWindow);
                 ::glXMakeCurrent(pDisplay, None, NULL);
 
@@ -486,17 +487,13 @@ namespace lsp
 
                 // Try to create OpenGL 3.0+ context
                 GLXContext ctx = NULL;
-                const char *extensions = glXQueryExtensionsString(dpy, screen);
+                const char *extensions = ::glXQueryExtensionsString(dpy, screen);
                 if ((check_gl_extension(extensions, "GLX_ARB_create_context")) &&
                     (vtbl->glXCreateContextAttribsARB != NULL))
                 {
                     ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_context_attribs);
                     if (ctx == NULL)
                         ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_context_attribs);
-                    if (ctx == NULL)
-                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_legacy_context_attribs);
-                    if (ctx == NULL)
-                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_legacy_context_attribs);
                 }
 
                 if (ctx == NULL)
@@ -512,7 +509,7 @@ namespace lsp
                 glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl, max_multisampling);
                 if (glx_ctx == NULL)
                 {
-                    glXDestroyContext(dpy, ctx);
+                    ::glXDestroyContext(dpy, ctx);
                     return NULL;
                 }
 
