@@ -1127,6 +1127,7 @@ namespace lsp
 
             void Surface::end()
             {
+                // Update drawing status
                 if (!bIsDrawing)
                     return;
                 lsp_finally
@@ -1135,23 +1136,26 @@ namespace lsp
                     bIsDrawing = false;
                 };
 
-                // Activate OpenGL context for drawing
-                if (pContext->activate() != STATUS_OK)
-                    return;
-
-            #ifdef LSP_DEBUG
-                if (nNumClips > 0)
-                    lsp_error("Mismatching number of clip_begin() and clip_end() calls");
-            #endif /* LSP_DEBUG */
-
                 // Update uniforms
                 if (!update_uniforms())
                     return;
 
-                // Framebuffer
+                #ifdef LSP_DEBUG
+                    if (nNumClips > 0)
+                        lsp_error("Mismatching number of clip_begin() and clip_end() calls");
+                #endif /* LSP_DEBUG */
+
+                // Activate OpenGL context for drawing
+                if (pContext->activate() != STATUS_OK)
+                    return;
+                lsp_finally {
+                    if (!bNested)
+                        pContext->deactivate();
+                };
+
+                // Perform rendering of the collected batch
                 const gl::vtbl_t *vtbl = pContext->vtbl();
 
-                // Set-up rendering destination
                 if (bNested)
                 {
                     // Ensure that texture is properly initialized
@@ -1188,9 +1192,6 @@ namespace lsp
                         0, 0, nWidth, nHeight,
                         0, 0, nWidth, nHeight,
                         GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
-                    // Deactivate context
-                    pContext->deactivate();
                 }
             }
 
