@@ -73,8 +73,6 @@ namespace lsp
                     gl::IContext           *pContext;
                     gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::Batch               sBatch;
-                    GLuint                  nFramebufferId;
-                    GLuint                  nStencilBufferId;
                     size_t                  nWidth;
                     size_t                  nHeight;
                     size_t                  nNumClips;
@@ -108,7 +106,8 @@ namespace lsp
 
                 protected:
                     uint32_t enrich_flags(uint32_t flags) const;
-                    void sync_matrix();
+                    void                    sync_matrix();
+                    bool                    update_uniforms();
 
                     ssize_t start_batch(gl::program_t program, uint32_t flags);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, const Color & color);

@@ -54,8 +54,6 @@ namespace lsp
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
-                nFramebufferId  = 0;
-                nStencilBufferId= 0;
                 nWidth          = width;
                 nHeight         = height;
                 nNumClips       = 0;
@@ -78,8 +76,6 @@ namespace lsp
                 pDisplay        = NULL;
                 pContext        = NULL;
                 pTexture        = NULL;
-                nFramebufferId  = 0;
-                nStencilBufferId= 0;
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
@@ -137,24 +133,10 @@ namespace lsp
             {
                 sBatch.clear();
 
-                if (pContext != NULL)
+                if ((pContext != NULL) && (!bNested))
                 {
-                    if (nFramebufferId != 0)
-                    {
-                        pContext->free_framebuffer(nFramebufferId);
-                        nFramebufferId = 0;
-                    }
-                    if (nStencilBufferId != 0)
-                    {
-                        pContext->free_framebuffer(nStencilBufferId);
-                        nStencilBufferId = 0;
-                    }
-
-                    if (!bNested)
-                    {
-                        pContext->invalidate();
-                        lsp_trace("primary surface destroyed ptr=%p", this);
-                    }
+                    pContext->invalidate();
+                    lsp_trace("primary surface destroyed ptr=%p", this);
                 }
 
                 safe_release(pTexture);
@@ -1089,12 +1071,6 @@ namespace lsp
                 nWidth      = width;
                 nHeight     = height;
 
-                if (nFramebufferId != 0)
-                {
-                    if (pContext != NULL)
-                        pContext->free_framebuffer(nFramebufferId);
-                    nFramebufferId = 0;
-                }
                 safe_release(pTexture);
 
                 sync_matrix();
@@ -1126,6 +1102,29 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
+            bool Surface::update_uniforms()
+            {
+                vUniforms.clear();
+                gl::uniform_t *model = vUniforms.add();
+                if (model == NULL)
+                    return false;
+
+                gl::uniform_t *end = vUniforms.add();
+                if (end == NULL)
+                    return false;
+
+
+                model->name     = "u_model";
+                model->type     = gl::UNI_MAT4F;
+                model->f32      = vMatrix;
+
+                end->name       = NULL;
+                end->type       = gl::UNI_NONE;
+                end->raw        = NULL;
+
+                return true;
+            }
+
             void Surface::end()
             {
                 if (!bIsDrawing)
@@ -1136,6 +1135,7 @@ namespace lsp
                     bIsDrawing = false;
                 };
 
+                // Activate OpenGL context for drawing
                 if (pContext->activate() != STATUS_OK)
                     return;
 
@@ -1144,111 +1144,42 @@ namespace lsp
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
 
-                vUniforms.clear();
-                vUniforms.add(gl::uniform_t { "u_model", gl::UNI_MAT4F, vMatrix });
-                vUniforms.add(gl::uniform_t { NULL, gl::UNI_NONE, NULL });
+                // Update uniforms
+                if (!update_uniforms())
+                    return;
 
                 // Framebuffer
                 const gl::vtbl_t *vtbl = pContext->vtbl();
-                const size_t multisample = pContext->multisample();
 
                 // Set-up rendering destination
                 if (bNested)
                 {
-                    // Ensure that framebuffer is set and bind it
-                    GLuint fb_id    = nFramebufferId;
-                    if (fb_id == 0)
-                    {
-                        vtbl->glGenFramebuffers(1, &nFramebufferId);
-                        if (nFramebufferId == 0)
-                            return;
-                    }
-                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, nFramebufferId);
-                    lsp_finally {
-                        vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                    };
-
-                    // Ensure that target texture is initialized
+                    // Ensure that texture is properly initialized
                     if (pTexture == NULL)
                     {
                         pTexture        = new gl::Texture(pContext);
                         if (pTexture == NULL)
                             return;
-                        if (pTexture->init_multisample(nWidth, nHeight, gl::TEXTURE_PRGBA32, multisample) != STATUS_OK)
-                            return;
-                    }
-                    if (multisample > 0)
-                    {
-                        vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, pTexture->id());
-                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                        vtbl->glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, pTexture->id(), 0);
-                    }
-                    else
-                    {
-                        vtbl->glBindTexture(GL_TEXTURE_2D, pTexture->id());
-                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                        vtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pTexture->id(), 0);
                     }
 
-                    // Ensure that stencil buffer is set and bind it
-                    if (nStencilBufferId == 0)
-                    {
-                        vtbl->glGenRenderbuffers(1, &nStencilBufferId);
-                        if (nStencilBufferId == 0)
-                            return;
-
-                        vtbl->glBindRenderbuffer(GL_RENDERBUFFER, nStencilBufferId);
-                        if (multisample > 0)
-                            vtbl->glRenderbufferStorageMultisample(GL_RENDERBUFFER, multisample, GL_STENCIL_INDEX8, nWidth, nHeight);
-                        else
-                            vtbl->glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, nWidth, nHeight);
-                        vtbl->glBindRenderbuffer(GL_RENDERBUFFER, 0);
-                    }
-
-                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, nStencilBufferId);
-
-                    // Set the list of draw buffers.
-                    GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
-                    vtbl->glDrawBuffers(1, buffers);
-
-                    GLenum status = vtbl->glCheckFramebufferStatus(GL_FRAMEBUFFER);
-                    if (status != GL_FRAMEBUFFER_COMPLETE)
-                        lsp_warn("Framebuffer status: 0x%x", int(status));
-
-                    vtbl->glViewport(0, 0, nWidth, nHeight);
-
-                    // Cleanup buffer if it was just created
-                    if (fb_id == 0)
-                    {
-                        vtbl->glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                        vtbl->glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-                    }
+                    // Setup texture for drawing
+                    status_t res = pTexture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
+                    if (res != STATUS_OK)
+                        return;
+                    lsp_finally { pTexture->end_draw(); };
 
                     // Execute batch
-                    if (pContext->active())
-                        sBatch.execute(pContext, vUniforms.array());
-
-                    // Unbind
-                    vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
-                    vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
-
-                    // Unbind texture
-                    if (multisample > 0)
-                        vtbl->glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
-                    else
-                        vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                    vtbl->glViewport(0, 0, nWidth, nHeight);
+                    sBatch.execute(pContext, vUniforms.array());
                 }
                 else
                 {
                     // Set drawing buffer and viewport
                     vtbl->glDrawBuffer(GL_BACK);
-                    vtbl->glViewport(0, 0, nWidth, nHeight);
 
                     // Execute batch
-                    if (pContext->active())
-                        sBatch.execute(pContext, vUniforms.array());
+                    vtbl->glViewport(0, 0, nWidth, nHeight);
+                    sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
                     vtbl->glReadBuffer(GL_BACK);

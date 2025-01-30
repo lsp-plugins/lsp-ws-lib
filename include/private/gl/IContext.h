@@ -143,10 +143,16 @@ namespace lsp
 
                 public:
                     /**
-                     * Put framebuffer to list of destruction
+                     * Put frame buffer to list of destruction
                      * @param id framebuffer identifier
                      */
                     virtual void free_framebuffer(GLuint id);
+
+                    /**
+                     * Put render buffer to list of destruction
+                     * @param id render buffer identifier
+                     */
+                    virtual void free_renderbuffer(GLuint id);
 
                     /**
                      * Put texture to list of destruction

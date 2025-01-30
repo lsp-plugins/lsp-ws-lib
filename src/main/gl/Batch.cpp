@@ -319,8 +319,6 @@ namespace lsp
                     else
                         vtbl->glDisable(GL_MULTISAMPLE);
 
-                    gl::Texture *texture = draw->header.pTexture;
-
                     // Blending function
                     if (flags & BATCH_NO_BLENDING)
                         vtbl->glBlendFunc(GL_ONE, GL_ZERO);
@@ -378,10 +376,12 @@ namespace lsp
                     // Vertex buffer
                     vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
                     vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
+                    lsp_finally { vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0); };
 
                     // Element array buffer
                     vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
                     vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
+                    lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); };
 
                     // Command buffer
                     const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
@@ -396,24 +396,45 @@ namespace lsp
                         vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
                         vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
                     }
+                    lsp_finally {
+                        if (u_commands > 0)
+                        {
+                            vtbl->glBindTexture(GL_TEXTURE_BUFFER, 0);
+                            vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
+                        }
+                    };
 
-                    // Optional texture
+                    // Optional masking texture
                     const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
+                    gl::Texture *mask_texture = NULL;
                     if (u_texture > 0)
                     {
                         vtbl->glUniform1i(u_texture, 1);
 
-                        gl::Texture *tex = draw->header.pTexture;
-                        if ((tex != NULL) && (tex->valid()))
-                            draw->header.pTexture->activate(GL_TEXTURE1);
+                        mask_texture = draw->header.pTexture;
+                        if ((mask_texture != NULL) && (mask_texture->valid()))
+                            mask_texture->activate(GL_TEXTURE1);
                     }
+                    lsp_finally {
+                        if (mask_texture != NULL)
+                            mask_texture->deactivate();
+                    };
+
+                    // Optinal multisampled masking texture
                     const GLint u_ms_texture = vtbl->glGetUniformLocation(program_id, "u_ms_texture");
+                    gl::Texture *ms_mask_texture = NULL;
                     if (u_texture > 0)
                     {
                         vtbl->glUniform1i(u_ms_texture, 2);
-                        if ((texture != NULL) && (texture->valid()))
-                            draw->header.pTexture->activate(GL_TEXTURE2);
+
+                        ms_mask_texture = draw->header.pTexture;
+                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
+                            ms_mask_texture->activate(GL_TEXTURE2);
                     }
+                    lsp_finally {
+                        if (ms_mask_texture != NULL)
+                            ms_mask_texture->deactivate();
+                    };
 
                     // Bind vertex attributes
                     const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
@@ -446,11 +467,6 @@ namespace lsp
 
                     // Draw content
                     vtbl->glDrawElements(GL_TRIANGLES, draw->indices.count, index_type, NULL);
-
-                    // Unbind buffers
-                    vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0);
-                    vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-                    vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
                 }
 
 //                IF_TRACE(

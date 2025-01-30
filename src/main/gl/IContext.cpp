@@ -68,11 +68,6 @@ namespace lsp
                 }
                 if (vGcTexture.size() > 0)
                 {
-//                    GLuint *tex_id = vGcTexture.first();
-
-//                    for (size_t i=0; i<vGcTexture.size(); ++i)
-//                        lsp_trace("glDeleteTextures id=%d", int(tex_id[i]));
-
                     vtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());
                     vGcTexture.clear();
                 }
@@ -96,6 +91,10 @@ namespace lsp
 
             void IContext::invalidate()
             {
+                activate();
+                perform_gc();
+                deactivate();
+
                 lsp_trace("OpenGL context invalidated ptr=%p", this);
                 bValid          = false;
             }
@@ -123,6 +122,11 @@ namespace lsp
             void IContext::free_framebuffer(GLuint id)
             {
                 vGcFramebuffer.add(&id);
+            }
+
+            void IContext::free_renderbuffer(GLuint id)
+            {
+                vGcRenderbuffer.add(&id);
             }
 
             void IContext::free_texture(GLuint id)
