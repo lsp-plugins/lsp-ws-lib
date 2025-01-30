@@ -488,9 +488,14 @@ namespace lsp
 
                 // Check if we need to resize the buffer
                 vbuffer_t & buf = pCurrent->vertices;
-                if ((buf.count + count) > buf.capacity)
+                const size_t new_count = buf.count + count;
+                if (new_count > buf.capacity)
                 {
-                    const size_t new_cap    = buf.capacity << 1;
+                    // Estimate new capacity
+                    size_t new_cap          = buf.capacity << 1;
+                    while (new_cap < new_count)
+                        new_cap               <<= 1;
+
                     vertex_t *ptr           = static_cast<vertex_t *>(realloc(buf.v, sizeof(vertex_t) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
@@ -538,24 +543,14 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::next_vertex_index() const
+            vertex_t *Batch::add_vertices(size_t count)
             {
-                IF_DEBUG(
-                    if (pCurrent == NULL)
-                        return -STATUS_BAD_STATE;
-                );
-
-                return pCurrent->vertices.count;
+                const ssize_t index     = alloc_vertices(count);
+                return (index >= 0) ? &pCurrent->vertices.v[index] : NULL;
             }
 
-            ssize_t Batch::alloc_indices(size_t count, size_t max_index)
+            ssize_t Batch::alloc_indices(size_t count, uint32_t max_index)
             {
-                // Check indices
-                IF_DEBUG(
-                    if (max_index > UINT32_MAX)
-                        return -STATUS_OVERFLOW;
-                );
-
                 // Check indices
                 ibuffer_t & buf     = pCurrent->indices;
                 const size_t new_size   = buf.count + count;
@@ -612,7 +607,7 @@ namespace lsp
                 return result;
             }
 
-            ssize_t Batch::triangle(size_t a, size_t b, size_t c)
+            ssize_t Batch::triangle(uint32_t a, uint32_t b, uint32_t c)
             {
                 const ssize_t index     = alloc_indices(3, lsp_max(a, b, c));
                 if (index < 0)
@@ -621,9 +616,9 @@ namespace lsp
                 ibuffer_t & buf     = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
-                    buf.u32[index]      = uint32_t(a);
-                    buf.u32[index+1]    = uint32_t(b);
-                    buf.u32[index+2]    = uint32_t(c);
+                    buf.u32[index]      = a;
+                    buf.u32[index+1]    = b;
+                    buf.u32[index+2]    = c;
                 }
                 else if (buf.szof > sizeof(uint8_t))
                 {
@@ -641,7 +636,7 @@ namespace lsp
                 return index;
             }
 
-            ssize_t Batch::rectangle(size_t a, size_t b, size_t c, size_t d)
+            ssize_t Batch::rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
             {
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
                 if (index < 0)
@@ -651,12 +646,12 @@ namespace lsp
                 ibuffer_t & buf     = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
-                    buf.u32[index]      = uint32_t(a);
-                    buf.u32[index+1]    = uint32_t(b);
-                    buf.u32[index+2]    = uint32_t(c);
-                    buf.u32[index+3]    = uint32_t(c);
-                    buf.u32[index+4]    = uint32_t(d);
-                    buf.u32[index+5]    = uint32_t(a);
+                    buf.u32[index]      = a;
+                    buf.u32[index+1]    = b;
+                    buf.u32[index+2]    = c;
+                    buf.u32[index+3]    = c;
+                    buf.u32[index+4]    = d;
+                    buf.u32[index+5]    = a;
                 }
                 else if (buf.szof > sizeof(uint8_t))
                 {

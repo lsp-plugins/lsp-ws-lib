@@ -94,19 +94,18 @@ namespace lsp
                 };
             } uniform_t;
 
+            typedef struct vertex_t
+            {
+                float       x;      // X Coordinate
+                float       y;      // Y Coordinate
+                float       s;      // Texture Coordinate S
+                float       t;      // Texture Coordinate T
+                uint32_t    cmd;    // Draw command
+            } vertex_t;
 
             class LSP_HIDDEN_MODIFIER Batch
             {
                 private:
-                    typedef struct vertex_t
-                    {
-                        float       x;      // X Coordinate
-                        float       y;      // Y Coordinate
-                        float       s;      // Texture Coordinate S
-                        float       t;      // Texture Coordinate T
-                        uint32_t    cmd;    // Draw command
-                    } vertex_t;
-
                     typedef struct vbuffer_t
                     {
                         vertex_t   *v;
@@ -154,7 +153,7 @@ namespace lsp
                     static void bind_uniforms(const gl::vtbl_t *vtbl, GLuint program, const gl::uniform_t *uniform);
 
                 private:
-                    ssize_t         alloc_indices(size_t count, size_t max_index);
+                    ssize_t         alloc_indices(size_t count, uint32_t max_index);
                     ssize_t         alloc_vertices(size_t count);
 
                 public:
@@ -224,7 +223,14 @@ namespace lsp
                      * Identifier of the next vertex that will be allocated on addition call
                      * @return identifier of the next allocated vertex
                      */
-                    ssize_t next_vertex_index() const;
+                    inline uint32_t next_vertex_index() const { return pCurrent->vertices.count; }
+
+                    /**
+                     * Add new set of vertices
+                     * @param count number of vertices to add
+                     * @return pointer to first added vertex or NULL
+                     */
+                    vertex_t *add_vertices(size_t count);
 
                     /**
                      * Add triangle
@@ -233,7 +239,7 @@ namespace lsp
                      * @param c relative index of the third vertex
                      * @return absolute index of record in index buffer or negative error code
                      */
-                    ssize_t triangle(size_t a, size_t b, size_t c);
+                    ssize_t triangle(uint32_t a, uint32_t b, uint32_t c);
 
                     /**
                      * Add rectangle
@@ -243,7 +249,7 @@ namespace lsp
                      * @param d relative index of the fourth vertex
                      * @return absolute index of record in index buffer or negative error code
                      */
-                    ssize_t rectangle(size_t a, size_t b, size_t c, size_t d);
+                    ssize_t rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
 
                     /**
                      * Add command

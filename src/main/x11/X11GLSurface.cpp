@@ -28,6 +28,16 @@ namespace lsp
     {
         namespace x11
         {
+            #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
+                v->x        = v_x; \
+                v->y        = v_y; \
+                v->s        = v_s; \
+                v->t        = v_t; \
+                v->cmd      = v_ci; \
+                ++v;
+
+            #define ADD_VERTEX(v, v_ci, v_x, v_y)  ADD_TVERTEX(v, v_ci, v_x, v_y, 0.0f, 0.0f)
+
             X11GLSurface::X11GLSurface(X11Display *display, gl::IContext *ctx, size_t width, size_t height):
                 gl::Surface(display, ctx, width, height)
             {
@@ -195,10 +205,16 @@ namespace lsp
                     const float xe      = x + bitmap->width;
                     const float ye      = y + bitmap->height;
 
-                    const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
-                    sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
-                    sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
-                    sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
+                    const uint32_t vi   = sBatch.next_vertex_index();
+                    gl::vertex_t *v     = sBatch.add_vertices(4);
+                    if (v == NULL)
+                        return;
+
+                    ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
+
                     sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
 
@@ -280,10 +296,16 @@ namespace lsp
                     const float xe      = x + bitmap->width;
                     const float ye      = y + bitmap->height;
 
-                    const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
-                    sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
-                    sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
-                    sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
+                    const uint32_t vi   = sBatch.next_vertex_index();
+                    gl::vertex_t *v     = sBatch.add_vertices(4);
+                    if (v == NULL)
+                        return;
+
+                    ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
+
                     sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
 

@@ -46,6 +46,16 @@ namespace lsp
     {
         namespace gl
         {
+            #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
+                v->x        = v_x; \
+                v->y        = v_y; \
+                v->s        = v_s; \
+                v->t        = v_t; \
+                v->cmd      = v_ci; \
+                ++v;
+
+            #define ADD_VERTEX(v, v_ci, v_x, v_y)  ADD_TVERTEX(v, v_ci, v_x, v_y, 0.0f, 0.0f)
+
             constexpr float k_color = 1.0f / 255.0f;
 
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
@@ -407,18 +417,30 @@ namespace lsp
 
             void Surface::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
-                sBatch.vertex(ci, x1, y1);
-                sBatch.vertex(ci, x2, y2);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(3);
+                if (v == NULL)
+                    return;
+
+                ADD_VERTEX(v, ci, x0, y0);
+                ADD_VERTEX(v, ci, x1, y1);
+                ADD_VERTEX(v, ci, x2, y2);
+
                 sBatch.triangle(vi, vi + 1, vi + 2);
             }
 
             void Surface::fill_rect(uint32_t ci, float x0, float y0, float x1, float y1)
             {
-                const ssize_t vi    = sBatch.vertex(ci, x0, y0);
-                sBatch.vertex(ci, x0, y1);
-                sBatch.vertex(ci, x1, y1);
-                sBatch.vertex(ci, x1, y0);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_VERTEX(v, ci, x0, y0);
+                ADD_VERTEX(v, ci, x0, y1);
+                ADD_VERTEX(v, ci, x1, y1);
+                ADD_VERTEX(v, ci, x1, y0);
+
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -437,10 +459,16 @@ namespace lsp
                 const float ndx = -dy * kd;
                 const float ndy = dx * kd;
 
-                const ssize_t vi = sBatch.vertex(ci, x0 + ndx, y0 + ndy);
-                sBatch.vertex(ci, x0 - ndx, y0 - ndy);
-                sBatch.vertex(ci, x1 - ndx, y1 - ndy);
-                sBatch.vertex(ci, x1 + ndx, y1 + ndy);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_VERTEX(v, ci, x0 + ndx, y0 + ndy);
+                ADD_VERTEX(v, ci, x0 - ndx, y0 - ndy);
+                ADD_VERTEX(v, ci, x1 - ndx, y1 - ndy);
+                ADD_VERTEX(v, ci, x1 + ndx, y1 + ndy);
+
                 sBatch.rectangle(vi, vi+1, vi+2, vi+3);
             }
 
@@ -449,8 +477,14 @@ namespace lsp
                 if (n < 3)
                     return;
 
-                const ssize_t v0i   = sBatch.vertex(ci, x[0], y[0]);
-                ssize_t vi          = sBatch.vertex(ci, x[1], y[1]);
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(n);
+                if (v == NULL)
+                    return;
+
+                uint32_t vi         = v0i + 1;
+                ADD_VERTEX(v, ci, x[0], y[0]);
+                ADD_VERTEX(v, ci, x[1], y[1]);
 
                 rect.left           = lsp_min(x[0], x[1]);
                 rect.top            = lsp_min(y[0], y[1]);
@@ -460,7 +494,7 @@ namespace lsp
                 for (size_t i=2; i<n; ++i)
                 {
                     extend_rect(rect, x[i], y[i]);
-                    sBatch.vertex(ci, x[i], y[i]);
+                    ADD_VERTEX(v, ci, x[i], y[i]);
                     sBatch.triangle(v0i, vi, vi + 1);
                     ++vi;
                 }
@@ -482,8 +516,14 @@ namespace lsp
                 float vx = r;
                 float vy = 0.0f;
 
-                const ssize_t v0i   = sBatch.vertex(ci, x, y);
-                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+
+                uint32_t v1i        = v0i + 1;
+                ADD_VERTEX(v, ci, x, y);
+                ADD_VERTEX(v, ci, x + vx, y + vy);
 
                 for (size_t i=0; i<count; ++i)
                 {
@@ -492,12 +532,12 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(ci, x + vx, y + vy);
+                    ADD_VERTEX(v, ci, x + vx, y + vy);
                     sBatch.triangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
-                sBatch.vertex(ci, x + r, y);
+                ADD_VERTEX(v, ci, x + r, y);
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
@@ -521,8 +561,14 @@ namespace lsp
                 float vx            = cosf(a1) * r;
                 float vy            = sinf(a1) * r;
 
-                const size_t v0i    = sBatch.vertex(ci, x, y);
-                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+
+                uint32_t v1i        = v0i + 1;
+                ADD_VERTEX(v, ci, x, y);
+                ADD_VERTEX(v, ci, x + vx, y + vy);
 
                 for (ssize_t i=0; i<count; ++i)
                 {
@@ -531,12 +577,12 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(ci, x + vx, y + vy);
+                    ADD_VERTEX(v, ci, x + vx, y + vy);
                     sBatch.triangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
-                sBatch.vertex(ci, x + ex, y + ey);
+                ADD_VERTEX(v, ci, x + ex, y + ey);
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
@@ -558,8 +604,14 @@ namespace lsp
                 const float ex      = -vy;
                 const float ey      = vx;
 
-                const size_t v0i    = sBatch.vertex(ci, xd, yd);
-                size_t v1i          = sBatch.vertex(ci, x + vx, y + vy);
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+
+                uint32_t v1i        = v0i + 1;
+                ADD_VERTEX(v, ci, xd, yd);
+                ADD_VERTEX(v, ci, x + vx, y + vy);
 
                 for (ssize_t i=0; i<count; ++i)
                 {
@@ -568,12 +620,12 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(ci, x + vx, y + vy);
+                    ADD_VERTEX(v, ci, x + vx, y + vy);
                     sBatch.triangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
-                sBatch.vertex(ci, x + ex, y + ey);
+                ADD_VERTEX(v, ci, x + ex, y + ey);
                 sBatch.triangle(v0i, v1i, v1i + 1);
             }
 
@@ -599,11 +651,16 @@ namespace lsp
                 const ssize_t count = delta / phi;
 
                 // Fill batch
-                float vx        = cosf(a1) * ro;
-                float vy        = sinf(a1) * ro;
+                float vx            = cosf(a1) * ro;
+                float vy            = sinf(a1) * ro;
 
-                ssize_t v0i         = sBatch.vertex(ci, x + vx * kr, y + vy * kr);
-                sBatch.vertex(ci, x + vx, y + vy);
+                uint32_t v0i        = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count*2 + 4);
+                if (v == NULL)
+                    return;
+
+                ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
+                ADD_VERTEX(v, ci, x + vx, y + vy);
 
                 for (ssize_t i=0; i<count; ++i)
                 {
@@ -612,14 +669,14 @@ namespace lsp
                     vx          = nvx;
                     vy          = nvy;
 
-                    sBatch.vertex(ci, x + vx * kr, y + vy * kr);
-                    sBatch.vertex(ci, x + vx, y + vy);
+                    ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
+                    ADD_VERTEX(v, ci, x + vx, y + vy);
                     sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
                     v0i        += 2;
                 }
 
-                sBatch.vertex(ci, x + ex * kr, y + ey * kr);
-                sBatch.vertex(ci, x + ex, y + ey);
+                ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
+                ADD_VERTEX(v, ci, x + ex, y + ey);
                 sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
             }
 
@@ -788,25 +845,30 @@ namespace lsp
                 ndx             = -dy * kd;
                 ndy             = dx * kd;
 
+                uint32_t vi     = sBatch.next_vertex_index();
+                vertex_t *v     = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
                 px              = x[i] + ndx;
                 py              = y[i] + ndy;
                 extend_rect(rect, px, py);
-                ssize_t vi      = sBatch.vertex(ci, px, py);
+                ADD_VERTEX(v, ci, px, py);
 
                 px              = x[i] - ndx;
                 py              = y[i] - ndy;
                 extend_rect(rect, px, py);
-                sBatch.vertex(ci, px, py);
+                ADD_VERTEX(v, ci, px, py);
 
                 px              = x[si] - ndx;
                 py              = y[si] - ndy;
                 extend_rect(rect, px, py);
-                sBatch.vertex(ci, px, py);
+                ADD_VERTEX(v, ci, px, py);
 
                 px              = x[si] + ndx;
                 py              = y[si] + ndy;
                 extend_rect(rect, px, py);
-                sBatch.vertex(ci, px, py);
+                ADD_VERTEX(v, ci, px, py);
 
                 sBatch.rectangle(vi, vi+1, vi+2, vi+3);
                 si                  = i++;
@@ -823,25 +885,29 @@ namespace lsp
                         ndx             = -dy * kd;
                         ndy             = dx * kd;
 
+                        v               = sBatch.add_vertices(4);
+                        if (v == NULL)
+                            return;
+
                         px              = x[i] + ndx;
                         py              = y[i] + ndy;
                         extend_rect(rect, px, py);
-                        sBatch.vertex(ci, px, py);
+                        ADD_VERTEX(v, ci, px, py);
 
                         px              = x[i] - ndx;
                         py              = y[i] - ndy;
                         extend_rect(rect, px, py);
-                        sBatch.vertex(ci, px, py);
+                        ADD_VERTEX(v, ci, px, py);
 
                         px              = x[si] - ndx;
                         py              = y[si] - ndy;
                         extend_rect(rect, px, py);
-                        sBatch.vertex(ci, px, py);
+                        ADD_VERTEX(v, ci, px, py);
 
                         px              = x[si] + ndx;
                         py              = y[si] + ndy;
                         extend_rect(rect, px, py);
-                        sBatch.vertex(ci, px, py);
+                        ADD_VERTEX(v, ci, px, py);
 
                         sBatch.rectangle(vi + 4, vi + 5, vi + 6, vi + 7);
                         sBatch.rectangle(vi, vi + 6, vi + 1, vi + 7);
@@ -880,10 +946,15 @@ namespace lsp
                 ndx             = -dy * kd;
                 ndy             = dx * kd;
 
-                ssize_t vi      = sBatch.vertex(ci, x[i] + ndx, y[i] + ndy);
-                sBatch.vertex(ci, x[i] - ndx, y[i] - ndy);
-                sBatch.vertex(ci, x[si] - ndx, y[si] - ndy);
-                sBatch.vertex(ci, x[si] + ndx, y[si] + ndy);
+                uint32_t vi     = sBatch.next_vertex_index();
+                vertex_t *v     = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
 
                 sBatch.rectangle(vi, vi+1, vi+2, vi+3);
                 si                  = i++;
@@ -900,10 +971,14 @@ namespace lsp
                         ndx             = -dy * kd;
                         ndy             = dx * kd;
 
-                        sBatch.vertex(ci, x[i] + ndx, y[i] + ndy);
-                        sBatch.vertex(ci, x[i] - ndx, y[i] - ndy);
-                        sBatch.vertex(ci, x[si] - ndx, y[si] - ndy);
-                        sBatch.vertex(ci, x[si] + ndx, y[si] + ndy);
+                        v               = sBatch.add_vertices(4);
+                        if (v == NULL)
+                            return;
+
+                        ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                        ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                        ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                        ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
 
                         sBatch.rectangle(vi + 4, vi + 5, vi + 6, vi + 7);
                         sBatch.rectangle(vi, vi + 6, vi + 1, vi + 7);
@@ -943,10 +1018,16 @@ namespace lsp
                 const float xe      = x + t->width() * sx;
                 const float ye      = y + t->height() * sy;
 
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 1.0f);
-                sBatch.textured_vertex(ci, x, ye, 0.0f, 0.0f);
-                sBatch.textured_vertex(ci, xe, ye, 1.0f, 0.0f);
-                sBatch.textured_vertex(ci, xe, y, 1.0f, 1.0f);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_TVERTEX(v, ci, x, y, 0.0f, 1.0f);
+                ADD_TVERTEX(v, ci, x, ye, 0.0f, 0.0f);
+                ADD_TVERTEX(v, ci, xe, ye, 1.0f, 0.0f);
+                ADD_TVERTEX(v, ci, xe, y, 1.0f, 1.0f);
+
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -983,10 +1064,16 @@ namespace lsp
                 const float v2y     = ca * sy;
 
                 // Draw picture
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 1.0f);
-                sBatch.textured_vertex(ci, x + v2x, y + v2y, 0.0f, 0.0f);
-                sBatch.textured_vertex(ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 0.0f);
-                sBatch.textured_vertex(ci, x + v1x, y + v1y, 1.0f, 1.0f);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_TVERTEX(v, ci, x, y, 0.0f, 1.0f);
+                ADD_TVERTEX(v, ci, x + v2x, y + v2y, 0.0f, 0.0f);
+                ADD_TVERTEX(v, ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 0.0f);
+                ADD_TVERTEX(v, ci, x + v1x, y + v1y, 1.0f, 1.0f);
+
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -1020,10 +1107,16 @@ namespace lsp
                 const float sxe     = (sx + sw) * kw;
                 const float sye     = (sy + sh) * kh;
 
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, sxb, sye);
-                sBatch.textured_vertex(ci, x, ye, sxb, syb);
-                sBatch.textured_vertex(ci, xe, ye, sxe, syb);
-                sBatch.textured_vertex(ci, xe, y, sxe, sye);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_TVERTEX(v, ci, x, y, sxb, sye);
+                ADD_TVERTEX(v, ci, x, ye, sxb, syb);
+                ADD_TVERTEX(v, ci, xe, ye, sxe, syb);
+                ADD_TVERTEX(v, ci, xe, y, sxe, sye);
+
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -1059,10 +1152,16 @@ namespace lsp
                 const float xe      = x + width * sx;
                 const float ye      = y + height * sy;
 
-                const ssize_t vi    = sBatch.textured_vertex(ci, x, y, 0.0f, 0.0f);
-                sBatch.textured_vertex(ci, x, ye, 0.0f, 1.0f);
-                sBatch.textured_vertex(ci, xe, ye, 1.0f, 1.0f);
-                sBatch.textured_vertex(ci, xe, y, 1.0f, 0.0f);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
+                ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
+                ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
+                ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
+
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
@@ -1447,28 +1546,32 @@ namespace lsp
                 lsp_finally { sBatch.end(); };
 
                 // Draw the primitive
-                const ssize_t vi    = sBatch.next_vertex_index();
                 const uint32_t ci   = uint32_t(res);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
                 if (fabs(a1) > fabs(b1))
                 {
-                    sBatch.vertex(ci, -(c1 + b1*top)/a1, top);
-                    sBatch.vertex(ci, -(c1 + b1*bottom)/a1, bottom);
+                    ADD_VERTEX(v, ci, -(c1 + b1*top)/a1, top);
+                    ADD_VERTEX(v, ci, -(c1 + b1*bottom)/a1, bottom);
                 }
                 else
                 {
-                    sBatch.vertex(ci, left, -(c1 + a1*left)/b1);
-                    sBatch.vertex(ci, right, -(c1 + a1*right)/b1);
+                    ADD_VERTEX(v, ci, left, -(c1 + a1*left)/b1);
+                    ADD_VERTEX(v, ci, right, -(c1 + a1*right)/b1);
                 }
 
                 if (fabs(a2) > fabs(b2))
                 {
-                    sBatch.vertex(ci, -(c2 + b2*bottom)/a2, bottom);
-                    sBatch.vertex(ci, -(c2 + b2*top)/a2, top);
+                    ADD_VERTEX(v, ci, -(c2 + b2*bottom)/a2, bottom);
+                    ADD_VERTEX(v, ci, -(c2 + b2*top)/a2, top);
                 }
                 else
                 {
-                    sBatch.vertex(ci, right, -(c2 + a2*right)/b2);
-                    sBatch.vertex(ci, left, -(c2 + a2*left)/b2);
+                    ADD_VERTEX(v, ci, right, -(c2 + a2*right)/b2);
+                    ADD_VERTEX(v, ci, left, -(c2 + a2*left)/b2);
                 }
 
                 sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
