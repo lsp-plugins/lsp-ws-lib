@@ -66,6 +66,7 @@ namespace lsp
                     size_t                      nVersion;       // The version, for valid surface should match the shared version
                     ID2D1RenderTarget          *pDC;            // Pointer to drawing context
                     ID2D1StrokeStyle           *pStrokeStyle;   // Line cap style
+                    bool                        bNested;        // Flag of the nested surface
 
                 #ifdef LSP_DEBUG
                     ssize_t                     nClipping;

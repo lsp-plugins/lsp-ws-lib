@@ -102,6 +102,7 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = NULL;
                 pStrokeStyle        = NULL;
+                bNested             = false;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -115,6 +116,7 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = dc;
                 pStrokeStyle        = NULL;
+                bNested             = true;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -236,18 +238,42 @@ namespace lsp
                 if ((pShared == NULL) || (pShared->hWindow == NULL))
                     return STATUS_BAD_STATE;
 
+                if ((nWidth == width) && (nHeight == height))
+                    return STATUS_OK;
+
                 nWidth      = width;
                 nHeight     = height;
 
-                if (pDC != NULL)
-                {
-                    ID2D1HwndRenderTarget *ht   = static_cast<ID2D1HwndRenderTarget *>(pDC);
+                if (pDC == NULL)
+                    return STATUS_OK;
 
-                    D2D1_SIZE_U size;
-                    size.width      = width;
-                    size.height     = height;
-                    ht->Resize(&size);
+                // Check if we can resize surface as a window
+                D2D1_SIZE_U desiredPixelSize = D2D1::SizeU(width, height);
+                if (!bNested)
+                {
+                    ID2D1HwndRenderTarget *ht = static_cast<ID2D1HwndRenderTarget *>(pDC);
+                    ht->Resize(&desiredPixelSize);
+                    return STATUS_OK;
                 }
+
+                // Create new bitmap surface
+                D2D1_SIZE_F desiredSize = D2D1::SizeF(width, height);
+                D2D1_PIXEL_FORMAT pixelFormat = D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED);
+
+                ID2D1BitmapRenderTarget *dc = NULL;
+                HRESULT hr = pDC->CreateCompatibleRenderTarget(
+                    &desiredSize,
+                    &desiredPixelSize,
+                    &pixelFormat,
+                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, // options
+                    &dc);
+                if (FAILED(hr))
+                    return STATUS_UNKNOWN_ERR;
+
+                safe_release(pDC);
+                pDC = dc;
 
                 return STATUS_OK;
             }
