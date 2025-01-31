@@ -143,6 +143,36 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            status_t Texture::resize(size_t width, size_t height)
+            {
+                if (pContext == NULL)
+                    return STATUS_BAD_STATE;
+                if ((enFormat == gl::TEXTURE_UNKNOWN) || (nTextureId == 0) || (nSamples > 0))
+                    return STATUS_OK;
+                if ((nWidth == width) && (nHeight == height))
+                    return STATUS_OK;
+
+                // Activate context
+                status_t res = pContext->activate();
+                if (res != STATUS_OK)
+                    return res;
+
+                // Resize texture
+                const vtbl_t *vtbl = pContext->vtbl();
+                const GLuint tex_format = (enFormat == gl::TEXTURE_ALPHA8) ? GL_RED : GL_BGRA;
+                const GLuint int_format = (enFormat == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
+
+                vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
+                vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, NULL);
+                vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+
+                // Update texture settings
+                nWidth      = uint32_t(width);
+                nHeight     = uint32_t(height);
+
+                return STATUS_OK;
+            }
+
             status_t Texture::set_subimage(const void *buf, size_t x, size_t y, size_t width, size_t height, size_t stride)
             {
                 if (pContext == NULL)

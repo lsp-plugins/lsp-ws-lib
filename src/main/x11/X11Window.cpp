@@ -94,7 +94,7 @@ namespace lsp
             {
                 ISurface *result = NULL;
 
-            #if 1
+            #if 0
                 #ifdef USE_LIBGL
                     gl::context_param_t cp[4];
                     cp[0].id        = gl::DISPLAY;

@@ -1170,7 +1170,12 @@ namespace lsp
                 nWidth      = width;
                 nHeight     = height;
 
-                safe_release(pTexture);
+                if (pTexture != NULL)
+                {
+                    status_t res = pTexture->resize(width, height);
+                    if (res != STATUS_OK)
+                        safe_release(pTexture);
+                }
 
                 sync_matrix();
 

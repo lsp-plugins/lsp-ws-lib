@@ -73,8 +73,6 @@ namespace lsp
                     gl::IContext           *pContext;
                     gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::Batch               sBatch;
-                    size_t                  nWidth;
-                    size_t                  nHeight;
                     size_t                  nNumClips;
                     float                   vMatrix[16];
                     clip_rect_t             vClips[MAX_CLIPS];

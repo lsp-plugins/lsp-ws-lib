@@ -160,6 +160,9 @@ namespace lsp
 
             status_t X11CairoSurface::resize(size_t width, size_t height)
             {
+                if (pCR != NULL)
+                    return STATUS_BAD_STATE;
+
                 if (pRoot != NULL)
                     ::cairo_xlib_surface_set_size(pRoot, width, height);
 
@@ -174,29 +177,11 @@ namespace lsp
                 if (s == NULL)
                     return STATUS_NO_MEM;
 
-                cairo_t *cr         = ::cairo_create(s);
-                if (cr == NULL)
-                {
-                    cairo_surface_destroy(s);
-                    return STATUS_NO_MEM;
-                }
-
-                // Draw previous content
-                ::cairo_set_source_surface(cr, pSurface, 0, 0);
-                ::cairo_fill(cr);
-
-                // Destroy previously used context
+                // Destroy previously used context and update surface pointer
                 destroy_context(false);
-
-                // Update context
                 pSurface            = s;
-                if (pCR != NULL)
-                {
-                    ::cairo_destroy(pCR);
-                    pCR                 = cr;
-                }
-                else
-                    ::cairo_destroy(cr);
+                nWidth              = width;
+                nHeight             = height;
 
                 return STATUS_OK;
             }
