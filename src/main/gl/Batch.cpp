@@ -21,6 +21,8 @@
 
 #include <private/gl/Batch.h>
 
+#ifdef LSP_PLUGINS_USE_OPENGL
+
 #include <lsp-plug.in/common/debug.h>
 
 #include <stddef.h>
@@ -776,3 +778,5 @@ namespace lsp
         } /* namespace gl */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* LSP_PLUGINS_USE_OPENGL */

@@ -22,11 +22,11 @@
 #ifndef PRIVATE_GL_GLX_VTBL_H_
 #define PRIVATE_GL_GLX_VTBL_H_
 
-#include <private/gl/vtbl.h>
+#include <private/gl/defs.h>
 
-#include <GL/glx.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+
+#include <private/gl/vtbl.h>
 
 namespace lsp
 {
@@ -57,6 +57,6 @@ namespace lsp
 } /* namespace lsp */
 
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #endif /* INCLUDE_PRIVATE_GL_GLX_VTBL_H_ */

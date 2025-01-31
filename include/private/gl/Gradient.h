@@ -22,6 +22,10 @@
 #ifndef PRIVATE_GL_GRADIENT_H_
 #define PRIVATE_GL_GRADIENT_H_
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
+
 #include <lsp-plug.in/common/types.h>
 
 #include <lsp-plug.in/ws/IGradient.h>
@@ -105,6 +109,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL */
 
 #endif /* PRIVATE_GL_GRADIENT_H_ */

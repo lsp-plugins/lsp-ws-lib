@@ -19,11 +19,14 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <private/glx/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+
+#include <private/glx/vtbl.h>
+
 #include <lsp-plug.in/stdlib/stdlib.h>
 #include <lsp-plug.in/stdlib/string.h>
-
-#include <GL/glx.h>
-#include <private/gl/glx_vtbl.h>
 
 namespace lsp
 {
@@ -225,4 +228,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */

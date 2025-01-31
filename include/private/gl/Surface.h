@@ -22,7 +22,9 @@
 #ifndef PRIVATE_GL_GLSURFACE_H_
 #define PRIVATE_GL_GLSURFACE_H_
 
-#include <lsp-plug.in/ws/version.h>
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
 
 #include <lsp-plug.in/common/types.h>
 
@@ -241,5 +243,7 @@ namespace lsp
         } /* namespace gl */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* LSP_PLUGINS_USE_OPENGL */
 
 #endif /* PRIVATE_GL_GLSURFACE_H_ */

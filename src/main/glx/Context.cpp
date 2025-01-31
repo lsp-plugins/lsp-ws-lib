@@ -19,19 +19,16 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/gl/GLXContext.h>
+#include <private/glx/defs.h>
 
-#if defined(USE_LIBX11)
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
+#include <private/glx/Context.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/string.h>
 
-#include <private/gl/glx_shaders.h>
-#include <private/gl/glx_vtbl.h>
-
-#include <GL/gl.h>
-#include <GL/glext.h>
-#include <GL/glx.h>
+#include <private/glx/shaders.h>
+#include <private/glx/vtbl.h>
 
 namespace lsp
 {
@@ -520,6 +517,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* USE_LIBX11 */
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 

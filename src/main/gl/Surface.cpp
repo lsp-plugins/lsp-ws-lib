@@ -19,11 +19,9 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if defined(USE_LIBX11)
+#include <private/gl/defs.h>
 
-#ifndef USE_LIBFREETYPE
-#error "Freetype is required to render text for X11 OpenGL surface"
-#endif /* USE_LIBFREETYPE */
+#ifdef LSP_PLUGINS_USE_OPENGL
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
@@ -37,8 +35,6 @@
 #include <private/gl/Gradient.h>
 #include <private/gl/Surface.h>
 #include <private/x11/X11Display.h>
-
-#include <GL/gl.h>
 
 namespace lsp
 {
@@ -1845,5 +1841,5 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* defined(USE_LIBX11) */
+#endif /* LSP_PLUGINS_USE_OPENGL */
 

@@ -22,6 +22,10 @@
 #ifndef PRIVATE_GL_GLX_SHADERS_H_
 #define PRIVATE_GL_GLX_SHADERS_H_
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+
 namespace lsp
 {
     namespace ws
@@ -169,5 +173,7 @@ namespace lsp
         } /* namespace glx */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #endif /* PRIVATE_GL_GLX_SHADERS_H_ */

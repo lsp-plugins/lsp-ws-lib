@@ -22,14 +22,16 @@
 #ifndef PRIVATE_GL_BATCH_H_
 #define PRIVATE_GL_BATCH_H_
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
+
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <private/gl/IContext.h>
 #include <private/gl/Texture.h>
-
-#include <GL/gl.h>
 
 namespace lsp
 {
@@ -282,5 +284,7 @@ namespace lsp
         } /* namespace gl */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* LSP_PLUGINS_USE_OPENGL */
 
 #endif /* PRIVATE_GL_BATCH_H_ */

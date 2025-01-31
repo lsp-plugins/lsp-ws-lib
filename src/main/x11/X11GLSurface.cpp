@@ -19,6 +19,10 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+
 #include <private/x11/X11GLSurface.h>
 #include <lsp-plug.in/stdlib/math.h>
 
@@ -330,5 +334,5 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 

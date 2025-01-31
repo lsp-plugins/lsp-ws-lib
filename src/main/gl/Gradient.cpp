@@ -20,6 +20,9 @@
  */
 
 #include <lsp-plug.in/common/types.h>
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
 
 #include <private/gl/Gradient.h>
 
@@ -137,3 +140,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
+#endif /* LSP_PLUGINS_USE_OPENGL */

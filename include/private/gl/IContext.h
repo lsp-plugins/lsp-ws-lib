@@ -22,6 +22,10 @@
 #ifndef PRIVATE_GL_ICONTEXT_H_
 #define PRIVATE_GL_ICONTEXT_H_
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
+
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
@@ -190,4 +194,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* INCLUDE_PRIVATE_GL_ICONTEXT_H_ */
+#endif /* LSP_PLUGINS_USE_OPENGL */
+
+#endif /* PRIVATE_GL_ICONTEXT_H_ */

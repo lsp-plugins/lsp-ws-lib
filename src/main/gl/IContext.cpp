@@ -19,8 +19,12 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
+
 #include <private/gl/IContext.h>
-#include <private/gl/GLXContext.h>
+#include <private/glx/Context.h>
 
 #include <lsp-plug.in/common/debug.h>
 
@@ -160,7 +164,7 @@ namespace lsp
 
                 gl::IContext *result = NULL;
 
-            #if defined(USE_LIBX11)
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                 if ((result == NULL) && (display != NULL) && (window != NULL))
                 {
                     ::Display *dpy = static_cast<::Display *>(display->ptr);
@@ -169,7 +173,7 @@ namespace lsp
 
                     result = glx::create_context(dpy, scr, wnd);
                 }
-            #endif /* defined(USE_LIBX11) */
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 return result;
             }
@@ -177,4 +181,6 @@ namespace lsp
         } /* namespace gl */
     } /* namespace ws */
 } /* namespace lsp */
+
+#endif /* LSP_PLUGINS_USE_OPENGL */
 

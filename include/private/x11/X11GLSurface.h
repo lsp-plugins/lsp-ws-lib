@@ -22,7 +22,9 @@
 #ifndef PRIVATE_X11_X11GLSURFACE_H_
 #define PRIVATE_X11_X11GLSURFACE_H_
 
-#include <lsp-plug.in/ws/version.h>
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
 #include <private/x11/X11Display.h>
 #include <private/gl/Surface.h>
@@ -89,5 +91,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #endif /* PRIVATE_X11_X11GLSURFACE_H_ */

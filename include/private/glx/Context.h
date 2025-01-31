@@ -22,19 +22,14 @@
 #ifndef PRIVATE_GL_GLXCONTEXT_H_
 #define PRIVATE_GL_GLXCONTEXT_H_
 
-#include <lsp-plug.in/common/types.h>
+#include <private/glx/defs.h>
 
-#if defined(USE_LIBX11)
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
 #include <lsp-plug.in/lltl/parray.h>
 
 #include <private/gl/IContext.h>
-#include <private/gl/glx_vtbl.h>
-
-#include <GL/gl.h>
-#include <GL/glx.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
+#include <private/glx/vtbl.h>
 
 namespace lsp
 {
@@ -114,6 +109,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* USE_LIBX11 */
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #endif /* PRIVATE_GL_GLXCONTEXT_H_ */

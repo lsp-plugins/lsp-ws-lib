@@ -26,22 +26,24 @@
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/common/endian.h>
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/runtime/system.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
-#include <private/gl/Surface.h>
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
 #include <private/x11/X11Display.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11GLSurface.h>
 
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+    #include <private/glx/defs.h>
+    #include <private/gl/Surface.h>
+#endif /* USE_LIBGL */
+
 #include <limits.h>
 #include <errno.h>
-
-#ifdef USE_LIBGL
-    #include <GL/gl.h>
-    #include <GL/glx.h>
-#endif /* USE_LIBGL */
 
 namespace lsp
 {
@@ -49,7 +51,7 @@ namespace lsp
     {
         namespace x11
         {
-        #ifdef USE_LIBGL
+        #ifdef LSP_PLUGINS_USE_OPENGL_GLX
             static const GLint rgba24x32[]    = { GLX_RGBA, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 32, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
             static const GLint rgba24x24[]    = { GLX_RGBA, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
             static const GLint rgba16x24[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
@@ -69,12 +71,11 @@ namespace lsp
                 rgbax32, rgbax24, rgbax16, rgba,
                 NULL
             };
-
-        #endif /* USE_LIBGL */
+        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
             static ::XVisualInfo *choose_visual(Display *dpy, int screen)
             {
-            #ifdef USE_LIBGL
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                 for (const GLint * const *visual = glx_visuals; *visual != NULL; ++visual)
                 {
                     ::XVisualInfo *vi = ::glXChooseVisual(dpy, screen, const_cast<int *>(*visual));
@@ -86,16 +87,35 @@ namespace lsp
                         return vi;
                     }
                 }
-            #endif /* USE_LIBGL */
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
                 return NULL;
+            }
+
+            LSP_HIDDEN_MODIFIER
+            bool check_env_option_enabled(const char *name)
+            {
+                LSPString var;
+                status_t res = system::get_env_var(name, &var);
+                if (res != STATUS_OK)
+                    return true;
+
+                if (var.equals_ascii_nocase("no") ||
+                    var.equals_ascii_nocase("n") ||
+                    var.equals_ascii_nocase("disabled") ||
+                    var.equals_ascii_nocase("off") ||
+                    var.equals_ascii_nocase("0"))
+                    return false;
+
+                return true;
             }
 
             static ISurface *create_surface(X11Display *dpy, int screen, Window window, Visual *visual, size_t width, size_t height)
             {
                 ISurface *result = NULL;
 
-            #if 1
-                #ifdef USE_LIBGL
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                if (check_env_option_enabled("LSP_WS_LIB_GLXSURFACE"))
+                {
                     gl::context_param_t cp[4];
                     cp[0].id        = gl::DISPLAY;
                     cp[0].ptr       = dpy->x11display();
@@ -108,12 +128,20 @@ namespace lsp
                     gl::IContext *ctx   = gl::create_context(cp);
                     lsp_finally { safe_release(ctx); };
                     if (ctx != NULL)
+                    {
                         result = new X11GLSurface(dpy, ctx, width, height);
-                #endif /* USE_LIBGL */
-            #endif
+                        if (result != NULL)
+                            lsp_trace("Using X11GLSurface ptr=%p", result);
+                    }
+                }
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 if (result == NULL)
+                {
                     result = new X11CairoSurface(dpy, window, visual, width, height);
+                    if (result != NULL)
+                        lsp_trace("Using X11CairoSurface ptr=%p", result);
+                }
 
                 return result;
             }
@@ -269,7 +297,7 @@ namespace lsp
                         nScreen = pX11Display->get_screen(wnd);
                     }
 
-                #ifdef USE_LIBGL
+                #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                     // Create visual
                     pVisualInfo = choose_visual(dpy, int(nScreen));
                     ::Visual *xv = (pVisualInfo != NULL) ? pVisualInfo->visual : ::XDefaultVisual(dpy, int(nScreen));
@@ -293,7 +321,7 @@ namespace lsp
                         dpy, parent_wnd,
                         sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight,
                         0, 0, CopyFromParent, CopyFromParent, 0, NULL);
-                #endif /* USE_LIBGL */
+                #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 //                    lsp_trace("wnd=%x, external=%d, external_id=%x", int(wnd), int(hParent > 0), int(hParent));
                     if (wnd <= 0)

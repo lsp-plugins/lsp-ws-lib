@@ -19,9 +19,11 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/gl/Texture.h>
+#include <private/gl/defs.h>
 
-#include <GL/gl.h>
+#ifdef LSP_PLUGINS_USE_OPENGL
+
+#include <private/gl/Texture.h>
 #include <lsp-plug.in/common/debug.h>
 
 namespace lsp
@@ -438,4 +440,4 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL */

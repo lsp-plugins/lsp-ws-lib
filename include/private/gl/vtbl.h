@@ -22,7 +22,9 @@
 #ifndef PRIVATE_GL_VTBL_H_
 #define PRIVATE_GL_VTBL_H_
 
-#include <GL/gl.h>
+#include <private/gl/defs.h>
+
+#ifdef LSP_PLUGINS_USE_OPENGL
 
 namespace lsp
 {
@@ -205,6 +207,6 @@ namespace lsp
     } /* namespace ws */
 } /* namespace lsp */
 
-
+#endif /* LSP_PLUGINS_USE_OPENGL */
 
 #endif /* PRIVATE_GL_VTBL_H_ */
