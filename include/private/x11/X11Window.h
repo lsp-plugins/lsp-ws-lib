@@ -31,6 +31,10 @@
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
+
 namespace lsp
 {
     namespace ws
@@ -56,6 +60,8 @@ namespace lsp
 
                 public:
                     X11Display         *pX11Display;
+                    XVisualInfo        *pVisualInfo;
+                    ::Colormap          hColormap;
                     ::Window            hWindow;
                     ::Window            hParent;
                     ::Window            hTransientFor;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 7 июл. 2022 г.
@@ -63,6 +63,12 @@ MTEST_BEGIN("ws.display", surface)
                             };
 
                             x->begin();
+                                c.set_rgba32(0x88cccc00);
+                                x->wire_rect(c, SURFMASK_NO_CORNER, 0.0f, 0.0f, 0.0f, 160, 100, 25.0f);
+
+                                c.set_rgba32(0x00ff0000);
+                                x->fill_rect(c, SURFMASK_NO_CORNER, 0.0f, 0.0f, 0.0f, 10.0f, 10.0f);
+
                                 c.set_rgba32(0x8800ccff);
                                 x->fill_rect(c, SURFMASK_NONE, 0.0f, 0.0f, 0.0f, 80.0f, 100.0f);
                                 c.set_rgb24(0xccff00);
@@ -77,6 +83,7 @@ MTEST_BEGIN("ws.display", surface)
                             s->draw(x, 320.0f, 100.0f, 1.0f, 1.0f, 0.5f);
                             s->draw_clipped(x, 480.0f, 0.0f, 16, 10, 128, 80, 0.0f);
                             s->draw_rotate(x, 320, 240, 1.0f, 1.0f, M_PI * 0.5f, 0.5f);
+                            s->draw_rotate(x, 160, 240, 1.0f, 1.0f, M_PI / 6.0f, 0.5f);
                             s->draw(x, 320, 200, 1.5f, 1.5f, 0.0f);
                         }
 

@@ -39,6 +39,8 @@ namespace lsp
     {
         namespace x11
         {
+            constexpr float k_color = 1.0f / 255.0f;
+
             static inline cairo_antialias_t decode_antialiasing(const Font &f)
             {
                 switch (f.antialiasing())
@@ -158,6 +160,9 @@ namespace lsp
 
             status_t X11CairoSurface::resize(size_t width, size_t height)
             {
+                if (pCR != NULL)
+                    return STATUS_BAD_STATE;
+
                 if (pRoot != NULL)
                     ::cairo_xlib_surface_set_size(pRoot, width, height);
 
@@ -172,29 +177,11 @@ namespace lsp
                 if (s == NULL)
                     return STATUS_NO_MEM;
 
-                cairo_t *cr         = ::cairo_create(s);
-                if (cr == NULL)
-                {
-                    cairo_surface_destroy(s);
-                    return STATUS_NO_MEM;
-                }
-
-                // Draw previous content
-                ::cairo_set_source_surface(cr, pSurface, 0, 0);
-                ::cairo_fill(cr);
-
-                // Destroy previously used context
+                // Destroy previously used context and update surface pointer
                 destroy_context(false);
-
-                // Update context
                 pSurface            = s;
-                if (pCR != NULL)
-                {
-                    ::cairo_destroy(pCR);
-                    pCR                 = cr;
-                }
-                else
-                    ::cairo_destroy(cr);
+                nWidth              = width;
+                nHeight             = height;
 
                 return STATUS_OK;
             }
@@ -425,9 +412,9 @@ namespace lsp
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
                 ::cairo_set_source_rgba(pCR,
-                    float((rgb >> 16) & 0xff)/255.0f,
-                    float((rgb >> 8) & 0xff)/255.0f,
-                    float(rgb & 0xff)/255.0f,
+                    float((rgb >> 16) & 0xff) * k_color,
+                    float((rgb >> 8) & 0xff) * k_color,
+                    float(rgb & 0xff) * k_color,
                     0.0f
                 );
                 ::cairo_paint(pCR);
@@ -442,10 +429,10 @@ namespace lsp
                 cairo_operator_t op = cairo_get_operator(pCR);
                 ::cairo_set_operator (pCR, CAIRO_OPERATOR_SOURCE);
                 ::cairo_set_source_rgba(pCR,
-                    float((rgba >> 16) & 0xff)/255.0f,
-                    float((rgba >> 8) & 0xff)/255.0f,
-                    float(rgba & 0xff)/255.0f,
-                    float((rgba >> 24) & 0xff)/255.0f
+                    float((rgba >> 16) & 0xff) * k_color,
+                    float((rgba >> 8) & 0xff) * k_color,
+                    float(rgba & 0xff) * k_color,
+                    float((rgba >> 24) & 0xff) * k_color
                 );
                 ::cairo_paint(pCR);
                 ::cairo_set_operator (pCR, op);
@@ -1026,8 +1013,8 @@ namespace lsp
                         setSourceRGBA(color);
                         r_w   = tr.x_advance;
                         r_h   = -tr.y_bearing;
-                        fx    = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                        fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                        fx    = truncf(x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                        fy    = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
                         cairo_mask_surface(pCR, fs, fx + tr.x_bearing, fy + tr.y_bearing);
 
                         // Draw underline if required

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 9 июл. 2022 г.
@@ -65,6 +65,7 @@ MTEST_BEGIN("ws.display", dsurface)
                             uint32_t alpha= uint8_t((0xff * y) / (200 - 1)) << 24;
                             for (size_t x=0; x<320; ++x)
                                 row[x]  = CPU_TO_LE(uint32_t((x * y) | alpha));
+                            row[y]  = CPU_TO_LE(uint32_t(0xffff0000));
                         }
 
                         s->draw_raw(
@@ -72,13 +73,14 @@ MTEST_BEGIN("ws.display", dsurface)
                             0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
                         s->draw_raw(
                             buf, 320, 200, 320 * sizeof(uint32_t),
-                            320.0f, 200.0f, 1.0f, 1.0f, 0.0f);
+                            320.0f, 200.0f, 1.0f, 1.0f, 0.25f);
 
                         for (size_t y=0; y<200; ++y)
                         {
                             uint32_t *row = &buf[y * 320];
                             for (size_t x=0; x<320; ++x)
                                 row[x]  = CPU_TO_LE(LE_TO_CPU(row[x]) ^ 0x00ffffff);
+                            row[y]  = CPU_TO_LE(uint32_t(0xff00ff00));
                         }
 
                         s->draw_raw(
@@ -86,7 +88,7 @@ MTEST_BEGIN("ws.display", dsurface)
                             320.0f, 0.0f, 1.0f, 1.0f, 0.0f);
                         s->draw_raw(
                             buf, 320, 200, 320 * sizeof(uint32_t),
-                            0.0f, 200.0f, 1.0f, 1.0f, 0.0f);
+                            0.0f, 200.0f, 1.0f, 1.0f, 0.75f);
 
                         return STATUS_OK;
                     }
