@@ -234,22 +234,41 @@ namespace lsp
 
                     /**
                      * Add triangle
-                     * @param a relative index of the first vertex
-                     * @param b relative index of the second vertex
-                     * @param c relative index of the third vertex
+                     * @param a index of the first vertex
+                     * @param b index of the second vertex
+                     * @param c index of the third vertex
                      * @return absolute index of record in index buffer or negative error code
                      */
                     ssize_t triangle(uint32_t a, uint32_t b, uint32_t c);
 
                     /**
                      * Add rectangle
-                     * @param a relative index of the first vertex
-                     * @param b relative index of the second vertex
-                     * @param c relative index of the third vertex
-                     * @param d relative index of the fourth vertex
+                     * @param a index of the first vertex
+                     * @param b index of the second vertex
+                     * @param c index of the third vertex
+                     * @param d index of the fourth vertex
                      * @return absolute index of record in index buffer or negative error code
                      */
                     ssize_t rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
+
+                    /**
+                     * Add triangle with hint (maximum index provided in last index)
+                     * @param a index of the first vertex
+                     * @param b index of the second vertex
+                     * @param c index of the third vertex, should be not less than a and b
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t htriangle(uint32_t a, uint32_t b, uint32_t c);
+
+                    /**
+                     * Add rectangle with hint
+                     * @param a index of the first vertex
+                     * @param b index of the second vertex
+                     * @param c index of the third vertex
+                     * @param d index of the fourth vertex, should be not less than a, b and c
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t hrectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
 
                     /**
                      * Add command

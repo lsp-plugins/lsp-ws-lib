@@ -87,7 +87,7 @@ namespace lsp
             status_t Batch::init()
             {
                 vCommands.count     = 0;
-                vCommands.capacity  = 256;
+                vCommands.capacity  = 0x400;
                 vCommands.data      = static_cast<float *>(malloc(sizeof(float) * vCommands.capacity));
                 if (vCommands.data == NULL)
                     return STATUS_NO_MEM;
@@ -99,7 +99,7 @@ namespace lsp
 
             status_t Batch::begin(const batch_header_t & header)
             {
-                draw_t *draw = vBatches.last();
+                draw_t *draw            = vBatches.last();
                 if ((draw == NULL) || (header_mismatch(draw->header, header)))
                 {
                     // Create new draw batch
@@ -109,13 +109,13 @@ namespace lsp
                     draw->header            = header;
                     draw->vertices.v        = NULL;
                     draw->vertices.count    = 0;
-                    draw->vertices.capacity = 32;
+                    draw->vertices.capacity = 0x40;
 
                     safe_acquire(draw->header.pTexture);
 
                     draw->indices.data      = NULL;
                     draw->indices.count     = 0;
-                    draw->indices.capacity  = 32;
+                    draw->indices.capacity  = 0x100;
                     draw->indices.szof      = sizeof(uint8_t);
 
                     lsp_finally { destroy(draw); };
@@ -136,13 +136,8 @@ namespace lsp
                     pCurrent                = release_ptr(draw);
                 }
                 else
-                {
-//                    // Store global index
-//                    draw->vertices.index    = draw->vertices.count;
-
                     // Set current batch
                     pCurrent                = draw;
-                }
 
                 return STATUS_OK;
             }
@@ -552,7 +547,7 @@ namespace lsp
             ssize_t Batch::alloc_indices(size_t count, uint32_t max_index)
             {
                 // Check indices
-                ibuffer_t & buf     = pCurrent->indices;
+                ibuffer_t & buf         = pCurrent->indices;
                 const size_t new_size   = buf.count + count;
                 const size_t szof       =
                     (max_index > UINT16_MAX) ? sizeof(uint32_t) :
@@ -636,6 +631,35 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::htriangle(uint32_t a, uint32_t b, uint32_t c)
+            {
+                const ssize_t index     = alloc_indices(3, c);
+                if (index < 0)
+                    return index;
+
+                ibuffer_t & buf     = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    buf.u32[index]      = a;
+                    buf.u32[index+1]    = b;
+                    buf.u32[index+2]    = c;
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    buf.u16[index]      = uint16_t(a);
+                    buf.u16[index+1]    = uint16_t(b);
+                    buf.u16[index+2]    = uint16_t(c);
+                }
+                else
+                {
+                    buf.u8[index]       = uint8_t(a);
+                    buf.u8[index+1]     = uint8_t(b);
+                    buf.u8[index+2]     = uint8_t(c);
+                }
+
+                return index;
+            }
+
             ssize_t Batch::rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
             {
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
@@ -649,27 +673,66 @@ namespace lsp
                     buf.u32[index]      = a;
                     buf.u32[index+1]    = b;
                     buf.u32[index+2]    = c;
-                    buf.u32[index+3]    = c;
-                    buf.u32[index+4]    = d;
-                    buf.u32[index+5]    = a;
+                    buf.u32[index+3]    = a;
+                    buf.u32[index+4]    = c;
+                    buf.u32[index+5]    = d;
                 }
                 else if (buf.szof > sizeof(uint8_t))
                 {
                     buf.u16[index]      = uint16_t(a);
                     buf.u16[index+1]    = uint16_t(b);
                     buf.u16[index+2]    = uint16_t(c);
-                    buf.u16[index+3]    = uint16_t(c);
-                    buf.u16[index+4]    = uint16_t(d);
-                    buf.u16[index+5]    = uint16_t(a);
+                    buf.u16[index+3]    = uint16_t(a);
+                    buf.u16[index+4]    = uint16_t(c);
+                    buf.u16[index+5]    = uint16_t(d);
                 }
                 else
                 {
                     buf.u8[index]       = uint8_t(a);
                     buf.u8[index+1]     = uint8_t(b);
                     buf.u8[index+2]     = uint8_t(c);
-                    buf.u8[index+3]     = uint8_t(c);
-                    buf.u8[index+4]     = uint8_t(d);
-                    buf.u8[index+5]     = uint8_t(a);
+                    buf.u8[index+3]     = uint8_t(a);
+                    buf.u8[index+4]     = uint8_t(c);
+                    buf.u8[index+5]     = uint8_t(d);
+                }
+
+                return index;
+            }
+
+            ssize_t Batch::hrectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+            {
+                const ssize_t index     = alloc_indices(6, d);
+                if (index < 0)
+                    return index;
+
+                // Append vertex indices
+                ibuffer_t & buf     = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    buf.u32[index]      = a;
+                    buf.u32[index+1]    = b;
+                    buf.u32[index+2]    = c;
+                    buf.u32[index+3]    = a;
+                    buf.u32[index+4]    = c;
+                    buf.u32[index+5]    = d;
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    buf.u16[index]      = uint16_t(a);
+                    buf.u16[index+1]    = uint16_t(b);
+                    buf.u16[index+2]    = uint16_t(c);
+                    buf.u16[index+3]    = uint16_t(a);
+                    buf.u16[index+4]    = uint16_t(c);
+                    buf.u16[index+5]    = uint16_t(d);
+                }
+                else
+                {
+                    buf.u8[index]       = uint8_t(a);
+                    buf.u8[index+1]     = uint8_t(b);
+                    buf.u8[index+2]     = uint8_t(c);
+                    buf.u8[index+3]     = uint8_t(a);
+                    buf.u8[index+4]     = uint8_t(c);
+                    buf.u8[index+5]     = uint8_t(d);
                 }
 
                 return index;

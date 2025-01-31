@@ -215,7 +215,7 @@ namespace lsp
                     ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
                     ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
 
-                    sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
 
                 // Draw underline if required
@@ -306,7 +306,7 @@ namespace lsp
                     ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
                     ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
 
-                    sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
 
                 // Draw underline if required

@@ -426,7 +426,7 @@ namespace lsp
                 ADD_VERTEX(v, ci, x1, y1);
                 ADD_VERTEX(v, ci, x2, y2);
 
-                sBatch.triangle(vi, vi + 1, vi + 2);
+                sBatch.htriangle(vi, vi + 1, vi + 2);
             }
 
             void Surface::fill_rect(uint32_t ci, float x0, float y0, float x1, float y1)
@@ -441,7 +441,7 @@ namespace lsp
                 ADD_VERTEX(v, ci, x1, y1);
                 ADD_VERTEX(v, ci, x1, y0);
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width)
@@ -469,7 +469,7 @@ namespace lsp
                 ADD_VERTEX(v, ci, x1 - ndx, y1 - ndy);
                 ADD_VERTEX(v, ci, x1 + ndx, y1 + ndy);
 
-                sBatch.rectangle(vi, vi+1, vi+2, vi+3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n)
@@ -495,7 +495,7 @@ namespace lsp
                 {
                     extend_rect(rect, x[i], y[i]);
                     ADD_VERTEX(v, ci, x[i], y[i]);
-                    sBatch.triangle(v0i, vi, vi + 1);
+                    sBatch.htriangle(v0i, vi, vi + 1);
                     ++vi;
                 }
 
@@ -533,12 +533,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    sBatch.htriangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + r, y);
-                sBatch.triangle(v0i, v1i, v1i + 1);
+                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2)
@@ -578,12 +578,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    sBatch.htriangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.triangle(v0i, v1i, v1i + 1);
+                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_corner(uint32_t ci, float x, float y, float xd, float yd, float r, float a)
@@ -621,12 +621,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.triangle(v0i, v1i, v1i + 1);
+                    sBatch.htriangle(v0i, v1i, v1i + 1);
                     ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.triangle(v0i, v1i, v1i + 1);
+                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width)
@@ -671,13 +671,13 @@ namespace lsp
 
                     ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+                    sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
                     v0i        += 2;
                 }
 
                 ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.rectangle(v0i, v0i + 1, v0i + 3, v0i + 2);
+                sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
             }
 
             void Surface::fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height)
@@ -870,7 +870,7 @@ namespace lsp
                 extend_rect(rect, px, py);
                 ADD_VERTEX(v, ci, px, py);
 
-                sBatch.rectangle(vi, vi+1, vi+2, vi+3);
+                sBatch.hrectangle(vi, vi+1, vi+2, vi+3);
                 si                  = i++;
 
                 // Draw the rest segments
@@ -909,8 +909,8 @@ namespace lsp
                         extend_rect(rect, px, py);
                         ADD_VERTEX(v, ci, px, py);
 
-                        sBatch.rectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.rectangle(vi, vi + 6, vi + 1, vi + 7);
+                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
+                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
 
                         si              = i;
                         vi             += 4;
@@ -956,7 +956,7 @@ namespace lsp
                 ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
                 ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
 
-                sBatch.rectangle(vi, vi+1, vi+2, vi+3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 si                  = i++;
 
                 // Draw the rest segments
@@ -980,8 +980,8 @@ namespace lsp
                         ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
                         ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
 
-                        sBatch.rectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.rectangle(vi, vi + 6, vi + 1, vi + 7);
+                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
+                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
 
                         si              = i;
                         vi             += 4;
@@ -1028,7 +1028,7 @@ namespace lsp
                 ADD_TVERTEX(v, ci, xe, ye, 1.0f, 0.0f);
                 ADD_TVERTEX(v, ci, xe, y, 1.0f, 1.0f);
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
@@ -1074,7 +1074,7 @@ namespace lsp
                 ADD_TVERTEX(v, ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 0.0f);
                 ADD_TVERTEX(v, ci, x + v1x, y + v1y, 1.0f, 1.0f);
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
@@ -1117,7 +1117,7 @@ namespace lsp
                 ADD_TVERTEX(v, ci, xe, ye, sxe, syb);
                 ADD_TVERTEX(v, ci, xe, y, sxe, sye);
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::draw_raw(
@@ -1162,7 +1162,7 @@ namespace lsp
                 ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
                 ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             status_t Surface::resize(size_t width, size_t height)
@@ -1574,7 +1574,7 @@ namespace lsp
                     ADD_VERTEX(v, ci, left, -(c2 + a2*left)/b2);
                 }
 
-                sBatch.rectangle(vi, vi + 1, vi + 2, vi + 3);
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
