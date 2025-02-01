@@ -253,7 +253,7 @@ namespace lsp
 
             void Context::swap_buffers(size_t width, size_t height)
             {
-                pVtbl->glFlush();
+                pVtbl->glFinish();
 
                 pVtbl->glReadBuffer(GL_BACK);
                 pVtbl->glDrawBuffer(GL_FRONT);
@@ -262,7 +262,8 @@ namespace lsp
                     0, 0, width, height,
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
-                ::glXSwapBuffers(pDisplay, hWindow);
+                // Enable this if you need to run something like RENDERDOC
+//                ::glXSwapBuffers(pDisplay, hWindow);
             }
 
             const char *Context::vertex_shader(size_t program_id)
