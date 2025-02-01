@@ -71,11 +71,9 @@ namespace lsp
                 rgbax32, rgbax24, rgbax16, rgba,
                 NULL
             };
-        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
             static ::XVisualInfo *choose_visual(Display *dpy, int screen)
             {
-            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                 for (const GLint * const *visual = glx_visuals; *visual != NULL; ++visual)
                 {
                     ::XVisualInfo *vi = ::glXChooseVisual(dpy, screen, const_cast<int *>(*visual));
@@ -87,9 +85,10 @@ namespace lsp
                         return vi;
                     }
                 }
-            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
                 return NULL;
             }
+
+        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
             LSP_HIDDEN_MODIFIER
             bool check_env_option_enabled(const char *name)
