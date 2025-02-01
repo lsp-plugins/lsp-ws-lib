@@ -62,16 +62,31 @@ namespace lsp
                 const vtbl_t *vtbl  = this->vtbl();
                 if (vGcFramebuffer.size() > 0)
                 {
+//                    for (size_t i=0; i<vGcFramebuffer.size(); ++i)
+//                    {
+//                        GLuint *id = vGcFramebuffer.uget(i);
+//                        lsp_trace("glDeleteFramebuffers(%d)", int(*id));
+//                    }
                     vtbl->glDeleteFramebuffers(vGcFramebuffer.size(), vGcFramebuffer.first());
                     vGcFramebuffer.clear();
                 }
                 if (vGcRenderbuffer.size() > 0)
                 {
+//                    for (size_t i=0; i<vGcRenderbuffer.size(); ++i)
+//                    {
+//                        GLuint *id = vGcRenderbuffer.uget(i);
+//                        lsp_trace("glDeleteRenderbuffers(%d)", int(*id));
+//                    }
                     vtbl->glDeleteRenderbuffers(vGcRenderbuffer.size(), vGcRenderbuffer.first());
                     vGcRenderbuffer.clear();
                 }
                 if (vGcTexture.size() > 0)
                 {
+//                    for (size_t i=0; i<vGcTexture.size(); ++i)
+//                    {
+//                        GLuint *id = vGcTexture.uget(i);
+//                        lsp_trace("glDeleteTextures(%d)", int(*id));
+//                    }
                     vtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());
                     vGcTexture.clear();
                 }

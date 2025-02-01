@@ -245,6 +245,7 @@ namespace lsp
                 vtbl->glGenVertexArrays(1, &VAO);
                 vtbl->glBindVertexArray(VAO);
                 vtbl->glGenTextures(1, &cmd_texture);
+//                lsp_trace("glGenTextures(%d)", int(cmd_texture));
 
                 lsp_finally {
                     // Reset state
@@ -252,6 +253,7 @@ namespace lsp
                     vtbl->glDeleteVertexArrays(1, &VAO);
                     vtbl->glDeleteBuffers(3, VBO);
                     vtbl->glDeleteTextures(1, &cmd_texture);
+//                    lsp_trace("glDeleteTextures(%d)", int(cmd_texture));
                     vtbl->glUseProgram(0);
                 };
 

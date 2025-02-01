@@ -230,11 +230,13 @@ namespace lsp
 
             status_t Context::activate()
             {
-                if (::glXGetCurrentContext() == hContext)
-                    return STATUS_OK;
+                if (::glXGetCurrentContext() != hContext)
+                {
+                    if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
+                        return STATUS_UNKNOWN_ERR;
+                }
 
-                if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
-                    return STATUS_UNKNOWN_ERR;
+                perform_gc();
 
                 return STATUS_OK;
             }
@@ -261,7 +263,6 @@ namespace lsp
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
                 ::glXSwapBuffers(pDisplay, hWindow);
-                ::glXMakeCurrent(pDisplay, None, NULL);
             }
 
             const char *Context::vertex_shader(size_t program_id)
