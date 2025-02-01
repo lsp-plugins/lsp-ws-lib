@@ -246,10 +246,22 @@ namespace lsp
 
                 perform_gc();
 
+                return STATUS_OK;
+            }
+
+            void Context::swap_buffers(size_t width, size_t height)
+            {
+                pVtbl->glFlush();
+
+                pVtbl->glReadBuffer(GL_BACK);
+                pVtbl->glDrawBuffer(GL_FRONT);
+                pVtbl->glBlitFramebuffer(
+                    0, 0, width, height,
+                    0, 0, width, height,
+                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
                 ::glXSwapBuffers(pDisplay, hWindow);
                 ::glXMakeCurrent(pDisplay, None, NULL);
-
-                return STATUS_OK;
             }
 
             const char *Context::vertex_shader(size_t program_id)

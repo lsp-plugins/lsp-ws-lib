@@ -1286,12 +1286,7 @@ namespace lsp
                     sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
-                    vtbl->glReadBuffer(GL_BACK);
-                    vtbl->glDrawBuffer(GL_FRONT);
-                    vtbl->glBlitFramebuffer(
-                        0, 0, nWidth, nHeight,
-                        0, 0, nWidth, nHeight,
-                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                    pContext->swap_buffers(nWidth, nHeight);
                 }
             }
 

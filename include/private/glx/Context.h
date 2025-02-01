@@ -94,6 +94,7 @@ namespace lsp
                     virtual status_t    program(size_t *id, gl::program_t program) override;
                     virtual const gl::vtbl_t *vtbl() const override;
                     virtual uint32_t    multisample() const override;
+                    virtual void        swap_buffers(size_t width, size_t height) override;
             };
 
             /**

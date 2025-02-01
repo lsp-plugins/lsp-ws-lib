@@ -93,6 +93,10 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
+            void IContext::swap_buffers(size_t width, size_t height)
+            {
+            }
+
             void IContext::invalidate()
             {
                 activate();

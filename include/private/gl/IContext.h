@@ -114,6 +114,13 @@ namespace lsp
                     virtual status_t deactivate();
 
                     /**
+                     * Swap back and front buffer
+                     * @param width width of the buffer
+                     * @param height height of the buffer
+                     */
+                    virtual void swap_buffers(size_t width, size_t height);
+
+                    /**
                      * Mark OpenGL context as invalid
                      */
                     void invalidate();
