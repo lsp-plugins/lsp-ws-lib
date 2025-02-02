@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -94,7 +94,7 @@ namespace lsp
                 const char *font_family  = ((id->name != NULL) && (strlen(id->name) > 0)) ? id->name : NULL;
 
                 // Cleanup FontConfig state on exit
-                lsp_finally { FcFini(); };
+//                lsp_finally { FcFini(); };
 
                 // Lookup system font faces and add to list
                 FcPattern *pattern = FcPatternCreate();
