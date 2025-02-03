@@ -198,8 +198,6 @@ namespace lsp
                 vtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, tex_format, GL_UNSIGNED_BYTE, buf);
                 vtbl->glBindTexture(GL_TEXTURE_2D, 0);
 
-                nWidth      = lsp_max(nWidth, uint32_t(x + width));
-                nHeight     = lsp_max(nHeight, uint32_t(y + height));
                 nSamples    = 0;
 
                 return STATUS_OK;

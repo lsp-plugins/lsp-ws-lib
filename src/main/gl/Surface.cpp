@@ -60,6 +60,7 @@ namespace lsp
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
+                pText           = new TextAllocator(pContext);
                 nWidth          = width;
                 nHeight         = height;
                 nNumClips       = 0;
@@ -76,12 +77,13 @@ namespace lsp
                 lsp_trace("primary surface created ptr=%p", this);
             }
 
-            Surface::Surface(size_t width, size_t height):
+            Surface::Surface(gl::TextAllocator *text, size_t width, size_t height):
                 ISurface(width, height, ST_OPENGL)
             {
                 pDisplay        = NULL;
                 pContext        = NULL;
                 pTexture        = NULL;
+                pText           = safe_acquire(text);
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
@@ -96,9 +98,9 @@ namespace lsp
                 sync_matrix();
             }
 
-            Surface *Surface::create_nested(size_t width, size_t height)
+            Surface *Surface::create_nested(gl::TextAllocator *text, size_t width, size_t height)
             {
-                return new Surface(width, height);
+                return new Surface(text, width, height);
             }
 
             IDisplay *Surface::display()
@@ -108,7 +110,7 @@ namespace lsp
 
             ISurface *Surface::create(size_t width, size_t height)
             {
-                Surface *s = create_nested(width, height);
+                Surface *s = create_nested(pText, width, height);
                 if (s != NULL)
                 {
                     s->pDisplay     = pDisplay;
@@ -146,6 +148,7 @@ namespace lsp
                 }
 
                 safe_release(pTexture);
+                safe_release(pText);
                 safe_release(pContext);
 
                 pDisplay        = NULL;
@@ -275,7 +278,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
-                        NULL,
+                        pText->current(),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -302,7 +305,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
-                        NULL,
+                        pText->current(),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -331,7 +334,7 @@ namespace lsp
                     gl::batch_header_t {
                         program,
                         enrich_flags(flags),
-                        NULL,
+                        pText->current(),
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -409,6 +412,25 @@ namespace lsp
                 buf     = serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
+            }
+
+            gl::Texture *Surface::make_text(ws::rectangle_t *rect, const void *data, size_t width, size_t height, size_t stride)
+            {
+                // Check that texture can be placed to the atlas
+                if ((pText != NULL) && (width <= TEXT_ATLAS_SIZE) && (height <= TEXT_ATLAS_SIZE))
+                    return pText->allocate(rect, data, width, height, stride);
+
+                // Allocate texture
+                gl::Texture *tex = new gl::Texture(pContext);
+                if (tex == NULL)
+                    return NULL;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                if (tex->set_image(data, width, height, stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
+                    return NULL;
+
+                return release_ptr(tex);
             }
 
             void Surface::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
@@ -1250,7 +1272,10 @@ namespace lsp
                     return;
                 lsp_finally {
                     if (!bNested)
+                    {
+                        pText->clear();
                         pContext->deactivate();
+                    }
                 };
 
                 // Perform rendering of the collected batch

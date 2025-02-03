@@ -30,6 +30,7 @@
 
 #include <private/gl/IContext.h>
 #include <private/gl/Batch.h>
+#include <private/gl/TextAllocator.h>
 
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/ws/IGradient.h>
@@ -74,7 +75,9 @@ namespace lsp
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
                     gl::Texture            *pTexture;           // Texture for the nested surface
+                    gl::TextAllocator      *pText;              // Text allocator
                     gl::Batch               sBatch;
+
                     size_t                  nNumClips;
                     float                   vMatrix[16];
                     clip_rect_t             vClips[MAX_CLIPS];
@@ -94,7 +97,7 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit Surface(size_t width, size_t height);
+                    explicit Surface(gl::TextAllocator *text, size_t width, size_t height);
 
                     /**
                      * Factory method for creating nested surface with proper class type
@@ -102,7 +105,7 @@ namespace lsp
                      * @param height heigth of the nested surface
                      * @return pointer to created surface
                      */
-                    virtual Surface        *create_nested(size_t width, size_t height);
+                    virtual Surface        *create_nested(gl::TextAllocator *text, size_t width, size_t height);
 
                 protected:
                     uint32_t enrich_flags(uint32_t flags) const;
@@ -116,6 +119,8 @@ namespace lsp
                     ssize_t start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, float a);
                     ssize_t start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, const Color & color);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
+
+                    gl::Texture            *make_text(ws::rectangle_t *rect, const void *data, size_t width, size_t height, size_t stride);
 
                     inline float *serialize_clipping(float *dst) const;
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
@@ -140,7 +145,7 @@ namespace lsp
                     void draw_polyline(uint32_t ci, const float *x, const float *y, float width, size_t n);
 
                 public:
-                    /** Create GL surface
+                    /** Create primary GL surface
                      *
                      * @param display associated display
                      * @param ctx OpenGL context

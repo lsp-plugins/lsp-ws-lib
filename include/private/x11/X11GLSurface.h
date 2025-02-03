@@ -61,21 +61,9 @@ namespace lsp
                     X11GLSurface & operator = (X11GLSurface &&) = delete;
 
                 protected:
-                    /** Create nested GL surface
-                     *
-                     * @param display display
-                     * @param width surface width
-                     * @param height surface height
-                     */
-                    explicit X11GLSurface(X11Display *display, size_t width, size_t height);
+                    explicit X11GLSurface(X11Display *display, gl::TextAllocator *text, size_t width, size_t height);
 
-                    /**
-                     * Factory method for creating nested surface with proper class type
-                     * @param width width of the nested surface
-                     * @param height heigth of the nested surface
-                     * @return pointer to created surface
-                     */
-                    virtual gl::Surface *create_nested(size_t width, size_t height) override;
+                    virtual gl::Surface *create_nested(gl::TextAllocator *text, size_t width, size_t height) override;
 
                 public: // ws::ISurface implementation
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;

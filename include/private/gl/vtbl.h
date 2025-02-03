@@ -180,6 +180,16 @@ namespace lsp
                 // Miscellaneous functions
                 void GLAPIENTRY         (* glPixelStoref)(GLenum pname, GLfloat param);
                 void GLAPIENTRY         (* glPixelStorei)(GLenum pname, GLint param);
+                void GLAPIENTRY         (* glGetBooleanv)(GLenum pname, GLboolean * data);
+                void GLAPIENTRY         (* glGetDoublev)(GLenum pname, GLdouble * data);
+                void GLAPIENTRY         (* glGetFloatv)(GLenum pname, GLfloat * data);
+                void GLAPIENTRY         (* glGetIntegerv)(GLenum pname, GLint * data);
+                void GLAPIENTRY         (* glGetInteger64v)(GLenum pname, GLint64 * data);
+                void GLAPIENTRY         (* glGetBooleani_v)(GLenum target, GLuint index, GLboolean * data);
+                void GLAPIENTRY         (* glGetIntegeri_v)(GLenum target, GLuint index, GLint * data);
+                void GLAPIENTRY         (* glGetFloati_v)(GLenum target, GLuint index, GLfloat * data);
+                void GLAPIENTRY         (* glGetDoublei_v)(GLenum target, GLuint index, GLdouble * data);
+                void GLAPIENTRY         (* glGetInteger64i_v)(GLenum target, GLuint index, GLint64 * data);
 
                 // Drawing operations
                 void GLAPIENTRY         (* glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);

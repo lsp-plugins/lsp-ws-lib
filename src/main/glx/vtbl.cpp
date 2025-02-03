@@ -199,6 +199,16 @@ namespace lsp
                 // Misc operations
                 FETCH(glPixelStoref);
                 FETCH(glPixelStorei);
+                FETCH(glGetBooleanv);
+                FETCH(glGetDoublev);
+                FETCH(glGetFloatv);
+                FETCH(glGetIntegerv);
+                FETCH(glGetInteger64v);
+                FETCH(glGetBooleani_v);
+                FETCH(glGetIntegeri_v);
+                FETCH(glGetFloati_v);
+                FETCH(glGetDoublei_v);
+                FETCH(glGetInteger64i_v);
 
                 // Drawing operations
                 FETCH(glClearColor);

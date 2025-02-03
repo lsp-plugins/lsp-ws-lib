@@ -48,8 +48,8 @@ namespace lsp
                 pX11Display = display;
             }
 
-            X11GLSurface::X11GLSurface(X11Display *display, size_t width, size_t height):
-                gl::Surface(width, height)
+            X11GLSurface::X11GLSurface(X11Display *display, gl::TextAllocator *text, size_t width, size_t height):
+                gl::Surface(text, width, height)
             {
                 pX11Display = display;
             }
@@ -58,9 +58,9 @@ namespace lsp
             {
             }
 
-            gl::Surface *X11GLSurface::create_nested(size_t width, size_t height)
+            gl::Surface *X11GLSurface::create_nested(gl::TextAllocator *text, size_t width, size_t height)
             {
-                return new X11GLSurface(pX11Display, width, height);
+                return new X11GLSurface(pX11Display, text, width, height);
             }
 
             bool X11GLSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -185,14 +185,11 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
-                gl::Texture *tex = new gl::Texture(pContext);
+                ws::rectangle_t rect;
+                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
                     return;
                 lsp_finally { safe_release(tex); };
-
-                // Initialize texture
-                if (tex->set_image(bitmap->data, bitmap->width, bitmap->height, bitmap->stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
-                    return;
 
                 // Output the text
                 {
@@ -214,10 +211,15 @@ namespace lsp
                     if (v == NULL)
                         return;
 
-                    ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
-                    ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
-                    ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
-                    ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
+                    const float sb      = rect.nLeft * gl::TEXT_ATLAS_SCALE;
+                    const float tb      = rect.nTop * gl::TEXT_ATLAS_SCALE;
+                    const float se      = (rect.nLeft + rect.nWidth) * gl::TEXT_ATLAS_SCALE;
+                    const float te      = (rect.nTop + rect.nHeight) * gl::TEXT_ATLAS_SCALE;
+
+                    ADD_TVERTEX(v, ci, x, y, sb, tb);
+                    ADD_TVERTEX(v, ci, x, ye, sb, te);
+                    ADD_TVERTEX(v, ci, xe, ye, se, te);
+                    ADD_TVERTEX(v, ci, xe, y, se, tb);
 
                     sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
@@ -271,14 +273,11 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
-                gl::Texture *tex = new gl::Texture(pContext);
+                ws::rectangle_t rect;
+                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
                     return;
                 lsp_finally { safe_release(tex); };
-
-                // Initialize texture
-                if (tex->set_image(bitmap->data, bitmap->width, bitmap->height, bitmap->stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
-                    return;
 
                 // Output the text
                 float r_w, r_h, fx, fy;
@@ -305,10 +304,15 @@ namespace lsp
                     if (v == NULL)
                         return;
 
-                    ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
-                    ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
-                    ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
-                    ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
+                    const float sb      = rect.nLeft * gl::TEXT_ATLAS_SCALE;
+                    const float tb      = rect.nTop * gl::TEXT_ATLAS_SCALE;
+                    const float se      = (rect.nLeft + rect.nWidth) * gl::TEXT_ATLAS_SCALE;
+                    const float te      = (rect.nTop + rect.nHeight) * gl::TEXT_ATLAS_SCALE;
+
+                    ADD_TVERTEX(v, ci, x, y, sb, tb);
+                    ADD_TVERTEX(v, ci, x, ye, sb, te);
+                    ADD_TVERTEX(v, ci, xe, ye, se, te);
+                    ADD_TVERTEX(v, ci, xe, y, se, tb);
 
                     sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
