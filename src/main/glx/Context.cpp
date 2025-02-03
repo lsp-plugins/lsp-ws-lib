@@ -241,6 +241,20 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            size_t Context::width() const
+            {
+                unsigned int width = 0;
+                ::glXQueryDrawable(pDisplay, hWindow, GLX_WIDTH, &width);
+                return width;
+            }
+
+            size_t Context::height() const
+            {
+                unsigned int height = 0;
+                ::glXQueryDrawable(pDisplay, hWindow, GLX_HEIGHT, &height);
+                return height;
+            }
+
             status_t Context::deactivate()
             {
                 if (::glXGetCurrentContext() != hContext)
@@ -253,14 +267,13 @@ namespace lsp
 
             void Context::swap_buffers(size_t width, size_t height)
             {
-                pVtbl->glFinish();
-
                 pVtbl->glReadBuffer(GL_BACK);
                 pVtbl->glDrawBuffer(GL_FRONT);
                 pVtbl->glBlitFramebuffer(
                     0, 0, width, height,
                     0, 0, width, height,
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                pVtbl->glFlush();
 
                 // Enable this if you need to run something like RENDERDOC
 //                ::glXSwapBuffers(pDisplay, hWindow);

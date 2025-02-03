@@ -95,6 +95,8 @@ namespace lsp
                     virtual const gl::vtbl_t *vtbl() const override;
                     virtual uint32_t    multisample() const override;
                     virtual void        swap_buffers(size_t width, size_t height) override;
+                    virtual size_t      width() const override;
+                    virtual size_t      height() const override;
             };
 
             /**

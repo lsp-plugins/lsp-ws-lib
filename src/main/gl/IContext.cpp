@@ -142,6 +142,16 @@ namespace lsp
                 return 0;
             }
 
+            size_t IContext::width() const
+            {
+                return 0;
+            }
+
+            size_t IContext::height() const
+            {
+                return 0;
+            }
+
             void IContext::free_framebuffer(GLuint id)
             {
                 vGcFramebuffer.add(&id);

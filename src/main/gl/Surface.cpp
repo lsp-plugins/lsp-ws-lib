@@ -1278,11 +1278,14 @@ namespace lsp
                 }
                 else
                 {
+                    // Setup viewport
+                    const ssize_t height = pContext->height();
+                    vtbl->glViewport(0, height - nHeight, nWidth, nHeight);
+
                     // Set drawing buffer and viewport
                     vtbl->glDrawBuffer(GL_BACK);
 
                     // Execute batch
-                    vtbl->glViewport(0, 0, nWidth, nHeight);
                     sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image

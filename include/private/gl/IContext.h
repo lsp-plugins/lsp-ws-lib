@@ -152,6 +152,18 @@ namespace lsp
                      */
                     virtual uint32_t multisample() const;
 
+                    /**
+                     * Get the width of the associated drawable surface
+                     * @return width of the associated drawable surface
+                     */
+                    virtual size_t width() const;
+
+                    /**
+                     * Get the hight of the associated drawable surface
+                     * @return the hight of the associated drawable surface
+                     */
+                    virtual size_t height() const;
+
                 public:
                     /**
                      * Put frame buffer to list of destruction
