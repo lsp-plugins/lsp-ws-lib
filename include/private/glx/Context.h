@@ -83,7 +83,7 @@ namespace lsp
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
 
                 protected:
-                    virtual void        cleanup();
+                    virtual void        cleanup() override;
 
                 public:
                     explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl, uint32_t multisample);
