@@ -48,8 +48,8 @@ namespace lsp
                 pX11Display = display;
             }
 
-            X11GLSurface::X11GLSurface(X11Display *display, gl::TextAllocator *text, size_t width, size_t height):
-                gl::Surface(text, width, height)
+            X11GLSurface::X11GLSurface(X11Display *display, gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height):
+                gl::Surface(ctx, text, width, height)
             {
                 pX11Display = display;
             }
@@ -60,7 +60,7 @@ namespace lsp
 
             gl::Surface *X11GLSurface::create_nested(gl::TextAllocator *text, size_t width, size_t height)
             {
-                return new X11GLSurface(pX11Display, text, width, height);
+                return new X11GLSurface(pX11Display, pContext, text, width, height);
             }
 
             bool X11GLSurface::get_font_parameters(const Font &f, font_parameters_t *fp)

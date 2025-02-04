@@ -61,7 +61,7 @@ namespace lsp
                     X11GLSurface & operator = (X11GLSurface &&) = delete;
 
                 protected:
-                    explicit X11GLSurface(X11Display *display, gl::TextAllocator *text, size_t width, size_t height);
+                    explicit X11GLSurface(X11Display *display, gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height);
 
                     virtual gl::Surface *create_nested(gl::TextAllocator *text, size_t width, size_t height) override;
 

@@ -77,11 +77,11 @@ namespace lsp
                 lsp_trace("primary surface created ptr=%p", this);
             }
 
-            Surface::Surface(gl::TextAllocator *text, size_t width, size_t height):
+            Surface::Surface(gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height):
                 ISurface(width, height, ST_OPENGL)
             {
                 pDisplay        = NULL;
-                pContext        = NULL;
+                pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
                 pText           = safe_acquire(text);
                 nWidth          = width;
@@ -100,7 +100,7 @@ namespace lsp
 
             Surface *Surface::create_nested(gl::TextAllocator *text, size_t width, size_t height)
             {
-                return new Surface(text, width, height);
+                return new Surface(pContext, text, width, height);
             }
 
             IDisplay *Surface::display()

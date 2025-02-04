@@ -94,10 +94,11 @@ namespace lsp
                     /** Create nested GL surface
                      *
                      * @param ctx OpenGL context
+                     * @param text text allocator
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit Surface(gl::TextAllocator *text, size_t width, size_t height);
+                    explicit Surface(gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height);
 
                     /**
                      * Factory method for creating nested surface with proper class type
