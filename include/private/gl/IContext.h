@@ -78,9 +78,9 @@ namespace lsp
                     lltl::darray<GLuint> vRenderbuffers;
                     lltl::darray<GLuint> vTextures;
 
-                    lltl::darray<GLuint> vGcFramebuffer;
-                    lltl::darray<GLuint> vGcRenderbuffer;
-                    lltl::darray<GLuint> vGcTexture;
+                    lltl::darray<GLuint> vGcFramebuffers;
+                    lltl::darray<GLuint> vGcRenderbuffers;
+                    lltl::darray<GLuint> vGcTextures;
 
                 protected:
                     const gl::vtbl_t   *pVtbl;

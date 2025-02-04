@@ -28,12 +28,36 @@
 
 #include <lsp-plug.in/common/debug.h>
 
+// Uncomment this to log all OpenGL object allocations and deletions
+// #define TRACE_ALLOCATIONS
+
 namespace lsp
 {
     namespace ws
     {
         namespace gl
         {
+
+        #ifdef TRACE_ALLOCATIONS
+            inline void trace_array(const char *func, lltl::darray<GLuint> & list)
+            {
+                for (size_t i=0, n=list.size(); i<n; ++i)
+                {
+                    GLuint *id = list.uget(i);
+                    if (id != NULL)
+                        lsp_trace("%s(%d)", func, int(*id));
+                }
+            }
+
+            inline void trace_alloc(const char *func, GLuint id)
+            {
+                lsp_trace("%s(%d)", func, int(id));
+            }
+        #else
+            #define trace_array(...)
+            #define trace_alloc(...)
+        #endif
+
             static ssize_t cmp_gluint(const GLuint *a, const GLuint *b)
             {
                 const size_t ia = *a;
@@ -88,99 +112,95 @@ namespace lsp
                 list.qsort(cmp_gluint);
 
                 GLuint *dst = ids.first();
-                size_t i = 0, j = 0;
-                const GLuint *src = dst, *lst = list.first();
                 const size_t n = ids.size(), m = list.size();
+                const GLuint *src = dst, *lst = list.first();
+                const GLuint *esrc = &src[n], *elst = &lst[m];
 
                 // Remove elements that meet lst
-                for ( ; i < n; ++i, ++src)
+                while (src < esrc)
                 {
                     // Check that current element matches
                     if (*src == *lst)
                     {
-                        if ((++j) >= m)
+                        ++src;
+                        if ((++lst) >= elst)
                             break;
-                        ++lst;
                     }
-                    else if (dst != src)
-                        *(dst++)  = *src;
+                    else
+                    {
+                        // Copy data if needed
+                        if (dst != src)
+                            *dst    = *src;
+                        ++dst;
+                        ++src;
+                    }
                 }
 
                 // Move tail
                 if (dst != src)
                 {
-                    for ( ; i < n; ++i, ++src)
-                        *(dst++)  = *src;
+                    while (src < esrc)
+                        *(dst++)  = *(src++);
                 }
 
                 // Evict removed elements from the tail
                 ids.pop_n(src - dst);
-                lsp_trace("Removed %d identifiers, %d identifiers active", int(src - dst), int(ids.size()));
+
+            #ifdef TRACE_ALLOCATIONS
+                lsp_trace("Size: %d, requested: %d, removed: %d, active: %d",
+                    int(n), int(m), int(src - dst), int(ids.size()));
+            #endif /* TRACE_ALLOCATIONS */
             }
 
             void IContext::perform_gc()
             {
-                if (vGcFramebuffer.size() > 0)
+                if (vGcFramebuffers.size() > 0)
                 {
-                    for (size_t i=0; i<vGcFramebuffer.size(); ++i)
-                    {
-                        GLuint *id = vGcFramebuffer.uget(i);
-                        lsp_trace("glDeleteFramebuffers(%d)", int(*id));
-                    }
-                    pVtbl->glDeleteFramebuffers(vGcFramebuffer.size(), vGcFramebuffer.first());
-                    remove_identifiers(vFramebuffers, vGcFramebuffer);
+                    trace_array("glDeleteFramebuffers", vGcFramebuffers);
+                    pVtbl->glDeleteFramebuffers(vGcFramebuffers.size(), vGcFramebuffers.first());
+                    remove_identifiers(vFramebuffers, vGcFramebuffers);
                 }
-                if (vGcRenderbuffer.size() > 0)
+                if (vGcRenderbuffers.size() > 0)
                 {
-                    for (size_t i=0; i<vGcRenderbuffer.size(); ++i)
-                    {
-                        GLuint *id = vGcRenderbuffer.uget(i);
-                        lsp_trace("glDeleteRenderbuffers(%d)", int(*id));
-                    }
-                    pVtbl->glDeleteRenderbuffers(vGcRenderbuffer.size(), vGcRenderbuffer.first());
-                    remove_identifiers(vRenderbuffers, vGcRenderbuffer);
+                    trace_array("glDeleteRenderbuffers", vGcRenderbuffers);
+                    pVtbl->glDeleteRenderbuffers(vGcRenderbuffers.size(), vGcRenderbuffers.first());
+                    remove_identifiers(vRenderbuffers, vGcRenderbuffers);
                 }
-                if (vGcTexture.size() > 0)
+                if (vGcTextures.size() > 0)
                 {
-                    for (size_t i=0; i<vGcTexture.size(); ++i)
-                    {
-                        GLuint *id = vGcTexture.uget(i);
-                        lsp_trace("glDeleteTextures(%d)", int(*id));
-                    }
-                    pVtbl->glDeleteTextures(vGcTexture.size(), vGcTexture.first());
-                    remove_identifiers(vTextures, vGcTexture);
+                    trace_array("glDeleteTextures", vGcTextures);
+                    pVtbl->glDeleteTextures(vGcTextures.size(), vGcTextures.first());
+                    remove_identifiers(vTextures, vGcTextures);
                 }
             }
 
             void IContext::cleanup()
             {
+                // Flush GC buffers as they are not needed
+                vGcFramebuffers.flush();
+                vGcRenderbuffers.flush();
+                vGcTextures.flush();
+
+                // Free all framebuffers
                 if (vFramebuffers.size() > 0)
                 {
-                    for (size_t i=0; i<vFramebuffers.size(); ++i)
-                    {
-                        GLuint *id = vFramebuffers.uget(i);
-                        lsp_trace("glDeleteFramebuffers(%d)", int(*id));
-                    }
+                    trace_array("glDeleteFramebuffers", vFramebuffers);
                     pVtbl->glDeleteFramebuffers(vFramebuffers.size(), vFramebuffers.first());
                     vFramebuffers.flush();
                 }
+
+                // Free all renderbuffers
                 if (vRenderbuffers.size() > 0)
                 {
-                    for (size_t i=0; i<vRenderbuffers.size(); ++i)
-                    {
-                        GLuint *id = vRenderbuffers.uget(i);
-                        lsp_trace("glDeleteRenderbuffers(%d)", int(*id));
-                    }
+                    trace_array("glDeleteRenderbuffers", vRenderbuffers);
                     pVtbl->glDeleteRenderbuffers(vRenderbuffers.size(), vRenderbuffers.first());
                     vRenderbuffers.flush();
                 }
+
+                // Free all textures
                 if (vTextures.size() > 0)
                 {
-                    for (size_t i=0; i<vTextures.size(); ++i)
-                    {
-                        GLuint *id = vTextures.uget(i);
-                        lsp_trace("glDeleteTextures(%d)", int(*id));
-                    }
+                    trace_array("glDeleteTextures", vTextures);
                     pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
                     vTextures.flush();
                 }
@@ -253,6 +273,7 @@ namespace lsp
                 GLuint *dst_id  = vFramebuffers.add();
                 if (dst_id != NULL)
                 {
+                    trace_alloc("glGenFramebuffers", id);
                     *dst_id         = id;
                     return id;
                 }
@@ -277,6 +298,7 @@ namespace lsp
                 GLuint *dst_id  = vRenderbuffers.add();
                 if (dst_id != NULL)
                 {
+                    trace_alloc("glGenRenderbuffers", id);
                     *dst_id         = id;
                     return id;
                 }
@@ -301,6 +323,7 @@ namespace lsp
                 GLuint *dst_id  = vTextures.add();
                 if (dst_id != NULL)
                 {
+                    trace_alloc("glGenTextures", id);
                     *dst_id         = id;
                     return id;
                 }
@@ -312,20 +335,20 @@ namespace lsp
 
             void IContext::free_framebuffer(GLuint id)
             {
-                if (valid())
-                    vGcFramebuffer.add(&id);
+                if (bValid)
+                    vGcFramebuffers.add(&id);
             }
 
             void IContext::free_renderbuffer(GLuint id)
             {
-                if (valid())
-                    vGcRenderbuffer.add(&id);
+                if (bValid)
+                    vGcRenderbuffers.add(&id);
             }
 
             void IContext::free_texture(GLuint id)
             {
-                if (valid())
-                    vGcTexture.add(&id);
+                if (bValid)
+                    vGcTextures.add(&id);
             }
 
             gl::IContext *create_context(const context_param_t *params)

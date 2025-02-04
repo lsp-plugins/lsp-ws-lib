@@ -246,7 +246,6 @@ namespace lsp
                 vtbl->glBindVertexArray(VAO);
 
                 cmd_texture = ctx->alloc_texture();
-                vtbl->glGenTextures(1, &cmd_texture);
 //                lsp_trace("glGenTextures(%d)", int(cmd_texture));
 
                 lsp_finally {

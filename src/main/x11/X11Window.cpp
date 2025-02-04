@@ -129,7 +129,9 @@ namespace lsp
                     if (ctx != NULL)
                     {
                         result = new X11GLSurface(dpy, ctx, width, height);
-                        if (result != NULL)
+                        if (result == NULL)
+                            ctx->invalidate();
+                        else
                             lsp_trace("Using X11GLSurface ptr=%p", result);
                     }
                 }
