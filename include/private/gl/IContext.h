@@ -71,15 +71,28 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER IContext
             {
                 private:
-                    uatomic_t       nReferences;
-                    bool            bValid;
+                    uatomic_t           nReferences;
+                    bool                bValid;
+
+                    lltl::darray<GLuint> vFramebuffers;
+                    lltl::darray<GLuint> vRenderbuffers;
+                    lltl::darray<GLuint> vTextures;
 
                     lltl::darray<GLuint> vGcFramebuffer;
                     lltl::darray<GLuint> vGcRenderbuffer;
                     lltl::darray<GLuint> vGcTexture;
 
+                protected:
+                    const gl::vtbl_t   *pVtbl;
+
+                protected:
+                    static void    remove_identifiers(lltl::darray<GLuint> & ids, lltl::darray<GLuint> & list);
+
+                protected:
+                    virtual void        cleanup();
+
                 public:
-                    IContext();
+                    IContext(const gl::vtbl_t *vtbl);
                     IContext(const IContext &) = delete;
                     IContext(IContext &&) = delete;
                     virtual ~IContext();
@@ -93,6 +106,60 @@ namespace lsp
 
                 protected:
                     void        perform_gc();
+
+                public:
+                    /**
+                     * Mark OpenGL context as invalid
+                     */
+                    void invalidate();
+
+                    /**
+                     * Check validity of OpenGL context
+                     * @return true of OpenGL context is valid
+                     */
+                    inline bool valid() const           { return bValid; };
+
+                    /**
+                     * Obtain virtual table of OpenGL functions
+                     * @return virtual table of OpenGL functions
+                     */
+                    const vtbl_t *vtbl() const          { return pVtbl; };
+
+                    /**
+                     * Allocate framebuffer
+                     * @return allocated framebuffer or 0 on error
+                     */
+                    GLuint alloc_framebuffer();
+
+                    /**
+                     * Allocate renderbuffer
+                     * @return allocated renderbuffer or 0 on error
+                     */
+                    GLuint alloc_renderbuffer();
+
+                    /**
+                     * Allocate texture
+                     * @return allocated texture or 0 on error
+                     */
+                    GLuint alloc_texture();
+
+                    /**
+                     * Put frame buffer to list of destruction
+                     * @param id framebuffer identifier
+                     */
+                    void free_framebuffer(GLuint id);
+
+                    /**
+                     * Put render buffer to list of destruction
+                     * @param id render buffer identifier
+                     */
+                    void free_renderbuffer(GLuint id);
+
+                    /**
+                     * Put texture to list of destruction
+                     * @param id texture identifier
+                     */
+                    void free_texture(GLuint id);
 
                 public:
                     /**
@@ -120,17 +187,6 @@ namespace lsp
                      */
                     virtual void swap_buffers(size_t width, size_t height);
 
-                    /**
-                     * Mark OpenGL context as invalid
-                     */
-                    void invalidate();
-
-                    /**
-                     * Check validity of OpenGL context
-                     * @return true of OpenGL context is valid
-                     */
-                    bool valid() const;
-
                 public:
                     /**
                      * Get shader program for rendering
@@ -139,12 +195,6 @@ namespace lsp
                      * @return pointer identifier of shader program or negative error code
                      */
                     virtual status_t program(size_t *id, program_t program);
-
-                    /**
-                     * Obtain virtual table of OpenGL functions
-                     * @return virtual table of OpenGL functions
-                     */
-                    virtual const vtbl_t   *vtbl() const;
 
                     /**
                      * Get multisampling factor
@@ -163,25 +213,6 @@ namespace lsp
                      * @return the hight of the associated drawable surface
                      */
                     virtual size_t height() const;
-
-                public:
-                    /**
-                     * Put frame buffer to list of destruction
-                     * @param id framebuffer identifier
-                     */
-                    virtual void free_framebuffer(GLuint id);
-
-                    /**
-                     * Put render buffer to list of destruction
-                     * @param id render buffer identifier
-                     */
-                    virtual void free_renderbuffer(GLuint id);
-
-                    /**
-                     * Put texture to list of destruction
-                     * @param id texture identifier
-                     */
-                    virtual void free_texture(GLuint id);
             };
 
             template <class T>

@@ -76,8 +76,7 @@ namespace lsp
                 if (nTextureId != 0)
                     return nTextureId;
 
-                const vtbl_t *vtbl = pContext->vtbl();
-                vtbl->glGenTextures(1, &nTextureId);
+                nTextureId = pContext->alloc_texture();
 //                lsp_trace("glGenTextures(%d)", int(nTextureId));
 
                 return nTextureId;
@@ -88,8 +87,7 @@ namespace lsp
                 if (nFrameBufferId != 0)
                     return nFrameBufferId;
 
-                const vtbl_t *vtbl = pContext->vtbl();
-                vtbl->glGenFramebuffers(1, &nFrameBufferId);
+                nFrameBufferId = pContext->alloc_framebuffer();
 //                lsp_trace("glGenFramebuffers(%d)", int(nFrameBufferId));
 
                 return nFrameBufferId;
@@ -100,8 +98,7 @@ namespace lsp
                 if (nStencilBufferId != 0)
                     return nStencilBufferId;
 
-                const vtbl_t *vtbl = pContext->vtbl();
-                vtbl->glGenRenderbuffers(1, &nStencilBufferId);
+                nStencilBufferId = pContext->alloc_renderbuffer();
 //                lsp_trace("glGenRenderbuffers(%d)", int(nStencilBufferId));
 
                 return nStencilBufferId;

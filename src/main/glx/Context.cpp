@@ -173,12 +173,11 @@ namespace lsp
             }
 
             Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window, vtbl_t *vtbl, uint32_t multisample)
-                : IContext()
+                : IContext(vtbl)
             {
                 pDisplay        = dpy;
                 hContext        = ctx;
                 hWindow         = window;
-                pVtbl           = vtbl;
                 nMultisample    = multisample;
 
                 lsp_trace("Created GLX context ptr=%p", this);
@@ -187,49 +186,44 @@ namespace lsp
             Context::~Context()
             {
                 if (hContext != NULL)
-                {
-                    ::Display *dpy = glXGetCurrentDisplay();
-                    ::Drawable drawable = glXGetCurrentDrawable();
-                    GLXContext ctx = glXGetCurrentContext();
-
-                    // Destroy associated programs if they are
-                    if (::glXMakeCurrent(pDisplay, hWindow, hContext))
-                    {
-                        lsp_finally { ::glXMakeCurrent(dpy, drawable, ctx); };
-
-                        // Destroy shaders and programs
-                        for (size_t i=0, n=vPrograms.size(); i<n; ++i)
-                            destroy(vPrograms.uget(i));
-                        vPrograms.flush();
-
-                        // Cleanup garbage
-                        perform_gc();
-                    }
-
-                    // Destroy context
-                    glXDestroyContext(pDisplay, hContext);
-                    hContext        = NULL;
-                }
-                pDisplay        = NULL;
-                hWindow         = None;
-
-                if (pVtbl != NULL)
-                {
-                    free(const_cast<vtbl_t *>(pVtbl));
-                    pVtbl           = NULL;
-                }
+                    lsp_error("Non-NULL context, need invalidate() call before destroying context");
 
                 lsp_trace("Destroyed GLX context ptr=%p", this);
             }
 
+            void Context::cleanup()
+            {
+                IContext::cleanup();
+
+                if (hContext == NULL)
+                    return;
+
+                // Destroy shaders and programs
+                for (size_t i=0, n=vPrograms.size(); i<n; ++i)
+                    destroy(vPrograms.uget(i));
+                vPrograms.flush();
+
+                // Destroy context
+                glXDestroyContext(pDisplay, hContext);
+                hContext        = NULL;
+                pDisplay        = NULL;
+                hWindow         = None;
+            }
+
             bool Context::active() const
             {
+                if (!valid())
+                    return false;
+
                 GLXContext ctx = ::glXGetCurrentContext();
                 return ctx == hContext;
             }
 
             status_t Context::activate()
             {
+                if (hContext == NULL)
+                    return STATUS_BAD_STATE;
+
                 if (::glXGetCurrentContext() != hContext)
                 {
                     if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
@@ -237,6 +231,20 @@ namespace lsp
                 }
 
                 perform_gc();
+
+                return STATUS_OK;
+            }
+
+            status_t Context::deactivate()
+            {
+                if (hContext == NULL)
+                    return STATUS_OK;
+
+                if (::glXGetCurrentContext() != hContext)
+                    return STATUS_BAD_STATE;
+
+                perform_gc();
+                ::glXMakeCurrent(pDisplay, None, NULL);
 
                 return STATUS_OK;
             }
@@ -253,16 +261,6 @@ namespace lsp
                 unsigned int height = 0;
                 ::glXQueryDrawable(pDisplay, hWindow, GLX_HEIGHT, &height);
                 return height;
-            }
-
-            status_t Context::deactivate()
-            {
-                if (::glXGetCurrentContext() != hContext)
-                    return STATUS_BAD_STATE;
-
-                perform_gc();
-
-                return STATUS_OK;
             }
 
             void Context::swap_buffers(size_t width, size_t height)
@@ -489,11 +487,6 @@ namespace lsp
                 *id = prog->nProgramId;
 
                 return STATUS_OK;
-            }
-
-            const gl::vtbl_t *Context::vtbl() const
-            {
-                return pVtbl;
             }
 
             gl::IContext *create_context(Display *dpy, int screen, Window window)
