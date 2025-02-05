@@ -268,7 +268,7 @@ namespace lsp
 //                    size_t texture_bytes = 0;
 //                );
 
-                status_t res = ctx->load_command_buffer(vCommands.data, vCommands.size);
+                status_t res = ctx->load_command_buffer(vCommands.data, vCommands.size, vCommands.count);
                 if (res != STATUS_OK)
                     return res;
 

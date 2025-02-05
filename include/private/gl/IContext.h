@@ -93,6 +93,7 @@ namespace lsp
                     lltl::darray<texture_t> vEmpty;
 
                     GLuint              nCommandsId;        // Texture for loading commands
+                    uint32_t            nCommandsSize;      // Size of the command texture
                     GLuint              nCommandsProcessor; // Commands processor
 
                 protected:
@@ -179,9 +180,10 @@ namespace lsp
                      * Load commands to quadratic texture
                      * @param buf buffer of RGBA32F records
                      * @param size the size of one size of texture
+                     * @param length the total number of floating-point values to load
                      * @return status of operation
                      */
-                    status_t load_command_buffer(const float *buf, size_t size);
+                    status_t load_command_buffer(const float *buf, size_t size, size_t length);
 
                     /**
                      * Binds currently loaded command buffer to the specified texture processor

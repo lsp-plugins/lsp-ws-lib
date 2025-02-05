@@ -77,6 +77,7 @@ namespace lsp
                 pVtbl               = vtbl;
 
                 nCommandsId         = 0;
+                nCommandsSize       = 0;
                 nCommandsProcessor  = GL_NONE;
             }
 
@@ -394,7 +395,7 @@ namespace lsp
                 return result;
             }
 
-            status_t IContext::load_command_buffer(const float *buf, size_t size)
+            status_t IContext::load_command_buffer(const float *buf, size_t size, size_t length)
             {
                 // Need to allocate new texture?
                 if (nCommandsId == 0)
@@ -406,7 +407,21 @@ namespace lsp
                 // Initialize and bind texture
                 pVtbl->glActiveTexture(GL_TEXTURE0);
                 pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
-                pVtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size, size, 0, GL_RGBA, GL_FLOAT, buf);
+
+                // Load full texture if size has changed or partial texture if size didn't change
+                if (nCommandsSize != size)
+                {
+                    pVtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size, size, 0, GL_RGBA, GL_FLOAT, buf);
+                    nCommandsSize   = size;
+                }
+                else
+                {
+                    const size_t stride = size * 4;
+                    const size_t rows = (length + stride - 1) / stride;
+                    pVtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, rows, GL_RGBA, GL_FLOAT, buf);
+                }
+
+                // Unbind texture
                 pVtbl->glBindTexture(GL_TEXTURE_2D, 0);
 
                 return STATUS_OK;
