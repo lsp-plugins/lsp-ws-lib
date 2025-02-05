@@ -763,7 +763,7 @@ namespace lsp
                 if ((buf.count + to_alloc) > buf.capacity)
                 {
                     const size_t new_cap    = buf.capacity << 2;
-                    float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap));
+                    float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap * 4));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
 
