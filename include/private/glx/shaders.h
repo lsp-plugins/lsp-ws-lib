@@ -64,7 +64,7 @@ namespace lsp
             static const char *geometry_fragment_shader =
                 SHADER("#version 330 core")
                 SHADER("")
-                SHADER("uniform samplerBuffer u_buf_commands;")
+                SHADER("uniform sampler2D u_commands;")
                 SHADER("uniform sampler2D u_texture;")
                 SHADER("uniform sampler2DMS u_ms_texture;")
                 SHADER("")
@@ -74,10 +74,16 @@ namespace lsp
                 SHADER("flat in int b_clips;")
                 SHADER("in vec2 b_frag_coord;")
                 SHADER("")
+                SHADER("vec4 commandFetch(sampler2D sampler, int offset)")
+                SHADER("{")
+                SHADER("    ivec2 tsize = textureSize(sampler, 0);")
+                SHADER("    return texelFetch(sampler, ivec2(offset % tsize.x, offset / tsize.x), 0);")
+                SHADER("}")
+                SHADER("")
                 SHADER("vec4 textureMultisample(sampler2DMS sampler, vec2 coord, float factor)")
                 SHADER("{")
                 SHADER("    vec4 color = vec4(0.0);")
-                SHADER("    ivec2 tsize = textureSize(u_ms_texture);")
+                SHADER("    ivec2 tsize = textureSize(sampler);")
                 SHADER("    ivec2 tcoord = ivec2(coord * vec2(tsize));")
                 SHADER("    int samples = int(factor);")
                 SHADER("")
@@ -93,7 +99,7 @@ namespace lsp
                 SHADER("") // Apply clipping
                 SHADER("    for (int i=0; i<b_clips; ++i)")
                 SHADER("    {")
-                SHADER("        vec4 rect = texelFetch(u_buf_commands, index);") // Axis-aligned bound box
+                SHADER("        vec4 rect = commandFetch(u_commands, index);")          // Axis-aligned bound box
                 SHADER("        if ((b_frag_coord.x < rect.x) ||")
                 SHADER("            (b_frag_coord.y < rect.y) ||")
                 SHADER("            (b_frag_coord.x > rect.z) ||")
@@ -104,35 +110,35 @@ namespace lsp
                 SHADER("") // Compute color of fragment
                 SHADER("    if (b_coloring == 0)") // Solid color
                 SHADER("    {")
-                SHADER("        gl_FragColor = texelFetch(u_buf_commands, index);")
+                SHADER("        gl_FragColor = commandFetch(u_commands, index);")       // Fill color
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 1)") // Linear gradient
                 SHADER("    {")
-                SHADER("        vec4 cs = texelFetch(u_buf_commands, index);")      // Start color
-                SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);")  // End color
-                SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);")  // Gradient parameters
+                SHADER("        vec4 cs = commandFetch(u_commands, index);")            // Start color
+                SHADER("        vec4 ce = commandFetch(u_commands, index + 1);")        // End color
+                SHADER("        vec4 gp = commandFetch(u_commands, index + 2);")        // Gradient parameters
                 SHADER("        vec2 dv = gp.zw - gp.xy;") // Gradient direction vector
                 SHADER("        vec2 dp = b_frag_coord - gp.xy;") // Dot direction vector
                 SHADER("        gl_FragColor = mix(cs, ce, clamp(dot(dv, dp) / dot(dv, dv), 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 2)") // Radial gradient
                 SHADER("    {")
-                SHADER("        vec4 cs = texelFetch(u_buf_commands, index);")      // Start color
-                SHADER("        vec4 ce = texelFetch(u_buf_commands, index + 1);")  // End color
-                SHADER("        vec4 gp = texelFetch(u_buf_commands, index + 2);")  // Gradient parameters: center {xc, yc} and focal {xf, yf}
-                SHADER("        vec4 r  = texelFetch(u_buf_commands, index + 3);")  // Radius (R)
-                SHADER("        vec2 d  = b_frag_coord.xy - gp.zw;")                // D = {x, y} - {xf, yf }
-                SHADER("        vec2 f  = gp.zw - gp.xy;")                          // F = {xf, yf} - {xc, yc }
-                SHADER("        float a = dot(d.xy, d.xy);")                        // a = D*D = { Dx*Dx + Dy*Dy }
-                SHADER("        float b = 2.0f * dot(f.xy, d.xy);")                 // b = 2*F*D = { 2*Fx*Dx + 2*Fy*Dy }
-                SHADER("        float c = dot(f.xy, f.xy) - r.x*r.x;")              // c = F*F = { Fx*Fx + Fy*Fy - R*R }
-                SHADER("        float k = (2.0f*a)/(sqrt(b*b - 4.0f*a*c)-b);")      // k = 1/t
+                SHADER("        vec4 cs = commandFetch(u_commands, index);")            // Start color
+                SHADER("        vec4 ce = commandFetch(u_commands, index + 1);")        // End color
+                SHADER("        vec4 gp = commandFetch(u_commands, index + 2);")        // Gradient parameters: center {xc, yc} and focal {xf, yf}
+                SHADER("        vec4 r  = commandFetch(u_commands, index + 3);")        // Radius (R)
+                SHADER("        vec2 d  = b_frag_coord.xy - gp.zw;")                    // D = {x, y} - {xf, yf }
+                SHADER("        vec2 f  = gp.zw - gp.xy;")                              // F = {xf, yf} - {xc, yc }
+                SHADER("        float a = dot(d.xy, d.xy);")                            // a = D*D = { Dx*Dx + Dy*Dy }
+                SHADER("        float b = 2.0f * dot(f.xy, d.xy);")                     // b = 2*F*D = { 2*Fx*Dx + 2*Fy*Dy }
+                SHADER("        float c = dot(f.xy, f.xy) - r.x*r.x;")                  // c = F*F = { Fx*Fx + Fy*Fy - R*R }
+                SHADER("        float k = (2.0f*a)/(sqrt(b*b - 4.0f*a*c)-b);")          // k = 1/t
                 SHADER("        gl_FragColor = mix(cs, ce, clamp(k, 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else") // if (b_coloring == 3) Texture-based fill
                 SHADER("    {")
-                SHADER("        vec4 mc = texelFetch(u_buf_commands, index);")      // Modulating color
-                SHADER("        vec4 tp = texelFetch(u_buf_commands, index + 1);")  // Texture parameters: initial size { w, h }, format, multisampling
+                SHADER("        vec4 mc = commandFetch(u_commands, index);")            // Modulating color
+                SHADER("        vec4 tp = commandFetch(u_commands, index + 1);")        // Texture parameters: initial size { w, h }, format, multisampling
                 SHADER("        vec4 tcolor = (tp.w > 0.5f) ? ")                    // Get color from texture
                 SHADER("            textureMultisample(u_ms_texture, b_texcoord, tp.w) :")
                 SHADER("            texture(u_texture, b_texcoord);")

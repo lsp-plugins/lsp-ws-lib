@@ -192,6 +192,8 @@ namespace lsp
                 void GLAPIENTRY         (* glGetInteger64i_v)(GLenum target, GLuint index, GLint64 * data);
 
                 // Drawing operations
+                const GLubyte           (* glGetString)(GLenum name);
+                const GLubyte           (* glGetStringi)(GLenum name, GLuint index);
                 void GLAPIENTRY         (* glClearColor)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
                 void GLAPIENTRY         (* glClear)(GLbitfield mask);
                 void GLAPIENTRY         (* glBlitFramebuffer)(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);

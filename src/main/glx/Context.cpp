@@ -274,7 +274,7 @@ namespace lsp
                 pVtbl->glFlush();
 
                 // Enable this if you need to run something like RENDERDOC
-//                ::glXSwapBuffers(pDisplay, hWindow);
+                ::glXSwapBuffers(pDisplay, hWindow);
             }
 
             const char *Context::vertex_shader(size_t program_id)

@@ -38,6 +38,8 @@ namespace lsp
     {
         namespace gl
         {
+            class Texture;
+
             enum context_param_id_t
             {
                 END = 0,
@@ -61,7 +63,6 @@ namespace lsp
                 };
             } context_param_t;
 
-
             enum program_t
             {
                 GEOMETRY,
@@ -70,6 +71,13 @@ namespace lsp
 
             class LSP_HIDDEN_MODIFIER IContext
             {
+                protected:
+                    typedef struct texture_t
+                    {
+                        GLuint          nId;
+                        uint32_t        nSamples;
+                    } texture_t;
+
                 private:
                     uatomic_t           nReferences;
                     bool                bValid;
@@ -81,6 +89,11 @@ namespace lsp
                     lltl::darray<GLuint> vGcFramebuffers;
                     lltl::darray<GLuint> vGcRenderbuffers;
                     lltl::darray<GLuint> vGcTextures;
+
+                    lltl::darray<texture_t> vEmpty;
+
+                    GLuint              nCommandsId;        // Texture for loading commands
+                    GLuint              nCommandsProcessor; // Commands processor
 
                 protected:
                     const gl::vtbl_t   *pVtbl;
@@ -160,6 +173,43 @@ namespace lsp
                      * @param id texture identifier
                      */
                     void free_texture(GLuint id);
+
+                public:
+                    /**
+                     * Load commands to quadratic texture
+                     * @param buf buffer of RGBA32F records
+                     * @param size the size of one size of texture
+                     * @return status of operation
+                     */
+                    status_t load_command_buffer(const float *buf, size_t size);
+
+                    /**
+                     * Binds currently loaded command buffer to the specified texture processor
+                     * @param processor_id texture processor identifier
+                     * @return status of operation
+                     */
+                    status_t bind_command_buffer(GLuint processor_id);
+
+                    /**
+                     * Unbind command buffer
+                     * @param processor_id texture processor identifier
+                     */
+                    void unbind_command_buffer();
+
+                    /**
+                     * Bind empty texture
+                     * @param processor_id texture procesor identifier
+                     * @param samples number of samples (multisampling factor)
+                     * @return status of operation
+                     */
+                    status_t bind_empty_texture(GLuint processor_id, size_t samples);
+
+                    /**
+                     * Unbind empty texture
+                     * @param processor_id texture processor identifier
+                     * @param samples number of samples (multisampling_factor)
+                     */
+                    void unbind_empty_texture(GLuint processor_id, size_t samples);
 
                 public:
                     /**

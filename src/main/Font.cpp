@@ -30,7 +30,7 @@ namespace lsp
     {
         Font::Font()
         {
-            sName       = ::strdup("Sans");
+            sName       = ::strdup("");
             fSize       = 10.0f;
             nFlags      = FA_DEFAULT << FF_COUNT;
         }
@@ -58,7 +58,7 @@ namespace lsp
 
         Font::Font(float size)
         {
-            sName       = ::strdup("Sans");
+            sName       = ::strdup("");
             fSize       = size;
             nFlags      = FA_DEFAULT << FF_COUNT;
         }

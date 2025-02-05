@@ -88,13 +88,16 @@ namespace lsp
 
             status_t Batch::init()
             {
+                constexpr size_t default_size = 32;
+
                 vCommands.count     = 0;
-                vCommands.capacity  = 0x400;
-                vCommands.data      = static_cast<float *>(malloc(sizeof(float) * vCommands.capacity));
+                vCommands.size      = default_size;
+                vCommands.capacity  = default_size * default_size;
+                vCommands.data      = static_cast<float *>(malloc(vCommands.capacity * sizeof(float) * 4));
                 if (vCommands.data == NULL)
                     return STATUS_NO_MEM;
 
-                bzero(vCommands.data, vCommands.capacity * sizeof(float));
+                bzero(vCommands.data, vCommands.capacity * sizeof(float) * 4);
 
                 return STATUS_OK;
             }
@@ -238,23 +241,17 @@ namespace lsp
                 // Create VBO and VAO
                 const gl::vtbl_t *vtbl  = ctx->vtbl();
 
-                GLuint VBO[3];
+                GLuint VBO[2];
                 GLuint VAO;
-                GLuint cmd_texture;
-                vtbl->glGenBuffers(3, VBO);
+                vtbl->glGenBuffers(2, VBO);
                 vtbl->glGenVertexArrays(1, &VAO);
                 vtbl->glBindVertexArray(VAO);
-
-                cmd_texture = ctx->alloc_texture();
-//                lsp_trace("glGenTextures(%d)", int(cmd_texture));
 
                 lsp_finally {
                     // Reset state
                     vtbl->glBindVertexArray(0);
                     vtbl->glDeleteVertexArrays(1, &VAO);
-                    vtbl->glDeleteBuffers(3, VBO);
-                    ctx->free_texture(cmd_texture);
-//                    lsp_trace("glDeleteTextures(%d)", int(cmd_texture));
+                    vtbl->glDeleteBuffers(2, VBO);
                     vtbl->glUseProgram(0);
                 };
 
@@ -271,12 +268,87 @@ namespace lsp
 //                    size_t texture_bytes = 0;
 //                );
 
+                status_t res = ctx->load_command_buffer(vCommands.data, vCommands.size);
+                if (res != STATUS_OK)
+                    return res;
+
                 vtbl->glDisable(GL_DEPTH_TEST);
 
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
                     draw_t *draw        = vBatches.uget(i);
                     const size_t flags  = draw->header.nFlags;
+
+                    // Get the program
+                    status_t res = ctx->program(&program_id, draw->header.enProgram);
+                    if (res != STATUS_OK)
+                        return res;
+
+                    // Enable program
+                    if (prev_program_id != program_id)
+                    {
+                        prev_program_id     = program_id;
+                        vtbl->glUseProgram(program_id);
+                        bind_uniforms(vtbl, program_id, uniforms);
+                    }
+
+                    // Command buffer
+                    const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_commands");
+                    if (u_commands > 0)
+                    {
+                        vtbl->glUniform1i(u_commands, 0);
+                        ctx->bind_command_buffer(GL_TEXTURE0);
+                    }
+                    lsp_finally {
+                        if (u_commands > 0)
+                            ctx->unbind_command_buffer();
+                    };
+
+                    // Optional masking texture
+                    const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
+                    gl::Texture *mask_texture = NULL;
+                    if (u_texture > 0)
+                    {
+                        vtbl->glUniform1i(u_texture, 1);
+
+                        mask_texture = draw->header.pTexture;
+                        if ((mask_texture != NULL) && (mask_texture->valid()))
+                            mask_texture->bind(GL_TEXTURE1);
+                        else
+                            ctx->bind_empty_texture(GL_TEXTURE1, 0);
+                    }
+                    lsp_finally {
+                        if (u_texture > 0)
+                        {
+                            if ((mask_texture != NULL) && (mask_texture->valid()))
+                                mask_texture->unbind();
+                            else
+                                ctx->unbind_empty_texture(GL_TEXTURE1, 0);
+                        }
+                    };
+
+                    // Optinal multisampled masking texture
+                    const GLint u_ms_texture = vtbl->glGetUniformLocation(program_id, "u_ms_texture");
+                    gl::Texture *ms_mask_texture = NULL;
+                    if (u_ms_texture > 0)
+                    {
+                        vtbl->glUniform1i(u_ms_texture, 2);
+
+                        ms_mask_texture = draw->header.pTexture;
+                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
+                            ms_mask_texture->bind(GL_TEXTURE2);
+                        else
+                            ctx->bind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                    }
+                    lsp_finally {
+                        if (u_ms_texture > 0)
+                        {
+                            if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
+                                ms_mask_texture->unbind();
+                            else
+                                ctx->unbind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                        }
+                    };
 
 //                    IF_TRACE(
 //                        {
@@ -360,19 +432,6 @@ namespace lsp
                             break;
                     }
 
-                    // Get the program
-                    status_t res = ctx->program(&program_id, draw->header.enProgram);
-                    if (res != STATUS_OK)
-                        return res;
-
-                    // Enable program
-                    if (prev_program_id != program_id)
-                    {
-                        prev_program_id     = program_id;
-                        vtbl->glUseProgram(program_id);
-                        bind_uniforms(vtbl, program_id, uniforms);
-                    }
-
                     // Vertex buffer
                     vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
                     vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
@@ -382,59 +441,6 @@ namespace lsp
                     vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
                     vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
                     lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); };
-
-                    // Command buffer
-                    const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_buf_commands");
-                    if (u_commands > 0)
-                    {
-                        vtbl->glUniform1i(u_commands, 0);
-
-                        vtbl->glBindBuffer(GL_TEXTURE_BUFFER, VBO[2]);
-                        vtbl->glBufferData(GL_TEXTURE_BUFFER, vCommands.count * sizeof(float), vCommands.data, GL_STATIC_DRAW);
-
-                        vtbl->glActiveTexture(GL_TEXTURE0);
-                        vtbl->glBindTexture(GL_TEXTURE_BUFFER, cmd_texture);
-                        vtbl->glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, VBO[2]);
-                    }
-                    lsp_finally {
-                        if (u_commands > 0)
-                        {
-                            vtbl->glBindTexture(GL_TEXTURE_BUFFER, 0);
-                            vtbl->glBindBuffer(GL_TEXTURE_BUFFER, 0);
-                        }
-                    };
-
-                    // Optional masking texture
-                    const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
-                    gl::Texture *mask_texture = NULL;
-                    if (u_texture > 0)
-                    {
-                        vtbl->glUniform1i(u_texture, 1);
-
-                        mask_texture = draw->header.pTexture;
-                        if ((mask_texture != NULL) && (mask_texture->valid()))
-                            mask_texture->activate(GL_TEXTURE1);
-                    }
-                    lsp_finally {
-                        if (mask_texture != NULL)
-                            mask_texture->deactivate();
-                    };
-
-                    // Optinal multisampled masking texture
-                    const GLint u_ms_texture = vtbl->glGetUniformLocation(program_id, "u_ms_texture");
-                    gl::Texture *ms_mask_texture = NULL;
-                    if (u_texture > 0)
-                    {
-                        vtbl->glUniform1i(u_ms_texture, 2);
-
-                        ms_mask_texture = draw->header.pTexture;
-                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
-                            ms_mask_texture->activate(GL_TEXTURE2);
-                    }
-                    lsp_finally {
-                        if (ms_mask_texture != NULL)
-                            ms_mask_texture->deactivate();
-                    };
 
                     // Bind vertex attributes
                     const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
@@ -756,11 +762,15 @@ namespace lsp
                 cbuffer_t & buf     = vCommands;
                 if ((buf.count + to_alloc) > buf.capacity)
                 {
-                    const size_t new_cap    = buf.capacity << 1;
+                    const size_t new_cap    = buf.capacity << 2;
                     float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
+
+                    bzero(&ptr[buf.capacity], (new_cap - buf.capacity) * sizeof(float) * 4);
+
                     buf.data                = ptr;
+                    buf.size              <<= 1;
                     buf.capacity            = new_cap;
                 }
 

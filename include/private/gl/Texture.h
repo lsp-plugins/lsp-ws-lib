@@ -82,9 +82,9 @@ namespace lsp
                 public:
                     status_t            set_image(const void *buf, size_t width, size_t height, size_t stride, texture_format_t format);
                     status_t            set_subimage(const void *buf, size_t x, size_t y, size_t width, size_t height, size_t stride);
-                    void                activate(GLuint processor_id);
+                    void                bind(GLuint processor_id);
                     status_t            resize(size_t width, size_t height);
-                    void                deactivate();
+                    void                unbind();
                     void                reset();
 
                     status_t            begin_draw(size_t width, size_t height, texture_format_t format);

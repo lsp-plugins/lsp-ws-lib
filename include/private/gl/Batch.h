@@ -131,9 +131,10 @@ namespace lsp
 
                     typedef struct cbuffer_t
                     {
-                        float      *data;
-                        uint32_t    count;
-                        uint32_t    capacity;
+                        float      *data;       // Pointer to actual data
+                        uint32_t    count;      // Number of filled floats
+                        uint32_t    size;       // Texture size
+                        uint32_t    capacity;   // Overall capacity in RGBAF32 components (4 floats per record)
                     } cbuffer_t;
 
                     typedef struct draw_t

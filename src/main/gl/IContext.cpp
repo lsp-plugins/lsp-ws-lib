@@ -73,8 +73,11 @@ namespace lsp
             IContext::IContext(const gl::vtbl_t *vtbl)
             {
                 atomic_store(&nReferences, 1);
-                bValid      = true;
-                pVtbl       = vtbl;
+                bValid              = true;
+                pVtbl               = vtbl;
+
+                nCommandsId         = 0;
+                nCommandsProcessor  = GL_NONE;
             }
 
             IContext::~IContext()
@@ -389,6 +392,113 @@ namespace lsp
             #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 return result;
+            }
+
+            status_t IContext::load_command_buffer(const float *buf, size_t size)
+            {
+                // Need to allocate new texture?
+                if (nCommandsId == 0)
+                {
+                    if ((nCommandsId = alloc_texture()) == 0)
+                        return STATUS_NO_MEM;
+                }
+
+                // Initialize and bind texture
+                pVtbl->glActiveTexture(GL_TEXTURE0);
+                pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
+                pVtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size, size, 0, GL_RGBA, GL_FLOAT, buf);
+                pVtbl->glBindTexture(GL_TEXTURE_2D, 0);
+
+                return STATUS_OK;
+            }
+
+            status_t IContext::bind_command_buffer(GLuint processor_id)
+            {
+                if (nCommandsId == 0)
+                    return STATUS_BAD_STATE;
+                if (nCommandsProcessor != GL_NONE)
+                    return STATUS_ALREADY_BOUND;
+
+                // Initialize and bind texture
+                pVtbl->glActiveTexture(processor_id);
+                pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+                return STATUS_OK;
+            }
+
+            void IContext::unbind_command_buffer()
+            {
+                if (nCommandsProcessor == GL_NONE)
+                    return;
+
+                // Initialize and bind texture
+                pVtbl->glActiveTexture(nCommandsProcessor);
+                pVtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                nCommandsProcessor          = GL_NONE;
+            }
+
+            status_t IContext::bind_empty_texture(GLuint processor_id, size_t samples)
+            {
+                pVtbl->glActiveTexture(processor_id);
+
+                const GLuint tex_kind = (samples > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+                GLuint texture_id = GL_NONE;
+
+                // Lookup matching texture
+                for (size_t i=0, n=vEmpty.size(); i<n; ++i)
+                {
+                    texture_t *t = vEmpty.uget(i);
+                    if (t->nSamples == samples)
+                    {
+                        texture_id      = t->nId;
+                        break;
+                    }
+                }
+
+                // Allocate and initialize texture if not found
+                if (texture_id == GL_NONE)
+                {
+                    // Allocate texture
+                    if ((texture_id = alloc_texture()) == GL_NONE)
+                        return STATUS_NO_MEM;
+
+                    // Register texture
+                    texture_t *t = vEmpty.add();
+                    if (t == NULL)
+                    {
+                        free_texture(texture_id);
+                        return STATUS_NO_MEM;
+                    }
+                    t->nId          = texture_id;
+                    t->nSamples     = samples;
+
+                    // Bind and initialize texture
+                    pVtbl->glBindTexture(tex_kind, texture_id);
+                    if (samples > 0)
+                        pVtbl->glTexImage2DMultisample(tex_kind, samples, GL_RGBA, 1, 1, GL_TRUE);
+                    else
+                        pVtbl->glTexImage2D(tex_kind, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+                }
+                else
+                    pVtbl->glBindTexture(tex_kind, texture_id);
+
+                // Set texture parameters
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                pVtbl->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+                return STATUS_OK;
+            }
+
+            void IContext::unbind_empty_texture(GLuint processor_id, size_t samples)
+            {
+                const GLuint tex_kind = (samples > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+                pVtbl->glBindTexture(tex_kind, GL_NONE);
             }
 
         } /* namespace gl */

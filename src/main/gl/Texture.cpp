@@ -200,7 +200,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void Texture::activate(GLuint processor_id)
+            void Texture::bind(GLuint processor_id)
             {
                 if (pContext == NULL)
                     return;
@@ -219,7 +219,7 @@ namespace lsp
                 nProcessorId        = processor_id;
             }
 
-            void Texture::deactivate()
+            void Texture::unbind()
             {
                 if ((pContext == NULL) || (nProcessorId == INVALID_PROCESSOR_ID))
                     return;
