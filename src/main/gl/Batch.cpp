@@ -92,12 +92,12 @@ namespace lsp
 
                 vCommands.count     = 0;
                 vCommands.size      = default_size;
-                vCommands.capacity  = default_size * default_size;
-                vCommands.data      = static_cast<float *>(malloc(vCommands.capacity * sizeof(float) * 4));
+                vCommands.capacity  = default_size * default_size * 4;
+                vCommands.data      = static_cast<float *>(malloc(vCommands.capacity * sizeof(float)));
                 if (vCommands.data == NULL)
                     return STATUS_NO_MEM;
 
-                bzero(vCommands.data, vCommands.capacity * sizeof(float) * 4);
+                bzero(vCommands.data, vCommands.capacity * sizeof(float));
 
                 return STATUS_OK;
             }
@@ -763,11 +763,11 @@ namespace lsp
                 if ((buf.count + to_alloc) > buf.capacity)
                 {
                     const size_t new_cap    = buf.capacity << 2;
-                    float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap * 4));
+                    float *ptr              = static_cast<float *>(realloc(buf.data, sizeof(float) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
 
-                    bzero(&ptr[buf.capacity], (new_cap - buf.capacity) * sizeof(float) * 4);
+                    bzero(&ptr[buf.capacity], (new_cap - buf.capacity) * sizeof(float));
 
                     buf.data                = ptr;
                     buf.size              <<= 1;
