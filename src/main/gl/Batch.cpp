@@ -294,20 +294,20 @@ namespace lsp
 
                     // Command buffer
                     const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_commands");
-                    if (u_commands > 0)
+                    if (u_commands >= 0)
                     {
                         vtbl->glUniform1i(u_commands, 0);
                         ctx->bind_command_buffer(GL_TEXTURE0);
                     }
                     lsp_finally {
-                        if (u_commands > 0)
+                        if (u_commands >= 0)
                             ctx->unbind_command_buffer();
                     };
 
                     // Optional masking texture
                     const GLint u_texture = vtbl->glGetUniformLocation(program_id, "u_texture");
                     gl::Texture *mask_texture = NULL;
-                    if (u_texture > 0)
+                    if (u_texture >= 0)
                     {
                         vtbl->glUniform1i(u_texture, 1);
 
@@ -318,7 +318,7 @@ namespace lsp
                             ctx->bind_empty_texture(GL_TEXTURE1, 0);
                     }
                     lsp_finally {
-                        if (u_texture > 0)
+                        if (u_texture >= 0)
                         {
                             if ((mask_texture != NULL) && (mask_texture->valid()))
                                 mask_texture->unbind();
@@ -330,7 +330,7 @@ namespace lsp
                     // Optinal multisampled masking texture
                     const GLint u_ms_texture = vtbl->glGetUniformLocation(program_id, "u_ms_texture");
                     gl::Texture *ms_mask_texture = NULL;
-                    if (u_ms_texture > 0)
+                    if (u_ms_texture >= 0)
                     {
                         vtbl->glUniform1i(u_ms_texture, 2);
 
@@ -341,7 +341,7 @@ namespace lsp
                             ctx->bind_empty_texture(GL_TEXTURE2, ctx->multisample());
                     }
                     lsp_finally {
-                        if (u_ms_texture > 0)
+                        if (u_ms_texture >= 0)
                         {
                             if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
                                 ms_mask_texture->unbind();
