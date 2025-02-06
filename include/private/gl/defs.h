@@ -23,6 +23,7 @@
 #define PRIVATE_GL_DEFS_H_
 
 #include <lsp-plug.in/common/types.h>
+#include <lsp-plug.in/common/debug.h>
 
 // Detect what type of OpenGL do we use
 #if defined(USE_LIBGL) && defined(USE_LIBX11) && defined(USE_LIBFREETYPE) && defined(USE_LIBFONTCONFIG)
@@ -43,5 +44,16 @@
 #if defined(LSP_PLUGINS_USE_OPENGL_GLX)
     #define LSP_PLUGINS_USE_OPENGL
 #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+
+// Uncomment this to log all OpenGL object allocations and deletions
+//#define TRACE_OPENGL_ALLOCATIONS
+
+#ifdef TRACE_OPENGL_ALLOCATIONS
+    #define IF_TRACE_OPENGL_ALLOCATIONS(...) __VA_ARGS__
+    #define lsp_gl_trace(...) lsp_trace(__VA_ARGS__)
+#else
+    #define IF_TRACE_OPENGL_ALLOCATIONS(...)
+    #define lsp_gl_trace(...) LSP_DEBUG_STUB_CALL
+#endif
 
 #endif /* PRIVATE_GL_DEFS_H_ */

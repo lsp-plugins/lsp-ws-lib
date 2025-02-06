@@ -28,9 +28,6 @@
 
 #include <lsp-plug.in/common/debug.h>
 
-// Uncomment this to log all OpenGL object allocations and deletions
-// #define TRACE_ALLOCATIONS
-
 namespace lsp
 {
     namespace ws
@@ -38,7 +35,7 @@ namespace lsp
         namespace gl
         {
 
-        #ifdef TRACE_ALLOCATIONS
+        #ifdef TRACE_OPENGL_ALLOCATIONS
             inline void trace_array(const char *func, lltl::darray<GLuint> & list)
             {
                 for (size_t i=0, n=list.size(); i<n; ++i)
@@ -150,10 +147,10 @@ namespace lsp
                 // Evict removed elements from the tail
                 ids.pop_n(src - dst);
 
-            #ifdef TRACE_ALLOCATIONS
+            #ifdef TRACE_OPENGL_ALLOCATIONS
                 lsp_trace("Size: %d, requested: %d, removed: %d, active: %d",
                     int(n), int(m), int(src - dst), int(ids.size()));
-            #endif /* TRACE_ALLOCATIONS */
+            #endif /* TRACE_OPENGL_ALLOCATIONS */
             }
 
             void IContext::perform_gc()

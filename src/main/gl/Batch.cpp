@@ -249,7 +249,7 @@ namespace lsp
 
                 lsp_finally {
                     // Reset state
-                    vtbl->glBindVertexArray(0);
+                    vtbl->glBindVertexArray(GL_NONE);
                     vtbl->glDeleteVertexArrays(1, &VAO);
                     vtbl->glDeleteBuffers(2, VBO);
                     vtbl->glUseProgram(0);
@@ -434,13 +434,13 @@ namespace lsp
 
                     // Vertex buffer
                     vtbl->glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-                    vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_STATIC_DRAW);
-                    lsp_finally { vtbl->glBindBuffer(GL_ARRAY_BUFFER, 0); };
+                    vtbl->glBufferData(GL_ARRAY_BUFFER, draw->vertices.count * sizeof(vertex_t), draw->vertices.v, GL_DYNAMIC_DRAW);
+                    lsp_finally { vtbl->glBindBuffer(GL_ARRAY_BUFFER, GL_NONE); };
 
                     // Element array buffer
                     vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
-                    vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_STATIC_DRAW);
-                    lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); };
+                    vtbl->glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indices.count * draw->indices.szof, draw->indices.data, GL_DYNAMIC_DRAW);
+                    lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_NONE); };
 
                     // Bind vertex attributes
                     const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
@@ -465,6 +465,14 @@ namespace lsp
                         vtbl->glVertexAttribIPointer(a_command, 1, GL_UNSIGNED_INT, sizeof(vertex_t), gl_offsetof(vertex_t, cmd));
                         vtbl->glEnableVertexAttribArray(a_command);
                     }
+                    lsp_finally {
+                        if (a_vertex >= 0)
+                            vtbl->glDisableVertexAttribArray(a_vertex);
+                        if (a_texcoord >= 0)
+                            vtbl->glDisableVertexAttribArray(a_texcoord);
+                        if (a_command >= 0)
+                            vtbl->glDisableVertexAttribArray(a_command);
+                    };
 
                     const GLenum index_type =
                         (draw->indices.szof > sizeof(uint16_t)) ? GL_UNSIGNED_INT :

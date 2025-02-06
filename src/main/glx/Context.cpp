@@ -158,11 +158,20 @@ namespace lsp
                     return;
 
                 if (prg->nFlags & PF_PROGRAM)
+                {
                     pVtbl->glDeleteProgram(prg->nProgramId);
+                    lsp_gl_trace("glDeleteProgram(%d)", prg->nProgramId);
+                }
                 if (prg->nFlags & PF_VERTEX)
+                {
                     pVtbl->glDeleteShader(prg->nVertexId);
+                    lsp_gl_trace("glDeleteShader(%d)", prg->nVertexId);
+                }
                 if (prg->nFlags & PF_FRAGMENT)
+                {
                     pVtbl->glDeleteShader(prg->nFragmentId);
+                    lsp_gl_trace("glDeleteShader(%d)", prg->nFragmentId);
+                }
 
                 free(prg);
             }
@@ -180,7 +189,7 @@ namespace lsp
                 hWindow         = window;
                 nMultisample    = multisample;
 
-                lsp_trace("Created GLX context ptr=%p", this);
+                lsp_gl_trace("Created GLX context ptr=%p", this);
             }
 
             Context::~Context()
@@ -188,7 +197,7 @@ namespace lsp
                 if (hContext != NULL)
                     lsp_error("Non-NULL context, need invalidate() call before destroying context");
 
-                lsp_trace("Destroyed GLX context ptr=%p", this);
+                lsp_gl_trace("Destroyed GLX context ptr=%p", this);
             }
 
             void Context::cleanup()
@@ -204,7 +213,9 @@ namespace lsp
                 vPrograms.flush();
 
                 // Destroy context
-                glXDestroyContext(pDisplay, hContext);
+                ::glXMakeCurrent(pDisplay, None, NULL);
+                ::glXDestroyContext(pDisplay, hContext);
+                lsp_gl_trace("glXDestroyContext(%p)", hContext);
                 hContext        = NULL;
                 pDisplay        = NULL;
                 hWindow         = None;
@@ -402,6 +413,7 @@ namespace lsp
                         check_gl_error("create vertex shader");
                         return STATUS_UNKNOWN_ERR;
                     }
+                    lsp_gl_trace("glCreateShader(%d)", int(prg->nVertexId));
                     prg->nFlags    |= PF_VERTEX;
                     pVtbl->glShaderSource(prg->nVertexId, 1, &vertex, NULL);
                     if (check_gl_error("set vertex shader source"))
@@ -421,6 +433,7 @@ namespace lsp
                         check_gl_error("create fragment shader");
                         return STATUS_UNKNOWN_ERR;
                     }
+                    lsp_gl_trace("glCreateShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_FRAGMENT;
                     pVtbl->glShaderSource(prg->nFragmentId, 1, &fragment, NULL);
                     if (check_gl_error("set fragment shader source"))
@@ -440,6 +453,7 @@ namespace lsp
                         check_gl_error("create program");
                         return STATUS_UNKNOWN_ERR;
                     }
+                    lsp_gl_trace("glCreateProgram(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_PROGRAM;
                     pVtbl->glAttachShader(prg->nProgramId, prg->nVertexId);
                     if (check_gl_error("attach vertex shader to program"))
@@ -461,11 +475,13 @@ namespace lsp
                     pVtbl->glDeleteShader(prg->nVertexId);
                     if (check_gl_error("delete vertex shader"))
                         return STATUS_UNKNOWN_ERR;
+                    lsp_gl_trace("glDeleteShader(%d)", int(prg->nVertexId));
                     prg->nFlags    &= ~PF_VERTEX;
 
                     pVtbl->glDeleteShader(prg->nFragmentId);
                     if (check_gl_error("delete fragment shader"))
                         return STATUS_UNKNOWN_ERR;
+                    lsp_gl_trace("glDeleteShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    &= ~PF_FRAGMENT;
 
                     // Add program to list
@@ -519,6 +535,8 @@ namespace lsp
                     ctx = ::glXCreateNewContext(dpy, fb_config, GLX_RGBA_TYPE, NULL, GL_FALSE);
                 if (ctx == NULL)
                     return NULL;
+
+                lsp_gl_trace("glXCreateContext(%p)", ctx);
 
                 // Wrap the created context with context wrapper.
                 int max_multisampling = 0;
