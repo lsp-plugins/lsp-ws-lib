@@ -414,14 +414,28 @@ namespace lsp
                 return make_command(index, C_TEXTURE);
             }
 
-            gl::Texture *Surface::make_text(ws::rectangle_t *rect, const void *data, size_t width, size_t height, size_t stride)
+            gl::Texture *Surface::make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride)
             {
                 // Check that texture can be placed to the atlas
+                gl::Texture *tex = NULL;
                 if ((pText != NULL) && (width <= TEXT_ATLAS_SIZE) && (height <= TEXT_ATLAS_SIZE))
-                    return pText->allocate(rect, data, width, height, stride);
+                {
+                    ws::rectangle_t wrect;
+
+                    tex = pText->allocate(&wrect, data, width, height, stride);
+                    if (tex != NULL)
+                    {
+                        rect->sb        = wrect.nLeft * gl::TEXT_ATLAS_SCALE;
+                        rect->tb        = wrect.nTop * gl::TEXT_ATLAS_SCALE;
+                        rect->se        = (wrect.nLeft + wrect.nWidth) * gl::TEXT_ATLAS_SCALE;
+                        rect->te        = (wrect.nTop + wrect.nHeight) * gl::TEXT_ATLAS_SCALE;
+                    }
+
+                    return tex;
+                }
 
                 // Allocate texture
-                gl::Texture *tex = new gl::Texture(pContext);
+                tex = new gl::Texture(pContext);
                 if (tex == NULL)
                     return NULL;
                 lsp_finally { safe_release(tex); };
@@ -429,6 +443,11 @@ namespace lsp
                 // Initialize texture
                 if (tex->set_image(data, width, height, stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
                     return NULL;
+
+                rect->sb        = 0.0f;
+                rect->tb        = 0.0f;
+                rect->se        = 1.0f;
+                rect->te        = 1.0f;
 
                 return release_ptr(tex);
             }

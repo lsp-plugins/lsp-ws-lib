@@ -185,7 +185,7 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
-                ws::rectangle_t rect;
+                texture_rect_t rect;
                 gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
                     return;
@@ -211,15 +211,10 @@ namespace lsp
                     if (v == NULL)
                         return;
 
-                    const float sb      = rect.nLeft * gl::TEXT_ATLAS_SCALE;
-                    const float tb      = rect.nTop * gl::TEXT_ATLAS_SCALE;
-                    const float se      = (rect.nLeft + rect.nWidth) * gl::TEXT_ATLAS_SCALE;
-                    const float te      = (rect.nTop + rect.nHeight) * gl::TEXT_ATLAS_SCALE;
-
-                    ADD_TVERTEX(v, ci, x, y, sb, tb);
-                    ADD_TVERTEX(v, ci, x, ye, sb, te);
-                    ADD_TVERTEX(v, ci, xe, ye, se, te);
-                    ADD_TVERTEX(v, ci, xe, y, se, tb);
+                    ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
+                    ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+                    ADD_TVERTEX(v, ci, xe, y, rect.se, rect.tb);
 
                     sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
@@ -273,7 +268,7 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
-                ws::rectangle_t rect;
+                texture_rect_t rect;
                 gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
                     return;
@@ -304,15 +299,10 @@ namespace lsp
                     if (v == NULL)
                         return;
 
-                    const float sb      = rect.nLeft * gl::TEXT_ATLAS_SCALE;
-                    const float tb      = rect.nTop * gl::TEXT_ATLAS_SCALE;
-                    const float se      = (rect.nLeft + rect.nWidth) * gl::TEXT_ATLAS_SCALE;
-                    const float te      = (rect.nTop + rect.nHeight) * gl::TEXT_ATLAS_SCALE;
-
-                    ADD_TVERTEX(v, ci, x, y, sb, tb);
-                    ADD_TVERTEX(v, ci, x, ye, sb, te);
-                    ADD_TVERTEX(v, ci, xe, ye, se, te);
-                    ADD_TVERTEX(v, ci, xe, y, se, tb);
+                    ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
+                    ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+                    ADD_TVERTEX(v, ci, xe, y, rect.se, rect.tb);
 
                     sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }

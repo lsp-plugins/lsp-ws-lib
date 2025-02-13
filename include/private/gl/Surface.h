@@ -72,6 +72,15 @@ namespace lsp
                     static constexpr size_t MAX_CLIPS       = 8;
 
                 protected:
+                    typedef struct texture_rect_t
+                    {
+                        float               sb;
+                        float               tb;
+                        float               se;
+                        float               te;
+                    } texture_rect_t;
+
+                protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
                     gl::Texture            *pTexture;           // Texture for the nested surface
@@ -121,7 +130,7 @@ namespace lsp
                     ssize_t start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, const Color & color);
                     inline ssize_t make_command(ssize_t index, cmd_color_t color) const;
 
-                    gl::Texture            *make_text(ws::rectangle_t *rect, const void *data, size_t width, size_t height, size_t stride);
+                    gl::Texture            *make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride);
 
                     inline float *serialize_clipping(float *dst) const;
                     static inline float *serialize_color(float *dst, float r, float g, float b, float a);
