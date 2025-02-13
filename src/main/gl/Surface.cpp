@@ -804,7 +804,7 @@ namespace lsp
                 // Simple case
                 if ((ix >= fxe) || (ixe < fx) || (iy >= fye) || (iye < fy))
                 {
-                    fill_rect(ci, fx, fy, fw, fh);
+                    fill_rect(ci, fx, fy, fxe, fye);
                     return;
                 }
                 else if ((ix <= fx) && (ixe >= fxe) && (iy <= fy) && (iye >= fye))
@@ -1796,7 +1796,8 @@ namespace lsp
                 // Draw geometry
                 fill_frame(
                     uint32_t(res), flags, radius,
-                    fx, fy, fw, fh,ix, iy, iw, ih);
+                    fx, fy, fw, fh,
+                    ix, iy, iw, ih);
             }
 
             void Surface::fill_frame(
