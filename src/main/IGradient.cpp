@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 4 мая 2020 г.
@@ -25,6 +25,8 @@ namespace lsp
 {
     namespace ws
     {
+        static constexpr float k_color = 1.0f / 255.0f;
+
         IGradient::IGradient()
         {
         }
@@ -33,39 +35,70 @@ namespace lsp
         {
         }
 
-        void IGradient::add_color(float offset, float r, float g, float b, float a)
+        void IGradient::set_start(float r, float g, float b, float a)
         {
         }
 
-        void IGradient::add_color(float offset, const Color &c)
+        void IGradient::set_start(const Color &c)
         {
-            add_color(offset, c.red(), c.green(), c.blue(), c.alpha());
+            set_start(c.red(), c.green(), c.blue(), c.alpha());
         }
 
-        void IGradient::add_color(float offset, const Color &c, float a)
+        void IGradient::set_start(const Color &c, float a)
         {
-            add_color(offset, c.red(), c.green(), c.blue(), a);
+            set_start(c.red(), c.green(), c.blue(), a);
         }
 
-        void IGradient::add_color_rgb(float offset, uint32_t color)
+        void IGradient::set_start_rgb(uint32_t color)
         {
-            add_color(offset,
-                (color & 0xff) / 255.0f,
-                ((color >> 8) & 0xff) / 255.0f,
-                ((color >> 16) & 0xff) / 255.0f,
-                0.0f
-            );
+            set_start(
+                (color & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                ((color >> 16) & 0xff) * k_color,
+                0.0f);
         }
 
-        void IGradient::add_color_rgba(float offset, uint32_t color)
+        void IGradient::set_start_rgba(uint32_t color)
         {
-            add_color(offset,
-                (color & 0xff) / 255.0f,
-                ((color >> 8) & 0xff) / 255.0f,
-                ((color >> 16) & 0xff) / 255.0f,
-                ((color >> 24) & 0xff) / 255.0f
-            );
+            set_start(
+                (color & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                ((color >> 16) & 0xff) * k_color,
+                ((color >> 24) & 0xff) * k_color);
         }
-    }
-}
+
+        void IGradient::set_stop(float r, float g, float b, float a)
+        {
+        }
+
+        void IGradient::set_stop(const Color &c)
+        {
+            set_stop(c.red(), c.green(), c.blue(), c.alpha());
+        }
+
+        void IGradient::set_stop(const Color &c, float a)
+        {
+            set_stop(c.red(), c.green(), c.blue(), a);
+        }
+
+        void IGradient::set_stop_rgb(uint32_t color)
+        {
+            set_stop(
+                (color & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                ((color >> 16) & 0xff) * k_color,
+                0.0f);
+        }
+
+        void IGradient::set_stop_rgba(uint32_t color)
+        {
+            set_stop(
+                (color & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                ((color >> 16) & 0xff) * k_color,
+                ((color >> 24) & 0xff) * k_color);
+        }
+
+    } /* namespace ws */
+} /* namespace lsp */
 

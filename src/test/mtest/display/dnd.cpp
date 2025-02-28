@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 22 июл. 2022 г.
@@ -32,7 +32,9 @@ namespace
         "text/uri-list",
         "text/x-moz-url",
         "application/x-kde4-urilist",
+        "UTF8_STRING",
         "text/plain",
+        "text/plain;charset=utf-8",
         "application/x-windows-filenamew",
         "application/x-windows-filename",
         NULL

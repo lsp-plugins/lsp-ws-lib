@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -34,10 +34,10 @@
 #define SURFMASK_RB_CORNER      0x04
 #define SURFMASK_LB_CORNER      0x08
 #define SURFMASK_ALL_CORNER     0x0f
-#define SURFMASK_T_CORNER       0x03
-#define SURFMASK_B_CORNER       0x0c
-#define SURFMASK_L_CORNER       0x09
-#define SURFMASK_R_CORNER       0x06
+#define SURFMASK_T_CORNER       (SURFMASK_LT_CORNER | SURFMASK_RT_CORNER)
+#define SURFMASK_B_CORNER       (SURFMASK_LB_CORNER | SURFMASK_RB_CORNER)
+#define SURFMASK_L_CORNER       (SURFMASK_LT_CORNER | SURFMASK_LB_CORNER)
+#define SURFMASK_R_CORNER       (SURFMASK_RT_CORNER | SURFMASK_RB_CORNER)
 
 namespace lsp
 {
@@ -45,22 +45,11 @@ namespace lsp
     {
         class IDisplay;
 
-        enum surf_line_cap_t
-        {
-            SURFLCAP_BUTT,
-            SURFLCAP_ROUND,
-            SURFLCAP_SQUARE
-        };
-
-        /** Common drawing surface interface
-         *
+        /**
+         * Common drawing surface interface
          */
         class LSP_WS_LIB_PUBLIC ISurface
         {
-            private:
-                ISurface & operator = (const ISurface &);
-                ISurface(const ISurface &);
-
             protected:
                 size_t          nWidth;
                 size_t          nHeight;
@@ -71,7 +60,12 @@ namespace lsp
 
             public:
                 explicit ISurface();
+                ISurface(const ISurface &) = delete;
+                ISurface(ISurface &&) = delete;
                 virtual ~ISurface();
+
+                ISurface & operator = (const ISurface &) = delete;
+                ISurface & operator = (ISurface &&) = delete;
 
             public:
                 /** Get surface width
@@ -107,10 +101,14 @@ namespace lsp
                 virtual ISurface *create(size_t width, size_t height);
 
                 /**
-                 * Create copy of current surface
-                 * @return copy of current surface
+                 * Resize the surface. There is no guarantee about the image content
+                 * stored inside of the surface.
+                 *
+                 * @param width new width of the surface
+                 * @param height new height of the surface
+                 * @return status of operation
                  */
-                virtual ISurface *create_copy();
+                virtual status_t resize(size_t width, size_t height);
 
                 /** Create linear gradient
                  *
@@ -198,12 +196,13 @@ namespace lsp
 
                 /** Draw surface from BGRA32 memory chunk where alpha is premultiplied.
                  * That means that alpha of 0xff defines fully opaque color and 0x00
-                 * defines fully transient color.
+                 * defines fully transient color. That's why 50% transparent red is 0x80800000,
+                 * not 0x80ff0000
                  *
                  * @param data pointer to data array
                  * @param width the width of the image
                  * @param height the height of the image
-                 * @param strid the size of the row in bytes
+                 * @param stride the size of the row in bytes
                  * @param x offset from left
                  * @param y offset from top
                  * @param sx surface scale x
@@ -597,10 +596,10 @@ namespace lsp
                  * @param a the x multiplier
                  * @param b the y multiplier
                  * @param c the shift
-                 * @param left
-                 * @param right
-                 * @param top
-                 * @param bottom
+                 * @param left coordinates of left culling boundary
+                 * @param right coordinates of right culling boundary
+                 * @param top corrdinates of top culling boundary
+                 * @param bottom coordinates of bottom culling boundary
                  * @param width line width
                  */
                 virtual void parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width);
@@ -733,18 +732,6 @@ namespace lsp
                  */
                 virtual bool set_antialiasing(bool set);
 
-                /** Get line cap
-                 *
-                 * @return line cap
-                 */
-                virtual surf_line_cap_t get_line_cap();
-
-                /** Set line cap
-                 *
-                 * @param lc line cap
-                 * @return line cap
-                 */
-                virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc);
         };
 
     } /* namespace ws */

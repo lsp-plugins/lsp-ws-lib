@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 12 дек. 2016 г.
@@ -773,11 +773,6 @@ namespace lsp
             return NULL;
         }
 
-        ISurface *IDisplay::create_surface(size_t width, size_t height)
-        {
-            return NULL;
-        }
-    
         bool IDisplay::taskid_exists(taskid_t id)
         {
             for (size_t i=0, n=sTasks.size(); i<n; ++i)
@@ -870,6 +865,11 @@ namespace lsp
             dst->acquire();
             dst->release();
             return STATUS_NOT_IMPLEMENTED;
+        }
+
+        bool IDisplay::drag_pending()
+        {
+            return false;
         }
 
         status_t IDisplay::reject_drag()
@@ -1007,5 +1007,4 @@ namespace lsp
         }
 
     } /* namespace ws */
-
 } /* namespace lsp */

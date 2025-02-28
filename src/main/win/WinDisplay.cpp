@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -505,11 +505,6 @@ namespace lsp
                 return new WinWindow(this, reinterpret_cast<HWND>(handle), NULL, true);
             }
 
-            ISurface *WinDisplay::create_surface(size_t width, size_t height)
-            {
-                return NULL;
-            }
-
             size_t WinDisplay::screens()
             {
                 return 1;
@@ -631,6 +626,12 @@ namespace lsp
                     return NULL;
 
                 return tgt->formats();
+            }
+
+            bool WinDisplay::drag_pending()
+            {
+                WinDNDTarget *tgt = (pDragWindow != NULL) ? pDragWindow->dnd_target() : NULL;
+                return (tgt != NULL) && (tgt->poll_active());
             }
 
             status_t WinDisplay::reject_drag()

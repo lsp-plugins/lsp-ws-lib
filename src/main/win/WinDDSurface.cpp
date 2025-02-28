@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -102,6 +102,7 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = NULL;
                 pStrokeStyle        = NULL;
+                bNested             = false;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -115,6 +116,7 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = dc;
                 pStrokeStyle        = NULL;
+                bNested             = true;
 
             #ifdef LSP_DEBUG
                 nClipping           = 0;
@@ -231,26 +233,49 @@ namespace lsp
                 safe_release(pDC);
             }
 
-            void WinDDSurface::sync_size()
+            status_t WinDDSurface::resize(size_t width, size_t height)
             {
                 if ((pShared == NULL) || (pShared->hWindow == NULL))
-                    return;
+                    return STATUS_BAD_STATE;
 
-                RECT rc;
-                D2D1_SIZE_U size;
-                GetClientRect(pShared->hWindow, &rc);
+                if ((nWidth == width) && (nHeight == height))
+                    return STATUS_OK;
 
-                nWidth      = rc.right - rc.left;
-                nHeight     = rc.bottom - rc.top;
+                nWidth      = width;
+                nHeight     = height;
 
-                if (pDC != NULL)
+                if (pDC == NULL)
+                    return STATUS_OK;
+
+                // Check if we can resize surface as a window
+                D2D1_SIZE_U desiredPixelSize = D2D1::SizeU(width, height);
+                if (!bNested)
                 {
-                    ID2D1HwndRenderTarget *ht   = static_cast<ID2D1HwndRenderTarget *>(pDC);
-
-                    size.width      = nWidth;
-                    size.height     = nHeight;
-                    ht->Resize(&size);
+                    ID2D1HwndRenderTarget *ht = static_cast<ID2D1HwndRenderTarget *>(pDC);
+                    ht->Resize(&desiredPixelSize);
+                    return STATUS_OK;
                 }
+
+                // Create new bitmap surface
+                D2D1_SIZE_F desiredSize = D2D1::SizeF(width, height);
+                D2D1_PIXEL_FORMAT pixelFormat = D2D1::PixelFormat(
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    D2D1_ALPHA_MODE_PREMULTIPLIED);
+
+                ID2D1BitmapRenderTarget *dc = NULL;
+                HRESULT hr = pDC->CreateCompatibleRenderTarget(
+                    &desiredSize,
+                    &desiredPixelSize,
+                    &pixelFormat,
+                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE, // options
+                    &dc);
+                if (FAILED(hr))
+                    return STATUS_UNKNOWN_ERR;
+
+                safe_release(pDC);
+                pDC = dc;
+
+                return STATUS_OK;
             }
 
             void WinDDSurface::clear(const Color &color)
@@ -1279,50 +1304,6 @@ namespace lsp
                 return new WinDDSurface(pShared, dc, width, height);
             }
 
-            ISurface *WinDDSurface::create_copy()
-            {
-                if (bad_state())
-                    return NULL;
-                if (type() != ST_IMAGE)
-                    return NULL;
-
-                // Get the bitmap of the surface
-                ID2D1BitmapRenderTarget *sdc= static_cast<ID2D1BitmapRenderTarget *>(pDC);
-                ID2D1Bitmap *bm             = NULL;
-                if (FAILED(sdc->GetBitmap(&bm)))
-                    return NULL;
-                lsp_finally{ safe_release(bm); };
-
-                // Create new render target
-                D2D1_SIZE_F desiredSize = D2D1::SizeF(nWidth, nHeight);
-                D2D1_SIZE_U desiredPixelSize = D2D1::SizeU(nWidth, nHeight);
-                D2D1_PIXEL_FORMAT pixelFormat = D2D1::PixelFormat(
-                    DXGI_FORMAT_B8G8R8A8_UNORM,
-                    D2D1_ALPHA_MODE_PREMULTIPLIED);
-
-                ID2D1BitmapRenderTarget *dc = NULL;
-                HRESULT hr = pDC->CreateCompatibleRenderTarget(
-                    &desiredSize,
-                    &desiredPixelSize,
-                    &pixelFormat,
-                    D2D1_COMPATIBLE_RENDER_TARGET_OPTIONS_NONE,
-                    &dc);
-                if (FAILED(hr))
-                    return NULL;
-
-                // Copy contents
-                dc->BeginDraw();
-                    dc->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
-                    dc->DrawBitmap(
-                        bm,
-                        D2D1::RectF(0, 0, nWidth, nHeight),
-                        1.0f,
-                        D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
-                dc->EndDraw();
-
-                return new WinDDSurface(pShared, dc, nWidth, nHeight);
-            }
-
             void WinDDSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
                 if (bad_state())
@@ -1718,54 +1699,6 @@ namespace lsp
                 return old;
             }
 
-            surf_line_cap_t WinDDSurface::get_line_cap()
-            {
-                if (bad_state())
-                    return SURFLCAP_BUTT;
-
-                if (pStrokeStyle == NULL)
-                    return SURFLCAP_BUTT;
-                switch (pStrokeStyle->GetStartCap())
-                {
-                    case D2D1_CAP_STYLE_FLAT: return SURFLCAP_BUTT;
-                    case D2D1_CAP_STYLE_ROUND: return SURFLCAP_ROUND;
-                    case D2D1_CAP_STYLE_SQUARE: return SURFLCAP_SQUARE;
-                    default: break;
-                }
-                return SURFLCAP_BUTT;
-            }
-
-            surf_line_cap_t WinDDSurface::set_line_cap(surf_line_cap_t lc)
-            {
-                if (bad_state())
-                    return SURFLCAP_BUTT;
-
-                // Check that line cap has changed
-                surf_line_cap_t old_style = get_line_cap();
-                if (old_style == lc)
-                    return old_style;
-
-                // Create new stroke style
-                D2D1_CAP_STYLE cap_style;
-                switch (lc)
-                {
-                    case SURFLCAP_BUTT: cap_style = D2D1_CAP_STYLE_FLAT; break;
-                    case SURFLCAP_ROUND: cap_style = D2D1_CAP_STYLE_ROUND; break;
-                    case SURFLCAP_SQUARE: cap_style = D2D1_CAP_STYLE_SQUARE; break;
-                    default: cap_style = D2D1_CAP_STYLE_FLAT; break;
-                }
-
-                // Create new stroke style if needed
-                safe_release(pStrokeStyle);
-                pShared->pDisplay->d2d_factory()->CreateStrokeStyle(
-                    D2D1::StrokeStyleProperties(cap_style, cap_style),
-                    NULL,
-                    0,
-                    &pStrokeStyle);
-
-                // Return previous stroke style
-                return old_style;
-            }
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

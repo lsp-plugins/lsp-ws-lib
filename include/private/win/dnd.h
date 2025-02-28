@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 22 июл. 2022 г.
@@ -52,6 +52,8 @@ namespace lsp
                     IDataSink                  *pDataSink;
                     drag_t                      enAction;
                     bool                        bInternal;
+                    bool                        bPollActive;
+                    bool                        bRejected;
                     rectangle_t                 sRect;
 
                     lltl::parray<char>          vFormatNames;
@@ -78,13 +80,14 @@ namespace lsp
                     virtual HRESULT STDMETHODCALLTYPE Drop(IDataObject *pDataObj, DWORD grfKeyState, POINTL pt, DWORD *pdwEffect) override;
 
                 public:
+                    bool                poll_active() const;
                     const char *const * formats() const;
                     status_t            accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r);
                     status_t            reject_drag();
             };
-        }
-    }
-}
+        } /* namespace win */
+    } /* namespace ws */
+} /* namespace lsp */
 
 #endif /* PLATFORM_WINDOWS */
 

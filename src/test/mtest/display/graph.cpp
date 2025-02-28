@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 6 июл. 2022 г.
@@ -73,8 +73,8 @@ MTEST_BEGIN("ws.display", graph)
                             {
                                 lsp_finally { delete g; };
                                 c.set_rgb24(0x0000ff);
-                                g->add_color(0.0f, c, 0.5f);
-                                g->add_color(1.0f, c, 0.0f);
+                                g->set_start(c, 0.5f);
+                                g->set_stop(c, 0.0f);
 
                                 s->line(g, X(0.0f), Y(-1.0f), X(0.0f), Y(1.0f), 4.0f);
                                 s->line(g, X(0.0f), Y(1.0f), X(-0.0625f), Y(1.0f - 0.0625f), 2.0f);
@@ -87,8 +87,8 @@ MTEST_BEGIN("ws.display", graph)
                             {
                                 lsp_finally { delete g; };
                                 c.set_rgb24(0xff0000);
-                                g->add_color(0.0f, c, 0.5f);
-                                g->add_color(1.0f, c, 0.0f);
+                                g->set_start(c, 0.5f);
+                                g->set_stop(c, 0.0f);
 
                                 s->line(g, X(-1.0f), Y(0.0f), X(1.0f), Y(0.0f), 4.0f);
                                 s->line(g, X(1.0f), Y(0.0f), X(1.0f - 0.0625f), Y(0.0625f), 2.0f);
@@ -128,8 +128,8 @@ MTEST_BEGIN("ws.display", graph)
                             {
                                 lsp_finally { delete g; };
                                 c.set_rgb24(0x00ff00);
-                                g->add_color(0.0f, c, 0.0f);
-                                g->add_color(1.0f, c, 0.75f);
+                                g->set_start(c, 0.0f);
+                                g->set_stop(c, 0.75f);
 
                                 float X0 = X(0.25f);
                                 float Y0 = Y(0.0f);
@@ -184,9 +184,9 @@ MTEST_BEGIN("ws.display", graph)
                                     X(-0.5f), Y(-0.5f), 0.5f * HW);
 
                             c.set_rgb24(0x0000ff);
-                            g->add_color(0.0f, c, 0.5f);
+                            g->set_start(c, 0.5f);
                             c.set_rgb24(0xffff00);
-                            g->add_color(1.0f, c, 0.5f);
+                            g->set_stop(c, 0.5f);
 
                             for (size_t i=0; i<N; ++i)
                             {

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 4 мая 2020 г.
@@ -29,29 +29,35 @@ namespace lsp
 {
     namespace ws
     {
+        /**
+         * Gradient interface
+         */
         class LSP_WS_LIB_PUBLIC IGradient
         {
-            private:
-                IGradient & operator = (const IGradient &);
-                IGradient(const IGradient &);
-
             public:
                 explicit IGradient();
+                IGradient(const IGradient &) = delete;
+                IGradient(IGradient &&) = delete;
                 virtual ~IGradient();
 
+                IGradient & operator = (const IGradient &) = delete;
+                IGradient & operator = (IGradient &&) = delete;
+
             public:
-                virtual void add_color(float offset, float r, float g, float b, float a=0.0f);
+                virtual void set_start(float r, float g, float b, float a=0.0f);
+                virtual void set_start(const Color &c);
+                virtual void set_start(const Color &c, float a);
+                virtual void set_start_rgb(uint32_t color);
+                virtual void set_start_rgba(uint32_t color);
 
-                virtual void add_color(float offset, const Color &c);
-
-                virtual void add_color(float offset, const Color &c, float a);
-
-                virtual void add_color_rgb(float offset, uint32_t color);
-
-                virtual void add_color_rgba(float offset, uint32_t color);
+                virtual void set_stop(float r, float g, float b, float a=0.0f);
+                virtual void set_stop(const Color &c);
+                virtual void set_stop(const Color &c, float a);
+                virtual void set_stop_rgb(uint32_t color);
+                virtual void set_stop_rgba(uint32_t color);
         };
-    }
-}
+    } /* namespace ws */
+} /* namespace lsp */
 
 
 #endif /* LSP_PLUG_IN_WS_IGRADIENT_H_ */

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -58,9 +58,9 @@ namespace lsp
             return new ISurface(width, height, ST_UNKNOWN);
         }
 
-        ISurface *ISurface::create_copy()
+        status_t ISurface::resize(size_t width, size_t height)
         {
-            return new ISurface(nWidth, nHeight, ST_UNKNOWN);
+            return STATUS_NOT_IMPLEMENTED;
         }
 
         void ISurface::destroy()
@@ -337,16 +337,6 @@ namespace lsp
         bool ISurface::set_antialiasing(bool set)
         {
             return false;
-        }
-
-        surf_line_cap_t ISurface::get_line_cap()
-        {
-            return SURFLCAP_BUTT;
-        }
-
-        surf_line_cap_t ISurface::set_line_cap(surf_line_cap_t lc)
-        {
-            return SURFLCAP_BUTT;
         }
 
     } /* namespace ws */

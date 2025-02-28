@@ -22,11 +22,22 @@
 #include <lsp-plug.in/test-fw/init.h>
 #include <lsp-plug.in/ws/ws.h>
 
+#ifdef USE_LIBFONTCONFIG
+    #include <fontconfig/fontconfig.h>
+#endif /* USE_LIBFONTCONFIG */
+
 INIT_BEGIN(demo_initializer1)
 
     INIT_FUNC
     {
         ws::init();
+    }
+
+    FINI_FUNC
+    {
+#ifdef USE_LIBFONTCONFIG
+        FcFini();
+#endif /* USE_LIBFONTCONFIG */
     }
 
 INIT_END

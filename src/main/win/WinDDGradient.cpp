@@ -46,6 +46,18 @@ namespace lsp
                 pBrush          = NULL;
                 sLinear         = props;
                 bLinear         = true;
+
+                vPoints[0].position = 0.0f;
+                vPoints[0].color.r  = 0.0f;
+                vPoints[0].color.g  = 0.0f;
+                vPoints[0].color.b  = 0.0f;
+                vPoints[0].color.a  = 1.0f;
+
+                vPoints[1].position = 1.0f;
+                vPoints[1].color.r  = 1.0f;
+                vPoints[1].color.g  = 1.0f;
+                vPoints[1].color.b  = 1.0f;
+                vPoints[1].color.a  = 0.0f;
             }
 
             WinDDGradient::WinDDGradient(ID2D1RenderTarget *dc, const D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES & props)
@@ -54,12 +66,23 @@ namespace lsp
                 pBrush          = NULL;
                 sRadial         = props;
                 bLinear         = false;
+
+                vPoints[0].position = 0.0f;
+                vPoints[0].color.r  = 0.0f;
+                vPoints[0].color.g  = 0.0f;
+                vPoints[0].color.b  = 0.0f;
+                vPoints[0].color.a  = 1.0f;
+
+                vPoints[1].position = 1.0f;
+                vPoints[1].color.r  = 1.0f;
+                vPoints[1].color.g  = 1.0f;
+                vPoints[1].color.b  = 1.0f;
+                vPoints[1].color.a  = 0.0f;
             }
 
             WinDDGradient::~WinDDGradient()
             {
                 drop_brush();
-                vPoints.flush();
             }
 
             void WinDDGradient::drop_brush()
@@ -71,39 +94,52 @@ namespace lsp
                 }
             }
 
-            void WinDDGradient::add_color(float offset, float r, float g, float b, float a)
+            void WinDDGradient::set_start(float r, float g, float b, float a)
             {
                 drop_brush();
-                D2D1_GRADIENT_STOP *p = vPoints.add();
-                if (p == NULL)
-                    return;
-
-                p->position = offset;
+                D2D1_GRADIENT_STOP *p = &vPoints[0];
                 p->color.r  = r;
                 p->color.g  = g;
                 p->color.b  = b;
                 p->color.a  = 1.0f - a;
             }
 
-            void WinDDGradient::add_color(float offset, const Color &c)
+            void WinDDGradient::set_start(const Color &c)
             {
                 drop_brush();
-                D2D1_GRADIENT_STOP *p = vPoints.add();
-                if (p == NULL)
-                    return;
-
-                p->position = offset;
+                D2D1_GRADIENT_STOP *p = &vPoints[0];
                 c.get_rgbo(p->color.r, p->color.g, p->color.b, p->color.a);
             }
 
-            void WinDDGradient::add_color(float offset, const Color &c, float a)
+            void WinDDGradient::set_start(const Color &c, float a)
             {
                 drop_brush();
-                D2D1_GRADIENT_STOP *p = vPoints.add();
-                if (p == NULL)
-                    return;
+                D2D1_GRADIENT_STOP *p = &vPoints[0];
+                c.get_rgb(p->color.r, p->color.g, p->color.b);
+                p->color.a  = 1.0f - a;
+            }
 
-                p->position = offset;
+            void WinDDGradient::set_stop(float r, float g, float b, float a)
+            {
+                drop_brush();
+                D2D1_GRADIENT_STOP *p = &vPoints[1];
+                p->color.r  = r;
+                p->color.g  = g;
+                p->color.b  = b;
+                p->color.a  = 1.0f - a;
+            }
+
+            void WinDDGradient::set_stop(const Color &c)
+            {
+                drop_brush();
+                D2D1_GRADIENT_STOP *p = &vPoints[1];
+                c.get_rgbo(p->color.r, p->color.g, p->color.b, p->color.a);
+            }
+
+            void WinDDGradient::set_stop(const Color &c, float a)
+            {
+                drop_brush();
+                D2D1_GRADIENT_STOP *p = &vPoints[1];
                 c.get_rgb(p->color.r, p->color.g, p->color.b);
                 p->color.a  = 1.0f - a;
             }
@@ -116,8 +152,8 @@ namespace lsp
                 // Create gradient stop collection
                 ID2D1GradientStopCollection *list = NULL;
                 HRESULT hr = pDC->CreateGradientStopCollection(
-                    vPoints.array(),
-                    vPoints.size(),
+                    vPoints,
+                    2,
                     D2D1_GAMMA_2_2,
                     D2D1_EXTEND_MODE_CLAMP,
                     &list);

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -66,6 +66,7 @@ namespace lsp
                     size_t                      nVersion;       // The version, for valid surface should match the shared version
                     ID2D1RenderTarget          *pDC;            // Pointer to drawing context
                     ID2D1StrokeStyle           *pStrokeStyle;   // Line cap style
+                    bool                        bNested;        // Flag of the nested surface
 
                 #ifdef LSP_DEBUG
                     ssize_t                     nClipping;
@@ -96,7 +97,7 @@ namespace lsp
                     virtual IDisplay *display() override;
 
                     virtual ISurface *create(size_t width, size_t height) override;
-                    virtual ISurface *create_copy() override;
+                    virtual status_t resize(size_t width, size_t height) override;
 
                     virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
                     virtual IGradient *radial_gradient
@@ -174,11 +175,7 @@ namespace lsp
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
 
-                    virtual surf_line_cap_t get_line_cap() override;
-                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
-
                 public:
-                    void        sync_size();
                     void        invalidate();
             };
 

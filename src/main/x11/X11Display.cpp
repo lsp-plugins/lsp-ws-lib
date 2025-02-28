@@ -284,7 +284,7 @@ namespace lsp
                 nWakeupMessage  = XInternAtom(pDisplay, "lsp::ws::wakeup", False);
 
                 // Create estimation surface
-                pEstimation     = create_surface(1, 1);
+                pEstimation     = new X11CairoSurface(this, 1, 1);
                 if (pEstimation == NULL)
                     return STATUS_NO_MEM;
 
@@ -324,11 +324,6 @@ namespace lsp
             IWindow *X11Display::wrap_window(void *handle)
             {
                 return new X11Window(this, DefaultScreen(pDisplay), Window(uintptr_t(handle)), NULL, true);
-            }
-
-            ISurface *X11Display::create_surface(size_t width, size_t height)
-            {
-                return new X11CairoSurface(this, width, height);
             }
 
             void X11Display::do_destroy()
@@ -1800,6 +1795,10 @@ namespace lsp
                             sTargets.add(target);
                         break;
 
+                    case UIE_FOCUS_IN:
+                        XAutoRepeatOn(pDisplay);
+                        break;
+
                     case UIE_MOUSE_DOWN:
                     case UIE_MOUSE_UP:
                     case UIE_MOUSE_IN:
@@ -2230,7 +2229,9 @@ namespace lsp
 
                         ue.nTime            = ev->data.l[3];
 
+                        recv->bPollActive   = true;
                         wnd->handle_event(&ue);
+                        recv->bPollActive   = false;
 
                         // Did the handler properly process the event?
                         if ((recv->enState != DND_RECV_ACCEPT) && (recv->enState != DND_RECV_REJECT))
@@ -2477,6 +2478,7 @@ namespace lsp
                 dnd->hSelection     = sAtoms.X11_XdndSelection;
                 dnd->hType          = None;
                 dnd->enState        = DND_RECV_PENDING;
+                dnd->bPollActive    = false;
                 dnd->pSink          = NULL;
                 dnd->hAction        = None;
                 dnd->hProxy         = None;
@@ -2628,7 +2630,9 @@ namespace lsp
 
                 ue.nTime            = ev->data.l[3];
 
+                task->bPollActive   = true;
                 status_t res        = tgt->handle_event(&ue);
+                task->bPollActive   = false;
 
                 // Did the handler properly process the event?
                 if ((task->enState != DND_RECV_ACCEPT) && (task->enState != DND_RECV_REJECT))
@@ -3548,6 +3552,13 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            bool X11Display::drag_pending()
+            {
+                // Check task state
+                dnd_recv_t *task = current_drag_task();
+                return (task != NULL) && (task->enState == DND_RECV_POSITION) && (task->bPollActive);
+            }
+
             status_t X11Display::accept_drag(IDataSink *sink, drag_t action, const rectangle_t *r)
             {
                 /**
@@ -3700,6 +3711,7 @@ namespace lsp
 
                 // Set input focus to window
                 ::XSetInputFocus(pDisplay, wnd, RevertToParent, CurrentTime);
+                ::XAutoRepeatOn(pDisplay);
 
                 // Reset error handler
                 ::XSync(pDisplay, False);

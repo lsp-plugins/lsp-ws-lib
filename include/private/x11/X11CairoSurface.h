@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -46,6 +46,7 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER X11CairoSurface: public ISurface
             {
                 protected:
+                    cairo_surface_t        *pRoot;
                     cairo_surface_t        *pSurface;
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
@@ -62,7 +63,7 @@ namespace lsp
                     } font_context_t;
 
                 protected:
-                    void                destroy_context();
+                    void                destroy_context(bool root);
 
                     inline void         setSourceRGB(const Color &col);
                     inline void         setSourceRGBA(const Color &col);
@@ -95,26 +96,23 @@ namespace lsp
                      */
                     explicit X11CairoSurface(X11Display *dpy, size_t width, size_t height);
 
+                    X11CairoSurface(const X11CairoSurface &) = delete;
+                    X11CairoSurface(X11CairoSurface &&) = delete;
+
                     virtual ~X11CairoSurface();
 
-                    virtual void destroy() override;
+                    X11CairoSurface & operator = (const X11CairoSurface &) = delete;
+                    X11CairoSurface & operator = (X11CairoSurface &&) = delete;
 
+                    virtual void destroy() override;
                     virtual bool valid() const override;
 
-                public:
-                    /** resize cairo surface if possible
-                     *
-                     * @param width new width
-                     * @param height new height
-                     * @return true on success
-                     */
-                    bool resize(size_t width, size_t height);
+                    virtual status_t resize(size_t width, size_t height) override;
 
                 public:
                     virtual IDisplay *display() override;
 
                     virtual ISurface *create(size_t width, size_t height) override;
-                    virtual ISurface *create_copy() override;
 
                     virtual IGradient *linear_gradient(float x0, float y0, float x1, float y1) override;
                     virtual IGradient *radial_gradient
@@ -193,12 +191,10 @@ namespace lsp
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
 
-                    virtual surf_line_cap_t get_line_cap() override;
-                    virtual surf_line_cap_t set_line_cap(surf_line_cap_t lc) override;
             };
-        }
-    }
 
+        } /* namespace x11 */
+    } /* namespace ws */
 } /* namespace lsp */
 
 #endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
