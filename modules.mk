@@ -76,6 +76,16 @@ LSP_TEST_FW_URL_RW         := git@github.com:lsp-plugins/$(LSP_TEST_FW_NAME).git
 
 #------------------------------------------------------------------------------
 # Variables that describe system dependencies
+LIBAUDIOTOOLBOX_VERSION    := system
+LIBAUDIOTOOLBOX_NAME       := libaudiotoolbox
+LIBAUDIOTOOLBOX_TYPE       := opt
+LIBAUDIOTOOLBOX_LDFLAGS    := -framework AudioToolbox
+
+LIBCOREFOUNDATION_VERSION  := system
+LIBCOREFOUNDATION_NAME     := libcorefoundation
+LIBCOREFOUNDATION_TYPE     := opt
+LIBCOREFOUNDATION_LDFLAGS  := -framework CoreFoundation
+
 LIBCAIRO_VERSION           := system
 LIBCAIRO_NAME              := cairo
 LIBCAIRO_TYPE              := pkg
