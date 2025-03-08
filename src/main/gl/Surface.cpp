@@ -379,7 +379,7 @@ namespace lsp
 
                 buf     = serialize_clipping(buf);
                 buf     = serialize_color(buf, 1.0f, 1.0f, 1.0f, a);
-                buf     = serialize_texture(buf, t);
+                serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
             }
@@ -409,7 +409,7 @@ namespace lsp
 
                 buf     = serialize_clipping(buf);
                 buf     = serialize_color(buf, color);
-                buf     = serialize_texture(buf, t);
+                serialize_texture(buf, t);
 
                 return make_command(index, C_TEXTURE);
             }
