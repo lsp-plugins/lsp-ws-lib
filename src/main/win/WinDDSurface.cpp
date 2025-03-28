@@ -102,6 +102,8 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = NULL;
                 pStrokeStyle        = NULL;
+                fOriginX            = 0.0f;
+                fOriginY            = 0.0f;
                 bNested             = false;
 
             #ifdef LSP_DEBUG
@@ -116,6 +118,8 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = dc;
                 pStrokeStyle        = NULL;
+                fOriginX            = 0.0f;
+                fOriginY            = 0.0f;
                 bNested             = true;
 
             #ifdef LSP_DEBUG
@@ -1697,6 +1701,28 @@ namespace lsp
                 bool old    = pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
                 pDC->SetAntialiasMode((set) ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
                 return old;
+            }
+
+            ws::point_t WinDDSurface::set_origin(const ws::point_t & origin)
+            {
+                return set_origin(origin.nLeft, origin.nTop);
+            }
+
+            ws::point_t WinDDSurface::set_origin(ssize_t left, ssize_t top)
+            {
+                ws::point_t result;
+                result.nLeft    = fOriginX;
+                result.nTop     = fOriginY;
+
+                if (bad_state())
+                    return result;
+
+                fOriginX        = left;
+                fOriginY        = top;
+
+                pDC->SetTransform(D2D1::Matrix3x2F::Translation(fOriginX, fOriginY));
+
+                return result;
             }
 
         } /* namespace win */
