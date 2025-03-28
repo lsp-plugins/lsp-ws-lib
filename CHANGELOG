@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.28 ===
+* Added set_origin method for ws::ISurface interface.
 * Added MacOS dependencies.
 * Updated build scripts.
 
