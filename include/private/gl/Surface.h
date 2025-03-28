@@ -261,8 +261,8 @@ namespace lsp
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
 
-                    virtual ws::point_t set_origin(const ws::point_t & origin);
-                    virtual ws::point_t set_origin(ssize_t left, ssize_t top);
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
             };
 
         } /* namespace gl */
