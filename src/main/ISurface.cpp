@@ -339,5 +339,16 @@ namespace lsp
             return false;
         }
 
+        ws::point_t ISurface::set_origin(const ws::point_t & origin)
+        {
+            return set_origin(origin.nLeft, origin.nTop);
+        }
+
+        ws::point_t ISurface::set_origin(ssize_t left, ssize_t top)
+        {
+            const ws::point_t result = { 0, 0};
+            return result;
+        }
+
     } /* namespace ws */
 } /* namespace lsp */

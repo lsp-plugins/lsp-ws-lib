@@ -35,9 +35,12 @@ namespace lsp
         {
             inline bool Batch::header_mismatch(const batch_header_t & a, const batch_header_t & b)
             {
-                return (a.enProgram != b.enProgram) ||
-                       (a.nFlags != b.nFlags) ||
-                       (a.pTexture != b.pTexture);
+                return
+                    (a.enProgram != b.enProgram) ||
+                    (a.nLeft != b.nLeft) ||
+                    (a.nTop != b.nTop) ||
+                    (a.nFlags != b.nFlags) ||
+                    (a.pTexture != b.pTexture);
             }
 
             template<class D, class S>
@@ -291,6 +294,11 @@ namespace lsp
                         vtbl->glUseProgram(program_id);
                         bind_uniforms(vtbl, program_id, uniforms);
                     }
+
+                    // Origin
+                    const GLint u_origin = vtbl->glGetUniformLocation(program_id, "u_origin");
+                    if (u_origin >= 0)
+                        vtbl->glUniform2f(u_origin, draw->header.nLeft, draw->header.nTop);
 
                     // Command buffer
                     const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_commands");

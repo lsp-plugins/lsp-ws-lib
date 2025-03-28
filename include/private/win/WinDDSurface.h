@@ -66,6 +66,8 @@ namespace lsp
                     size_t                      nVersion;       // The version, for valid surface should match the shared version
                     ID2D1RenderTarget          *pDC;            // Pointer to drawing context
                     ID2D1StrokeStyle           *pStrokeStyle;   // Line cap style
+                    float                       fOriginX;       // X origin
+                    float                       fOriginY;       // Y origin
                     bool                        bNested;        // Flag of the nested surface
 
                 #ifdef LSP_DEBUG
@@ -174,6 +176,8 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
 
                 public:
                     void        invalidate();

@@ -51,6 +51,9 @@ namespace lsp
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
                     X11Display             *pDisplay;
+
+                    float                   fOriginX;
+                    float                   fOriginY;
                 #ifdef LSP_DEBUG
                     size_t                  nNumClips;
                 #endif /* LSP_DEBUG */
@@ -190,7 +193,8 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
-
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
             };
 
         } /* namespace x11 */

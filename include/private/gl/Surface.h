@@ -64,6 +64,12 @@ namespace lsp
                         float               bottom;
                     } clip_rect_t;
 
+                    typedef struct origin_t
+                    {
+                        int32_t             left;
+                        int32_t             top;
+                    } origin_t;
+
                     typedef struct color_t
                     {
                         float               r, g, b, a;
@@ -89,7 +95,8 @@ namespace lsp
 
                     size_t                  nNumClips;
                     float                   vMatrix[16];
-                    clip_rect_t             vClips[MAX_CLIPS];
+                    clip_rect_t             vClips[MAX_CLIPS];  // Clipping rectangles
+                    origin_t                sOrigin;            // Origin
                     lltl::darray<gl::uniform_t> vUniforms;
 
                     bool                    bNested;
@@ -253,6 +260,9 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
+
+                    virtual ws::point_t set_origin(const ws::point_t & origin);
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top);
             };
 
         } /* namespace gl */
