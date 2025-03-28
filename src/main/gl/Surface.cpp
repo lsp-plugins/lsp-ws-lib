@@ -70,6 +70,8 @@ namespace lsp
 
                 bzero(vMatrix, sizeof(float) * 16);
                 bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
+                sOrigin.left    = 0;
+                sOrigin.top     = 0;
 
                 sBatch.init();
                 sync_matrix();
@@ -93,6 +95,8 @@ namespace lsp
 
                 bzero(vMatrix, sizeof(float) * 16);
                 bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
+                sOrigin.left    = 0;
+                sOrigin.top     = 0;
 
                 sBatch.init();
                 sync_matrix();
@@ -277,6 +281,8 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
+                        sOrigin.left,
+                        sOrigin.top,
                         enrich_flags(flags),
                         pText->current(),
                     });
@@ -304,6 +310,8 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
+                        sOrigin.left,
+                        sOrigin.top,
                         enrich_flags(flags),
                         pText->current(),
                     });
@@ -333,6 +341,8 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
+                        sOrigin.left,
+                        sOrigin.top,
                         enrich_flags(flags),
                         pText->current(),
                     });
@@ -365,6 +375,8 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
+                        sOrigin.left,
+                        sOrigin.top,
                         enrich_flags(flags),
                         t,
                     });
@@ -395,6 +407,8 @@ namespace lsp
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
+                        sOrigin.left,
+                        sOrigin.top,
                         enrich_flags(flags),
                         t,
                     });
@@ -1847,6 +1861,30 @@ namespace lsp
                 const bool old = bAntiAliasing;
                 bAntiAliasing       = set;
                 return old;
+            }
+
+            ws::point_t Surface::set_origin(const ws::point_t & origin)
+            {
+                ws::point_t result;
+                result.nLeft    = sOrigin.left;
+                result.nTop     = sOrigin.top;
+
+                sOrigin.left    = int32_t(origin.nLeft);
+                sOrigin.top     = int32_t(origin.nTop);
+
+                return result;
+            }
+
+            ws::point_t Surface::set_origin(ssize_t left, ssize_t top)
+            {
+                ws::point_t result;
+                result.nLeft    = sOrigin.left;
+                result.nTop     = sOrigin.top;
+
+                sOrigin.left    = int32_t(left);
+                sOrigin.top     = int32_t(top);
+
+                return result;
             }
 
             void Surface::clip_begin(float x, float y, float w, float h)

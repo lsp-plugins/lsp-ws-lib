@@ -38,6 +38,7 @@ namespace lsp
                 SHADER("#version 330 core")
                 SHADER("")
                 SHADER("uniform mat4 u_model;")
+                SHADER("uniform vec2 u_origin;")
                 SHADER("")
                 SHADER("in vec2 a_vertex;")
                 SHADER("in vec2 a_texcoord;")
@@ -57,7 +58,7 @@ namespace lsp
                 SHADER("    b_clips = int(a_command & 0x7u);")
                 SHADER("    b_frag_coord = a_vertex;")
                 SHADER("")
-                SHADER("    gl_Position = u_model * vec4(a_vertex, 0.0f, 1.0f);")
+                SHADER("    gl_Position = u_model * vec4(a_vertex.x + u_origin.x, a_vertex.y + u_origin.y, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
 
@@ -155,12 +156,13 @@ namespace lsp
                 SHADER("#version 330 core")
                 SHADER("")
                 SHADER("uniform mat4 u_model;")
+                SHADER("uniform vec2 u_origin;")
                 SHADER("")
                 SHADER("in vec2 a_vertex;")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
-                SHADER("    gl_Position = u_model * vec4(a_vertex, 0.0f, 1.0f);")
+                SHADER("    gl_Position = u_model * vec4(a_vertex.x + u_origin.x, a_vertex.y + u_origin.y, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
 

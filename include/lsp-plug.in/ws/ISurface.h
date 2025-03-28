@@ -174,8 +174,7 @@ namespace lsp
                  * @param s surface to draw
                  * @param x offset from left
                  * @param y offset from top
-                 * @param sx surface scale x
-                 * @param sy surface scale y
+                 * @param sx surface scale x                 * @param sy surface scale y
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */
@@ -732,6 +731,20 @@ namespace lsp
                  */
                 virtual bool set_antialiasing(bool set);
 
+                /**
+                 * Set up drawing origin
+                 * @param origin drawing origin (left and top coordinates)
+                 * @return old drawing origin value
+                 */
+                virtual ws::point_t set_origin(const ws::point_t & origin);
+
+                /**
+                 * Set up drawing origin
+                 * @param left left coordinate of drawing origin
+                 * @param top top coordinate of drawing origin
+                 * @return
+                 */
+                virtual ws::point_t set_origin(ssize_t left, ssize_t top);
         };
 
     } /* namespace ws */

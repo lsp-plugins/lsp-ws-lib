@@ -318,6 +318,12 @@ namespace lsp
             ssize_t             nHeight;
         } rectangle_t;
 
+        typedef struct point_t
+        {
+            ssize_t             nLeft;
+            ssize_t             nTop;
+        } point_t;
+
         enum surface_type_t
         {
             ST_UNKNOWN,         // Unknown surface type
