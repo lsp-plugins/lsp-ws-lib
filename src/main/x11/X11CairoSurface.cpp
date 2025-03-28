@@ -60,6 +60,9 @@ namespace lsp
                 pFO             = NULL;
                 pRoot           = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                fOriginX        = 0.0f;
+                fOriginY        = 0.0f;
+
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -73,6 +76,9 @@ namespace lsp
                 pFO             = NULL;
                 pRoot           = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                fOriginX        = 0.0f;
+                fOriginY        = 0.0f;
+
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -86,6 +92,9 @@ namespace lsp
                 pFO             = NULL;
                 pRoot           = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                fOriginX        = 0.0f;
+                fOriginY        = 0.0f;
+
 //                pSurface        = ::cairo_surface_create_similar(surface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
@@ -1546,6 +1555,37 @@ namespace lsp
                 cairo_set_antialias(pCR, (set) ? CAIRO_ANTIALIAS_GOOD : CAIRO_ANTIALIAS_NONE);
 
                 return old;
+            }
+
+            ws::point_t X11CairoSurface::set_origin(const ws::point_t & origin)
+            {
+                return set_origin(origin.nLeft, origin.nTop);
+            }
+
+            ws::point_t X11CairoSurface::set_origin(ssize_t left, ssize_t top)
+            {
+                ws::point_t result;
+                result.nLeft    = fOriginX;
+                result.nTop     = fOriginY;
+
+                if (pCR == NULL)
+                    return result;
+
+                fOriginX        = left;
+                fOriginY        = top;
+
+                cairo_matrix_t matrix;
+                matrix.xx       = 1.0f;
+                matrix.xy       = 0.0f;
+                matrix.x0       = fOriginX;
+
+                matrix.yx       = 0.0f;
+                matrix.yy       = 1.0f;
+                matrix.y0       = fOriginY;
+
+                cairo_set_matrix(pCR, &matrix);
+
+                return result;
             }
 
             void X11CairoSurface::clip_begin(float x, float y, float w, float h)
