@@ -332,6 +332,43 @@ namespace lsp
                  */
                 virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
 
+                /**
+                 * Fill rectangle with rounded corners using contents of other surface.
+                 * If rectangle size does not match surface size, the surface will be scaled
+                 * using linear interpolation.
+                 *
+                 * @param s source surface to use
+                 * @param alpha alpha blending factor (0.0 - opaque, 1.0 - fully transient)
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 */
+                virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height);
+
+                /**
+                 * Fill rectangle with rounded corners using contents of other surface.
+                 * If rectangle size does not match surface size, the surface will be scaled
+                 * using linear interpolation.
+                 *
+                 * @param s source surface to use
+                 * @param alpha alpha blending factor (0.0 - opaque, 1.0 - fully transient)
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r);
+
                 /** Fill sector of the round
                  *
                  * @param c color
