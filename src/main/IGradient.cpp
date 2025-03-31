@@ -84,18 +84,18 @@ namespace lsp
         void IGradient::set_stop_rgb(uint32_t color)
         {
             set_stop(
-                (color & 0xff) * k_color,
-                ((color >> 8) & 0xff) * k_color,
                 ((color >> 16) & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                (color & 0xff) * k_color,
                 0.0f);
         }
 
         void IGradient::set_stop_rgba(uint32_t color)
         {
             set_stop(
-                (color & 0xff) * k_color,
-                ((color >> 8) & 0xff) * k_color,
                 ((color >> 16) & 0xff) * k_color,
+                ((color >> 8) & 0xff) * k_color,
+                (color & 0xff) * k_color,
                 ((color >> 24) & 0xff) * k_color);
         }
 
