@@ -1640,9 +1640,9 @@ namespace lsp
                 // Draw primitives
                 texcoord_t tex;
                 tex.x       = left;
-                tex.y       = top;
+                tex.y       = top + height;
                 tex.sx      = 1.0f / width;
-                tex.sy      = 1.0f / height;
+                tex.sy      = -1.0f / height;
 
                 fill_textured_rect(uint32_t(res), tex, mask, radius, left, top, width, height);
             }
@@ -1669,9 +1669,9 @@ namespace lsp
                 // Draw primitives
                 texcoord_t tex;
                 tex.x       = r->nLeft;
-                tex.y       = r->nTop;
+                tex.y       = r->nTop + r->nHeight;
                 tex.sx      = 1.0f / r->nWidth;
-                tex.sy      = 1.0f / r->nHeight;
+                tex.sy      = -1.0f / r->nHeight;
 
                 fill_textured_rect(uint32_t(res), tex, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
