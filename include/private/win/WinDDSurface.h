@@ -87,6 +87,7 @@ namespace lsp
                     inline bool bad_state() const;
                     void    do_destroy();
 
+                    ID2D1PathGeometry *make_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius);
                     void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
                     void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
@@ -126,6 +127,8 @@ namespace lsp
                     virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r) override;
 
                     virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2) override;
                     virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2) override;

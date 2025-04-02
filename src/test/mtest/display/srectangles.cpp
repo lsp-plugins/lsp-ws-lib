@@ -48,36 +48,37 @@ MTEST_BEGIN("ws.display", srectangles)
                         if (s == NULL)
                             return STATUS_OK;
 
-                        // Prepare source surface
-                        ws::ISurface *src = s->create(64, 64);
-                        if (src == NULL)
-                            return STATUS_OK;
-                        lsp_finally {
-                            src->destroy();
-                            delete src;
-                        };
-
-                        // Draw gradient on a source surface
-                        {
-                            ws::IGradient *g = src->radial_gradient(32.0f, 32.0f, 32.0f, 32.0f, 48.0f);
-                            if (g == NULL)
-                                return STATUS_OK;
-                            lsp_finally { delete g; };
-
-                            Color c;
-                            g->set_start_rgb(0xff00ff);
-                            g->set_stop_rgb(0x00ffff);
-                            src->begin();
-                            {
-                                src->fill_rect(g, SURFMASK_NO_CORNER, 0, 0.0f, 0.0f, 64.0f, 64.0f);
-                            }
-                            src->end();
-                        }
-
-                        // Perform drawing
-                        Color c(0.0f, 0.5f, 0.75f);
                         s->begin();
                         {
+                            // Prepare source surface
+                            ws::ISurface *src = s->create(64, 64);
+                            if (src == NULL)
+                                return STATUS_OK;
+                            lsp_finally {
+                                src->destroy();
+                                delete src;
+                            };
+
+                            // Draw gradient on a source surface
+                            {
+                                ws::IGradient *g = src->radial_gradient(32.0f, 32.0f, 32.0f, 32.0f, 48.0f);
+                                if (g == NULL)
+                                    return STATUS_OK;
+                                lsp_finally { delete g; };
+
+                                Color c;
+                                g->set_start_rgb(0xff00ff);
+                                g->set_stop_rgb(0x00ffff);
+                                src->begin();
+                                {
+                                    src->fill_rect(g, SURFMASK_NO_CORNER, 0, 0.0f, 0.0f, 64.0f, 64.0f);
+                                }
+                                src->end();
+                            }
+
+                            // Perform drawing
+                            Color c(0.0f, 0.5f, 0.75f);
+
                             s->clear(c);
 
                             s->draw(src, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
