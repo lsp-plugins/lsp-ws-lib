@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.28 ===
+* Implemented fill_rect method for ws::ISurface with surface argument.
 * Added set_origin method for ws::ISurface interface.
 * Added MacOS dependencies.
 * Updated build scripts.
