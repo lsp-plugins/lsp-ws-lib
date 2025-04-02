@@ -131,6 +131,15 @@ namespace lsp
             fill_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
+        void ISurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+        {
+        }
+
+        void ISurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_rect(s, alpha, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
         void ISurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
         {
         }

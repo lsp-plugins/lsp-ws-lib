@@ -495,6 +495,26 @@ namespace lsp
                 sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
+            void Surface::fill_textured_rect(uint32_t ci, const texcoord_t & tex, float x0, float y0, float x1, float y1)
+            {
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return;
+
+                const float tx0     = (x0 - tex.x) * tex.sx;
+                const float tx1     = (x1 - tex.x) * tex.sx;
+                const float ty0     = (y0 - tex.y) * tex.sy;
+                const float ty1     = (y1 - tex.y) * tex.sy;
+
+                ADD_TVERTEX(v, ci, x0, y0, tx0, ty0);
+                ADD_TVERTEX(v, ci, x0, y1, tx0, ty1);
+                ADD_TVERTEX(v, ci, x1, y1, tx1, ty1);
+                ADD_TVERTEX(v, ci, x1, y0, tx1, ty0);
+
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+            }
+
             void Surface::draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width)
             {
                 // Find first not short segment
@@ -637,6 +657,64 @@ namespace lsp
                 sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
+            void Surface::fill_textured_sector(uint32_t ci, const texcoord_t & tex, float x, float y, float r, float a1, float a2)
+            {
+                // Compute parameters
+                if (r <= 0.0f)
+                    return;
+                const float delta = a2 - a1;
+                if (delta == 0.0f)
+                    return;
+
+                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float ex      = cosf(a2) * r;
+                const float ey      = sinf(a2) * r;
+                const float dx      = cosf(phi);
+                const float dy      = sinf(phi);
+                const ssize_t count = delta / phi;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
+
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+
+                uint32_t v1i        = v0i + 1;
+
+                ADD_TVERTEX(v, ci, x, y, (x - tex.x) * tex.sx, (y - tex.y) * tex.sy);
+                float xx            = x + vx;
+                float yy            = y + vy;
+                float txx           = (xx - tex.x) * tex.sx;
+                float tyy           = (yy - tex.y) * tex.sy;
+                ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+
+                for (ssize_t i=0; i<count; ++i)
+                {
+                    float nvx   = vx*dx - vy*dy;
+                    float nvy   = vx*dy + vy*dx;
+                    vx          = nvx;
+                    vy          = nvy;
+
+                    xx          = x + vx;
+                    yy          = y + vy;
+                    txx         = (xx - tex.x) * tex.sx;
+                    tyy         = (yy - tex.y) * tex.sy;
+                    ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                    sBatch.htriangle(v0i, v1i, v1i + 1);
+                    ++v1i;
+                }
+
+                xx          = x + ex;
+                yy          = y + ey;
+                txx         = (xx - tex.x) * tex.sx;
+                tyy         = (yy - tex.y) * tex.sy;
+                ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                sBatch.htriangle(v0i, v1i, v1i + 1);
+            }
+
             void Surface::fill_corner(uint32_t ci, float x, float y, float xd, float yd, float r, float a)
             {
                 // Compute parameters
@@ -774,6 +852,51 @@ namespace lsp
                 }
 
                 fill_rect(ci, left, top, right, bottom);
+            }
+
+            void Surface::fill_textured_rect(uint32_t ci, const texcoord_t & tex, size_t mask, float radius, float left, float top, float width, float height)
+            {
+                float right     = left + width;
+                float bottom    = top + height;
+
+                if (mask & SURFMASK_T_CORNER)
+                {
+                    float l         = left;
+                    float r         = right;
+                    top            += radius;
+
+                    if (mask & SURFMASK_LT_CORNER)
+                    {
+                        l              += radius;
+                        fill_textured_sector(ci, tex, l, top, radius, M_PI, M_PI * 1.5f);
+                    }
+                    if (mask & SURFMASK_RT_CORNER)
+                    {
+                        r              -= radius;
+                        fill_textured_sector(ci, tex, r, top, radius, M_PI * 1.5f, M_PI * 2.0f);
+                    }
+                    fill_textured_rect(ci, tex, l, top - radius, r, top);
+                }
+                if (mask & SURFMASK_B_CORNER)
+                {
+                    float l         = left;
+                    float r         = right;
+                    bottom         -= radius;
+
+                    if (mask & SURFMASK_LB_CORNER)
+                    {
+                        l              += radius;
+                        fill_textured_sector(ci, tex, l, bottom, radius, M_PI * 0.5f, M_PI);
+                    }
+                    if (mask & SURFMASK_RB_CORNER)
+                    {
+                        r              -= radius;
+                        fill_textured_sector(ci, tex, r, bottom, radius, 0.0f, M_PI * 0.5f);
+                    }
+                    fill_textured_rect(ci, tex, l, bottom, r, bottom + radius);
+                }
+
+                fill_textured_rect(ci, tex, left, top, right, bottom);
             }
 
             void Surface::wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width)
@@ -1493,6 +1616,64 @@ namespace lsp
 
                 // Draw primitives
                 fill_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+            }
+
+            void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+            {
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                if (s->type() != ST_OPENGL)
+                    return;
+
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                gl::Texture *t = gls->pTexture;
+                if (t == NULL)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, alpha);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                texcoord_t tex;
+                tex.x       = left;
+                tex.y       = top;
+                tex.sx      = 1.0f / width;
+                tex.sy      = 1.0f / height;
+
+                fill_textured_rect(uint32_t(res), tex, mask, radius, left, top, width, height);
+            }
+
+            void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+            {
+                // Create texture
+                if (!bIsDrawing)
+                    return;
+                if (s->type() != ST_OPENGL)
+                    return;
+
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                gl::Texture *t = gls->pTexture;
+                if (t == NULL)
+                    return;
+
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, alpha);
+                if (res < 0)
+                    return;
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                texcoord_t tex;
+                tex.x       = r->nLeft;
+                tex.y       = r->nTop;
+                tex.sx      = 1.0f / r->nWidth;
+                tex.sy      = 1.0f / r->nHeight;
+
+                fill_textured_rect(uint32_t(res), tex, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
             void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
