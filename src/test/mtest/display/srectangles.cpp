@@ -91,7 +91,7 @@ MTEST_BEGIN("ws.display", srectangles)
                                     size_t y = 76 * (yi + 1);
 
                                     s->fill_rect(
-                                        src, xi * 0.0625f,
+                                        src, xi * 0.125f,
                                         mask, 12.0f,
                                         x, y,
                                         src->width(), src->height());

@@ -208,7 +208,7 @@ namespace lsp
                     return;
 
                 // Draw one surface on another
-                float sw = fabs(sx * s->width()), sh = fabs(sy * s->height());
+                float sw = fabsf(sx * s->width()), sh = fabsf(sy * s->height());
                 ::cairo_save(pCR);
                 lsp_finally { ::cairo_restore(pCR); };
 
@@ -634,13 +634,58 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
+            void X11CairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+            {
+                if (pCR == NULL)
+                    return;
+                surface_type_t type = s->type();
+                if ((type != ST_IMAGE) && (type != ST_SIMILAR))
+                    return;
+
+                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
+                if (cs->pSurface == NULL)
+                    return;
+
+                // Draw one surface on another
+                ::cairo_save(pCR);
+                lsp_finally { ::cairo_restore(pCR); };
+
+                cairo_pattern_t *p = ::cairo_pattern_create_for_surface(cs->pSurface);
+                if (p == NULL)
+                    return;
+                lsp_finally { ::cairo_pattern_destroy(p); };
+
+                cairo_matrix_t matrix;
+                matrix.xx       = 1.0f;
+                matrix.xy       = 0.0f;
+                matrix.x0       = -(fOriginX + left);
+
+                matrix.yx       = 0.0f;
+                matrix.yy       = 1.0f;
+                matrix.y0       = -(fOriginY + top);
+
+                ::cairo_pattern_set_matrix(p, &matrix);
+                ::cairo_pattern_set_extend(p, CAIRO_EXTEND_NONE);
+                ::cairo_pattern_set_filter(p, CAIRO_FILTER_BILINEAR);
+
+                ::cairo_set_source(pCR, p);
+                drawRoundRect(left, top, width, height, radius, mask);
+                ::cairo_clip(pCR);
+                ::cairo_paint_with_alpha(pCR, 1.0f - alpha);
+            }
+
+            void X11CairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+            {
+                fill_rect(s, alpha, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+            }
+
             void X11CairoSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
                 if (pCR == NULL)
                     return;
 
                 setSourceRGBA(c);
-                if (fabs(a2 - a1) < 2.0f * M_PI)
+                if (fabsf(a2 - a1) < 2.0f * M_PI)
                 {
                     cairo_move_to(pCR, x, y);
 
@@ -1196,7 +1241,7 @@ namespace lsp
                 setSourceRGBA(color);
                 cairo_set_line_width(pCR, width);
 
-                if (fabs(a) > fabs(b))
+                if (fabsf(a) > fabsf(b))
                 {
                     cairo_move_to(pCR, - c / a, 0.0f);
                     cairo_line_to(pCR, -(c + b*nHeight)/a, nHeight);
@@ -1220,7 +1265,7 @@ namespace lsp
                 setSourceRGBA(color);
                 cairo_set_line_width(pCR, width);
 
-                if (fabs(a) > fabs(b))
+                if (fabsf(a) > fabsf(b))
                 {
                     cairo_move_to(pCR, roundf(-(c + b*top)/a), roundf(top));
                     cairo_line_to(pCR, roundf(-(c + b*bottom)/a), roundf(bottom));
@@ -1246,7 +1291,7 @@ namespace lsp
                 X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
                 cg->apply(pCR);
 
-                if (fabs(a1) > fabs(b1))
+                if (fabsf(a1) > fabsf(b1))
                 {
                     cairo_move_to(pCR, ssize_t(-(c1 + b1*top)/a1), ssize_t(top));
                     cairo_line_to(pCR, ssize_t(-(c1 + b1*bottom)/a1), ssize_t(bottom));
@@ -1257,7 +1302,7 @@ namespace lsp
                     cairo_line_to(pCR, ssize_t(right), ssize_t(-(c1 + a1*right)/b1));
                 }
 
-                if (fabs(a2) > fabs(b2))
+                if (fabsf(a2) > fabsf(b2))
                 {
                     cairo_line_to(pCR, ssize_t(-(c2 + b2*bottom)/a2), ssize_t(bottom));
                     cairo_line_to(pCR, ssize_t(-(c2 + b2*top)/a2), ssize_t(top));
@@ -1281,7 +1326,7 @@ namespace lsp
                 r = lsp_max(0.0f, r - width * 0.5f);
                 setSourceRGBA(c);
                 cairo_set_line_width(pCR, width);
-                if (fabs(a2 - a1) >= 2.0f * M_PI)
+                if (fabsf(a2 - a1) >= 2.0f * M_PI)
                     cairo_arc(pCR, x, y, r, 0.0f, 2.0f * M_PI);
                 else if (a2 < a1)
                     cairo_arc_negative(pCR, x, y, r, a1, a2);
