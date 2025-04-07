@@ -45,14 +45,18 @@ namespace lsp
 
             public:
                 virtual void set_start(float r, float g, float b, float a=0.0f);
-                virtual void set_start(const Color &c);
-                virtual void set_start(const Color &c, float a);
+                virtual void set_start(const Color & c);
+                virtual void set_start(const Color & c, float a);
+                virtual void set_start(const Color *c);
+                virtual void set_start(const Color *c, float a);
                 virtual void set_start_rgb(uint32_t color);
                 virtual void set_start_rgba(uint32_t color);
 
                 virtual void set_stop(float r, float g, float b, float a=0.0f);
-                virtual void set_stop(const Color &c);
-                virtual void set_stop(const Color &c, float a);
+                virtual void set_stop(const Color & c);
+                virtual void set_stop(const Color & c, float a);
+                virtual void set_stop(const Color *c);
+                virtual void set_stop(const Color *c, float a);
                 virtual void set_stop_rgb(uint32_t color);
                 virtual void set_stop_rgba(uint32_t color);
         };
