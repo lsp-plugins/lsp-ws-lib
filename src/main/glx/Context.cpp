@@ -312,7 +312,7 @@ namespace lsp
 
             void Context::clear_errors()
             {
-                while (glGetError() != GL_NO_ERROR);
+                while (pVtbl->glGetError() != GL_NO_ERROR);
             }
 
             bool Context::check_gl_error(const char *context)
@@ -320,7 +320,7 @@ namespace lsp
                 size_t count = 0;
                 while (true)
                 {
-                    const GLenum error = glGetError();
+                    const GLenum error = pVtbl->glGetError();
                     if (error == GL_NO_ERROR)
                         return count > 0;
 

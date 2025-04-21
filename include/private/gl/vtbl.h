@@ -190,6 +190,7 @@ namespace lsp
                 void GLAPIENTRY         (* glGetFloati_v)(GLenum target, GLuint index, GLfloat * data);
                 void GLAPIENTRY         (* glGetDoublei_v)(GLenum target, GLuint index, GLdouble * data);
                 void GLAPIENTRY         (* glGetInteger64i_v)(GLenum target, GLuint index, GLint64 * data);
+                GLenum GLAPIENTRY       (* glGetError)();
 
                 // Drawing operations
                 const GLubyte           (* glGetString)(GLenum name);

@@ -75,11 +75,11 @@ namespace lsp
                 private:
                     static const char  *vertex_shader(size_t program_id);
                     static const char  *fragment_shader(size_t program_id);
-                    static bool         check_gl_error(const char *context);
 
                 private:
                     void                destroy(program_t *prg);
                     void                clear_errors();
+                    bool                check_gl_error(const char *context);
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
 
                 protected:

@@ -209,6 +209,7 @@ namespace lsp
                 FETCH(glGetFloati_v);
                 FETCH(glGetDoublei_v);
                 FETCH(glGetInteger64i_v);
+                FETCH(glGetError);
 
                 // Drawing operations
                 FETCH(glClearColor);
