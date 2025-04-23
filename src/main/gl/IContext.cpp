@@ -244,6 +244,21 @@ namespace lsp
                 return STATUS_NOT_IMPLEMENTED;
             }
 
+            const char *IContext::vertex_shader(program_t program)
+            {
+                return NULL;
+            }
+
+            const char *IContext::fragment_shader(program_t program)
+            {
+                return NULL;
+            }
+
+            GLint IContext::attribute_location(program_t program, attribute_t attribute)
+            {
+                return -STATUS_NOT_FOUND;
+            }
+
             uint32_t IContext::multisample() const
             {
                 return 0;

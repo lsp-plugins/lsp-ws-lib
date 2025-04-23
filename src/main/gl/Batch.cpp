@@ -281,9 +281,10 @@ namespace lsp
                 {
                     draw_t *draw        = vBatches.uget(i);
                     const size_t flags  = draw->header.nFlags;
+                    const gl::program_t program = draw->header.enProgram;
 
                     // Get the program
-                    status_t res = ctx->program(&program_id, draw->header.enProgram);
+                    status_t res = ctx->program(&program_id, program);
                     if (res != STATUS_OK)
                         return res;
 
@@ -451,9 +452,9 @@ namespace lsp
                     lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_NONE); };
 
                     // Bind vertex attributes
-                    const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
-                    const GLint a_texcoord = vtbl->glGetAttribLocation(program_id, "a_texcoord");
-                    const GLint a_command = vtbl->glGetAttribLocation(program_id, "a_command");
+                    const GLint a_vertex = ctx->attribute_location(program, gl::VERTEX_COORDS);
+                    const GLint a_texcoord = ctx->attribute_location(program, gl::TEXTURE_COORDS);
+                    const GLint a_command = ctx->attribute_location(program, gl::COMMAND_BUFFER);
 
                     // position attribute
                     if (a_vertex >= 0)

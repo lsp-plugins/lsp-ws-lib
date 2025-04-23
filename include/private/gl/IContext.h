@@ -66,7 +66,14 @@ namespace lsp
             enum program_t
             {
                 GEOMETRY,
-                STENCIL
+                STENCIL,
+            };
+
+            enum attribute_t
+            {
+                VERTEX_COORDS,
+                TEXTURE_COORDS,
+                COMMAND_BUFFER,
             };
 
             class LSP_HIDDEN_MODIFIER IContext
@@ -247,6 +254,28 @@ namespace lsp
                      * @return pointer identifier of shader program or negative error code
                      */
                     virtual status_t program(size_t *id, program_t program);
+
+                    /**
+                     * Get text of the vertex shader for corresponding program
+                     * @param program shader program identifier
+                     * @return pointer that contains shader text or NULL
+                     */
+                    virtual const char *vertex_shader(program_t program);
+
+                    /**
+                     * Get text of the fragment shader for corresponding program
+                     * @param program shader program identifier
+                     * @return pointer that contains shader text or NULL
+                     */
+                    virtual const char *fragment_shader(program_t program);
+
+                    /**
+                     * Get attribute location for specific program
+                     * @param program shader program identifier
+                     * @param attribute attribute identifier
+                     * @return attribute location or negative error code
+                     */
+                    virtual GLint attribute_location(program_t program, attribute_t attribute);
 
                     /**
                      * Get multisampling factor

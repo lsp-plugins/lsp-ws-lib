@@ -59,7 +59,7 @@ namespace lsp
             static const int glx_context_attribs[] =
             {
                 GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-                GLX_CONTEXT_MINOR_VERSION_ARB, 1,
+                GLX_CONTEXT_MINOR_VERSION_ARB, 3,
                 None
             };
 
@@ -288,7 +288,7 @@ namespace lsp
                 ::glXSwapBuffers(pDisplay, hWindow);
             }
 
-            const char *Context::vertex_shader(size_t program_id)
+            const char *Context::vertex_shader(gl::program_t program_id)
             {
                 switch (program_id)
                 {
@@ -299,7 +299,7 @@ namespace lsp
                 return NULL;
             }
 
-            const char *Context::fragment_shader(size_t program_id)
+            const char *Context::fragment_shader(gl::program_t program_id)
             {
                 switch (program_id)
                 {
@@ -308,6 +308,38 @@ namespace lsp
                     default: break;
                 }
                 return NULL;
+            }
+
+            GLint Context::attribute_location(gl::program_t program, gl::attribute_t attribute)
+            {
+                switch (program)
+                {
+                    case gl::GEOMETRY:
+                    {
+                        switch (attribute)
+                        {
+                            case gl::VERTEX_COORDS: return 0;
+                            case gl::TEXTURE_COORDS: return 1;
+                            case gl::COMMAND_BUFFER: return 2;
+                            default: break;
+                        }
+                    }
+                    break;
+
+                    case gl::STENCIL:
+                    {
+                        switch (attribute)
+                        {
+                            case gl::VERTEX_COORDS: return 0;
+                            default: break;
+                        }
+                    }
+                    break;
+
+                    default: break;
+                }
+
+                return -STATUS_NOT_FOUND;
             }
 
             bool Context::check_gl_error(const char *context)
@@ -375,14 +407,14 @@ namespace lsp
                 if (prog == NULL)
                 {
                     // Obtain source code for shaders
-                    const char *vertex  = vertex_shader(index);
+                    const char *vertex  = vertex_shader(program);
                     if (vertex == NULL)
                     {
                         lsp_error("Vertex shader not defined for program id=%d", int(index));
                         return STATUS_BAD_STATE;
                     }
 
-                    const char *fragment= fragment_shader(index);
+                    const char *fragment= fragment_shader(program);
                     if (fragment == NULL)
                     {
                         lsp_error("Fragment shader not defined for program id=%d", int(index));

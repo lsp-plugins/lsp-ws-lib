@@ -73,10 +73,6 @@ namespace lsp
                     lltl::parray<program_t> vPrograms;
 
                 private:
-                    static const char  *vertex_shader(size_t program_id);
-                    static const char  *fragment_shader(size_t program_id);
-
-                private:
                     void                destroy(program_t *prg);
                     bool                check_gl_error(const char *context);
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
@@ -93,6 +89,9 @@ namespace lsp
                     virtual status_t    activate() override;
                     virtual status_t    deactivate() override;
                     virtual status_t    program(size_t *id, gl::program_t program) override;
+                    virtual const char *vertex_shader(gl::program_t program) override;
+                    virtual const char *fragment_shader(gl::program_t program) override;
+                    virtual GLint       attribute_location(gl::program_t program, gl::attribute_t attribute) override;
                     virtual uint32_t    multisample() const override;
                     virtual void        swap_buffers(size_t width, size_t height) override;
                     virtual size_t      width() const override;
