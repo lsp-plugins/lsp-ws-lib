@@ -310,11 +310,6 @@ namespace lsp
                 return NULL;
             }
 
-            void Context::clear_errors()
-            {
-                while (pVtbl->glGetError() != GL_NO_ERROR);
-            }
-
             bool Context::check_gl_error(const char *context)
             {
                 size_t count = 0;
@@ -375,8 +370,6 @@ namespace lsp
                 if (!active())
                     return STATUS_BAD_STATE;
 
-                clear_errors();
-
                 const size_t index = size_t(program);
                 program_t *prog = vPrograms.get(index);
                 if (prog == NULL)
@@ -408,7 +401,7 @@ namespace lsp
                     lsp_finally { destroy(prg); };
 
                     // Compile vertex shader
-                    if ((prg->nVertexId = pVtbl->glCreateShader(GL_VERTEX_SHADER)) == 0)
+                    if ((prg->nVertexId = pVtbl->glCreateShader(GL_VERTEX_SHADER)) == None)
                     {
                         check_gl_error("create vertex shader");
                         return STATUS_UNKNOWN_ERR;
@@ -416,19 +409,20 @@ namespace lsp
                     lsp_gl_trace("glCreateShader(%d)", int(prg->nVertexId));
                     prg->nFlags    |= PF_VERTEX;
                     pVtbl->glShaderSource(prg->nVertexId, 1, &vertex, NULL);
-                    if (check_gl_error("set vertex shader source"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("set vertex shader source"))
+//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glCompileShader(prg->nVertexId);
                     if (check_compile_status("compile vertex shader", prg->nVertexId, SHADER))
                     {
                         lsp_trace("Vertex shader:\n%s", vertex);
+                        check_gl_error("compile vertex shader");
                         return STATUS_UNKNOWN_ERR;
                     }
-                    if (check_gl_error("compile vertex shader"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("compile vertex shader"))
+//                        return STATUS_UNKNOWN_ERR;
 
                     // Compile fragment shader
-                    if ((prg->nFragmentId = pVtbl->glCreateShader(GL_FRAGMENT_SHADER)) == 0)
+                    if ((prg->nFragmentId = pVtbl->glCreateShader(GL_FRAGMENT_SHADER)) == None)
                     {
                         check_gl_error("create fragment shader");
                         return STATUS_UNKNOWN_ERR;
@@ -436,19 +430,20 @@ namespace lsp
                     lsp_gl_trace("glCreateShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_FRAGMENT;
                     pVtbl->glShaderSource(prg->nFragmentId, 1, &fragment, NULL);
-                    if (check_gl_error("set fragment shader source"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("set fragment shader source"))
+//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glCompileShader(prg->nFragmentId);
                     if (check_compile_status("compile fragment shader", prg->nFragmentId, SHADER))
                     {
-                        lsp_trace("Fragment shader:\n%s", vertex);
+                        lsp_trace("Fragment shader:\n%s", fragment);
+                        check_gl_error("compile fragment shader");
                         return STATUS_UNKNOWN_ERR;
                     }
-                    if (check_gl_error("compile fragment shader"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("compile fragment shader"))
+//                        return STATUS_UNKNOWN_ERR;
 
                     // Link program
-                    if ((prg->nProgramId = pVtbl->glCreateProgram()) == 0)
+                    if ((prg->nProgramId = pVtbl->glCreateProgram()) == None)
                     {
                         check_gl_error("create program");
                         return STATUS_UNKNOWN_ERR;
@@ -456,31 +451,32 @@ namespace lsp
                     lsp_gl_trace("glCreateProgram(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_PROGRAM;
                     pVtbl->glAttachShader(prg->nProgramId, prg->nVertexId);
-                    if (check_gl_error("attach vertex shader to program"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("attach vertex shader to program"))
+//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glAttachShader(prg->nProgramId, prg->nFragmentId);
-                    if (check_gl_error("attach fragment shader to program"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("attach fragment shader to program"))
+//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glLinkProgram(prg->nProgramId);
                     if (check_compile_status("link program", prg->nProgramId, PROGRAM))
                     {
                         lsp_trace("Vertex shader:\n%s", vertex);
                         lsp_trace("Fragment shader:\n%s", vertex);
+                        check_gl_error("link program");
                         return STATUS_UNKNOWN_ERR;
                     }
-                    if (check_gl_error("link program"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("link program"))
+//                        return STATUS_UNKNOWN_ERR;
 
                     // Now we can delete compiled shaders
                     pVtbl->glDeleteShader(prg->nVertexId);
-                    if (check_gl_error("delete vertex shader"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("delete vertex shader"))
+//                        return STATUS_UNKNOWN_ERR;
                     lsp_gl_trace("glDeleteShader(%d)", int(prg->nVertexId));
                     prg->nFlags    &= ~PF_VERTEX;
 
                     pVtbl->glDeleteShader(prg->nFragmentId);
-                    if (check_gl_error("delete fragment shader"))
-                        return STATUS_UNKNOWN_ERR;
+//                    if (check_gl_error("delete fragment shader"))
+//                        return STATUS_UNKNOWN_ERR;
                     lsp_gl_trace("glDeleteShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    &= ~PF_FRAGMENT;
 

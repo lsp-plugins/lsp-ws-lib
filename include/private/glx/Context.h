@@ -78,7 +78,6 @@ namespace lsp
 
                 private:
                     void                destroy(program_t *prg);
-                    void                clear_errors();
                     bool                check_gl_error(const char *context);
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
 
