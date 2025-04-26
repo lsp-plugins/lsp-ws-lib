@@ -59,7 +59,7 @@ namespace lsp
             static const int glx_context_attribs[] =
             {
                 GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-                GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+                GLX_CONTEXT_MINOR_VERSION_ARB, 1,
                 None
             };
 
@@ -127,6 +127,7 @@ namespace lsp
                     if ((max_sample_buffers > 0) && (max_samples > 0))
                     {
                     #ifdef LSP_TRACE
+                        int fbconfig_id = 0;
                         int red_size = 0;
                         int green_size = 0;
                         int blue_size = 0;
@@ -134,6 +135,7 @@ namespace lsp
                         int depth_size = 0;
                         int stencil_size = 0;
 
+                        ::glXGetFBConfigAttrib(dpy, result, GLX_FBCONFIG_ID, &fbconfig_id);
                         ::glXGetFBConfigAttrib(dpy, result, GLX_RED_SIZE, &red_size);
                         ::glXGetFBConfigAttrib(dpy, result, GLX_GREEN_SIZE, &green_size);
                         ::glXGetFBConfigAttrib(dpy, result, GLX_BLUE_SIZE, &blue_size);
@@ -141,8 +143,8 @@ namespace lsp
                         ::glXGetFBConfigAttrib(dpy, result, GLX_DEPTH_SIZE, &depth_size);
                         ::glXGetFBConfigAttrib(dpy, result, GLX_STENCIL_SIZE, &stencil_size);
 
-                        lsp_trace("Selected fb_config: rgba={%d, %d, %d, %d}, depth=%d, stencil=%d, multisampling={%d, %d}",
-                            red_size, green_size, blue_size, alpha_size, depth_size, stencil_size, max_sample_buffers, max_samples);
+                        lsp_trace("Selected fb_config: id=0x%x, rgba={%d, %d, %d, %d}, depth=%d, stencil=%d, multisampling={%d, %d}",
+                            fbconfig_id, red_size, green_size, blue_size, alpha_size, depth_size, stencil_size, max_sample_buffers, max_samples);
                     #endif /* LSP_TRACE */
 
                         return result;
@@ -433,7 +435,7 @@ namespace lsp
                     lsp_finally { destroy(prg); };
 
                     // Compile vertex shader
-                    if ((prg->nVertexId = pVtbl->glCreateShader(GL_VERTEX_SHADER)) == None)
+                    if ((prg->nVertexId = pVtbl->glCreateShader(GL_VERTEX_SHADER)) == GL_NONE)
                     {
                         check_gl_error("create vertex shader");
                         return STATUS_UNKNOWN_ERR;
@@ -441,8 +443,6 @@ namespace lsp
                     lsp_gl_trace("glCreateShader(%d)", int(prg->nVertexId));
                     prg->nFlags    |= PF_VERTEX;
                     pVtbl->glShaderSource(prg->nVertexId, 1, &vertex, NULL);
-//                    if (check_gl_error("set vertex shader source"))
-//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glCompileShader(prg->nVertexId);
                     if (check_compile_status("compile vertex shader", prg->nVertexId, SHADER))
                     {
@@ -450,11 +450,9 @@ namespace lsp
                         check_gl_error("compile vertex shader");
                         return STATUS_UNKNOWN_ERR;
                     }
-//                    if (check_gl_error("compile vertex shader"))
-//                        return STATUS_UNKNOWN_ERR;
 
                     // Compile fragment shader
-                    if ((prg->nFragmentId = pVtbl->glCreateShader(GL_FRAGMENT_SHADER)) == None)
+                    if ((prg->nFragmentId = pVtbl->glCreateShader(GL_FRAGMENT_SHADER)) == GL_NONE)
                     {
                         check_gl_error("create fragment shader");
                         return STATUS_UNKNOWN_ERR;
@@ -462,8 +460,6 @@ namespace lsp
                     lsp_gl_trace("glCreateShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_FRAGMENT;
                     pVtbl->glShaderSource(prg->nFragmentId, 1, &fragment, NULL);
-//                    if (check_gl_error("set fragment shader source"))
-//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glCompileShader(prg->nFragmentId);
                     if (check_compile_status("compile fragment shader", prg->nFragmentId, SHADER))
                     {
@@ -471,11 +467,9 @@ namespace lsp
                         check_gl_error("compile fragment shader");
                         return STATUS_UNKNOWN_ERR;
                     }
-//                    if (check_gl_error("compile fragment shader"))
-//                        return STATUS_UNKNOWN_ERR;
 
                     // Link program
-                    if ((prg->nProgramId = pVtbl->glCreateProgram()) == None)
+                    if ((prg->nProgramId = pVtbl->glCreateProgram()) == GL_NONE)
                     {
                         check_gl_error("create program");
                         return STATUS_UNKNOWN_ERR;
@@ -483,11 +477,7 @@ namespace lsp
                     lsp_gl_trace("glCreateProgram(%d)", int(prg->nFragmentId));
                     prg->nFlags    |= PF_PROGRAM;
                     pVtbl->glAttachShader(prg->nProgramId, prg->nVertexId);
-//                    if (check_gl_error("attach vertex shader to program"))
-//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glAttachShader(prg->nProgramId, prg->nFragmentId);
-//                    if (check_gl_error("attach fragment shader to program"))
-//                        return STATUS_UNKNOWN_ERR;
                     pVtbl->glLinkProgram(prg->nProgramId);
                     if (check_compile_status("link program", prg->nProgramId, PROGRAM))
                     {
@@ -496,19 +486,13 @@ namespace lsp
                         check_gl_error("link program");
                         return STATUS_UNKNOWN_ERR;
                     }
-//                    if (check_gl_error("link program"))
-//                        return STATUS_UNKNOWN_ERR;
 
                     // Now we can delete compiled shaders
                     pVtbl->glDeleteShader(prg->nVertexId);
-//                    if (check_gl_error("delete vertex shader"))
-//                        return STATUS_UNKNOWN_ERR;
                     lsp_gl_trace("glDeleteShader(%d)", int(prg->nVertexId));
                     prg->nFlags    &= ~PF_VERTEX;
 
                     pVtbl->glDeleteShader(prg->nFragmentId);
-//                    if (check_gl_error("delete fragment shader"))
-//                        return STATUS_UNKNOWN_ERR;
                     lsp_gl_trace("glDeleteShader(%d)", int(prg->nFragmentId));
                     prg->nFlags    &= ~PF_FRAGMENT;
 
