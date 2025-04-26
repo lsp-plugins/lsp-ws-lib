@@ -35,14 +35,18 @@ namespace lsp
             #define SHADER(x) x "\n"
 
             static const char *geometry_vertex_shader =
-                SHADER("#version 330 core")
-                SHADER("")
                 SHADER("uniform mat4 u_model;")
                 SHADER("uniform vec2 u_origin;")
                 SHADER("")
+                SHADER("#ifdef USE_LAYOUTS")
                 SHADER("layout(location=0) in vec2 a_vertex;")
                 SHADER("layout(location=1) in vec2 a_texcoord;")
                 SHADER("layout(location=2) in uint a_command;")
+                SHADER("#else")
+                SHADER("in vec2 a_vertex;")
+                SHADER("in vec2 a_texcoord;")
+                SHADER("in uint a_command;")
+                SHADER("#endif")
                 SHADER("")
                 SHADER("out vec2 b_texcoord;")
                 SHADER("flat out int b_index;")
@@ -63,11 +67,12 @@ namespace lsp
                 SHADER("");
 
             static const char *geometry_fragment_shader =
-                SHADER("#version 330 core")
-                SHADER("")
                 SHADER("uniform sampler2D u_commands;")
                 SHADER("uniform sampler2D u_texture;")
+                SHADER("")
+                SHADER("#ifdef USE_TEXTURE_MULTISAMPLE")
                 SHADER("uniform sampler2DMS u_ms_texture;")
+                SHADER("#endif")
                 SHADER("")
                 SHADER("in vec2 b_texcoord;")
                 SHADER("flat in int b_index;")
@@ -81,6 +86,7 @@ namespace lsp
                 SHADER("    return texelFetch(sampler, ivec2(offset % tsize.x, offset / tsize.x), 0);")
                 SHADER("}")
                 SHADER("")
+                SHADER("#ifdef USE_TEXTURE_MULTISAMPLE")
                 SHADER("vec4 textureMultisample(sampler2DMS sampler, vec2 coord, float factor)")
                 SHADER("{")
                 SHADER("    vec4 color = vec4(0.0);")
@@ -93,6 +99,7 @@ namespace lsp
                 SHADER("")
                 SHADER("    return color / factor;")
                 SHADER("}")
+                SHADER("#endif")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
@@ -140,9 +147,13 @@ namespace lsp
                 SHADER("    {")
                 SHADER("        vec4 mc = commandFetch(u_commands, index);")            // Modulating color
                 SHADER("        vec4 tp = commandFetch(u_commands, index + 1);")        // Texture parameters: initial size { w, h }, format, multisampling
+                SHADER("#ifdef USE_TEXTURE_MULTISAMPLE")
                 SHADER("        vec4 tcolor = (tp.w > 0.5f) ? ")                    // Get color from texture
                 SHADER("            textureMultisample(u_ms_texture, b_texcoord, tp.w) :")
                 SHADER("            texture(u_texture, b_texcoord);")
+                SHADER("#else")
+                SHADER("        vec4 tcolor = texture(u_texture, b_texcoord);")     // Get color from texture
+                SHADER("#endif")
                 SHADER("        int format = int(tp.z);")                           // Get texture format
                 SHADER("        gl_FragColor = ")
                 SHADER("            (format == 0) ? vec4(tcolor.rgb * mc.rgb * tcolor.a, tcolor.a * mc.a)") // Usual RGBA
@@ -153,12 +164,14 @@ namespace lsp
                 SHADER("");
 
             static const char *stencil_vertex_shader =
-                SHADER("#version 330 core")
-                SHADER("")
                 SHADER("uniform mat4 u_model;")
                 SHADER("uniform vec2 u_origin;")
                 SHADER("")
+                SHADER("#ifdef USE_LAYOUTS")
                 SHADER("layout(location=0) in vec2 a_vertex;")
+                SHADER("#else")
+                SHADER("in vec2 a_vertex;")
+                SHADER("#endif")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
@@ -167,8 +180,6 @@ namespace lsp
                 SHADER("");
 
             static const char *stencil_fragment_shader =
-                SHADER("#version 330 core")
-                SHADER("")
                 SHADER("void main()")
                 SHADER("{")
                 SHADER("    gl_FragColor = vec4(1.0f, 1.0f, 1.0f, 0.0f);")

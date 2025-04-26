@@ -803,6 +803,7 @@ namespace lsp
                         atoms[n_items++] = a.X11__NET_WM_WINDOW_TYPE_NORMAL;
                         break;
                 }
+                atoms[n_items] = 0;
 
 //                lsp_trace("Setting _NET_WM_WINDOW_TYPE...");
                 XChangeProperty(

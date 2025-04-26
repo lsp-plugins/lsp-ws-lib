@@ -350,7 +350,7 @@ namespace lsp
 
                     // Bind texture and set size
                     vtbl->glBindTexture(tex_kind, texture_id);
-                    if (samples > 0)
+                    if (tex_kind == GL_TEXTURE_2D_MULTISAMPLE)
                         vtbl->glTexImage2DMultisample(tex_kind, samples, int_format, width, height, GL_TRUE);
                     else
                         vtbl->glTexImage2D(tex_kind, 0, int_format, width, height, 0, int_format, GL_UNSIGNED_BYTE, NULL);
@@ -359,7 +359,7 @@ namespace lsp
                     nWidth          = uint32_t(width);
                     nHeight         = uint32_t(height);
                     enFormat        = format;
-                    nSamples        = GLuint(samples);
+                    nSamples        = (tex_kind == GL_TEXTURE_2D_MULTISAMPLE) ? GLuint(samples) : GLuint(0);
 
                     // Setup clear flag
                     clear           = true;

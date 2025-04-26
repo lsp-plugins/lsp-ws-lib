@@ -256,20 +256,6 @@ namespace lsp
                     virtual status_t program(size_t *id, program_t program);
 
                     /**
-                     * Get text of the vertex shader for corresponding program
-                     * @param program shader program identifier
-                     * @return pointer that contains shader text or NULL
-                     */
-                    virtual const char *vertex_shader(program_t program);
-
-                    /**
-                     * Get text of the fragment shader for corresponding program
-                     * @param program shader program identifier
-                     * @return pointer that contains shader text or NULL
-                     */
-                    virtual const char *fragment_shader(program_t program);
-
-                    /**
                      * Get attribute location for specific program
                      * @param program shader program identifier
                      * @param attribute attribute identifier
