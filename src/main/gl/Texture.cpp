@@ -32,8 +32,6 @@ namespace lsp
     {
         namespace gl
         {
-            constexpr GLuint INVALID_PROCESSOR_ID   = ~GLuint(0);
-
             Texture::Texture(gl::IContext *ctx)
             {
                 pContext            = safe_acquire(ctx);
@@ -41,7 +39,9 @@ namespace lsp
                 nTextureId          = 0;
                 nFrameBufferId      = 0;
                 nStencilBufferId    = 0;
-                nProcessorId        = INVALID_PROCESSOR_ID;
+                for (size_t i=0; i<MAX_PROCESSOR_IDS; ++i)
+                    vProcessorIds[i]    = 0;
+                nProcessorIds       = 0;
                 nWidth              = 0;
                 nHeight             = 0;
                 enFormat            = gl::TEXTURE_UNKNOWN;
@@ -131,7 +131,7 @@ namespace lsp
 
                 vtbl->glBindTexture(GL_TEXTURE_2D, texture_id);
                 vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, buf);
-                vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                vtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
 
                 if (num_of_pixels != width)
                     vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -166,7 +166,7 @@ namespace lsp
 
                 vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
                 vtbl->glTexImage2D(GL_TEXTURE_2D, 0, int_format, width, height, 0, tex_format, GL_UNSIGNED_BYTE, NULL);
-                vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                vtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
 
                 // Update texture settings
                 nWidth      = uint32_t(width);
@@ -191,19 +191,70 @@ namespace lsp
                 vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, stride / pixel_size);
                 lsp_finally { vtbl->glPixelStorei(GL_UNPACK_ROW_LENGTH, 0); };
 
-                vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
-                vtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, tex_format, GL_UNSIGNED_BYTE, buf);
-                vtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                if (vtbl->glTextureSubImage2D)
+                    vtbl->glTextureSubImage2D(nTextureId, 0, x, y, width, height, tex_format, GL_UNSIGNED_BYTE, buf);
+                else
+                {
+                    vtbl->glBindTexture(GL_TEXTURE_2D, nTextureId);
+                    vtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, tex_format, GL_UNSIGNED_BYTE, buf);
+                    vtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
+                }
 
                 nSamples    = 0;
 
                 return STATUS_OK;
             }
 
+            bool Texture::bind_processor(GLuint processor_id)
+            {
+                if (nProcessorIds >= MAX_PROCESSOR_IDS)
+                    return false;
+
+                // Check that we do not contain specified processor
+                for (size_t i=0; i<nProcessorIds; ++i)
+                    if (vProcessorIds[i] == processor_id)
+                        return false;
+
+                vProcessorIds[nProcessorIds++] = processor_id;
+                return true;
+            }
+
+            bool Texture::unbind_processor(GLuint processor_id)
+            {
+                if (nProcessorIds <= 0)
+                    return false;
+
+                GLuint *dst = vProcessorIds;
+                GLuint *end = &vProcessorIds[nProcessorIds];
+
+                // Find matching processor
+                for ( ; dst < end; ++dst)
+                    if (*dst == processor_id)
+                        break;
+
+                if (dst == end)
+                    return false;
+
+                // Move data
+                for ( ++dst; dst < end; ++dst)
+                    dst[-1]     = dst[0];
+                dst[-1]     = 0;
+
+                --nProcessorIds;
+
+                return true;
+            }
+
             void Texture::bind(GLuint processor_id)
             {
                 if (pContext == NULL)
                     return;
+
+                if (!bind_processor(processor_id))
+                {
+                    lsp_warn("Error binding texture %p to processor %d", this, int(processor_id));
+                    return;
+                }
 
                 const vtbl_t *vtbl = pContext->vtbl();
 
@@ -215,22 +266,24 @@ namespace lsp
                 vtbl->glTexParameteri(tex_kind, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
                 vtbl->glTexParameteri(tex_kind, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 vtbl->glTexParameteri(tex_kind, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-                nProcessorId        = processor_id;
             }
 
-            void Texture::unbind()
+            void Texture::unbind(GLuint processor_id)
             {
-                if ((pContext == NULL) || (nProcessorId == INVALID_PROCESSOR_ID))
+                if (pContext == NULL)
                     return;
+
+                if (!unbind_processor(processor_id))
+                {
+                    lsp_warn("Error unbinding texture %p to processor %d", this, int(processor_id));
+                    return;
+                }
 
                 const vtbl_t *vtbl = pContext->vtbl();
 
                 const GLenum tex_kind = (nSamples > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-                vtbl->glActiveTexture(nProcessorId);
-                vtbl->glBindTexture(tex_kind, 0);
-
-                nProcessorId        = 0;
+                vtbl->glActiveTexture(processor_id);
+                vtbl->glBindTexture(tex_kind, GL_NONE);
             }
 
             void Texture::deallocate_buffers()
@@ -304,7 +357,7 @@ namespace lsp
                 vtbl->glBindFramebuffer(GL_FRAMEBUFFER, fb_id);
                 lsp_finally {
                     if (failed)
-                        vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                        vtbl->glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
                 };
 
                 // Ensure that stencil buffer is set and has proper parameters
@@ -322,7 +375,7 @@ namespace lsp
                         vtbl->glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, GL_STENCIL_INDEX8, width, height);
                     else
                         vtbl->glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, width, height);
-                    vtbl->glBindRenderbuffer(GL_RENDERBUFFER, 0);
+                    vtbl->glBindRenderbuffer(GL_RENDERBUFFER, GL_NONE);
 
                     // Setup clear flag
                     clear           = true;
@@ -371,7 +424,7 @@ namespace lsp
                 }
                 lsp_finally {
                     if (failed)
-                        vtbl->glBindTexture(tex_kind, 0);
+                        vtbl->glBindTexture(tex_kind, GL_NONE);
                 };
 
                 // Attach texture to framebuffer
@@ -430,7 +483,7 @@ namespace lsp
 
                     // Unbind texture
                     vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, 0, 0);
-                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                    vtbl->glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
                 }
             }
 

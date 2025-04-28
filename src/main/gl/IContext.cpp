@@ -406,25 +406,31 @@ namespace lsp
                         return STATUS_NO_MEM;
                 }
 
-                // Initialize and bind texture
+                // Activate texture unit
                 pVtbl->glActiveTexture(GL_TEXTURE0);
-                pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
 
                 // Load full texture if size has changed or partial texture if size didn't change
                 if (nCommandsSize != size)
                 {
+                    pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
                     pVtbl->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, size, size, 0, GL_RGBA, GL_FLOAT, buf);
+                    pVtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
                     nCommandsSize   = size;
                 }
                 else
                 {
                     const size_t stride = size * 4;
                     const size_t rows = (length + stride - 1) / stride;
-                    pVtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, rows, GL_RGBA, GL_FLOAT, buf);
-                }
 
-                // Unbind texture
-                pVtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                    if (pVtbl->glTextureSubImage2D)
+                        pVtbl->glTextureSubImage2D(nCommandsId, 0, 0, 0, size, rows, GL_RGBA, GL_FLOAT, buf);
+                    else
+                    {
+                        pVtbl->glBindTexture(GL_TEXTURE_2D, nCommandsId);
+                        pVtbl->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, rows, GL_RGBA, GL_FLOAT, buf);
+                        pVtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
+                    }
+                }
 
                 return STATUS_OK;
             }
@@ -454,7 +460,7 @@ namespace lsp
 
                 // Initialize and bind texture
                 pVtbl->glActiveTexture(nCommandsProcessor);
-                pVtbl->glBindTexture(GL_TEXTURE_2D, 0);
+                pVtbl->glBindTexture(GL_TEXTURE_2D, GL_NONE);
                 nCommandsProcessor          = GL_NONE;
             }
 
@@ -512,9 +518,9 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void IContext::unbind_empty_texture(GLuint processor_id, size_t samples)
+            void IContext::unbind_empty_texture(GLuint processor_id, bool multisample)
             {
-                const GLuint tex_kind = (samples > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+                const GLuint tex_kind = (multisample) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
                 pVtbl->glBindTexture(tex_kind, GL_NONE);
             }
 

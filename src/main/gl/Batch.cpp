@@ -320,19 +320,22 @@ namespace lsp
                     {
                         vtbl->glUniform1i(u_texture, 1);
 
-                        mask_texture = draw->header.pTexture;
-                        if ((mask_texture != NULL) && (mask_texture->valid()))
+                        mask_texture    = draw->header.pTexture;
+                        if ((mask_texture != NULL) && (mask_texture->valid()) && (mask_texture->multisampling() <= 0))
                             mask_texture->bind(GL_TEXTURE1);
                         else
+                        {
+                            mask_texture    = NULL;
                             ctx->bind_empty_texture(GL_TEXTURE1, 0);
+                        }
                     }
                     lsp_finally {
                         if (u_texture >= 0)
                         {
-                            if ((mask_texture != NULL) && (mask_texture->valid()))
-                                mask_texture->unbind();
+                            if (mask_texture != NULL)
+                                mask_texture->unbind(GL_TEXTURE1);
                             else
-                                ctx->unbind_empty_texture(GL_TEXTURE1, 0);
+                                ctx->unbind_empty_texture(GL_TEXTURE1, false);
                         }
                     };
 
@@ -343,19 +346,22 @@ namespace lsp
                     {
                         vtbl->glUniform1i(u_ms_texture, 2);
 
-                        ms_mask_texture = draw->header.pTexture;
-                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
+                        ms_mask_texture     = draw->header.pTexture;
+                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()) && (ms_mask_texture->multisampling() > 0))
                             ms_mask_texture->bind(GL_TEXTURE2);
                         else
+                        {
+                            ms_mask_texture     = NULL;
                             ctx->bind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                        }
                     }
                     lsp_finally {
                         if (u_ms_texture >= 0)
                         {
-                            if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
-                                ms_mask_texture->unbind();
+                            if (ms_mask_texture != NULL)
+                                ms_mask_texture->unbind(GL_TEXTURE2);
                             else
-                                ctx->unbind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                                ctx->unbind_empty_texture(GL_TEXTURE2, true);
                         }
                     };
 

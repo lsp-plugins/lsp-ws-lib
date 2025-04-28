@@ -216,9 +216,9 @@ namespace lsp
                     /**
                      * Unbind empty texture
                      * @param processor_id texture processor identifier
-                     * @param samples number of samples (multisampling_factor)
+                     * @param multisample multisampling flag
                      */
-                    void unbind_empty_texture(GLuint processor_id, size_t samples);
+                    void unbind_empty_texture(GLuint processor_id, bool multisample);
 
                 public:
                     /**
