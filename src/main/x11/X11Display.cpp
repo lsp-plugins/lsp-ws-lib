@@ -1789,7 +1789,7 @@ namespace lsp
                 if (ev->type > LASTEvent)
                     return;
 
-//                #if 0
+                #if 0
 //                lsp_trace("Received event: %d (%s), serial = %ld, window = %x",
 //                    int(ev->type), event_name(ev->type), long(ev->xany.serial), int(ev->xany.window));
 
@@ -1803,7 +1803,7 @@ namespace lsp
                     ::XFree(name);
                     #endif
                 }
-//                #endif
+                #endif
 
                 // Special case for buffers
                 if (handle_clipboard_event(ev))
