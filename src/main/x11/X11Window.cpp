@@ -179,6 +179,7 @@ namespace lsp
                 nActions                = WA_SINGLE;
                 nFlags                  = 0;
                 enPointer               = MP_DEFAULT;
+                enState                 = WS_NORMAL;
 
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
@@ -700,6 +701,16 @@ namespace lsp
                         break;
                     }
 
+                    case UIE_STATE:
+                    {
+                        if (ev->nCode == enState)
+                            return STATUS_OK;
+
+                        enState             = static_cast<window_state_t>(ev->nCode);
+                        lsp_trace("Window state changed to: %d", int(ev->nCode));
+                        break;
+                    }
+
                     case UIE_CLOSE:
                     {
 //                        lsp_trace("close request on window");
@@ -762,6 +773,11 @@ namespace lsp
                 if (hWindow == None)
                     return STATUS_OK;
 
+                // Set window state
+                status_t res = set_window_state(enState);
+                if (res != STATUS_OK)
+                    return res;
+
                 // Send changes to X11
                 const x11_atoms_t &a = pX11Display->atoms();
 
@@ -816,41 +832,6 @@ namespace lsp
                     reinterpret_cast<unsigned char *>(&atoms[0]),
                     n_items
                 );
-
-                // Set window state
-                n_items = 0;
-                switch (style)
-                {
-                    case BS_DIALOG:         // Not resizable; no minimize/maximize menu
-                        atoms[n_items++] = a.X11__NET_WM_STATE_MODAL;
-                        if (hTransientFor != None)
-                            atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
-                        break;
-                    case BS_NONE:           // Not resizable; no visible border line
-                    case BS_POPUP:
-                    case BS_COMBO:
-                    case BS_DROPDOWN:
-                        atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
-                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
-                        break;
-
-                    case BS_SINGLE:         // Not resizable; minimize/maximize menu
-                    case BS_SIZEABLE:       // Standard resizable border
-                        break;
-                }
-
-//                lsp_trace("Setting _NET_WM_STATE...");
-                XChangeProperty(
-                    pX11Display->x11display(),
-                    hWindow,
-                    a.X11__NET_WM_STATE,
-                    a.X11_XA_ATOM,
-                    32,
-                    PropModeReplace,
-                    reinterpret_cast<unsigned char *>(&atoms[0]),
-                    n_items
-                );
-
 
                 // Set MOTIF hints
 //                lsp_trace("Setting _MOTIF_WM_HINTS...");
@@ -1748,6 +1729,169 @@ namespace lsp
                     parent_wnd,
                     sSize.nLeft,
                     sSize.nTop);
+
+                return STATUS_OK;
+            }
+
+            status_t X11Window::get_window_state(window_state_t *state)
+            {
+                *state = enState;
+                return STATUS_OK;
+            }
+
+            template <class T>
+            inline bool find_atom(Atom lookup, const T *list, size_t count)
+            {
+                for (size_t i=0; i<count; ++i)
+                    if (list[i] == lookup)
+                        return true;
+                return false;
+            }
+
+            status_t X11Window::set_window_state(window_state_t state)
+            {
+                // Update state
+                enState     = state;
+                if (hWindow == None)
+                    return STATUS_OK;
+
+                // Set window state
+                Atom atoms[32];
+                size_t n_items = 0;
+                const x11_atoms_t &a = pX11Display->atoms();
+
+                switch (enBorderStyle)
+                {
+                    case BS_DIALOG:         // Not resizable; no minimize/maximize menu
+                        atoms[n_items++] = a.X11__NET_WM_STATE_MODAL;
+                        if (hTransientFor != None)
+                            atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
+                        break;
+                    case BS_NONE:           // Not resizable; no visible border line
+                    case BS_POPUP:
+                    case BS_COMBO:
+                    case BS_DROPDOWN:
+                        atoms[n_items++] = a.X11__NET_WM_STATE_ABOVE;
+                        atoms[n_items++] = a.X11__NET_WM_STATE_SKIP_TASKBAR;
+                        break;
+
+                    case BS_SINGLE:         // Not resizable; minimize/maximize menu
+                    case BS_SIZEABLE:       // Standard resizable border
+                        break;
+                }
+
+                if (enState == WS_MAXIMIZED)
+                {
+                    atoms[n_items++]    = a.X11__NET_WM_STATE_MAXIMIZED_HORZ;
+                    atoms[n_items++]    = a.X11__NET_WM_STATE_MAXIMIZED_VERT;
+                }
+                else if (enState == WS_MINIMIZED)
+                    atoms[n_items++]    = a.X11__NET_WM_STATE_HIDDEN;
+
+                // Read old window state before changing it
+                uint8_t *data   = NULL;
+                Atom xtype      = 0;
+                size_t size     = 0;
+
+                pX11Display->read_property(hWindow, a.X11__NET_WM_STATE, a.X11_XA_ATOM, &data, &size, &xtype);
+                lsp_finally {
+                    if (data != NULL)
+                        free(data);
+                };
+
+                // Set new window state
+//                lsp_trace("Setting _NET_WM_STATE...");
+                XChangeProperty(
+                    pX11Display->x11display(),
+                    hWindow,
+                    a.X11__NET_WM_STATE,
+                    a.X11_XA_ATOM,
+                    32,
+                    PropModeReplace,
+                    reinterpret_cast<unsigned char *>(&atoms[0]),
+                    n_items
+                );
+
+                Display *dpy        = pX11Display->x11display();
+                Window root         = pX11Display->hRootWnd;
+
+                XEvent xe;
+                XClientMessageEvent *xev = &xe.xclient;
+                xev->type           = ClientMessage;
+                xev->serial         = 0;
+                xev->send_event     = True;
+                xev->display        = dpy;
+                xev->window         = hWindow;
+                xev->message_type   = a.X11__NET_WM_STATE;
+                xev->format         = 32;
+                xev->data.l[0]      = 0;        // _NET_WM_STATE_REMOVE
+                xev->data.l[1]      = 0;
+                xev->data.l[2]      = 0;
+                xev->data.l[3]      = 1;        // Source indicator: Normal application
+                xev->data.l[4]      = 0;
+
+                const uint32_t *old_atoms   = reinterpret_cast<const uint32_t *>(data); // read_property compresses long -> uint32_t
+                const size_t old_n_items    = size / sizeof(uint32_t);
+
+                // Remove old properties
+                bool full_removed   = false;
+                for (size_t i=0; i<old_n_items; ++i)
+                {
+                    const Atom atom     = old_atoms[i];
+                    if (!find_atom(atom, atoms, n_items))
+                    {
+                        if ((atom == a.X11__NET_WM_STATE_MAXIMIZED_HORZ) ||
+                            (atom == a.X11__NET_WM_STATE_MAXIMIZED_VERT))
+                        {
+                            if (!full_removed)
+                            {
+                                xev->data.l[1]  = a.X11__NET_WM_STATE_MAXIMIZED_HORZ;
+                                xev->data.l[2]  = a.X11__NET_WM_STATE_MAXIMIZED_VERT;
+                                full_removed    = true;
+
+                                ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                            }
+                        }
+                        else
+                        {
+                            xev->data.l[1]  = atom;
+                            xev->data.l[2]  = 0;
+
+                            ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                        }
+                    }
+                }
+
+                // Add new properties
+                xev->data.l[0]      = 1;        // _NET_WM_STATE_ADD
+                bool full_added     = false;
+
+                for (size_t i=0; i<n_items; ++i)
+                {
+                    const Atom atom     = atoms[i];
+                    if (!find_atom(atom, old_atoms, old_n_items))
+                    {
+                        if ((atom == a.X11__NET_WM_STATE_MAXIMIZED_HORZ) ||
+                            (atom == a.X11__NET_WM_STATE_MAXIMIZED_VERT))
+                        {
+                            if (!full_added)
+                            {
+                                xev->data.l[1]  = a.X11__NET_WM_STATE_MAXIMIZED_HORZ;
+                                xev->data.l[2]  = a.X11__NET_WM_STATE_MAXIMIZED_VERT;
+                                full_added      = true;
+
+                                ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                            }
+                        }
+                        else
+                        {
+                            xev->data.l[1]  = atom;
+                            xev->data.l[2]  = 0;
+
+                            ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                        }
+                    }
+                }
 
                 return STATUS_OK;
             }

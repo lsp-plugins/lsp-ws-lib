@@ -72,6 +72,7 @@ namespace lsp
                     size_t              nScreen;
                     size_t              nFlags;
                     mouse_pointer_t     enPointer;
+                    window_state_t      enState;
                     bool                bWrapper;
                     bool                bVisible;
 
@@ -170,8 +171,11 @@ namespace lsp
                     virtual void       *parent() const override;
                     virtual status_t    set_parent(void *parent) override;
 
+                    virtual status_t    get_window_state(window_state_t *state) override;
+                    virtual status_t    set_window_state(window_state_t state) override;
+
                 public:
-                    virtual status_t handle_event(const event_t *ev) override;
+                    virtual status_t    handle_event(const event_t *ev) override;
             };
         } /* namespace x11 */
     } /* namespace ws */

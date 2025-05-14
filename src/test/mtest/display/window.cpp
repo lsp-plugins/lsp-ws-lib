@@ -87,6 +87,12 @@ MTEST_BEGIN("ws.display", window)
                         break;
                     }
 
+                    case ws::UIE_STATE:
+                    {
+                        pTest->printf("Current window state is: %d\n", int(ev->nCode));
+                        break;
+                    }
+
                     default:
                         return IEventHandler::handle_event(ev);
                 }
@@ -140,7 +146,7 @@ MTEST_BEGIN("ws.display", window)
         MTEST_ASSERT(wnd->get_caption(&dst) == STATUS_OK);
         MTEST_ASSERT(dst.equals_ascii("Test window"));
         MTEST_ASSERT(wnd->set_border_style(ws::BS_DIALOG) == STATUS_OK);
-        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_RESIZE | ws::WA_CLOSE | ws::WA_MAXIMIZE | ws::WA_MINIMIZE) == STATUS_OK);
 
         MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(160, 100, 640, 400) == STATUS_OK);

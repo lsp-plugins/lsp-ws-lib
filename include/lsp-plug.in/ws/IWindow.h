@@ -438,6 +438,19 @@ namespace lsp
                  * @return status of operation
                  */
                 virtual status_t set_parent(void *parent);
+
+                /**
+                 * Get window state
+                 * @param state pointer to store window state
+                 * @return status of operation
+                 */
+                virtual status_t get_window_state(window_state_t *state);
+
+                /**
+                 * Set window state
+                 * @param state window state
+                 */
+                virtual status_t set_window_state(window_state_t state);
         };
     } /* namespace ws */
 } /* namespace lsp */
