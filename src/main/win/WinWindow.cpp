@@ -93,6 +93,7 @@ namespace lsp
 
                 enPointer               = MP_DEFAULT;
                 enBorderStyle           = BS_SIZEABLE;
+                enState                 = WS_NORMAL;
                 nActions                = WA_ALL;
 
                 sMousePos.x             = 0;
@@ -654,6 +655,33 @@ namespace lsp
                         break;
                     }
 
+                    case WM_SYSCOMMAND:
+                    {
+                        // Check state
+                        switch (wParam & 0xfff0)
+                        {
+                            case SC_MAXIMIZE:
+                                ue.nType        = UIE_STATE;
+                                ue.nCode        = WS_MAXIMIZED;
+                                break;
+                            case SC_MINIMIZE:
+                                ue.nType        = UIE_STATE;
+                                ue.nCode        = WS_MINIMIZED;
+                                break;
+                            case SC_RESTORE:
+                                ue.nType        = UIE_STATE;
+                                ue.nCode        = WS_NORMAL;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if (ue.nType != UIE_UNKNOWN)
+                            handle_event(&ue);
+
+                        break;
+                    }
+
 //                    case WM_CHAR:
 //                        lsp_trace("WM_CHAR code=0x%x", wParam);
 //                        return 0;
@@ -734,6 +762,16 @@ namespace lsp
                             this->destroy();
                             delete this;
                         }
+                        break;
+                    }
+
+                    case UIE_STATE:
+                    {
+                        if (enState == ev->nCode)
+                            return STATUS_OK;
+
+                        lsp_trace("Window state changed to %d", int(ev->nCode));
+                        enState = static_cast<window_state_t>(ev->nCode);
                         break;
                     }
 
@@ -921,6 +959,8 @@ namespace lsp
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
+                commit_border_style(enBorderStyle, nActions);
+
                 hTransientFor       = NULL;
                 if (!has_parent())
                 {
@@ -934,7 +974,7 @@ namespace lsp
                         SWP_NOSIZE | SWP_NOMOVE // uFlags
                     );
                 }
-                ShowWindow(hWindow, SW_SHOW);
+                ShowWindow(hWindow, encode_window_state(enState));
                 return STATUS_OK;
             }
 
@@ -970,7 +1010,7 @@ namespace lsp
 //                    );
                 }
 
-                ShowWindow(hWindow, SW_SHOW);
+                ShowWindow(hWindow, encode_window_state(enState));
 
                 return STATUS_OK;
             }
@@ -1235,7 +1275,10 @@ namespace lsp
             status_t WinWindow::set_window_actions(size_t actions)
             {
                 if (hWindow == NULL)
-                    return STATUS_BAD_STATE;
+                {
+                    nActions = actions;
+                    return STATUS_OK;
+                }
 
                 return (nActions != actions) ? commit_border_style(enBorderStyle, actions) : STATUS_OK;
             }
@@ -1769,6 +1812,34 @@ namespace lsp
 
                 return false;
             }
+
+            DWORD WinWindow::encode_window_state(window_state_t state)
+            {
+                switch (state)
+                {
+                    case WS_MAXIMIZED: return SW_SHOWMAXIMIZED;
+                    case WS_MINIMIZED: return SW_SHOWMINIMIZED;
+                    default: break;
+                }
+                return SW_SHOWNORMAL;
+            }
+
+            status_t WinWindow::get_window_state(window_state_t *state)
+            {
+                *state      = enState;
+                return STATUS_OK;
+            }
+
+            status_t WinWindow::set_window_state(window_state_t state)
+            {
+                enState     = state;
+                if (!is_visible())
+                    return STATUS_OK;
+
+                ShowWindow(hWindow, encode_window_state(enState));
+                return STATUS_OK;
+            }
+
         } /* namespace win */
     } /* namespace ws */
 } /* namespace lsp */

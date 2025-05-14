@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -91,6 +91,7 @@ namespace lsp
                     size_limit_t        sConstraints;   // Window constraints
                     mouse_pointer_t     enPointer;      // Mouse pointer
                     border_style_t      enBorderStyle;  // Border style of the window
+                    window_state_t      enState;        // Window state
                     size_t              nActions;       // Allowed window actions
                     POINT               sMousePos;      // Last mouse position for tracking MOUSE_OUT event
                     CURSORINFO          sSavedCursor;   // The saved cursor before the mouse has entered the window
@@ -110,6 +111,7 @@ namespace lsp
                     void                place_above(HWND wnd);
                     bool                placement_window(HWND *result, HWND wnd);
                     static HWND         wrapping_window(HWND wnd);
+                    static DWORD        encode_window_state(window_state_t state);
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
@@ -174,6 +176,9 @@ namespace lsp
 
                     virtual void       *parent() const override;
                     virtual status_t    set_parent(void *parent) override;
+
+                    virtual status_t    get_window_state(window_state_t *state) override;
+                    virtual status_t    set_window_state(window_state_t state) override;
 
                 public:
                     virtual status_t    handle_event(const event_t *ev) override;
