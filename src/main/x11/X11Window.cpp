@@ -1849,7 +1849,7 @@ namespace lsp
                                 xev->data.l[2]  = a.X11__NET_WM_STATE_MAXIMIZED_VERT;
                                 full_removed    = true;
 
-                                ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                                ::XSendEvent(dpy, root, False, SubstructureNotifyMask, &xe);
                             }
                         }
                         else
@@ -1857,7 +1857,7 @@ namespace lsp
                             xev->data.l[1]  = atom;
                             xev->data.l[2]  = 0;
 
-                            ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                            ::XSendEvent(dpy, root, False, SubstructureNotifyMask, &xe);
                         }
                     }
                 }
@@ -1880,7 +1880,7 @@ namespace lsp
                                 xev->data.l[2]  = a.X11__NET_WM_STATE_MAXIMIZED_VERT;
                                 full_added      = true;
 
-                                ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                                ::XSendEvent(dpy, root, False, SubstructureNotifyMask, &xe);
                             }
                         }
                         else
@@ -1888,10 +1888,26 @@ namespace lsp
                             xev->data.l[1]  = atom;
                             xev->data.l[2]  = 0;
 
-                            ::XSendEvent(dpy, root, False, NoEventMask, &xe);
+                            ::XSendEvent(dpy, root, False, SubstructureNotifyMask, &xe);
                         }
                     }
                 }
+
+                // Iconify window if state is minimized
+                if (enState == WS_MINIMIZED)
+                {
+                    xev->message_type   = a.X11_WM_CHANGE_STATE;
+                    xev->format         = 32;
+                    xev->data.l[0]      = IconicState;
+                    xev->data.l[1]      = 0;
+                    xev->data.l[2]      = 0;
+                    xev->data.l[3]      = 0;
+                    xev->data.l[4]      = 0;
+
+                    ::XSendEvent(dpy, root, False, SubstructureRedirectMask | SubstructureNotifyMask, &xe);
+                }
+
+                pX11Display->flush();
 
                 return STATUS_OK;
             }
