@@ -1205,21 +1205,23 @@ namespace lsp
                 }
 
                 // Bring window to top
+                if (enState != WS_MINIMIZED)
+                {
+                    XEvent ev;
+                    ev.xclient.type = ClientMessage;
+                    ev.xclient.serial = 0;
+                    ev.xclient.send_event = True;
+                    ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
+                    ev.xclient.window = hWindow;
+                    ev.xclient.format = 32;
 
-                XEvent ev;
-                ev.xclient.type = ClientMessage;
-                ev.xclient.serial = 0;
-                ev.xclient.send_event = True;
-                ev.xclient.message_type = pX11Display->atoms().X11__NET_ACTIVE_WINDOW;
-                ev.xclient.window = hWindow;
-                ev.xclient.format = 32;
-
-                XSendEvent(
-                    dpy,
-                    pX11Display->x11root(),
-                    False,
-                    SubstructureRedirectMask | SubstructureNotifyMask,
-                    &ev);
+                    XSendEvent(
+                        dpy,
+                        pX11Display->x11root(),
+                        False,
+                        SubstructureRedirectMask | SubstructureNotifyMask,
+                        &ev);
+                }
 
                 return STATUS_OK;
             }
