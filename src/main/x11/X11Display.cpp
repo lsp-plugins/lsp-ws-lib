@@ -19,8 +19,6 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <execinfo.h>
-
 #include <lsp-plug.in/common/types.h>
 
 #ifdef USE_LIBX11
@@ -739,19 +737,6 @@ namespace lsp
 
             status_t X11Display::read_property(Window wnd, Atom property, Atom ptype, uint8_t **data, size_t *size, Atom *type)
             {
-                #ifdef LSP_TRACE
-                {
-                    char *name = ::XGetAtomName(pDisplay, property);
-                    lsp_finally { ::XFree(name); };
-                    lsp_trace("Window=0x%lx, property=%d (%s), ", (long)wnd, int(property), name);
-
-                    void *array[100];
-                    size_t size;
-                    size = backtrace(array, 100);
-                    backtrace_symbols_fd(array, size, STDERR_FILENO);
-                }
-                #endif
-
                 int p_fmt = 0;
                 unsigned long p_nitems = 0, p_size = 0, p_offset = 0;
                 unsigned char *p_data = NULL;
