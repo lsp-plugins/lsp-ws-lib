@@ -432,6 +432,8 @@ namespace lsp
 
             void X11Window::destroy()
             {
+                lsp_trace("hWindow=0x%lx", hWindow);
+
                 // Drop surface
                 hide();
                 drop_surface();
@@ -1755,6 +1757,8 @@ namespace lsp
                 if (hWindow == None)
                     return STATUS_OK;
 
+                lsp_trace("hWindow = 0x%lx, state = %d", hWindow, state);
+
                 // Set window state
                 Atom atoms[32];
                 size_t n_items = 0;
@@ -1793,6 +1797,7 @@ namespace lsp
                 Atom xtype      = 0;
                 size_t size     = 0;
 
+                lsp_trace("hWindow = 0x%lx, state = %d", hWindow, state);
                 pX11Display->read_property(hWindow, a.X11__NET_WM_STATE, a.X11_XA_ATOM, &data, &size, &xtype);
                 lsp_finally {
                     if (data != NULL)

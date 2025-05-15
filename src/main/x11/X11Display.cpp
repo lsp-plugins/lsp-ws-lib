@@ -19,6 +19,8 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <execinfo.h>
+
 #include <lsp-plug.in/common/types.h>
 
 #ifdef USE_LIBX11
@@ -737,6 +739,19 @@ namespace lsp
 
             status_t X11Display::read_property(Window wnd, Atom property, Atom ptype, uint8_t **data, size_t *size, Atom *type)
             {
+                #ifdef LSP_TRACE
+                {
+                    char *name = ::XGetAtomName(pDisplay, property);
+                    lsp_finally { ::XFree(name); };
+                    lsp_trace("Window=0x%lx, property=%d (%s), ", (long)wnd, int(property), name);
+
+                    void *array[100];
+                    size_t size;
+                    size = backtrace(array, 100);
+                    backtrace_symbols_fd(array, size, STDERR_FILENO);
+                }
+                #endif
+
                 int p_fmt = 0;
                 unsigned long p_nitems = 0, p_size = 0, p_offset = 0;
                 unsigned char *p_data = NULL;
@@ -1727,11 +1742,17 @@ namespace lsp
 
                         if (pe->atom == sAtoms.X11__NET_WM_STATE)
                         {
-                            window_state_t state = WS_NORMAL;
-                            read_window_state(&state, pe->window);
+                            // Ensure that we're still handling events for the window
+                            if (find_window(pe->window) != NULL)
+                            {
+                                lsp_trace("PropertyNotify hWindow = 0x%lx", pe->window);
 
-                            ue->nType       = UIE_STATE;
-                            ue->nCode       = state;
+                                window_state_t state = WS_NORMAL;
+                                read_window_state(&state, pe->window);
+
+                                ue->nType       = UIE_STATE;
+                                ue->nCode       = state;
+                            }
                         }
                         break;
                     }
@@ -1817,38 +1838,14 @@ namespace lsp
                     return;
                 }
 
-                // Find the target window
-                X11Window *target = NULL;
-                for (size_t i=0, nwnd=vWindows.size(); i<nwnd; ++i)
-                {
-                    X11Window *wnd = vWindows[i];
-                    if (wnd == NULL)
-                        continue;
-                    if (wnd->x11handle() == ev->xany.window)
-                    {
-                        target      = wnd;
-                        break;
-                    }
-//                    else if ((ev->type == ConfigureNotify) &&
-//                            (wnd->x11parent() != None) &&
-//                            (wnd->x11parent() == ev->xany.window))
-//                    {
-//                        lsp_trace("resize window: handle=%lx, width=%d, height=%d",
-//                                long(wnd->x11handle()),
-//                                int(ev->xconfigure.width),
-//                                int(ev->xconfigure.height));
-//                        ::XResizeWindow(pDisplay, wnd->x11handle(), ev->xconfigure.width, ev->xconfigure.height);
-//                        ::XFlush(pDisplay);
-//                        return;
-//                    }
-                }
-
                 // Analyze event type
                 event_t ue;
                 decode_event(&ue, ev);
                 if (ue.nType == UIE_UNKNOWN)
                     return;
 
+                // Find the target window
+                X11Window *target   = find_window(ev->xany.window);
                 Window child        = None;
                 event_t se          = ue;
 
