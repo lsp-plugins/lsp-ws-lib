@@ -131,6 +131,15 @@ namespace lsp
             fill_rect(g, radius, mask, r->nLeft, r->nTop, r->nWidth, r->nHeight);
         }
 
+        void ISurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+        {
+        }
+
+        void ISurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+        {
+            fill_rect(s, alpha, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+        }
+
         void ISurface::fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2)
         {
         }
@@ -337,6 +346,17 @@ namespace lsp
         bool ISurface::set_antialiasing(bool set)
         {
             return false;
+        }
+
+        ws::point_t ISurface::set_origin(const ws::point_t & origin)
+        {
+            return set_origin(origin.nLeft, origin.nTop);
+        }
+
+        ws::point_t ISurface::set_origin(ssize_t left, ssize_t top)
+        {
+            const ws::point_t result = { 0, 0};
+            return result;
         }
 
     } /* namespace ws */

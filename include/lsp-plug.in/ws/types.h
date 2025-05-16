@@ -200,12 +200,13 @@ namespace lsp
             UIE_REDRAW,
             UIE_RENDER,
             UIE_SIZE_REQUEST,
-            UIE_RESIZE,
-            UIE_SHOW,
-            UIE_HIDE,
-            UIE_CLOSE,
-            UIE_FOCUS_IN,
-            UIE_FOCUS_OUT,
+            UIE_RESIZE,                     // Window has been resized
+            UIE_SHOW,                       // Window becomes visible
+            UIE_HIDE,                       // Window becomes hidden
+            UIE_STATE,                      // Window state changed (see window_state_t)
+            UIE_CLOSE,                      // Window has been closed
+            UIE_FOCUS_IN,                   // Window has been focused in
+            UIE_FOCUS_OUT,                  // Window has been focused out
             // Drag&Drop events
             UIE_DRAG_ENTER,
             UIE_DRAG_LEAVE,
@@ -228,26 +229,39 @@ namespace lsp
             BS_DROPDOWN             // Dropdown menu window
         };
 
+        /**
+         * Allowed window actions
+         */
         enum window_action_t
         {
-            WA_MOVE         = 1 << 0,
-            WA_RESIZE       = 1 << 1,
-            WA_MINIMIZE     = 1 << 2,
-            WA_MAXIMIZE     = 1 << 3,
-            WA_CLOSE        = 1 << 4,
-            WA_STICK        = 1 << 5,
-            WA_SHADE        = 1 << 6,
-            WA_FULLSCREEN   = 1 << 7,
-            WA_CHANGE_DESK  = 1 << 8,
+            WA_MOVE         = 1 << 0,                                                                                                           /**< WA_MOVE */
+            WA_RESIZE       = 1 << 1,                                                                                                           /**< WA_RESIZE */
+            WA_MINIMIZE     = 1 << 2,                                                                                                           /**< WA_MINIMIZE */
+            WA_MAXIMIZE     = 1 << 3,                                                                                                           /**< WA_MAXIMIZE */
+            WA_CLOSE        = 1 << 4,                                                                                                           /**< WA_CLOSE */
+            WA_STICK        = 1 << 5,                                                                                                           /**< WA_STICK */
+            WA_SHADE        = 1 << 6,                                                                                                           /**< WA_SHADE */
+            WA_FULLSCREEN   = 1 << 7,                                                                                                           /**< WA_FULLSCREEN */
+            WA_CHANGE_DESK  = 1 << 8,                                                                                                           /**< WA_CHANGE_DESK */
 
-            WA_ALL          = WA_MOVE | WA_RESIZE | WA_MINIMIZE | WA_MAXIMIZE | WA_CLOSE | WA_STICK | WA_SHADE | WA_FULLSCREEN | WA_CHANGE_DESK,
-            WA_NONE         = 0,
-            WA_SINGLE       = WA_MOVE | WA_STICK | WA_MINIMIZE | WA_SHADE | WA_CHANGE_DESK | WA_CLOSE,
-            WA_DIALOG       = WA_MOVE | WA_STICK | WA_SHADE,
-            WA_POPUP        = WA_NONE,
-            WA_COMBO        = WA_NONE,
-            WA_DROPDOWN     = WA_NONE,
-            WA_SIZABLE      = WA_ALL
+            WA_ALL          = WA_MOVE | WA_RESIZE | WA_MINIMIZE | WA_MAXIMIZE | WA_CLOSE | WA_STICK | WA_SHADE | WA_FULLSCREEN | WA_CHANGE_DESK,/**< WA_ALL */
+            WA_NONE         = 0,                                                                                                                /**< WA_NONE */
+            WA_SINGLE       = WA_MOVE | WA_STICK | WA_MINIMIZE | WA_SHADE | WA_CHANGE_DESK | WA_CLOSE,                                          /**< WA_SINGLE */
+            WA_DIALOG       = WA_MOVE | WA_STICK | WA_SHADE,                                                                                    /**< WA_DIALOG */
+            WA_POPUP        = WA_NONE,                                                                                                          /**< WA_POPUP */
+            WA_COMBO        = WA_NONE,                                                                                                          /**< WA_COMBO */
+            WA_DROPDOWN     = WA_NONE,                                                                                                          /**< WA_DROPDOWN */
+            WA_SIZABLE      = WA_ALL                                                                                                            /**< WA_SIZABLE */
+        };
+
+        /**
+         * Window state
+         */
+        enum window_state_t
+        {
+            WS_NORMAL,
+            WS_MINIMIZED,
+            WS_MAXIMIZED
         };
 
         /**
@@ -317,6 +331,12 @@ namespace lsp
             ssize_t             nWidth;
             ssize_t             nHeight;
         } rectangle_t;
+
+        typedef struct point_t
+        {
+            ssize_t             nLeft;
+            ssize_t             nTop;
+        } point_t;
 
         enum surface_type_t
         {

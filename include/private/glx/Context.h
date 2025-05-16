@@ -27,6 +27,7 @@
 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
 #include <lsp-plug.in/lltl/parray.h>
+#include <lsp-plug.in/runtime/LSPString.h>
 
 #include <private/gl/IContext.h>
 #include <private/glx/vtbl.h>
@@ -42,6 +43,15 @@ namespace lsp
              */
             class LSP_HIDDEN_MODIFIER Context: public gl::IContext
             {
+                public:
+                    enum features_t
+                    {
+                        NO_FEATURES             = 0,
+                        OPENGL_3_3_OR_ABOVE     = 1 << 0,
+                        LAYOUT_SUPPORT          = 1 << 1,
+                        TEXTURE_MULTISAMPLE     = 1 << 2,
+                    };
+
                 private:
                     enum pflags_t
                     {
@@ -68,25 +78,26 @@ namespace lsp
                     ::Display          *pDisplay;
                     ::GLXContext        hContext;
                     ::Window            hWindow;
+                    uint32_t            nFeatures;
                     uint32_t            nMultisample;
 
                     lltl::parray<program_t> vPrograms;
 
                 private:
-                    static const char  *vertex_shader(size_t program_id);
-                    static const char  *fragment_shader(size_t program_id);
-                    static bool         check_gl_error(const char *context);
+                    static const char  *vertex_shader(gl::program_t program);
+                    static const char  *fragment_shader(gl::program_t program);
 
                 private:
                     void                destroy(program_t *prg);
-                    void                clear_errors();
+                    bool                check_gl_error(const char *context);
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
+                    bool                make_shader(LSPString &dst, const char *text) const;
 
                 protected:
                     virtual void        cleanup() override;
 
                 public:
-                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl, uint32_t multisample);
+                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl, uint32_t features, uint32_t multisample);
                     virtual ~Context() override;
 
                 public:
@@ -94,6 +105,7 @@ namespace lsp
                     virtual status_t    activate() override;
                     virtual status_t    deactivate() override;
                     virtual status_t    program(size_t *id, gl::program_t program) override;
+                    virtual GLint       attribute_location(gl::program_t program, gl::attribute_t attribute) override;
                     virtual uint32_t    multisample() const override;
                     virtual void        swap_buffers(size_t width, size_t height) override;
                     virtual size_t      width() const override;

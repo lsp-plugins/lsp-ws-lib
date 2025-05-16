@@ -66,6 +66,8 @@ namespace lsp
                     size_t                      nVersion;       // The version, for valid surface should match the shared version
                     ID2D1RenderTarget          *pDC;            // Pointer to drawing context
                     ID2D1StrokeStyle           *pStrokeStyle;   // Line cap style
+                    float                       fOriginX;       // X origin
+                    float                       fOriginY;       // Y origin
                     bool                        bNested;        // Flag of the nested surface
 
                 #ifdef LSP_DEBUG
@@ -85,6 +87,7 @@ namespace lsp
                     inline bool bad_state() const;
                     void    do_destroy();
 
+                    ID2D1PathGeometry *make_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius);
                     void    draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush);
                     void    draw_triangle(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
                     void    draw_negative_arc(ID2D1Brush *brush, float x0, float y0, float x1, float y1, float x2, float y2);
@@ -124,6 +127,8 @@ namespace lsp
                     virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r) override;
 
                     virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2) override;
                     virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2) override;
@@ -174,6 +179,8 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
 
                 public:
                     void        invalidate();

@@ -145,13 +145,14 @@ namespace lsp
                         NULL,
                         TEXT_ATLAS_SIZE, TEXT_ATLAS_SIZE,
                         0, gl::TEXTURE_ALPHA8);
+                    if (res != STATUS_OK)
+                        return NULL;
                 }
 
                 res = pTexture->set_subimage(
                     data,
                     rect->nLeft, rect->nTop, rect->nWidth, rect->nHeight,
                     stride);
-
                 if (res != STATUS_OK)
                     return NULL;
 

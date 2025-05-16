@@ -102,6 +102,8 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = NULL;
                 pStrokeStyle        = NULL;
+                fOriginX            = 0.0f;
+                fOriginY            = 0.0f;
                 bNested             = false;
 
             #ifdef LSP_DEBUG
@@ -116,6 +118,8 @@ namespace lsp
                 nVersion            = pShared->nVersion;
                 pDC                 = dc;
                 pStrokeStyle        = NULL;
+                fOriginX            = 0.0f;
+                fOriginY            = 0.0f;
                 bNested             = true;
 
             #ifdef LSP_DEBUG
@@ -342,6 +346,76 @@ namespace lsp
                         D2D1::Point2F(cx0 - cx1, cy0 - cy1),
                         r, r
                     ));
+            }
+
+            ID2D1PathGeometry *WinDDSurface::make_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius)
+            {
+                // Create geometry object
+                ID2D1PathGeometry *g = NULL;
+                if (FAILED(pShared->pDisplay->d2d_factory()->CreatePathGeometry(&g)))
+                    return NULL;
+                lsp_finally{ safe_release(g); };
+
+                // Create sink
+                ID2D1GeometrySink *s = NULL;
+                if (FAILED(g->Open(&s)))
+                    return NULL;
+                lsp_finally{ safe_release(s); };
+                s->SetFillMode(D2D1_FILL_MODE_ALTERNATE);
+
+                // Generate geometry for the rounded rectangle
+                D2D1_ARC_SEGMENT arc = D2D1::ArcSegment(
+                    D2D1::Point2F(0.0f, 0.0f),
+                    D2D1::SizeF(radius, radius),
+                    0.0f,
+                    D2D1_SWEEP_DIRECTION_CLOCKWISE,
+                    D2D1_ARC_SIZE_SMALL);
+
+                D2D1_FIGURE_BEGIN mode = D2D1_FIGURE_BEGIN_FILLED;
+                if (mask & SURFMASK_LT_CORNER)
+                {
+                    s->BeginFigure(
+                        D2D1::Point2F(rect.left, rect.top + radius),
+                        mode);
+                    arc.point   = D2D1::Point2F(rect.left + radius, rect.top);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->BeginFigure(
+                        D2D1::Point2F(rect.left, rect.top),
+                        mode);
+
+                if (mask & SURFMASK_RT_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.right - radius, rect.top));
+                    arc.point   = D2D1::Point2F(rect.right, rect.top + radius);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.right, rect.top));
+
+                if (mask & SURFMASK_RB_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.right, rect.bottom - radius));
+                    arc.point   = D2D1::Point2F(rect.right - radius, rect.bottom);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.right, rect.bottom));
+
+                if (mask & SURFMASK_LB_CORNER)
+                {
+                    s->AddLine(D2D1::Point2F(rect.left + radius, rect.bottom));
+                    arc.point   = D2D1::Point2F(rect.left, rect.bottom - radius);
+                    s->AddArc(&arc);
+                }
+                else
+                    s->AddLine(D2D1::Point2F(rect.left, rect.bottom));
+
+                s->EndFigure(D2D1_FIGURE_END_CLOSED);
+                s->Close();
+
+                return release_ptr(g);
             }
 
             void WinDDSurface::draw_rounded_rectangle(const D2D_RECT_F &rect, size_t mask, float radius, float line_width, ID2D1Brush *brush)
@@ -590,6 +664,63 @@ namespace lsp
                 rect.bottom = r->nTop  + r->nHeight;
 
                 draw_rounded_rectangle(rect, mask, radius, -1.0f, brush);
+            }
+
+            void WinDDSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+            {
+                if (bad_state())
+                    return;
+                if (s->type() != ST_IMAGE)
+                    return;
+
+                // Get the source surface
+                WinDDSurface *ws            = static_cast<WinDDSurface *>(s);
+                if (ws->pDC == NULL)
+                    return;
+                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(ws->pDC);
+
+                // Get the bitmap of the surface
+                ID2D1Bitmap *bm             = NULL;
+                if (FAILED(dc->GetBitmap(&bm)))
+                    return;
+                lsp_finally{ safe_release(bm); };
+
+                // Create pattern
+                D2D_RECT_F rect;
+                rect.left       = left;
+                rect.top        = top;
+                rect.right      = left + width;
+                rect.bottom     = top + height;
+                ID2D1PathGeometry *path = make_rounded_rectangle(rect, mask, radius);
+                if (path == NULL)
+                    return;
+                lsp_finally { safe_release(path); };
+
+                // Create the clipping layer
+                ID2D1Layer *layer = NULL;
+                if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
+                    return;
+                lsp_finally{ safe_release(layer); };
+
+                // Apply the clipping layer
+                pDC->PushLayer(
+                    D2D1::LayerParameters(D2D1::RectF(left, top, left + width, top + height), path),
+                    layer);
+
+                // Draw the bitmap
+                pDC->DrawBitmap(
+                    bm,
+                    rect,
+                    1.0f - alpha,
+                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+
+                // Pop the clipping layer
+                pDC->PopLayer();
+            }
+
+            void WinDDSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+            {
+                fill_rect(s, alpha, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
             void WinDDSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
@@ -1697,6 +1828,28 @@ namespace lsp
                 bool old    = pDC->GetAntialiasMode() != D2D1_ANTIALIAS_MODE_ALIASED;
                 pDC->SetAntialiasMode((set) ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
                 return old;
+            }
+
+            ws::point_t WinDDSurface::set_origin(const ws::point_t & origin)
+            {
+                return set_origin(origin.nLeft, origin.nTop);
+            }
+
+            ws::point_t WinDDSurface::set_origin(ssize_t left, ssize_t top)
+            {
+                ws::point_t result;
+                result.nLeft    = fOriginX;
+                result.nTop     = fOriginY;
+
+                if (bad_state())
+                    return result;
+
+                fOriginX        = left;
+                fOriginY        = top;
+
+                pDC->SetTransform(D2D1::Matrix3x2F::Translation(fOriginX, fOriginY));
+
+                return result;
             }
 
         } /* namespace win */

@@ -35,9 +35,12 @@ namespace lsp
         {
             inline bool Batch::header_mismatch(const batch_header_t & a, const batch_header_t & b)
             {
-                return (a.enProgram != b.enProgram) ||
-                       (a.nFlags != b.nFlags) ||
-                       (a.pTexture != b.pTexture);
+                return
+                    (a.enProgram != b.enProgram) ||
+                    (a.nLeft != b.nLeft) ||
+                    (a.nTop != b.nTop) ||
+                    (a.nFlags != b.nFlags) ||
+                    (a.pTexture != b.pTexture);
             }
 
             template<class D, class S>
@@ -278,9 +281,10 @@ namespace lsp
                 {
                     draw_t *draw        = vBatches.uget(i);
                     const size_t flags  = draw->header.nFlags;
+                    const gl::program_t program = draw->header.enProgram;
 
                     // Get the program
-                    status_t res = ctx->program(&program_id, draw->header.enProgram);
+                    status_t res = ctx->program(&program_id, program);
                     if (res != STATUS_OK)
                         return res;
 
@@ -291,6 +295,11 @@ namespace lsp
                         vtbl->glUseProgram(program_id);
                         bind_uniforms(vtbl, program_id, uniforms);
                     }
+
+                    // Origin
+                    const GLint u_origin = vtbl->glGetUniformLocation(program_id, "u_origin");
+                    if (u_origin >= 0)
+                        vtbl->glUniform2f(u_origin, draw->header.nLeft, draw->header.nTop);
 
                     // Command buffer
                     const GLint u_commands = vtbl->glGetUniformLocation(program_id, "u_commands");
@@ -311,19 +320,22 @@ namespace lsp
                     {
                         vtbl->glUniform1i(u_texture, 1);
 
-                        mask_texture = draw->header.pTexture;
-                        if ((mask_texture != NULL) && (mask_texture->valid()))
+                        mask_texture    = draw->header.pTexture;
+                        if ((mask_texture != NULL) && (mask_texture->valid()) && (mask_texture->multisampling() <= 0))
                             mask_texture->bind(GL_TEXTURE1);
                         else
+                        {
+                            mask_texture    = NULL;
                             ctx->bind_empty_texture(GL_TEXTURE1, 0);
+                        }
                     }
                     lsp_finally {
                         if (u_texture >= 0)
                         {
-                            if ((mask_texture != NULL) && (mask_texture->valid()))
-                                mask_texture->unbind();
+                            if (mask_texture != NULL)
+                                mask_texture->unbind(GL_TEXTURE1);
                             else
-                                ctx->unbind_empty_texture(GL_TEXTURE1, 0);
+                                ctx->unbind_empty_texture(GL_TEXTURE1, false);
                         }
                     };
 
@@ -334,19 +346,22 @@ namespace lsp
                     {
                         vtbl->glUniform1i(u_ms_texture, 2);
 
-                        ms_mask_texture = draw->header.pTexture;
-                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
+                        ms_mask_texture     = draw->header.pTexture;
+                        if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()) && (ms_mask_texture->multisampling() > 0))
                             ms_mask_texture->bind(GL_TEXTURE2);
                         else
+                        {
+                            ms_mask_texture     = NULL;
                             ctx->bind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                        }
                     }
                     lsp_finally {
                         if (u_ms_texture >= 0)
                         {
-                            if ((ms_mask_texture != NULL) && (ms_mask_texture->valid()))
-                                ms_mask_texture->unbind();
+                            if (ms_mask_texture != NULL)
+                                ms_mask_texture->unbind(GL_TEXTURE2);
                             else
-                                ctx->unbind_empty_texture(GL_TEXTURE2, ctx->multisample());
+                                ctx->unbind_empty_texture(GL_TEXTURE2, true);
                         }
                     };
 
@@ -443,9 +458,9 @@ namespace lsp
                     lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_NONE); };
 
                     // Bind vertex attributes
-                    const GLint a_vertex = vtbl->glGetAttribLocation(program_id, "a_vertex");
-                    const GLint a_texcoord = vtbl->glGetAttribLocation(program_id, "a_texcoord");
-                    const GLint a_command = vtbl->glGetAttribLocation(program_id, "a_command");
+                    const GLint a_vertex = ctx->attribute_location(program, gl::VERTEX_COORDS);
+                    const GLint a_texcoord = ctx->attribute_location(program, gl::TEXTURE_COORDS);
+                    const GLint a_command = ctx->attribute_location(program, gl::COMMAND_BUFFER);
 
                     // position attribute
                     if (a_vertex >= 0)

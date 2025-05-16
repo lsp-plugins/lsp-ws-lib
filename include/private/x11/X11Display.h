@@ -247,7 +247,7 @@ namespace lsp
                     void            drop_mime_types(lltl::parray<char> *ctype);
                     static status_t sink_data_source(IDataSink *dst, IDataSource *src);
 
-                    void            handle_property_notify(XPropertyEvent *ev);
+                    bool            handle_property_notify(XPropertyEvent *ev);
                     status_t        handle_property_notify(cb_recv_t *task, XPropertyEvent *ev);
                     status_t        handle_property_notify(cb_send_t *task, XPropertyEvent *ev);
                     status_t        handle_property_notify(dnd_recv_t *task, XPropertyEvent *ev);
@@ -281,6 +281,8 @@ namespace lsp
                     void            complete_async_tasks();
 
                     status_t        init_freetype_library();
+
+                    status_t        read_window_state(window_state_t *state, Window wnd);
 
                     bool            translate_coordinates(Window src_w, Window dest_w, int src_x, int src_y, int *dest_x, int *dest_y, Window *child_return);
 

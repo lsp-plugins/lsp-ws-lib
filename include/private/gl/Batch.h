@@ -57,9 +57,11 @@ namespace lsp
 
             typedef struct LSP_HIDDEN_MODIFIER batch_header_t
             {
-                gl::program_t   enProgram;
-                uint32_t        nFlags;
-                gl::Texture    *pTexture;
+                gl::program_t   enProgram;  // Used program for rendering
+                int32_t         nLeft;      // Origin offset left
+                int32_t         nTop;       // Origin offset top
+                uint32_t        nFlags;     // Flags
+                gl::Texture    *pTexture;   // Related texture
             } batch_header_t;
 
             enum uniform_type_t

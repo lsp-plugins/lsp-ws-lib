@@ -66,7 +66,14 @@ namespace lsp
             enum program_t
             {
                 GEOMETRY,
-                STENCIL
+                STENCIL,
+            };
+
+            enum attribute_t
+            {
+                VERTEX_COORDS,
+                TEXTURE_COORDS,
+                COMMAND_BUFFER,
             };
 
             class LSP_HIDDEN_MODIFIER IContext
@@ -209,9 +216,9 @@ namespace lsp
                     /**
                      * Unbind empty texture
                      * @param processor_id texture processor identifier
-                     * @param samples number of samples (multisampling_factor)
+                     * @param multisample multisampling flag
                      */
-                    void unbind_empty_texture(GLuint processor_id, size_t samples);
+                    void unbind_empty_texture(GLuint processor_id, bool multisample);
 
                 public:
                     /**
@@ -247,6 +254,14 @@ namespace lsp
                      * @return pointer identifier of shader program or negative error code
                      */
                     virtual status_t program(size_t *id, program_t program);
+
+                    /**
+                     * Get attribute location for specific program
+                     * @param program shader program identifier
+                     * @param attribute attribute identifier
+                     * @return attribute location or negative error code
+                     */
+                    virtual GLint attribute_location(program_t program, attribute_t attribute);
 
                     /**
                      * Get multisampling factor

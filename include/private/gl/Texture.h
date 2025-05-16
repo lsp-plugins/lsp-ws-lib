@@ -49,12 +49,16 @@ namespace lsp
             class LSP_HIDDEN_MODIFIER Texture
             {
                 private:
+                    static constexpr size_t MAX_PROCESSOR_IDS   = 16;
+
+                private:
                     gl::IContext       *pContext;
                     uatomic_t           nReferences;
                     GLuint              nTextureId;
                     GLuint              nFrameBufferId;
                     GLuint              nStencilBufferId;
-                    GLuint              nProcessorId;
+                    GLuint              vProcessorIds[MAX_PROCESSOR_IDS];
+                    uint32_t            nProcessorIds;
                     uint32_t            nWidth;
                     uint32_t            nHeight;
                     texture_format_t    enFormat;
@@ -65,6 +69,8 @@ namespace lsp
                     inline GLuint       allocate_framebuffer();
                     inline GLuint       allocate_stencil();
                     inline void         deallocate_buffers();
+                    bool                bind_processor(GLuint processor_id);
+                    bool                unbind_processor(GLuint processor_id);
 
                 public:
                     Texture(IContext *ctx);
@@ -83,8 +89,8 @@ namespace lsp
                     status_t            set_image(const void *buf, size_t width, size_t height, size_t stride, texture_format_t format);
                     status_t            set_subimage(const void *buf, size_t x, size_t y, size_t width, size_t height, size_t stride);
                     void                bind(GLuint processor_id);
+                    void                unbind(GLuint processor_id);
                     status_t            resize(size_t width, size_t height);
-                    void                unbind();
                     void                reset();
 
                     status_t            begin_draw(size_t width, size_t height, texture_format_t format);

@@ -422,5 +422,15 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
+        status_t IWindow::get_window_state(window_state_t *state)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IWindow::set_window_state(window_state_t state)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
     } /* namespace ws */
 } /* namespace lsp */

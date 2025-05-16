@@ -2,6 +2,14 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.28 ===
+* Added support of minimized, maximized and normal window state settings.
+* Implemented fill_rect method for ws::ISurface with surface argument.
+* Added set_origin method for ws::ISurface interface.
+* Added MacOS dependencies.
+* Updated build scripts.
+* Updated module versions in dependencies.
+
 === 1.0.27 ===
 * Implemented OpenGL drawing surface supporf for X11 protocol. Can be disabled
   by setting LSP_WS_LIB_GLXSURFACE=off environment variable.

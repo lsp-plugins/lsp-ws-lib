@@ -679,8 +679,7 @@ namespace lsp
 //                        lsp_trace("XPropertyEvent for window 0x%lx, property %ld (%s), state=%d", long(sc->window), long(sc->atom), name, int(sc->state));
                         ::XFree(name);
                         #endif
-                        handle_property_notify(sc);
-                        return true;
+                        return handle_property_notify(sc);
                     }
                     case SelectionClear:
                     {
@@ -894,8 +893,10 @@ namespace lsp
                 }
             }
 
-            void X11Display::handle_property_notify(XPropertyEvent *ev)
+            bool X11Display::handle_property_notify(XPropertyEvent *ev)
             {
+                size_t matched = 0;
+
                 for (size_t i=0, n=sAsync.size(); i<n; ++i)
                 {
                     x11_async_t *task = sAsync.uget(i);
@@ -907,17 +908,24 @@ namespace lsp
                     {
                         case X11ASYNC_CB_RECV:
                             if (task->cb_recv.hProperty == ev->atom)
+                            {
+                                ++matched;
                                 task->result = handle_property_notify(&task->cb_recv, ev);
+                            }
                             break;
                         case X11ASYNC_DND_RECV:
                             if ((task->dnd_recv.hProperty == ev->atom) &&
                                 (task->dnd_recv.hTarget == ev->window))
+                            {
+                                ++matched;
                                 task->result = handle_property_notify(&task->dnd_recv, ev);
+                            }
                             break;
                         case X11ASYNC_CB_SEND:
                             if ((task->cb_send.hProperty == ev->atom) &&
                                 (task->cb_send.hRequestor == ev->window))
                             {
+                                ++matched;
                                 task->result = update_status(task->result, handle_property_notify(&task->cb_send, ev));
                             }
                             break;
@@ -928,6 +936,8 @@ namespace lsp
                     if (task->result != STATUS_OK)
                         task->cb_common.bComplete   = true;
                 }
+
+                return matched > 0;
             }
 
             void X11Display::complete_async_tasks()
@@ -1684,8 +1694,8 @@ namespace lsp
 
                     case ClientMessage:
                     {
-                        XClientMessageEvent *ce = &ev->xclient;
-                        Atom type = ce->message_type;
+                        const XClientMessageEvent *ce = &ev->xclient;
+                        const Atom type = ce->message_type;
 
                         if (type == sAtoms.X11_WM_PROTOCOLS)
                         {
@@ -1711,9 +1721,73 @@ namespace lsp
                         break;
                     }
 
+                    case PropertyNotify:
+                    {
+                        const XPropertyEvent *pe = &ev->xproperty;
+
+                        if (pe->atom == sAtoms.X11__NET_WM_STATE)
+                        {
+                            // Ensure that we're still handling events for the window
+                            if (find_window(pe->window) != NULL)
+                            {
+                                lsp_trace("PropertyNotify hWindow = 0x%lx", pe->window);
+
+                                window_state_t state = WS_NORMAL;
+                                read_window_state(&state, pe->window);
+
+                                ue->nType       = UIE_STATE;
+                                ue->nCode       = state;
+                            }
+                        }
+                        break;
+                    }
+
                     default:
                         break;
                 }
+            }
+
+            status_t X11Display::read_window_state(window_state_t *state, Window wnd)
+            {
+                uint8_t *data   = NULL;
+                Atom xtype      = 0;
+                size_t size     = 0;
+
+                // status_t X11Display::read_property(Window wnd, Atom property, Atom ptype, uint8_t **data, size_t *size, Atom *type)
+                status_t res    = read_property(wnd, sAtoms.X11__NET_WM_STATE, sAtoms.X11_XA_ATOM, &data, &size, &xtype);
+                if ((res != STATUS_OK) || (data == NULL) || (xtype != sAtoms.X11_XA_ATOM))
+                    return STATUS_INVALID_VALUE;
+                lsp_finally { ::free(data); };
+
+                lsp_trace("NET_WM_STATE res=%d, xtype=%d, size=%d", int(res), int(xtype), int(size));
+
+                const uint32_t *list    = reinterpret_cast<const uint32_t *>(data); // read_property compresses long -> uint32_t
+                for (size_t i=0, count = size/sizeof(uint32_t); i<count; ++i)
+                {
+                    if (list[i] == sAtoms.X11__NET_WM_STATE_HIDDEN)
+                    {
+                        *state      = WS_MINIMIZED;
+                        return STATUS_OK;
+                    }
+                    else if (list[i] == sAtoms.X11__NET_WM_STATE_MAXIMIZED_HORZ)
+                    {
+                        *state      = WS_MAXIMIZED;
+                        return STATUS_OK;
+                    }
+                    else if (list[i] == sAtoms.X11__NET_WM_STATE_MAXIMIZED_VERT)
+                    {
+                        *state      = WS_MAXIMIZED;
+                        return STATUS_OK;
+                    }
+                    else if (list[i] == sAtoms.X11__NET_WM_STATE_FULLSCREEN)
+                    {
+                        *state      = WS_MAXIMIZED;
+                        return STATUS_OK;
+                    }
+                }
+
+                *state          = WS_NORMAL;
+                return STATUS_OK;
             }
 
             void X11Display::handle_event(XEvent *ev)
@@ -1722,8 +1796,8 @@ namespace lsp
                     return;
 
                 #if 0
-                lsp_trace("Received event: %d (%s), serial = %ld, window = %x",
-                    int(ev->type), event_name(ev->type), long(ev->xany.serial), int(ev->xany.window));
+//                lsp_trace("Received event: %d (%s), serial = %ld, window = %x",
+//                    int(ev->type), event_name(ev->type), long(ev->xany.serial), int(ev->xany.window));
 
 
                 if (ev->type == PropertyNotify)
@@ -1743,37 +1817,10 @@ namespace lsp
                     complete_async_tasks();
                     return;
                 }
-
-                if (handle_drag_event(ev))
+                else if (handle_drag_event(ev))
                 {
                     complete_async_tasks();
                     return;
-                }
-
-                // Find the target window
-                X11Window *target = NULL;
-                for (size_t i=0, nwnd=vWindows.size(); i<nwnd; ++i)
-                {
-                    X11Window *wnd = vWindows[i];
-                    if (wnd == NULL)
-                        continue;
-                    if (wnd->x11handle() == ev->xany.window)
-                    {
-                        target      = wnd;
-                        break;
-                    }
-//                    else if ((ev->type == ConfigureNotify) &&
-//                            (wnd->x11parent() != None) &&
-//                            (wnd->x11parent() == ev->xany.window))
-//                    {
-//                        lsp_trace("resize window: handle=%lx, width=%d, height=%d",
-//                                long(wnd->x11handle()),
-//                                int(ev->xconfigure.width),
-//                                int(ev->xconfigure.height));
-//                        ::XResizeWindow(pDisplay, wnd->x11handle(), ev->xconfigure.width, ev->xconfigure.height);
-//                        ::XFlush(pDisplay);
-//                        return;
-//                    }
                 }
 
                 // Analyze event type
@@ -1782,6 +1829,8 @@ namespace lsp
                 if (ue.nType == UIE_UNKNOWN)
                     return;
 
+                // Find the target window
+                X11Window *target   = find_window(ev->xany.window);
                 Window child        = None;
                 event_t se          = ue;
 

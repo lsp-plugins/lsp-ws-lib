@@ -174,8 +174,7 @@ namespace lsp
                  * @param s surface to draw
                  * @param x offset from left
                  * @param y offset from top
-                 * @param sx surface scale x
-                 * @param sy surface scale y
+                 * @param sx surface scale x                 * @param sy surface scale y
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */
@@ -332,6 +331,43 @@ namespace lsp
                  * @param r rectangle descriptor
                  */
                 virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r);
+
+                /**
+                 * Fill rectangle with rounded corners using contents of other surface.
+                 * If rectangle size does not match surface size, the surface will be scaled
+                 * using linear interpolation.
+                 *
+                 * @param s source surface to use
+                 * @param alpha alpha blending factor (0.0 - opaque, 1.0 - fully transient)
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param left left-top corner x coordinate
+                 * @param top left-top corner y coordinate
+                 * @param width width of rectangle
+                 * @param height height of rectangle
+                 */
+                virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height);
+
+                /**
+                 * Fill rectangle with rounded corners using contents of other surface.
+                 * If rectangle size does not match surface size, the surface will be scaled
+                 * using linear interpolation.
+                 *
+                 * @param s source surface to use
+                 * @param alpha alpha blending factor (0.0 - opaque, 1.0 - fully transient)
+                 * @param radius the corner radius
+                 * @param mask the corner mask:
+                 *      0x01 - left-top corner is rounded
+                 *      0x02 - right-top corner is rounded
+                 *      0x04 - right-bottom corner is rounded
+                 *      0x08 - left-bottom corner is rounded
+                 * @param r rectangle descriptor
+                 */
+                virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r);
 
                 /** Fill sector of the round
                  *
@@ -732,6 +768,20 @@ namespace lsp
                  */
                 virtual bool set_antialiasing(bool set);
 
+                /**
+                 * Set up drawing origin
+                 * @param origin drawing origin (left and top coordinates)
+                 * @return old drawing origin value
+                 */
+                virtual ws::point_t set_origin(const ws::point_t & origin);
+
+                /**
+                 * Set up drawing origin
+                 * @param left left coordinate of drawing origin
+                 * @param top top coordinate of drawing origin
+                 * @return
+                 */
+                virtual ws::point_t set_origin(ssize_t left, ssize_t top);
         };
 
     } /* namespace ws */

@@ -51,6 +51,9 @@ namespace lsp
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
                     X11Display             *pDisplay;
+
+                    float                   fOriginX;
+                    float                   fOriginY;
                 #ifdef LSP_DEBUG
                     size_t                  nNumClips;
                 #endif /* LSP_DEBUG */
@@ -147,6 +150,8 @@ namespace lsp
                     virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r) override;
 
                     virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2) override;
                     virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2) override;
@@ -190,7 +195,8 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
-
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
             };
 
         } /* namespace x11 */

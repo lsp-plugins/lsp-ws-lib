@@ -64,6 +64,12 @@ namespace lsp
                         float               bottom;
                     } clip_rect_t;
 
+                    typedef struct origin_t
+                    {
+                        int32_t             left;
+                        int32_t             top;
+                    } origin_t;
+
                     typedef struct color_t
                     {
                         float               r, g, b, a;
@@ -80,6 +86,14 @@ namespace lsp
                         float               te;
                     } texture_rect_t;
 
+                    typedef struct texcoord_t
+                    {
+                        float               x;
+                        float               y;
+                        float               sx;
+                        float               sy;
+                    } texcoord_t;
+
                 protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
@@ -89,7 +103,8 @@ namespace lsp
 
                     size_t                  nNumClips;
                     float                   vMatrix[16];
-                    clip_rect_t             vClips[MAX_CLIPS];
+                    clip_rect_t             vClips[MAX_CLIPS];  // Clipping rectangles
+                    origin_t                sOrigin;            // Origin
                     lltl::darray<gl::uniform_t> vUniforms;
 
                     bool                    bNested;
@@ -142,13 +157,16 @@ namespace lsp
 
                     void fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2);
                     void fill_rect(uint32_t ci, float x0, float y0, float x1, float y1);
+                    void fill_textured_rect(uint32_t ci, const texcoord_t & tex, float x0, float y0, float x1, float y1);
                     void draw_line(uint32_t ci, float x0, float y0, float x1, float y1, float width);
                     void fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n);
                     void fill_circle(uint32_t ci, float x, float y, float r);
                     void wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
                     void fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2);
+                    void fill_textured_sector(uint32_t ci, const texcoord_t & tex, float x, float y, float r, float a1, float a2);
                     void fill_corner(uint32_t ci, float x0, float y0, float xd, float yd, float r, float a);
                     void fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height);
+                    void fill_textured_rect(uint32_t ci, const texcoord_t & tex, size_t mask, float radius, float left, float top, float width, float height);
                     void wire_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height, float line_width);
                     void fill_frame(uint32_t ci, size_t flags, float radius, float fx, float fy, float fw, float fh, float ix, float iy, float iw, float ih);
                     void draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
@@ -214,6 +232,8 @@ namespace lsp
                     virtual void fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height) override;
                     virtual void fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height) override;
+                    virtual void fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r) override;
 
                     virtual void fill_sector(const Color &c, float cx, float cy, float radius, float angle1, float angle2) override;
                     virtual void fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2) override;
@@ -253,6 +273,9 @@ namespace lsp
 
                     virtual bool get_antialiasing() override;
                     virtual bool set_antialiasing(bool set) override;
+
+                    virtual ws::point_t set_origin(const ws::point_t & origin) override;
+                    virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
             };
 
         } /* namespace gl */
