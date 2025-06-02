@@ -48,6 +48,9 @@
 // Uncomment this to log all OpenGL object allocations and deletions
 //#define TRACE_OPENGL_ALLOCATIONS
 
+// Uncomment this to log all OpenGL statistics
+//#define TRACE_OPENGL_STATS
+
 #ifdef TRACE_OPENGL_ALLOCATIONS
     #define IF_TRACE_OPENGL_ALLOCATIONS(...) __VA_ARGS__
     #define lsp_gl_trace(...) lsp_trace(__VA_ARGS__)

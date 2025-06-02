@@ -33,6 +33,7 @@
 #include <private/freetype/FontManager.h>
 #include <private/gl/Batch.h>
 #include <private/gl/Gradient.h>
+#include <private/gl/Stats.h>
 #include <private/gl/Surface.h>
 #include <private/x11/X11Display.h>
 
@@ -55,8 +56,11 @@ namespace lsp
             constexpr float k_color = 1.0f / 255.0f;
 
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
-                ISurface(width, height, ST_OPENGL)
+                ISurface(width, height, ST_OPENGL),
+                sBatch(ctx->allocator())
             {
+                OPENGL_INC_STATS(surface_alloc);
+
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
@@ -80,8 +84,11 @@ namespace lsp
             }
 
             Surface::Surface(gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height):
-                ISurface(width, height, ST_OPENGL)
+                ISurface(width, height, ST_OPENGL),
+                sBatch(ctx->allocator())
             {
+                OPENGL_INC_STATS(surface_alloc);
+
                 pDisplay        = NULL;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
@@ -116,10 +123,7 @@ namespace lsp
             {
                 Surface *s = create_nested(pText, width, height);
                 if (s != NULL)
-                {
                     s->pDisplay     = pDisplay;
-                    s->pContext     = safe_acquire(pContext);
-                }
 
                 return s;
             }
@@ -161,7 +165,11 @@ namespace lsp
 
             Surface::~Surface()
             {
+                OPENGL_INC_STATS(surface_free);
+
                 do_destroy();
+
+                OPENGL_OUTPUT_STATS(true);
             }
 
             void Surface::destroy()
@@ -214,10 +222,10 @@ namespace lsp
 
             inline float *Surface::serialize_texture(float *dst, const gl::Texture *t)
             {
-                dst[0]      = float(t->width());
-                dst[1]      = float(t->height());
-                dst[2]      = t->format();
-                dst[3]      = t->multisampling();
+                dst[0]          = float(t->width());
+                dst[1]          = float(t->height());
+                dst[2]          = t->format();
+                dst[3]          = t->multisampling();
 
                 return dst + 4;
             }
@@ -284,7 +292,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -313,7 +321,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -344,7 +352,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -1371,6 +1379,7 @@ namespace lsp
                 {
                     if (pContext->activate() == STATUS_OK)
                         bIsDrawing  = true;
+                    OPENGL_OUTPUT_STATS(false);
                 }
 
                 sBatch.clear();

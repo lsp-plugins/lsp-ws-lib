@@ -211,7 +211,7 @@ namespace lsp
 
             gl::Texture *TextAllocator::current()
             {
-                return safe_acquire(pTexture);
+                return pTexture;
             }
 
         } /* namespace gl */

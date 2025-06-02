@@ -86,6 +86,8 @@ namespace lsp
                     free(const_cast<vtbl_t *>(pVtbl));
                     pVtbl           = NULL;
                 }
+
+                OPENGL_OUTPUT_STATS(true);
             }
 
             uatomic_t IContext::reference_up()
@@ -155,6 +157,8 @@ namespace lsp
 
             void IContext::perform_gc()
             {
+                sAllocator.perform_gc();
+
                 if (vGcFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vGcFramebuffers);
@@ -177,6 +181,9 @@ namespace lsp
 
             void IContext::cleanup()
             {
+                // Cleanup all allocations
+                sAllocator.clear();
+
                 // Flush GC buffers as they are not needed
                 vGcFramebuffers.flush();
                 vGcRenderbuffers.flush();
