@@ -36,9 +36,9 @@ namespace lsp
             {
                 pContext            = safe_acquire(ctx);
                 atomic_store(&nReferences, 1);
-                nTextureId          = 0;
-                nFrameBufferId      = 0;
-                nStencilBufferId    = 0;
+                nTextureId          = GL_NONE;
+                nFrameBufferId      = GL_NONE;
+                nStencilBufferId    = GL_NONE;
                 for (size_t i=0; i<MAX_PROCESSOR_IDS; ++i)
                     vProcessorIds[i]    = 0;
                 nProcessorIds       = 0;
@@ -84,7 +84,7 @@ namespace lsp
 
             GLuint Texture::allocate_framebuffer()
             {
-                if (nFrameBufferId != 0)
+                if (nFrameBufferId != GL_NONE)
                     return nFrameBufferId;
 
                 nFrameBufferId = pContext->alloc_framebuffer();
@@ -95,7 +95,7 @@ namespace lsp
 
             GLuint Texture::allocate_stencil()
             {
-                if (nStencilBufferId != 0)
+                if (nStencilBufferId != GL_NONE)
                     return nStencilBufferId;
 
                 nStencilBufferId = pContext->alloc_renderbuffer();
@@ -342,11 +342,11 @@ namespace lsp
 
                 // Ensure that we have associated frame buffer
                 GLuint fb_id        = nFrameBufferId;
-                if (fb_id == 0)
+                if (fb_id == GL_NONE)
                 {
                     // Allocate framebuffer
                     fb_id = allocate_framebuffer();
-                    if (fb_id == 0)
+                    if (fb_id == GL_NONE)
                         return STATUS_NO_MEM;
 
                     // Setup clear flag
@@ -362,11 +362,11 @@ namespace lsp
 
                 // Ensure that stencil buffer is set and has proper parameters
                 GLuint stencil_id = nStencilBufferId;
-                if ((stencil_id == 0) || (cap_changed))
+                if ((stencil_id == GL_NONE) || (cap_changed))
                 {
                     // Allocate stencil buffer if needed
                     stencil_id  = allocate_stencil();
-                    if (stencil_id == 0)
+                    if (stencil_id == GL_NONE)
                         return STATUS_NO_MEM;
 
                     // Initialize stencil buffer
@@ -392,11 +392,11 @@ namespace lsp
                 GLuint texture_id   = nTextureId;
                 const GLuint tex_kind   = (samples > 0) ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
-                if ((texture_id == 0) || (cap_changed) || (enFormat != format))
+                if ((texture_id == GL_NONE) || (cap_changed) || (enFormat != format))
                 {
                     // Allocate texture if needed
                     texture_id          = allocate_texture();
-                    if (texture_id == 0)
+                    if (texture_id == GL_NONE)
                         return STATUS_NO_MEM;
 
                     const GLuint int_format = (format == gl::TEXTURE_ALPHA8) ? GL_RED : GL_RGBA;
@@ -435,7 +435,7 @@ namespace lsp
                 vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, texture_id, 0);
                 lsp_finally {
                     if (failed)
-                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, 0, 0);
+                        vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, GL_NONE, 0);
                 };
 
                 // Set the list of draw buffers
@@ -475,14 +475,14 @@ namespace lsp
                 vtbl->glDrawBuffers(0, NULL);
 
                 // Unbind resources from frame buffer
-                if (nFrameBufferId != 0)
+                if (nFrameBufferId != GL_NONE)
                 {
                     // Unbind stencil buffer if present
-                    if (nStencilBufferId != 0)
-                        vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+                    if (nStencilBufferId != GL_NONE)
+                        vtbl->glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, GL_NONE);
 
                     // Unbind texture
-                    vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, 0, 0);
+                    vtbl->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex_kind, GL_NONE, 0);
                     vtbl->glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
                 }
             }
