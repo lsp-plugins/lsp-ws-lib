@@ -96,6 +96,13 @@ namespace lsp
                 TEXTURE_PRGBA32     = 2,     // 32-bit color with 8 bits per red, gree, blue and alpha components, alpha is premultiplied
             };
 
+            enum index_format_t
+            {
+                INDEX_FMT_U8,
+                INDEX_FMT_U16,
+                INDEX_FMT_U32,
+            };
+
             typedef struct LSP_HIDDEN_MODIFIER uniform_t
             {
                 const char         *name;

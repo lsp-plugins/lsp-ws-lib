@@ -134,6 +134,32 @@ namespace lsp
                     vertex_t *add_vertices(size_t count);
 
                     /**
+                     * Release set of vertices at the tail of the buffer
+                     * @param count number of vertices to release
+                     */
+                    void release_vertices(size_t count);
+
+                    /**
+                     * Add indices. The index element size can be 1, 2 or 4 bytes size, so you need
+                     * to check the size by issuing index_format() function
+                     * @param count number of indices to add
+                     * @param max_value maximum value stored to index
+                     */
+                    void *add_indices(size_t count, size_t max_value);
+
+                    /**
+                     * Release set of indices at the tail of the buffer
+                     * @param count number of indices to release
+                     */
+                    void release_indices(size_t count);
+
+                    /**
+                     * Get format of the index item
+                     * @return format of the index item
+                     */
+                    index_format_t index_format() const;
+
+                    /**
                      * Add triangle
                      * @param a index of the first vertex
                      * @param b index of the second vertex

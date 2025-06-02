@@ -172,6 +172,11 @@ namespace lsp
                     void draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
                     void draw_polyline(uint32_t ci, const float *x, const float *y, float width, size_t n);
 
+                    template <class T>
+                    inline void draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, const float *x, const float *y, float width, size_t n);
+                    template <class T>
+                    inline void draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
+
                 public:
                     /** Create primary GL surface
                      *

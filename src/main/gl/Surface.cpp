@@ -53,6 +53,15 @@ namespace lsp
 
             #define ADD_VERTEX(v, v_ci, v_x, v_y)  ADD_TVERTEX(v, v_ci, v_x, v_y, 0.0f, 0.0f)
 
+            #define ADD_HRECTANGLE(v, a, b, c, d) \
+                v[0]        = a; \
+                v[1]        = b; \
+                v[2]        = c; \
+                v[3]        = a; \
+                v[4]        = c; \
+                v[5]        = d; \
+                v += 6;
+
             constexpr float k_color = 1.0f / 255.0f;
 
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
@@ -996,17 +1005,20 @@ namespace lsp
                     fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
             }
 
-            void Surface::draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            template <class T>
+            inline void Surface::draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, const float *x, const float *y, float width, size_t n)
             {
+                vertex_t *v     = vertices;
+                T *iv           = indices;
+                lsp_finally
+                {
+                    vertices        = v;
+                    indices         = iv;
+                };
+
                 size_t i;
                 float dx, dy, d;
                 float kd, ndx, ndy;
-                float px, py;
-
-                rect.left       = nWidth;
-                rect.top        = nHeight;
-                rect.right      = 0.0f;
-                rect.bottom     = 0.0f;
 
                 // Find first not short segment
                 width          *= 0.5f;
@@ -1027,10 +1039,74 @@ namespace lsp
                 ndx             = -dy * kd;
                 ndy             = dx * kd;
 
-                uint32_t vi     = sBatch.next_vertex_index();
-                vertex_t *v     = sBatch.add_vertices(4);
-                if (v == NULL)
+                ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+
+                ADD_HRECTANGLE(iv, vi, vi + 1, vi + 2, vi + 3);
+                si                  = i++;
+
+                // Draw the rest segments
+                for (; i < n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                    {
+                        kd              = width / sqrtf(d);
+                        ndx             = -dy * kd;
+                        ndy             = dx * kd;
+
+                        ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                        ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                        ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                        ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+
+                        ADD_HRECTANGLE(iv, vi + 4, vi + 5, vi + 6, vi + 7);
+                        ADD_HRECTANGLE(iv, vi, vi + 6, vi + 1, vi + 7);
+
+                        si              = i;
+                        vi             += 4;
+                    }
+                }
+            }
+
+            template <class T>
+            inline void Surface::draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            {
+                vertex_t *v     = vertices;
+                T *iv           = indices;
+                lsp_finally
+                {
+                    vertices        = v;
+                    indices         = iv;
+                };
+
+                size_t i;
+                float dx, dy, d;
+                float kd, ndx, ndy;
+                float px, py;
+
+                // Find first not short segment
+                width          *= 0.5f;
+                size_t si       = 0;
+                for (i = 1; i < n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                        break;
+                }
+                if (i >= n)
                     return;
+
+                // Draw first segment
+                kd              = width / sqrtf(d);
+                ndx             = -dy * kd;
+                ndy             = dx * kd;
 
                 px              = x[i] + ndx;
                 py              = y[i] + ndy;
@@ -1052,7 +1128,7 @@ namespace lsp
                 extend_rect(rect, px, py);
                 ADD_VERTEX(v, ci, px, py);
 
-                sBatch.hrectangle(vi, vi+1, vi+2, vi+3);
+                ADD_HRECTANGLE(iv, vi, vi + 1, vi + 2, vi + 3);
                 si                  = i++;
 
                 // Draw the rest segments
@@ -1066,10 +1142,6 @@ namespace lsp
                         kd              = width / sqrtf(d);
                         ndx             = -dy * kd;
                         ndy             = dx * kd;
-
-                        v               = sBatch.add_vertices(4);
-                        if (v == NULL)
-                            return;
 
                         px              = x[i] + ndx;
                         py              = y[i] + ndy;
@@ -1091,84 +1163,136 @@ namespace lsp
                         extend_rect(rect, px, py);
                         ADD_VERTEX(v, ci, px, py);
 
-                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
+                        ADD_HRECTANGLE(iv, vi + 4, vi + 5, vi + 6, vi + 7);
+                        ADD_HRECTANGLE(iv, vi, vi + 6, vi + 1, vi + 7);
 
                         si              = i;
                         vi             += 4;
                     }
                 }
-
-                // Limit the rectangle
-                limit_rect(rect);
             }
 
             void Surface::draw_polyline(uint32_t ci, const float *x, const float *y, float width, size_t n)
             {
-                size_t i;
-                float dx, dy, d;
-                float kd, ndx, ndy;
-
-                // Find first not short segment
-                width          *= 0.5f;
-                size_t si       = 0;
-                for (i = 1; i < n; ++i)
-                {
-                    dx              = x[i] - x[si];
-                    dy              = y[i] - y[si];
-                    d               = dx*dx + dy*dy;
-                    if (d > 1e-10f)
-                        break;
-                }
-                if (i >= n)
-                    return;
-
-                // Draw first segment
-                kd              = width / sqrtf(d);
-                ndx             = -dy * kd;
-                ndy             = dx * kd;
-
-                uint32_t vi     = sBatch.next_vertex_index();
-                vertex_t *v     = sBatch.add_vertices(4);
+                // Allocate vertices
+                const uint32_t segs = n - 1;
+                const uint32_t v_reserve = segs * 4;
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(v_reserve);
                 if (v == NULL)
                     return;
+                const vertex_t *v_tail = &v[v_reserve];
+                lsp_finally {
+                    if (v_tail > v)
+                        sBatch.release_vertices(v_tail - v);
+                };
 
-                ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
-                ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
-                ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
-                ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+                // Allocate indices
+                const uint32_t iv_reserve = (2*segs - 1) * 6;
+                void *iv_raw    = sBatch.add_indices(iv_reserve, vi + v_reserve - 1);
+                if (iv_raw == NULL)
+                    return;
+                ssize_t iv_release = iv_reserve;
+                lsp_finally {
+                    if (iv_release > 0)
+                        sBatch.release_indices(iv_release);
+                };
 
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
-                si                  = i++;
-
-                // Draw the rest segments
-                for (; i < n; ++i)
+                switch (sBatch.index_format())
                 {
-                    dx              = x[i] - x[si];
-                    dy              = y[i] - y[si];
-                    d               = dx*dx + dy*dy;
-                    if (d > 1e-10f)
+                    case INDEX_FMT_U8:
                     {
-                        kd              = width / sqrtf(d);
-                        ndx             = -dy * kd;
-                        ndy             = dx * kd;
-
-                        v               = sBatch.add_vertices(4);
-                        if (v == NULL)
-                            return;
-
-                        ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
-                        ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
-                        ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
-                        ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
-
-                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
-
-                        si              = i;
-                        vi             += 4;
+                        uint8_t *iv     = static_cast<uint8_t *>(iv_raw);
+                        const uint8_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint8_t>(v, iv, uint8_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
                     }
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv    = static_cast<uint16_t *>(iv_raw);
+                        const uint16_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint16_t>(v, iv, uint16_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv    = static_cast<uint32_t *>(iv_raw);
+                        const uint32_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint32_t>(v, iv, uint32_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    default:
+                        break;
                 }
+            }
+
+            void Surface::draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            {
+                // Initialize rectangle of invalid size
+                rect.left       = nWidth;
+                rect.top        = nHeight;
+                rect.right      = 0.0f;
+                rect.bottom     = 0.0f;
+
+                // Allocate vertices
+                const uint32_t segs = n - 1;
+                const uint32_t v_reserve = segs * 4;
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(v_reserve);
+                if (v == NULL)
+                    return;
+                const vertex_t *v_tail = &v[v_reserve];
+                lsp_finally {
+                    if (v_tail > v)
+                        sBatch.release_vertices(v_tail - v);
+                };
+
+                // Allocate indices
+                const uint32_t iv_reserve = (2*segs - 1) * 6;
+                void *iv_raw    = sBatch.add_indices(iv_reserve, vi + v_reserve - 1);
+                if (iv_raw == NULL)
+                    return;
+                ssize_t iv_release = iv_reserve;
+                lsp_finally {
+                    if (iv_release > 0)
+                        sBatch.release_indices(iv_release);
+                };
+
+                switch (sBatch.index_format())
+                {
+                    case INDEX_FMT_U8:
+                    {
+                        uint8_t *iv     = static_cast<uint8_t *>(iv_raw);
+                        const uint8_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint8_t>(v, iv, uint8_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv    = static_cast<uint16_t *>(iv_raw);
+                        const uint16_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint16_t>(v, iv, uint16_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv    = static_cast<uint32_t *>(iv_raw);
+                        const uint32_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint32_t>(v, iv, uint32_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                // Limit the rectangle
+                limit_rect(rect);
             }
 
             bool Surface::valid() const

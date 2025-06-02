@@ -560,6 +560,12 @@ namespace lsp
                 return (index >= 0) ? &pCurrent->vertices.v[index] : NULL;
             }
 
+            void Batch::release_vertices(size_t count)
+            {
+                batch_vbuffer_t & buf = pCurrent->vertices;
+                buf.count   -= lsp_min(count, buf.count);
+            }
+
             ssize_t Batch::alloc_indices(size_t count, uint32_t max_index)
             {
                 // Check indices
@@ -574,7 +580,9 @@ namespace lsp
                 if ((new_size > buf.capacity) || (szof > buf.szof))
                 {
                     // Check if we need to widen the indices
-                    const size_t new_cap    = (new_size > buf.capacity) ? buf.capacity << 1 : buf.capacity;
+                    size_t new_cap          = buf.capacity;
+                    while (new_cap < new_size)
+                        new_cap               <<= 1;
                     void *data              = NULL;
 
                     if (szof > buf.szof)
@@ -756,6 +764,38 @@ namespace lsp
                 }
 
                 return index;
+            }
+
+            void *Batch::add_indices(size_t count, size_t max_value)
+            {
+                const ssize_t index     = alloc_indices(count, max_value);
+                if (index < 0)
+                    return NULL;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                    return &buf.u32[index];
+                else if (buf.szof > sizeof(uint8_t))
+                    return &buf.u16[index];
+
+                return &buf.u8[index];
+            }
+
+            void Batch::release_indices(size_t count)
+            {
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                buf.count              -= lsp_min(count, buf.count);
+            };
+
+            index_format_t Batch::index_format() const
+            {
+                const batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                    return INDEX_FMT_U32;
+                else if (buf.szof > sizeof(uint8_t))
+                    return INDEX_FMT_U16;
+
+                return INDEX_FMT_U8;
             }
 
             ssize_t Batch::command(float **data, size_t count)
