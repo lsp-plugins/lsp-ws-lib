@@ -62,6 +62,12 @@ namespace lsp
                 v[5]        = d; \
                 v += 6;
 
+            #define ADD_HTRIANGLE(v, a, b, c) \
+                v[0]        = a; \
+                v[1]        = b; \
+                v[2]        = c; \
+                v += 3;
+
             constexpr float k_color = 1.0f / 255.0f;
 
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
@@ -569,6 +575,15 @@ namespace lsp
                 vertex_t *v         = sBatch.add_vertices(n);
                 if (v == NULL)
                     return;
+                vertex_t *v_end     = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((n-2) * 3, v0i + n);
+                if (iv_raw == NULL)
+                    return;
 
                 uint32_t vi         = v0i + 1;
                 ADD_VERTEX(v, ci, x[0], y[0]);
@@ -579,12 +594,48 @@ namespace lsp
                 rect.right          = lsp_max(x[0], x[1]);
                 rect.bottom         = lsp_max(y[0], y[1]);
 
-                for (size_t i=2; i<n; ++i)
+                switch (sBatch.index_format())
                 {
-                    extend_rect(rect, x[i], y[i]);
-                    ADD_VERTEX(v, ci, x[i], y[i]);
-                    sBatch.htriangle(v0i, vi, vi + 1);
-                    ++vi;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (size_t i=2; i<n; ++i)
+                        {
+                            extend_rect(rect, x[i], y[i]);
+                            ADD_VERTEX(v, ci, x[i], y[i]);
+                            ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(vi), uint16_t(vi + 1));
+                            ++vi;
+                        }
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (size_t i=2; i<n; ++i)
+                        {
+                            extend_rect(rect, x[i], y[i]);
+                            ADD_VERTEX(v, ci, x[i], y[i]);
+                            ADD_HTRIANGLE(iv, v0i, vi, vi + 1);
+                            ++vi;
+                        }
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (size_t i=2; i<n; ++i)
+                        {
+                            extend_rect(rect, x[i], y[i]);
+                            ADD_VERTEX(v, ci, x[i], y[i]);
+                            ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(vi), uint8_t(vi + 1));
+                            ++vi;
+                        }
+
+                        break;
+                    }
                 }
 
                 limit_rect(rect);
