@@ -283,10 +283,10 @@ namespace lsp
 
             inline void Surface::limit_rect(clip_rect_t & rect)
             {
-                rect.left           = lsp_max(rect.left, 0.0f);
-                rect.top            = lsp_max(rect.top, 0.0f);
-                rect.right          = lsp_min(rect.right, float(nWidth));
-                rect.bottom         = lsp_min(rect.bottom, float(nHeight));
+                rect.left           = lsp_max(rect.left, -sOrigin.left);
+                rect.top            = lsp_max(rect.top, -sOrigin.top);
+                rect.right          = lsp_min(rect.right, float(nWidth) - sOrigin.left);
+                rect.bottom         = lsp_min(rect.bottom, float(nHeight) - sOrigin.top);
             }
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a)
