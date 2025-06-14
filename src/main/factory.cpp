@@ -25,10 +25,13 @@
 
 #if defined(PLATFORM_WINDOWS)
     #include <private/win/WinDisplay.h>
+#elif defined(PLATFORM_MACOSX)
+    #include <private/cocoa/CocoaDisplay.h>
 #elif defined(USE_LIBX11)
     #include <private/x11/X11Display.h>
 #endif /* PLATFORM_WINDOWS, USE_LIBX11 */
 
+#include <iostream>
 namespace lsp
 {
     namespace ws
@@ -40,6 +43,18 @@ namespace lsp
             // Create Windows display
             {
                 win::WinDisplay *dpy = new win::WinDisplay();
+                if (dpy != NULL)
+                {
+                    status_t res = dpy->init(argc, argv);
+                    if (res == STATUS_OK)
+                        return dpy;
+                    free_display(dpy);
+                }
+            }
+        #elif defined(PLATFORM_MACOSX)
+            // Create MacOS / Cocoa display dummy
+            {
+                cocoa::CocoaDisplay *dpy = new cocoa::CocoaDisplay();
                 if (dpy != NULL)
                 {
                     status_t res = dpy->init(argc, argv);
