@@ -1,0 +1,390 @@
+/*
+ * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *
+ * This file is part of lsp-ws-lib
+ * Created on: 10 окт. 2016 г.
+ *
+ * lsp-ws-lib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * any later version.
+ *
+ * lsp-ws-lib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <lsp-plug.in/common/types.h>
+
+#ifdef PLATFORM_MACOSX
+
+#import <Cocoa/Cocoa.h>
+#include <iostream>
+
+#include <lsp-plug.in/common/alloc.h>
+#include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/common/new.h>
+#include <lsp-plug.in/io/charset.h>
+#include <lsp-plug.in/io/OutMemoryStream.h>
+#include <lsp-plug.in/stdlib/math.h>
+#include <lsp-plug.in/stdlib/string.h>
+#include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/ws/types.h>
+#include <lsp-plug.in/ws/keycodes.h>
+
+#include <lsp-plug.in/ws/IDisplay.h>
+#include <lsp-plug.in/ws/IWindow.h>
+
+#include <private/cocoa/CocoaDisplay.h>
+#include <private/cocoa/CocoaWindow.h>
+
+namespace lsp
+{
+    namespace ws
+    {
+        namespace cocoa
+        {
+            CocoaDisplay::CocoaDisplay(): IDisplay()
+            {
+               bExit                   = false;
+            }
+
+            CocoaDisplay::~CocoaDisplay()
+            {
+            }
+
+            status_t CocoaDisplay::init(int argc, const char **argv)
+            {
+                [NSApplication sharedApplication];
+                [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+                [NSApp activateIgnoringOtherApps:YES];
+                
+                return IDisplay::init(argc, argv);
+            }
+
+            status_t CocoaDisplay::main() {
+                while (!bExit) {
+                    timestamp_t ts = system::get_time_millis();
+
+                    // Do one main iteration
+                    status_t result = do_main_iteration(ts);
+                    
+                    if (result != STATUS_OK)
+                            return result;
+                }
+                
+                return STATUS_OK;
+            }
+
+            status_t CocoaDisplay::do_main_iteration(timestamp_t ts) {
+                // Here, any queued Cocoa events already handled via sendEvent.
+                // Use this to do your own rendering / app logic.
+                @autoreleasepool {
+                    // Process all pending Cocoa events
+                    NSEvent *event;
+                    while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
+                                                    untilDate:[NSDate distantPast]
+                                                        inMode:NSDefaultRunLoopMode
+                                                        dequeue:YES]))
+                    {
+                        [NSApp sendEvent:event];
+                        [NSApp updateWindows];
+
+                        //Dispatch to custom handler
+                        handle_event(event);
+                    }
+
+                    // Handle internal tasks
+                    status_t result = process_pending_tasks(ts);
+
+                    // Cocoa does not need explicit display flush like X11,
+                    // but you could call [NSApp windows] to force layout updates if needed
+
+                #ifdef USE_LIBFREETYPE
+                    sFontManager.gc();
+                #endif
+
+                    return result;
+                }
+                
+            }
+
+            void CocoaDisplay::handle_event(void *event)
+            {
+                NSEvent *nsevent = (__bridge NSEvent *)event;
+
+                if (!nsevent)
+                    return;
+
+                NSEventType type = [nsevent type];
+                
+                NSWindow *nsWindow = [nsevent window];
+                CocoaWindow *target = find_window(nsWindow);  // You must implement this
+
+                if (!target)
+                    return;
+                
+                event_t ue = {};
+                ue.nTime = [nsevent timestamp] * 1000;
+
+                NSPoint locInWindow = [nsevent locationInWindow];
+                ue.nLeft = locInWindow.x;
+                ue.nTop = locInWindow.y;
+
+                switch (type)
+                {
+                    case NSEventTypeLeftMouseDown:
+                    case NSEventTypeRightMouseDown:
+                    case NSEventTypeOtherMouseDown:
+                        ue.nType = UIE_MOUSE_DOWN;
+                        break;
+
+                    case NSEventTypeLeftMouseUp:
+                    case NSEventTypeRightMouseUp:
+                    case NSEventTypeOtherMouseUp:
+                        ue.nType = UIE_MOUSE_UP;
+                        break;
+
+                    case NSEventTypeMouseMoved:
+                    case NSEventTypeLeftMouseDragged:
+                    case NSEventTypeRightMouseDragged:
+                    case NSEventTypeOtherMouseDragged:
+                        ue.nType = UIE_MOUSE_MOVE;
+                        break;
+
+                    case NSEventTypeScrollWheel:
+                        ue.nType = UIE_MOUSE_SCROLL;
+                        break;
+
+                    case NSEventTypeKeyDown:
+                        ue.nType = UIE_KEY_DOWN;
+                        break;
+
+                    case NSEventTypeKeyUp:
+                        ue.nType = UIE_KEY_UP;
+                        break;
+
+                    case NSEventTypeFlagsChanged:
+                        // Optional: Modifier key changes
+                        break;
+
+                    default:
+                        return;  // Unhandled
+                }
+
+                // If your architecture supports redirection or grabs, simulate it here
+                target->handle_event(&ue);
+            }
+
+
+
+            status_t CocoaDisplay::main_iteration() {
+                timestamp_t ts = system::get_time_millis();
+                return do_main_iteration(ts);
+            }
+
+            void CocoaDisplay::quit_main() {
+                bExit = true;
+            }
+
+
+            IWindow *CocoaDisplay::create_window()
+            {
+                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                add_window(wnd);
+                return wnd;
+            }
+
+            IWindow *CocoaDisplay::create_window(size_t screen)
+            {
+                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                add_window(wnd);
+                return wnd;
+            }
+
+            IWindow *CocoaDisplay::create_window(void *handle)
+            {
+                lsp_trace("handle = %p", handle);
+                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                add_window(wnd);
+                return wnd;
+            }
+
+            bool CocoaDisplay::add_window(CocoaWindow *wnd)
+            {
+                return vWindows.add(wnd);
+            }
+
+            bool CocoaDisplay::remove_window(CocoaWindow *wnd)
+            {
+                // Remove focus window
+                //if (pFocusWindow == wnd)
+                //    pFocusWindow = NULL;
+
+                // Remove window from list
+                if (!vWindows.premove(wnd))
+                    return false;
+
+                // Check if need to leave main cycle
+                if (vWindows.size() <= 0)
+                    bExit = true;
+                return true;
+            }
+
+            CocoaWindow *CocoaDisplay::find_window(void *wnd) {
+                NSWindow *nswnd = (__bridge NSWindow *)wnd;
+                
+                size_t n = vWindows.size();
+
+                for (size_t i = 0; i < n; ++i) {
+                    CocoaWindow *w = vWindows.uget(i);
+                    if (w == NULL)
+                        continue;
+                    if (w->nswindow() == nswnd)
+                        return w;
+                }
+
+                return NULL;
+            }
+
+
+            void CocoaDisplay::destroy()
+            {
+                {
+                    sTasksLock.lock();
+                    lsp_finally { sTasksLock.unlock(); };
+                }
+                IDisplay::destroy();
+            }
+
+            const MonitorInfo *CocoaDisplay::enum_monitors(size_t *count) {
+                // Prepare result array
+                lltl::darray<MonitorInfo> result;
+
+                NSArray<NSScreen *> *screens = [NSScreen screens];
+                NSUInteger nmonitors = [screens count];
+
+                MonitorInfo *items = result.add_n(nmonitors);
+                if (items == nullptr)
+                    return nullptr;
+
+                for (NSUInteger i = 0; i < nmonitors; ++i) {
+                    MonitorInfo *di = &items[i];
+                    new (&di->name, inplace_new_tag_t()) LSPString;
+
+                    NSScreen *screen = screens[i];
+                    NSRect frame = [screen frame];
+
+                    // Set screen bounds
+                    di->rect.nLeft   = static_cast<int>(frame.origin.x);
+                    di->rect.nTop    = static_cast<int>(frame.origin.y);
+                    di->rect.nWidth  = static_cast<int>(frame.size.width);
+                    di->rect.nHeight = static_cast<int>(frame.size.height);
+
+                    // Set primary flag (main screen)
+                    di->primary = (screen == [NSScreen mainScreen]);
+
+                    // No native way to get monitor name in Cocoa, so use fallback
+                    char buf[32];
+                    snprintf(buf, sizeof(buf), "Monitor %lu", (unsigned long)i);
+                    di->name.set_utf8(buf);
+                }
+
+                // Save and return
+                //vMonitors.swap(result);
+                //drop_monitors(&result);
+                /*
+                if (count)
+                    *count = vMonitors.size();
+                return vMonitors.array();*/
+                
+                if (count)
+                    *count = result.size();
+                return result.release();
+            }
+
+            status_t CocoaDisplay::work_area_geometry(ws::rectangle_t *r)
+            {
+                if (r == nullptr)
+                    return STATUS_BAD_ARGUMENTS;
+
+                NSScreen *screen = [NSScreen mainScreen];
+                if (!screen)
+                    return STATUS_UNKNOWN_ERR;
+
+                NSRect frame = [screen visibleFrame];  // Excludes Dock & menu bar
+
+                r->nLeft   = static_cast<int>(frame.origin.x);
+                r->nTop    = static_cast<int>(frame.origin.y);
+                r->nWidth  = static_cast<int>(frame.size.width);
+                r->nHeight = static_cast<int>(frame.size.height);
+
+                return STATUS_OK;
+            }
+
+            status_t CocoaDisplay::screen_size(size_t screen, ssize_t *w, ssize_t *h)
+            {
+                /*
+                if (screen != default_screen())
+                    return STATUS_BAD_ARGUMENTS; */
+
+                NSScreen *mainScreen = [NSScreen mainScreen];
+                if (mainScreen == nil)
+                    return STATUS_UNKNOWN_ERR;
+
+                NSRect frame = [mainScreen frame];
+                CGFloat width = frame.size.width;
+                CGFloat height = frame.size.height;
+
+                if (width <= 0 || height <= 0)
+                    return STATUS_UNKNOWN_ERR;
+
+                if (w != NULL)
+                    *w = static_cast<ssize_t>(width);
+                if (h != NULL)
+                    *h = static_cast<ssize_t>(height);
+
+                return STATUS_OK;
+            }
+
+
+            status_t CocoaDisplay::add_font(const char *name, io::IInStream *is)
+            {
+                if ((name == NULL) || (is == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                status_t res    = STATUS_OK;
+
+            #ifdef USE_LIBFREETYPE
+                if ((res = sFontManager.add(name, is)) != STATUS_OK)
+                    return res;
+            #endif /* USE_LIBFREETYPE */
+
+                return res;
+            }
+
+            status_t CocoaDisplay::add_font_alias(const char *name, const char *alias)
+            {
+                if ((name == NULL) || (alias == NULL))
+                    return STATUS_BAD_ARGUMENTS;
+
+                status_t res    = STATUS_OK;
+            #ifdef USE_LIBFREETYPE
+                if ((res = sFontManager.add_alias(name, alias)) != STATUS_OK)
+                    return res;
+            #endif /* USE_LIBFREETYPE */
+
+                return res;
+            }
+
+
+        } /* namespace cocoa */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* PLATFORM_MACOSX */
