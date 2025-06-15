@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 25 окт. 2016 г.
+ * Created on: 12 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,14 +20,15 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #ifdef PLATFORM_MACOSX
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
-#include <cairo/cairo.h>
-#include <cairo/cairo-quartz.h>
+#include <cairo.h>
+#include <cairo-quartz.h>
 
 #include <private/freetype/FontManager.h>
 #include <private/cocoa/CocoaCairoGradient.h>

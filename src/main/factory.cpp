@@ -29,9 +29,7 @@
     #include <private/cocoa/CocoaDisplay.h>
 #elif defined(USE_LIBX11)
     #include <private/x11/X11Display.h>
-#endif /* PLATFORM_WINDOWS, USE_LIBX11 */
-
-#include <iostream>
+#endif /* PLATFORM_WINDOWS, PLATFORM_MACOSX, USE_LIBX11 */
 namespace lsp
 {
     namespace ws

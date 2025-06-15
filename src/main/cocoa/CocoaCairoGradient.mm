@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 19 дек. 2016 г.
+ * Created on: 12 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by

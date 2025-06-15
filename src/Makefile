@@ -61,12 +61,6 @@ ARTIFACT_DEPS           = $(call dquery, OBJ, $(ARTIFACT_DEPENDENCIES))
 ARTIFACT_CFLAGS         = $(call query, CFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 ARTIFACT_LDFLAGS        = $(call query, LDFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 
-#TODO Find a better way to include cairo on mac
-ifeq ($(PLATFORM),MacOS)
-  ARTIFACT_CFLAGS          += -I/opt/homebrew/Cellar/cairo/1.18.4/include 
-  ARTIFACT_LDFLAGS         += -L/opt/homebrew/Cellar/cairo/1.18.4/lib -lcairo
-endif
-
 ARTIFACT_OBJFILES       = $(call query, OBJ, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 
 ARTIFACT_TARGETS        = $(ARTIFACT_LIB) $(ARTIFACT_SLIB) $(ARTIFACT_PC)

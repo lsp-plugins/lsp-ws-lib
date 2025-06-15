@@ -91,12 +91,6 @@ LIBCOCOA_NAME              := libcocoa
 LIBCOCOA_TYPE              := opt
 LIBCOCOA_LDFLAGS           := -framework Cocoa
 
-#BREWCAIRO_VERSION          := 1.18.4
-#BREWCAIRO_NAME             := cairo
-#BREWCAIRO_TYPE             := src
-#BREWCAIRO_CFLAGS           := -I/opt/homebrew/Cellar/cairo/1.18.4/include
-#BREWCAIRO_CFLAGS           := -L/opt/homebrew/Cellar/cairo/1.18.4/lib -lcairo
-
 LIBCAIRO_VERSION           := system
 LIBCAIRO_NAME              := cairo
 LIBCAIRO_TYPE              := pkg

@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 10 окт. 2016 г.
+ * Created on: 9 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -24,7 +25,6 @@
 #ifdef PLATFORM_MACOSX
 
 #import <Cocoa/Cocoa.h>
-#include <iostream>
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
@@ -34,6 +34,7 @@
 #include <lsp-plug.in/stdlib/math.h>
 #include <lsp-plug.in/stdlib/string.h>
 #include <lsp-plug.in/runtime/system.h>
+#include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
 
@@ -124,13 +125,13 @@ namespace lsp
                 NSEventType type = [nsevent type];
                 
                 NSWindow *nsWindow = [nsevent window];
-                CocoaWindow *target = find_window(nsWindow);  // You must implement this
+                CocoaWindow *target = find_window(nsWindow);
 
                 if (!target)
                     return;
                 
                 event_t ue = {};
-                ue.nTime = [nsevent timestamp] * 1000;
+                ue.nTime = timestamp_t([nsevent timestamp] * 1000);
 
                 NSPoint locInWindow = [nsevent locationInWindow];
                 ue.nLeft = locInWindow.x;
@@ -290,18 +291,10 @@ namespace lsp
                     di->primary = (screen == [NSScreen mainScreen]);
 
                     // No native way to get monitor name in Cocoa, so use fallback
-                    char buf[32];
-                    snprintf(buf, sizeof(buf), "Monitor %lu", (unsigned long)i);
-                    di->name.set_utf8(buf);
+                    LSPString monitorName;
+                    monitorName.fmt_utf8("Monitor %lu", (unsigned long)i);
+                    di->name.set_utf8(monitorName.get_utf8());
                 }
-
-                // Save and return
-                //vMonitors.swap(result);
-                //drop_monitors(&result);
-                /*
-                if (count)
-                    *count = vMonitors.size();
-                return vMonitors.array();*/
                 
                 if (count)
                     *count = result.size();

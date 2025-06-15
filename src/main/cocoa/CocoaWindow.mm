@@ -1,9 +1,10 @@
 /*
  * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 1 июл. 2022 г.
+ * Created on: 9 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,12 +20,12 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #include <lsp-plug.in/common/types.h>
 
 #ifdef PLATFORM_MACOSX
 
 #import <Cocoa/Cocoa.h>
-#include <iostream>
 
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/debug.h>
@@ -43,8 +44,8 @@
 #include <private/cocoa/CocoaCairoSurface.h>
 #include <private/cocoa/CocoaCairoView.h>
 
-#include <cairo/cairo.h>
-#include <cairo/cairo-quartz.h>
+#include <cairo.h>
+#include <cairo-quartz.h>
 
 namespace lsp
 {
@@ -140,6 +141,7 @@ namespace lsp
                 ISurface *result = NULL;
 
                 // Trigger a redraw in NSView - just for testing
+                [(CocoaCairoView *)pCocoaView setCursor: pCocoaCursor];
                 [(CocoaCairoView *)pCocoaView triggerRedraw];
              
 /*
@@ -176,11 +178,36 @@ namespace lsp
             static NSCursor* translate_cursor(mouse_pointer_t pointer) {
                 using namespace lsp::ws;
                 switch (pointer) {
-                    case MP_ARROW:      return [NSCursor arrowCursor];
-                    case MP_IBEAM:      return [NSCursor IBeamCursor];
-                    case MP_CROSS:      return [NSCursor crosshairCursor];
-                    case MP_HAND:       return [NSCursor openHandCursor];
-                    default:            return [NSCursor arrowCursor];;
+                    case MP_ARROW:        return [NSCursor arrowCursor];
+                    /* TODO: implement custom cursor?
+                    MP_ARROW_LEFT,      // Arrow left
+                    MP_ARROW_RIGHT,     // Arrow right
+                    MP_ARROW_UP,        // Arrow up
+                    MP_ARROW_DOWN,      // Arrow down
+                    MP_DRAW,            // Drawing tool (pencil)
+                    MP_PLUS,            // Plus
+                    MP_SIZE,            // Size
+                    MP_SIZE_NESW,       // Sizing cursor oriented diagonally from northeast to southwest
+                    MP_SIZE_NWSE,       // Sizing cursor oriented diagonally from northwest to southeast
+                    MP_UP_ARROW,        // Arrow pointing up
+                    MP_HOURGLASS,       // Hourglass
+                    MP_DRAG,            // Arrow with a blank page in the lower-right corner
+                    MP_HSPLIT,          // Black double-vertical bar with arrows pointing right and left
+                    MP_VSPLIT,          // Black double-horizontal bar with arrows pointing up and down
+                    MP_MULTIDRAG,       // Arrow with three blank pages in the lower-right corner
+                    MP_APP_START,       // Arrow combined with an hourglass
+                    MP_HELP,            // Arrow next to a black question mark
+                    */
+                    case MP_DRAG:         return [NSCursor closedHandCursor];
+                    case MP_DANGER:
+                    case MP_NO_DROP:      return [NSCursor operationNotAllowedCursor];
+                    case MP_IBEAM:        return [NSCursor IBeamCursor];
+                    case MP_PLUS:
+                    case MP_CROSS:        return [NSCursor crosshairCursor];
+                    case MP_HAND:         return [NSCursor openHandCursor];
+                    case MP_SIZE_NS:      return [NSCursor resizeUpDownCursor];
+                    case MP_SIZE_WE:      return [NSCursor resizeLeftRightCursor];
+                    default:              return [NSCursor arrowCursor]; // Fallback to default cursor
                 }
             }
 
@@ -195,8 +222,7 @@ namespace lsp
                 if (!cursor)
                     return STATUS_UNKNOWN_ERR;
 
-                // Commit the cursor value
-                [cursor set]; // Sets the cursor immediately
+                pCocoaCursor = cursor;
                 enPointer = pointer;
 
                 return STATUS_OK;
@@ -214,7 +240,8 @@ namespace lsp
                 if (pCocoaWindow == nullptr)
                     return STATUS_BAD_STATE;
 
-                NSString *title = [NSString stringWithUTF8String:caption->get_utf8()];
+                NSString *title = [NSString stringWithCharacters:reinterpret_cast<const unichar *>(caption->get_utf16())
+                                            length: caption->length()];
                 if (!title)
                     return STATUS_NO_MEM;
 
@@ -271,10 +298,8 @@ namespace lsp
                     case BS_DIALOG:         return NSWindowStyleMaskTitled;
                     case BS_SINGLE:         return NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
                     case BS_NONE:           return NSWindowStyleMaskBorderless;
-                    /*
                     case BS_POPUP:
                     case BS_COMBO:
-                    */
                     case BS_DROPDOWN:       return NSWindowStyleMaskBorderless;
                     case BS_SIZEABLE:       return NSWindowStyleMaskTitled | NSWindowStyleMaskResizable |
                                                 NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
@@ -408,7 +433,7 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 // Calculate the frame rect from the content rect
-                printf("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                 NSRect contentRect = NSMakeRect(sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
                 NSRect frameRect = [pCocoaWindow frameRectForContentRect:contentRect];
 
@@ -428,7 +453,7 @@ namespace lsp
             status_t CocoaWindow::show()
             {
                 
-                printf("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d} \n",
+                lsp_trace("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d} \n",
                     this, "pCocoaWindow",
                     int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
@@ -448,7 +473,7 @@ namespace lsp
 
             status_t CocoaWindow::show(IWindow *over)
             {
-                printf("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d}, over=%p \n",
+                lsp_trace("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d}, over=%p \n",
                     this, pCocoaWindow,
                     int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight),
                     over);
@@ -629,7 +654,7 @@ namespace lsp
                     case UIE_MOUSE_MOVE:
                     {
                         //TODO: Mouse movement logic 
-                        printf("Mouse moved in window! \n");
+                        lsp_trace("Mouse moved in window! \n");
                         break;
                     }
 

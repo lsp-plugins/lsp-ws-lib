@@ -1,9 +1,10 @@
 /*
  * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
  *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 1 июл. 2022 г.
+ * Created on: 9 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,8 +20,8 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef UI_COCOADISPLAY_H_
-#define UI_COCOADISPLAY_H_
+#ifndef PRIVATE_COCOA_COCOAWINDOW_H_
+#define PRIVATE_COCOA_COCOAWINDOW_H_
 
 #include <lsp-plug.in/ws/version.h>
 
@@ -32,8 +33,8 @@
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
- #include <cairo/cairo.h>
- #include <cairo/cairo-quartz.h>
+#include <cairo.h>
+#include <cairo-quartz.h>
 
 namespace lsp
 {
@@ -50,6 +51,7 @@ namespace lsp
                     NSApplication       *pCocoaApplication;
                     NSWindow            *pCocoaWindow;
                     NSView              *pCocoaView;                    // The View of the window
+                    NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
                     void place_above(NSWindow *parent);
                 
