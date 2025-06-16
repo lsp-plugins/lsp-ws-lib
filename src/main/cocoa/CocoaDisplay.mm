@@ -37,6 +37,7 @@
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/ws/types.h>
 #include <lsp-plug.in/ws/keycodes.h>
+#include <lsp-plug.in/ws/cocoa/decode.h>
 
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
@@ -134,13 +135,16 @@ namespace lsp
                 init_event(&ue);
                 ue.nTime = timestamp_t([nsevent timestamp] * 1000);
 
-                //TODO: implement mouse / keyboard button states
+                unsigned short keyCode = 65535;
+                NSString *chars = @"";
+                unichar keysym = 0;
 
                 NSPoint locInWindow = [nsevent locationInWindow];
-                ue.nLeft = locInWindow.x;
-                ue.nTop = target->height() - locInWindow.y;
+                NSRect cFrame = [[nsWindow contentView] frame];
 
-                //TODO: remove window frame, so 0x0 is left top of client area (internal window content)
+                ue.nLeft = locInWindow.x;
+                ue.nTop = target->height() - locInWindow.y - (target->height() - cFrame.size.height);
+                //TODO: Is there any problem when the mouse nTop state can negativ?
 
                 switch (type)
                 {
@@ -148,12 +152,16 @@ namespace lsp
                     case NSEventTypeRightMouseDown:
                     case NSEventTypeOtherMouseDown:
                         ue.nType = UIE_MOUSE_DOWN;
+                        ue.nCode = decode_mcb(nsevent);
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeLeftMouseUp:
                     case NSEventTypeRightMouseUp:
                     case NSEventTypeOtherMouseUp:
                         ue.nType = UIE_MOUSE_UP;
+                        ue.nCode = decode_mcb(nsevent);
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeMouseMoved:
@@ -161,18 +169,39 @@ namespace lsp
                     case NSEventTypeRightMouseDragged:
                     case NSEventTypeOtherMouseDragged:
                         ue.nType = UIE_MOUSE_MOVE;
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeScrollWheel:
                         ue.nType = UIE_MOUSE_SCROLL;
+                        ue.nCode = decode_mcd(nsevent);
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeKeyDown:
+                        //TODO: implement mouse / keyboard button states
+                        keyCode = [nsevent keyCode];
+                        chars = [nsevent charactersIgnoringModifiers];
+                        keysym = [chars characterAtIndex:0];
+
+                        lsp_trace("Key Code: %hu", keyCode);
                         ue.nType = UIE_KEY_DOWN;
+                        ue.nRawCode = keyCode;
+                        ue.nCode = keysym;
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeKeyUp:
+                        //TODO: implement mouse / keyboard button states
+                        keyCode = [nsevent keyCode];
+                        chars = [nsevent charactersIgnoringModifiers];
+                        keysym = [chars characterAtIndex:0];
+
+                        lsp_trace("Key Code: %hu", keyCode);
                         ue.nType = UIE_KEY_UP;
+                        ue.nRawCode = keyCode;
+                        ue.nCode = keysym;
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeFlagsChanged:
