@@ -31,11 +31,16 @@
 
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
+#include <private/freetype/FontManager.h>
 
 namespace lsp
 {
     namespace ws
     {
+        namespace ft
+        {
+            class FontManager;
+        }
         namespace cocoa
         {
             class CocoaWindow;
@@ -73,11 +78,18 @@ namespace lsp
 
                     virtual status_t            add_font(const char *name, io::IInStream *is) override;
                     virtual status_t            add_font_alias(const char *name, const char *alias) override;
+                    virtual status_t            remove_font(const char *name) override;
+                    virtual void                remove_all_fonts() override;
+
+                    virtual bool                get_font_parameters(const Font &f, font_parameters_t *fp) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
+                    virtual bool                get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
 
                     bool                        add_window(CocoaWindow *wnd);
                     bool                        remove_window(CocoaWindow *wnd);
 
                     status_t                    get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
+                    ft::FontManager            *font_manager();
 
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
@@ -88,7 +100,8 @@ namespace lsp
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;
                 #endif /* USE_LIBFREETYPE */
-
+                    ISurface                   *pEstimation;        // Estimation surface
+                    
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
                     void                        handle_event(void *event);

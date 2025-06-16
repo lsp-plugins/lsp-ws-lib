@@ -65,7 +65,18 @@ namespace lsp
                 [NSApplication sharedApplication];
                 [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
                 [NSApp activateIgnoringOtherApps:YES];
-                
+
+                // Initialize font manager
+            #ifdef USE_LIBFREETYPE
+                {
+                    status_t fm_res    = sFontManager.init();
+                    if (fm_res != STATUS_OK)
+                        return fm_res;
+                }
+            #endif /* USE_LIBFREETYPE */
+
+                pEstimation     = NULL;
+
                 return IDisplay::init(argc, argv);
             }
 
@@ -81,6 +92,15 @@ namespace lsp
                 }
                 
                 return STATUS_OK;
+            }
+
+            ft::FontManager *CocoaDisplay::font_manager()
+            {
+            #ifdef USE_LIBFREETYPE
+                return &sFontManager;
+            #else
+                return NULL;
+            #endif /* USE_LIBFREETYPE */
             }
 
             status_t CocoaDisplay::do_main_iteration(timestamp_t ts) {
@@ -290,6 +310,11 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
+                // Destroy font manager
+            #ifdef USE_LIBFREETYPE
+                sFontManager.destroy();
+            #endif /* USE_LIBFREETYPE */
+
                 IDisplay::destroy();
             }
 
@@ -387,7 +412,7 @@ namespace lsp
                 if ((res = sFontManager.add(name, is)) != STATUS_OK)
                     return res;
             #endif /* USE_LIBFREETYPE */
-
+                
                 return res;
             }
 
@@ -405,6 +430,51 @@ namespace lsp
                 return res;
             }
             
+            status_t CocoaDisplay::remove_font(const char *name)
+            {
+                if (name == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                status_t res;
+            #ifdef USE_LIBFREETYPE
+                if ((res = sFontManager.remove(name)) != STATUS_OK)
+                    return res;
+            #endif /* USE_LIBFREETYPE */
+
+                return res;
+            }
+
+            void CocoaDisplay::remove_all_fonts()
+            {
+            #ifdef USE_LIBFREETYPE
+                sFontManager.clear();
+            #endif /* USE_LIBFREETYPE */
+            }
+
+            bool CocoaDisplay::get_font_parameters(const Font &f, font_parameters_t *fp)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_font_parameters(f, fp);
+            }
+
+            bool CocoaDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_text_parameters(f, tp, text);
+            }
+
+            bool CocoaDisplay::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                // Redirect the request to estimation surface
+                pEstimation->begin();
+                lsp_finally{ pEstimation->end(); };
+                return pEstimation->get_text_parameters(f, tp, text, first, last);
+            }
+
             status_t CocoaDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
             {
                 //TODO: can we detect the screen?

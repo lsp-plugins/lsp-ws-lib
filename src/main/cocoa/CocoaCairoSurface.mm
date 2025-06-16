@@ -740,6 +740,7 @@ namespace lsp
             {
                 // Get font parameter using font manager
             #ifdef USE_LIBFREETYPE
+                lsp_trace("need to get display manager!");
                 ft::FontManager *mgr = pDisplay->font_manager();
                 if (mgr != NULL)
                 {
