@@ -47,6 +47,9 @@
 #include <cairo.h>
 #include <cairo-quartz.h>
 
+#include <thread>
+#include <chrono>
+
 namespace lsp
 {
     namespace ws
@@ -64,8 +67,8 @@ namespace lsp
 
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
-                sSize.nWidth            = 32;
-                sSize.nHeight           = 32;
+                sSize.nWidth            = 320;
+                sSize.nHeight           = 320;
 
                 sConstraints.nMinWidth  = -1;
                 sConstraints.nMinHeight = -1;
@@ -97,8 +100,11 @@ namespace lsp
                                                         NSWindowStyleMaskResizable)
                                                 backing:NSBackingStoreBuffered
                                                 defer:NO];
-                
+
                 pCocoaWindow = window;
+                initNotificationCenter(pCocoaWindow);
+
+
                 [pCocoaWindow makeKeyAndOrderFront:nil];
                 
                 // Create a cocoa view and set it to window
@@ -107,6 +113,56 @@ namespace lsp
                 [pCocoaWindow setContentView:pCocoaView];
 
                 return STATUS_OK;
+            }
+
+            void CocoaWindow::initNotificationCenter(NSWindow *window) {
+                NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+
+                [center addObserverForName:NSWindowDidBecomeKeyNotification
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_SHOW;
+                                        handle_event(&ue);
+                                    }];
+
+                [center addObserverForName:NSWindowDidMiniaturizeNotification
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_HIDE;
+                                        handle_event(&ue);
+                                    }];
+
+                [center addObserverForName:NSWindowWillCloseNotification
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        lsp_trace("UIE_HIDE");
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_HIDE;
+                                        handle_event(&ue);
+                                    }];
+
+                //TODO: implement all notification events
+                /*
+                [center addObserverForName:NSWindowDidResizeNotification
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        // Your UIE_HIDE handling here
+                                        //ue->nType = UIE_HIDE;
+                                        lsp_trace("UIE_RESIZE");
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_RESIZE;
+                                        handle_event(&ue);
+                                    }]; */
             }
 
             void CocoaWindow::destroy()
@@ -135,33 +191,65 @@ namespace lsp
                 return pCocoaWindow;
             }
 
-            //TODO
             ISurface *CocoaWindow::create_surface(CocoaDisplay *display, size_t width, size_t height)
             {
                 ISurface *result = NULL;
 
-                // Trigger a redraw in NSView - just for testing
-                [(CocoaCairoView *)pCocoaView setCursor: pCocoaCursor];
-                [(CocoaCairoView *)pCocoaView triggerRedraw];
-             
-/*
                 if (result == NULL)
                 {
-                    CGContextRef cg = [[NSGraphicsContext currentContext] CGContext];
-                    result = new CocoaCairoSurface(display, cg, width, height);
+                    
+                    result = new CocoaCairoSurface(display, width, height);
                     if (result != NULL)
                         lsp_trace("Using CocoaCairoSurface ptr=%p", result);
                 }
-*/
                 return result;
+            }
+
+            // Triggers redraw from app and tests
+            status_t CocoaWindow::invalidate()
+            {
+                if (pSurface == NULL)
+                    return STATUS_BAD_STATE;
+
+                event_t ue;
+                init_event(&ue);
+
+                ue.nType       = UIE_REDRAW;
+                ue.nLeft       = sSize.nLeft;
+                ue.nTop        = sSize.nHeight;
+                ue.nWidth      = sSize.nWidth;
+                ue.nHeight     = sSize.nHeight;
+
+                handle_event(&ue);
+
+                //Trigger CocoaCairoView to redraw!
+                [pCocoaView setCursor: pCocoaCursor];
+                [pCocoaView setImage: get_image_surface()];
+                [pCocoaView triggerRedraw];
+                
+                return STATUS_OK;
             }
 
 
             ISurface *CocoaWindow::get_surface()
             {
-                if (bWrapper)
-                    return NULL;
-                return pSurface;
+                //if (bWrapper)
+                //    return NULL;
+                if (pSurface != NULL)
+                    return pSurface;
+
+                return NULL;
+            }
+
+            cairo_surface_t *CocoaWindow::get_image_surface()
+            {
+                //if (bWrapper)
+                //    return NULL;
+                if (pSurface != NULL) {
+                    return reinterpret_cast<CocoaCairoSurface *>(pSurface)->get_image_surface();
+                }
+
+                return NULL;
             }
 
             void CocoaWindow::drop_surface()
@@ -412,6 +500,31 @@ namespace lsp
                     dst->nHeight = sConstraints.nMinHeight;
             }
 
+            //TODO: Fix it for cocoa!!
+            status_t CocoaWindow::set_size_constraints(const size_limit_t *c)
+            {
+                sConstraints    = *c;
+                if (sConstraints.nMinWidth == 0)
+                    sConstraints.nMinWidth  = 1;
+                if (sConstraints.nMinHeight == 0)
+                    sConstraints.nMinHeight = 1;
+
+                ws::rectangle_t new_size;
+                apply_constraints(&new_size, &sSize);
+                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+
+                sSize.nWidth = sConstraints.nMaxWidth;
+                sSize.nHeight = sConstraints.nMaxHeight;
+
+                return set_geometry_impl();
+            }
+
+            status_t CocoaWindow::get_size_constraints(size_limit_t *c)
+            {
+                *c = sConstraints;
+                return STATUS_OK;
+            }
+
             status_t CocoaWindow::set_geometry(const rectangle_t *realize) {
                 if (!pCocoaWindow)
                     return STATUS_BAD_STATE;
@@ -595,31 +708,27 @@ namespace lsp
             {
                 // Additionally generated event
                 event_t gen;
+                init_event(&gen);
                 gen.nType = UIE_UNKNOWN;
 
                 IEventHandler *handler = pHandler;
-
-                //TODO: Create new surface on any event - just for testing
-                drop_surface();
-                pSurface = create_surface(pCocoaDisplay, sSize.nWidth, sSize.nHeight);
 
                 switch (ev->nType)
                 {
                     case UIE_SHOW:
                     {
                         bVisible = true;
-                        if (bWrapper) break;
+                        //if (bWrapper) break;
 
                         drop_surface();
-
-                        //pSurface = create_surface(pCocoaDisplay, sSize.nWidth, sSize.nHeight);
+                        pSurface = create_surface(pCocoaDisplay, sSize.nWidth, sSize.nHeight);
                         break;
                     }
 
                     case UIE_HIDE:
                     {
                         bVisible = false;
-                        if (bWrapper) break;
+                        //if (bWrapper) break;
 
                         drop_surface();
                         break;
@@ -627,7 +736,7 @@ namespace lsp
 
                     case UIE_REDRAW:
                     {
-                        //TODO: Redraw logic 
+                        //Redraw event 
                         break;
                     }
 
@@ -653,8 +762,6 @@ namespace lsp
 
                     case UIE_MOUSE_MOVE:
                     {
-                        //TODO: Mouse movement logic 
-                        lsp_trace("Mouse moved in window! \n");
                         break;
                     }
 
@@ -745,6 +852,26 @@ namespace lsp
                     return false;
 
                 return (pe->sUp.nLeft == ev->sUp.nLeft) && (pe->sUp.nTop == ev->sUp.nTop);
+            }
+
+            ssize_t CocoaWindow::left()
+            {
+                return sSize.nLeft;
+            }
+
+            ssize_t CocoaWindow::top()
+            {
+                return sSize.nTop;
+            }
+
+            ssize_t CocoaWindow::width()
+            {
+                return sSize.nWidth;
+            }
+
+            ssize_t CocoaWindow::height()
+            {
+                return sSize.nHeight;
             }
 
         } /* namespace cocoa */

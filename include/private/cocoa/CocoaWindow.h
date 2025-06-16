@@ -32,6 +32,7 @@
 #include <Cocoa/Cocoa.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
+#include <private/cocoa/CocoaCairoView.h>
 
 #include <cairo.h>
 #include <cairo-quartz.h>
@@ -50,7 +51,7 @@ namespace lsp
                     friend class CocoaDisplay;
                     NSApplication       *pCocoaApplication;
                     NSWindow            *pCocoaWindow;
-                    NSView              *pCocoaView;                    // The View of the window
+                    CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
                     void place_above(NSWindow *parent);
@@ -81,9 +82,11 @@ namespace lsp
                     void                            apply_constraints(rectangle_t *dst, const rectangle_t *req);
                     status_t                        commit_border_style(border_style_t bs, size_t wa);
                     void                            drop_surface();
+                    cairo_surface_t                *get_image_surface();
                     static bool                     check_click(const btn_event_t *ev);
                     static bool                     check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     ISurface                       *create_surface(CocoaDisplay *display, size_t width, size_t height);
+                    void                            initNotificationCenter(NSWindow *window); // Creates Events UIE_SHOW / UIE_HIDE
 
                 public:
                     NSWindow *nswindow() const;
@@ -117,11 +120,19 @@ namespace lsp
 
                     virtual status_t    handle_event(const event_t *ev) override;
                     virtual ISurface   *get_surface() override;
+
+                    virtual status_t    invalidate() override;
+
+                    virtual status_t    set_size_constraints(const size_limit_t *c) override;
+                    virtual status_t    get_size_constraints(size_limit_t *c) override;
                     
+                    virtual ssize_t     left() override;
+                    virtual ssize_t     top() override;
+                    virtual ssize_t     width() override;
+                    virtual ssize_t     height() override;
                 /*
                 public:
                     virtual ISurface   *get_surface() override;
-                    virtual status_t    invalidate() override;
                     virtual void       *handle() override;
 
                     virtual ssize_t     left() override;

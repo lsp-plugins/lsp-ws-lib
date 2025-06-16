@@ -20,10 +20,12 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/types.h>
 
 #ifdef PLATFORM_MACOSX
 
-#include <lsp-plug.in/common/types.h>
+#import <CoreGraphics/CoreGraphics.h>
+
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
@@ -54,23 +56,6 @@ namespace lsp
                 return CAIRO_ANTIALIAS_DEFAULT;
             }
 
-            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, CGContextRef context, size_t width, size_t height):
-                ISurface(width, height, ST_XLIB)
-            {
-                pDisplay        = dpy;
-                pContext        = context;
-                pCR             = NULL;
-                pFO             = NULL;
-                pRoot           = ::cairo_quartz_surface_create_for_cg_context(context, width, height);
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-                fOriginX        = 0.0f;
-                fOriginY        = 0.0f;
-
-            #ifdef LSP_DEBUG
-                nNumClips       = 0;
-            #endif /* LSP_DEBUG */
-            }
-
             CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
@@ -84,8 +69,8 @@ namespace lsp
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
-            #endif /* LSP_DEBUG */
-            } 
+            #endif 
+            }
 
             CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, cairo_surface_t *surface, size_t width, size_t height):
                 ISurface(width, height, ST_SIMILAR)
@@ -107,6 +92,28 @@ namespace lsp
             IDisplay *CocoaCairoSurface::display()
             {
                 return pDisplay;
+            }
+
+            cairo_surface_t *CocoaCairoSurface::get_image_surface() {
+                if (!pSurface || cairo_surface_get_type(pSurface) != CAIRO_SURFACE_TYPE_IMAGE)
+                    return nullptr;
+
+                int width = cairo_image_surface_get_width(pSurface);
+                int height = cairo_image_surface_get_height(pSurface);
+                cairo_format_t format = cairo_image_surface_get_format(pSurface);
+
+                // Create new surface with same format and size
+                cairo_surface_t *copy = cairo_image_surface_create(format, width, height);
+                if (!copy)
+                    return nullptr;
+
+                // Create a cairo context for the destination surface
+                cairo_t *cr = cairo_create(copy);
+                cairo_set_source_surface(cr, pSurface, 0, 0);
+                cairo_paint(cr);
+                cairo_destroy(cr);
+
+                return copy;
             }
 
             ISurface *CocoaCairoSurface::create(size_t width, size_t height)
@@ -174,9 +181,6 @@ namespace lsp
             {
                 if (pCR != NULL)
                     return STATUS_BAD_STATE;
-
-                if (pRoot != NULL)
-                    ::cairo_xlib_surface_set_size(pRoot, width, height);
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
@@ -371,7 +375,9 @@ namespace lsp
                     pCR             = NULL;
                 }
 
+                
                 ::cairo_surface_flush(pSurface);
+                
 
                 // Copy back surface to front surface if it is present
                 if (pRoot != NULL)

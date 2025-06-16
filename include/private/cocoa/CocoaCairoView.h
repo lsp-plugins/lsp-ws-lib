@@ -27,19 +27,15 @@
 
 #ifdef PLATFORM_MACOSX
 
+#include <private/cocoa/CocoaCairoSurface.h>
+
 #import <Cocoa/Cocoa.h>
 
 @interface CocoaCairoView : NSView
-
-    @property (nonatomic, assign) float red;
-    @property (nonatomic, assign) float green;
-    @property (nonatomic, assign) float blue;
-
+    - (CGImageRef)renderCairoImage;
     - (void)triggerRedraw;
-    - (void)drawCricle;
-    - (void)drawTriangle;
-    - (void)randomizeColor;
     - (void)setCursor:(NSCursor *)cursor;
+    - (void)setImage:(cairo_surface_t *)image;
 @end
 
 #endif

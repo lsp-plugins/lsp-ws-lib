@@ -131,11 +131,16 @@ namespace lsp
                     return;
                 
                 event_t ue = {};
+                init_event(&ue);
                 ue.nTime = timestamp_t([nsevent timestamp] * 1000);
+
+                //TODO: implement mouse / keyboard button states
 
                 NSPoint locInWindow = [nsevent locationInWindow];
                 ue.nLeft = locInWindow.x;
-                ue.nTop = locInWindow.y;
+                ue.nTop = target->height() - locInWindow.y;
+
+                //TODO: remove window frame, so 0x0 is left top of client area (internal window content)
 
                 switch (type)
                 {
@@ -256,10 +261,6 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
-                {
-                    sTasksLock.lock();
-                    lsp_finally { sTasksLock.unlock(); };
-                }
                 IDisplay::destroy();
             }
 
@@ -374,7 +375,20 @@ namespace lsp
 
                 return res;
             }
+            
+            status_t CocoaDisplay::get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top)
+            {
+                //TODO: can we detect the screen?
+                ssize_t sw, sh;
+                this->screen_size(0, &sw, &sh);
 
+                NSPoint mouseLocation = [NSEvent mouseLocation];
+                *screen = 0;
+                *left = (size_t)mouseLocation.x;
+                *top = sh - (size_t)mouseLocation.y;
+
+                return STATUS_OK;
+            }
 
         } /* namespace cocoa */
     } /* namespace ws */

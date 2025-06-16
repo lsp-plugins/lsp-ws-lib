@@ -23,11 +23,13 @@
 #ifndef PRIVATE_COCOA_COCOACAIROSURFACE_H_
 #define PRIVATE_COCOA_COCOACAIROSURFACE_H_
 
-#include <lsp-plug.in/ws/version.h>
+#include <lsp-plug.in/common/types.h>
 
 #ifdef PLATFORM_MACOSX
 
-#include <lsp-plug.in/common/types.h>
+#include <CoreGraphics/CoreGraphics.h>
+
+#include <lsp-plug.in/ws/version.h>
 
 #include <private/cocoa/CocoaDisplay.h>
 
@@ -50,8 +52,11 @@ namespace lsp
                     cairo_surface_t        *pSurface;
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
-                    CocoaDisplay           pDisplay;
+                    CocoaDisplay           *pDisplay;
                     CGContextRef           pContext;
+
+                    size_t                  frameWidth;
+                    size_t                  frameHeight;
 
                     float                   fOriginX;
                     float                   fOriginY;
@@ -83,22 +88,32 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
-                            
-                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, CGContextRef context, size_t width, size_t height);
+                    
+                    //explicit CocoaCairoSurface(CocoaDisplay *pDisplay, CGContextRef context, size_t width, size_t height);
+                    //explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
+
+                    //explicit CocoaCairoSurface(CGContextRef context, size_t width, size_t height);
 
                     /** Create image surface
                      *
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, cairo_surface_t *surface, size_t width, size_t height);
+                    //explicit CocoaCairoSurface(CocoaDisplay *pDisplay, cairo_surface_t *surface, size_t width, size_t height);
 
                     /** Create image surface
-                     *
+                     * @param dpy display
                      * @param width surface width
                      * @param height surface height
                      */
                     explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
+
+                    /** Create image surface
+                     *
+                     * @param width surface width
+                     * @param height surface height
+                     */
+                    explicit CocoaCairoSurface(CocoaDisplay *dpy, cairo_surface_t *surface, size_t width, size_t height);
 
                     CocoaCairoSurface(const CocoaCairoSurface &) = delete;
                     CocoaCairoSurface(CocoaCairoSurface &&) = delete;
@@ -115,6 +130,7 @@ namespace lsp
 
                 public:
                     virtual IDisplay *display() override;
+                    cairo_surface_t *get_image_surface();
 
                     virtual ISurface *create(size_t width, size_t height) override;
 

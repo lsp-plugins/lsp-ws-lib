@@ -20,9 +20,11 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <lsp-plug.in/common/types.h>
+
 #ifdef PLATFORM_MACOSX
 
-#include <lsp-plug.in/common/types.h>
+#import <CoreGraphics/CoreGraphics.h>
 
 #include <private/cocoa/CocoaCairoGradient.h>
 
@@ -30,7 +32,7 @@ namespace lsp
 {
     namespace ws
     {
-        namespace x11
+        namespace cocoa
         {
             CocoaCairoGradient::CocoaCairoGradient(const linear_t & params)
             {

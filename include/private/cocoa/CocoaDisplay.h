@@ -77,6 +77,8 @@ namespace lsp
                     bool                        add_window(CocoaWindow *wnd);
                     bool                        remove_window(CocoaWindow *wnd);
 
+                    status_t                    get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
+
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
