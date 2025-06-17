@@ -194,7 +194,7 @@ jobs:
       - name: Update repositories
         run: brew update
       - name: Install dependencies
-        run: brew install make pkgconf valgrind cairo freetype
+        run: brew install make pkgconf cairo freetype
       - uses: actions/checkout@v3
       - name: Configure project
         run: gmake config TEST=1 STRICT=1
@@ -204,9 +204,10 @@ jobs:
         run: gmake VERBOSE=1
       - name: Run unit tests
         run: .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1
-      - name: Run unit tests with memcheck
-        run: |
-          for test in $(.build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --list --suppress); do \
-            echo "***** MEMCHECK $test *****"; \
-            valgrind ${{env.VALGRIND_ARGS}} .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1 --nofork --debug $test; \
-          done
+# Find an alternativ to valgrind
+#      - name: Run unit tests with memcheck
+#        run: |
+#          for test in $(.build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --list --suppress); do \
+#            echo "***** MEMCHECK $test *****"; \
+#            valgrind ${{env.VALGRIND_ARGS}} .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1 --nofork --debug $test; \
+#          done

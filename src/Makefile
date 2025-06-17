@@ -72,15 +72,22 @@ CXX_SRC_EXPORT          = $(call rwildcard, export, *.cpp)
 CXX_SRC_TEST            = $(call rwildcard, test, *.cpp)
 CXX_SRC_NOTEST          =
 CXX_SRC_EXT             =
-CXX_SRC                 = $(CXX_SRC_MAIN)  $(MM_SRC_MAIN) $(CXX_SRC_EXT)
+CXX_SRC                 = $(CXX_SRC_MAIN) $(MM_SRC_MAIN) $(CXX_SRC_EXT)
 
 CXX_OBJ_MAIN            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN))
-MM_OBJ_MAIN 			= $(patsubst %.mm, $(ARTIFACT_BIN)/%.o, $(MM_SRC_MAIN))
+MM_OBJ_MAIN             = $(patsubst %.mm, $(ARTIFACT_BIN)/%.o, $(MM_SRC_MAIN))
 CXX_OBJ_EXPORT          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXPORT))
 CXX_OBJ_TEST            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
 CXX_OBJ_NOTEST          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_NOTEST))
 CXX_OBJ_EXT             = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXT))
-CXX_OBJ                 = $(CXX_OBJ_MAIN) $(MM_OBJ_MAIN) $(CXX_OBJ_EXT)
+
+ifeq ($(PLATFORM),MacOS)
+  # Include objective c (.mm) files only on MacOS
+  CXX_OBJ                 = $(CXX_OBJ_MAIN) $(MM_OBJ_MAIN) $(CXX_OBJ_EXT)
+else
+  CXX_OBJ                 = $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT)
+endif
+
 CXX_OBJ_ALL             = \
   $(CXX_OBJ_MAIN) \
   $(CXX_OBJ_EXPORT) \

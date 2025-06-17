@@ -104,7 +104,7 @@ namespace lsp
                                                 defer:NO];
 
                 pCocoaWindow = window;
-                initNotificationCenter(pCocoaWindow);
+                init_notification_center(pCocoaWindow);
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
                 
@@ -122,7 +122,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void CocoaWindow::initNotificationCenter(NSWindow *window) {
+            void CocoaWindow::init_notification_center(NSWindow *window) {
                 NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
                 [center addObserverForName:NSWindowDidBecomeKeyNotification
