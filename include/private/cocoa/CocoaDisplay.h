@@ -49,6 +49,8 @@ namespace lsp
             {
                 private:
                     friend class CocoaWindow;
+                    size_t                      titleHeight;
+                    size_t                      borderWidth;
 
                 public:
                     // Main loop management
@@ -91,11 +93,17 @@ namespace lsp
                     status_t                    get_pointer_location(size_t *screen, ssize_t *left, ssize_t *top) override;
                     ft::FontManager            *font_manager();
 
+                    size_t                      get_window_title_height();
+                    size_t                      get_window_border_width();
+
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
                     lltl::parray<CocoaWindow>   sTargets;                   // Targets for event delivery
                     lltl::parray<CocoaWindow>   vWindows;                   // All registered windows
+                    virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
+                    void                        get_enviroment_frame_sizes();
+
 
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;

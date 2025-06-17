@@ -32,10 +32,12 @@
 #include <Cocoa/Cocoa.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
+
 #include <private/cocoa/CocoaCairoView.h>
 
 #include <cairo.h>
 #include <cairo-quartz.h>
+
 
 namespace lsp
 {
@@ -85,7 +87,7 @@ namespace lsp
                     cairo_surface_t                *get_image_surface();
                     static bool                     check_click(const btn_event_t *ev);
                     static bool                     check_double_click(const btn_event_t *pe, const btn_event_t *ce);
-                    ISurface                       *create_surface(CocoaDisplay *display, size_t width, size_t height);
+                    ISurface                       *create_surface(CocoaDisplay *display, NSWindow *window, size_t width, size_t height);
                     void                            init_notification_center(NSWindow *window);           // Creates Events UIE_SHOW / UIE_HIDE
                     NSWindowStyleMask               get_ns_style(border_style_t style, size_t wa);      // Maps the border_style_t and actions to NSWindowStyleMask
 
@@ -115,6 +117,8 @@ namespace lsp
 
                     virtual status_t    show() override;
                     virtual status_t    show(IWindow *over) override;
+                    virtual status_t    hide() override;
+                    virtual bool        is_visible() override;
 
                     virtual status_t    get_window_actions(size_t *actions) override;
                     virtual status_t    set_window_actions(size_t actions) override;
@@ -131,6 +135,8 @@ namespace lsp
                     virtual ssize_t     top() override;
                     virtual ssize_t     width() override;
                     virtual ssize_t     height() override;
+
+                    virtual void       *handle() override;
                 /*
                 public:
                     virtual ISurface   *get_surface() override;

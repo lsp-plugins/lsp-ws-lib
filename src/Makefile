@@ -81,11 +81,9 @@ CXX_OBJ_TEST            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST)
 CXX_OBJ_NOTEST          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_NOTEST))
 CXX_OBJ_EXT             = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXT))
 
+CXX_OBJ                 = $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT)
 ifeq ($(PLATFORM),MacOS)
-  # Include objective c (.mm) files only on MacOS
-  CXX_OBJ                 = $(CXX_OBJ_MAIN) $(MM_OBJ_MAIN) $(CXX_OBJ_EXT)
-else
-  CXX_OBJ                 = $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT)
+  CXX_OBJ              += $(MM_OBJ_MAIN)
 endif
 
 CXX_OBJ_ALL             = \
@@ -95,11 +93,7 @@ CXX_OBJ_ALL             = \
   $(CXX_OBJ_TEST) \
   $(CXX_OBJ_NOTEST)
 
-MM_OBJ_ALL             = \
-  $(MM_OBJ_MAIN) \
-  $(CXX_OBJ_EXPORT) \
-  $(CXX_OBJ_EXT) \
-  $(CXX_OBJ_NOTEST)
+MM_OBJ_ALL              = $(MM_OBJ_MAIN) 
 
 ALL_HEADERS             = $(call rwildcard, $(ARTIFACT_INC), *.h)
 

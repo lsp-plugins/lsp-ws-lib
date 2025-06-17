@@ -28,6 +28,7 @@
 #ifdef PLATFORM_MACOSX
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <Cocoa/Cocoa.h>
 
 #include <lsp-plug.in/ws/version.h>
 
@@ -54,10 +55,10 @@ namespace lsp
                     cairo_font_options_t   *pFO;
                     CocoaDisplay           *pDisplay;
                     CGContextRef           pContext;
-
-                    size_t                  frameWidth;
-                    size_t                  frameHeight;
-
+                    NSWindow               *pCocoaWindow;
+                    size_t                  fWidth;
+                    size_t                  fHeight;
+                    
                     float                   fOriginX;
                     float                   fOriginY;
                 #ifdef LSP_DEBUG
@@ -103,10 +104,11 @@ namespace lsp
 
                     /** Create image surface
                      * @param dpy display
+                     * @param wnd window
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
+                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, NSWindow *window, size_t width, size_t height);
 
                     /** Create image surface
                      *

@@ -76,6 +76,7 @@ namespace lsp
             #endif /* USE_LIBFREETYPE */
 
                 pEstimation     = NULL;
+                get_enviroment_frame_sizes();
 
                 return IDisplay::init(argc, argv);
             }
@@ -92,6 +93,32 @@ namespace lsp
                 }
                 
                 return STATUS_OK;
+            }
+
+            void CocoaDisplay::get_enviroment_frame_sizes() {
+                    NSWindow *tempWindow = [[NSWindow alloc]  initWithContentRect:NSMakeRect(0,0,20,20)
+                                                              styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
+                                                              backing:NSBackingStoreBuffered
+                                                              defer:NO];
+
+                    // Get frame and content rect
+                    NSRect fRect = tempWindow.frame;
+                    NSRect cRect = [tempWindow contentRectForFrameRect:fRect];
+
+                    titleHeight = fRect.size.height - cRect.size.height;
+                    borderWidth = fRect.size.width - cRect.size.width;
+
+                    [tempWindow orderOut:nil];
+                    [tempWindow close];
+                    tempWindow = nil;  
+            }
+
+            size_t CocoaDisplay::get_window_title_height() {
+                return titleHeight;
+            }
+
+            size_t CocoaDisplay::get_window_border_width() {
+                return borderWidth;
             }
 
             ft::FontManager *CocoaDisplay::font_manager()
@@ -124,9 +151,6 @@ namespace lsp
                     // Handle internal tasks
                     status_t result = process_pending_tasks(ts);
 
-                    // Cocoa does not need explicit display flush like X11,
-                    // but you could call [NSApp windows] to force layout updates if needed
-
                 #ifdef USE_LIBFREETYPE
                     sFontManager.gc();
                 #endif
@@ -134,6 +158,14 @@ namespace lsp
                     return result;
                 }
                 
+            }
+
+            bool CocoaDisplay::r3d_backend_supported(const r3d::backend_metadata_t *meta)
+            {
+                // CoocaDisplay display supports only offscreen 
+                if (meta->wnd_type == r3d::WND_HANDLE_NONE)
+                    return true;
+                return IDisplay::r3d_backend_supported(meta);
             }
 
             void CocoaDisplay::handle_event(void *event)

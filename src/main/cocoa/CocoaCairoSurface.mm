@@ -36,6 +36,7 @@
 #include <private/cocoa/CocoaCairoGradient.h>
 #include <private/cocoa/CocoaCairoSurface.h>
 #include <private/cocoa/CocoaDisplay.h>
+#include <private/cocoa/CocoaCairoView.h>
 
 namespace lsp
 {
@@ -56,10 +57,13 @@ namespace lsp
                 return CAIRO_ANTIALIAS_DEFAULT;
             }
 
-            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, NSWindow *window, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay        = dpy;
+                pCocoaWindow    = window;
+                fWidth          = width;
+                fHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -76,6 +80,9 @@ namespace lsp
                 ISurface(width, height, ST_SIMILAR)
             {
                 pDisplay        = dpy;
+                pCocoaWindow    = NULL;
+                fWidth          = width;
+                fHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -181,6 +188,10 @@ namespace lsp
             {
                 if (pCR != NULL)
                     return STATUS_BAD_STATE;
+
+                // We have to note fHeight / fWidth for Y flip
+                fWidth = width;
+                fHeight = height;
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
@@ -349,6 +360,10 @@ namespace lsp
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
                 ::cairo_set_tolerance(pCR, 0.5);
 
+                // In Cairo we have also to flip Y for draw from topleft
+                ::cairo_translate(pCR, 0, fHeight);
+                ::cairo_scale(pCR, 1, -1);
+
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
@@ -376,8 +391,17 @@ namespace lsp
                 }
 
                 
+                if (pCocoaWindow != NULL) {
+                    
+                    [[NSNotificationCenter defaultCenter] postNotificationName:@"ForceExpose"
+                                                object:pCocoaWindow
+                                                userInfo:@{@"Surface": [NSValue valueWithPointer: get_image_surface()]}];
+                    
+                    //[[pCocoaWindow contentView] setImage: pSurface]; 
+                    //[[pCocoaWindow contentView] triggerRedraw]; 
+                } 
+
                 ::cairo_surface_flush(pSurface);
-                
 
                 // Copy back surface to front surface if it is present
                 if (pRoot != NULL)

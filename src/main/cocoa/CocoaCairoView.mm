@@ -57,10 +57,29 @@ cairo_surface_t *imageSurface;
         CGContextRestoreGState(context);
 
         CGImageRelease(image);
-    }
-   
+    } 
+
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center postNotificationName:@"RedrawRequest"
+                        object:[self window]];
+    
 }
- 
+
+- (instancetype)initWithFrame:(NSRect)frameRect {
+    self = [super initWithFrame:frameRect];
+    if (self) {
+        NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+        [center addObserverForName:@"ForceExpose"
+                        object:[self window]
+                        queue:[NSOperationQueue mainQueue]
+                        usingBlock:^(NSNotification * _Nonnull note) {
+                            imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
+                        }
+        ];
+    }
+    return self;
+} 
+
 - (CGImageRef)renderCairoImage {
     cairo_surface_flush(imageSurface);
 
@@ -82,6 +101,13 @@ cairo_surface_t *imageSurface;
     return image;
 }
 
+- (void)startRedrawLoop {
+    [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+            target:self
+            selector:@selector(triggerRedraw)
+            userInfo:nil
+            repeats:YES];
+}
 
 // Updates the view
 - (void)triggerRedraw {
