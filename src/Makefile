@@ -67,7 +67,7 @@ ARTIFACT_TARGETS        = $(ARTIFACT_LIB) $(ARTIFACT_SLIB) $(ARTIFACT_PC)
 
 # Source code
 CXX_SRC_MAIN            = $(call rwildcard, main, *.cpp)
-MM_SRC_MAIN  			= $(call rwildcard, main, *.mm)
+MM_SRC_MAIN             = $(call rwildcard, main, *.mm)
 CXX_SRC_EXPORT          = $(call rwildcard, export, *.cpp)
 CXX_SRC_TEST            = $(call rwildcard, test, *.cpp)
 CXX_SRC_NOTEST          =
@@ -83,26 +83,21 @@ CXX_OBJ_EXT             = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXT))
 CXX_OBJ                 = $(CXX_OBJ_MAIN) $(MM_OBJ_MAIN) $(CXX_OBJ_EXT)
 CXX_OBJ_ALL             = \
   $(CXX_OBJ_MAIN) \
-  $(MM_OBJ_MAIN) \
   $(CXX_OBJ_EXPORT) \
   $(CXX_OBJ_EXT) \
   $(CXX_OBJ_TEST) \
   $(CXX_OBJ_NOTEST)
 
+MM_OBJ_ALL             = \
+  $(MM_OBJ_MAIN) \
+  $(CXX_OBJ_EXPORT) \
+  $(CXX_OBJ_EXT) \
+  $(CXX_OBJ_NOTEST)
 
 ALL_HEADERS             = $(call rwildcard, $(ARTIFACT_INC), *.h)
 
-#TODO: Is there a better way to also find .mm files?
-ifeq ($(PLATFORM),MacOS)
-  CXX_FILE = $(shell \
-    if [ -f $(patsubst $(ARTIFACT_BIN)/%.o,%,$(@)).mm ]; then \
-      echo $(patsubst $(ARTIFACT_BIN)/%.o,%,$(@)).mm; \
-    else \
-      echo $(patsubst $(ARTIFACT_BIN)/%.o,%,$(@)).cpp; \
-    fi)
-else
-  CXX_FILE                = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
-endif
+CXX_FILE                = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
+MM_FILE                 = $(patsubst $(ARTIFACT_BIN)/%.o,%.mm, $(@)) 
 
 CXX_HDR_PATHS           = $(foreach hdr,$(ARTIFACT_HEADERS),$(ARTIFACT_INC)/$(hdr))
 CXX_HEADERS             = $(foreach path,$(CXX_HDR_PATHS),$(call rwildcard, $(path), *.h))
@@ -135,7 +130,12 @@ $(CXX_OBJ_ALL):
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(CXX_FILE)"
 	mkdir -p $(dir $@)
 	$($(HOST)CXX) -o $(@) -c $(CXX_FILE) -fPIC $($(HOST)CXXFLAGS) $(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
-	
+
+$(MM_OBJ_ALL):
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(MM_FILE)"
+	mkdir -p $(dir $@)
+	$($(HOST)CXX) -o $(@) -c $(MM_FILE) -fPIC $($(HOST)CXXFLAGS) $(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+
 # Producing large object files
 $(ARTIFACT_OBJ): $(CXX_OBJ)
 	@echo "  $($(HOST)LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ))"
