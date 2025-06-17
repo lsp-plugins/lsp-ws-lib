@@ -92,7 +92,9 @@ namespace lsp
                     return res;
 
                 // Create a window
-                NSRect frame = NSMakeRect(100, 100, 400, 300);
+                ssize_t screenWidth, screenHeight;
+                pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
+                NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth , sSize.nHeight);
                 NSWindow *window = [[NSWindow alloc]
                                     initWithContentRect:frame
                                             styleMask:(NSWindowStyleMaskTitled |
@@ -104,13 +106,18 @@ namespace lsp
                 pCocoaWindow = window;
                 initNotificationCenter(pCocoaWindow);
 
-
                 [pCocoaWindow makeKeyAndOrderFront:nil];
                 
                 // Create a cocoa view and set it to window
                 CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
                 pCocoaView = view;
                 [pCocoaWindow setContentView:pCocoaView];
+
+                set_border_style(BS_SIZEABLE);
+                set_window_actions(WA_ALL);
+                set_mouse_pointer(MP_DEFAULT);
+
+                invalidate();
 
                 return STATUS_OK;
             }
@@ -142,7 +149,6 @@ namespace lsp
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
-                                        lsp_trace("UIE_HIDE");
                                         event_t ue;
                                         init_event(&ue);
                                         ue.nType       = UIE_HIDE;
@@ -150,19 +156,25 @@ namespace lsp
                                     }];
 
                 //TODO: implement all notification events
-                /*
+                
                 [center addObserverForName:NSWindowDidResizeNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
-                                        // Your UIE_HIDE handling here
-                                        //ue->nType = UIE_HIDE;
-                                        lsp_trace("UIE_RESIZE");
+                                        ssize_t screenWidth, screenHeight;
+                                        pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
+                                        NSWindow *nsWindow = note.object;
+                                        NSRect wFrame = [nsWindow frame];
+                                        NSRect cFrame = [[nsWindow contentView] frame];
                                         event_t ue;
                                         init_event(&ue);
                                         ue.nType       = UIE_RESIZE;
+                                        ue.nTop        = screenHeight - wFrame.origin.y - cFrame.size.height;
+                                        ue.nLeft       = wFrame.origin.x;
+                                        ue.nWidth      = cFrame.size.width;
+                                        ue.nHeight     = cFrame.size.height;
                                         handle_event(&ue);
-                                    }]; */
+                                    }];
             }
 
             void CocoaWindow::destroy()
@@ -380,80 +392,74 @@ namespace lsp
             }
 
             //TODO: Translate all Window Border Styles!
-            static NSWindowStyleMask get_ns_style(border_style_t style) {
-                using namespace lsp::ws;
-                switch (style) {
-                    case BS_DIALOG:         return NSWindowStyleMaskTitled;
-                    case BS_SINGLE:         return NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
-                    case BS_NONE:           return NSWindowStyleMaskBorderless;
-                    case BS_POPUP:
-                    case BS_COMBO:
-                    case BS_DROPDOWN:       return NSWindowStyleMaskBorderless;
-                    case BS_SIZEABLE:       return NSWindowStyleMaskTitled | NSWindowStyleMaskResizable |
-                                                NSWindowStyleMaskClosable | NSWindowStyleMaskMiniaturizable;
-                    default:                return NSWindowStyleMaskTitled;
+            NSWindowStyleMask CocoaWindow::get_ns_style(border_style_t style, size_t wa) {
+                NSUInteger styleMask = NSWindowStyleMaskTitled;
+
+                if (has_parent())
+                {
+                    // Child windows typically don't need special style on macOS
+                    // Possibly NSBorderlessWindowMask if it's not intended to be interactive
+                    styleMask = NSWindowStyleMaskBorderless;
                 }
+                else
+                {
+                    switch (style)
+                    {
+                        case BS_DIALOG:
+                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
+                            break;
+
+                        case BS_SINGLE:
+                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
+                            if (wa & WA_MINIMIZE)
+                                styleMask |= NSWindowStyleMaskMiniaturizable;
+                            if (wa & WA_MAXIMIZE)
+                                styleMask |= NSWindowStyleMaskResizable;
+                            break;
+
+                        case BS_SIZEABLE:
+                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
+                            if (wa & WA_MINIMIZE)
+                                styleMask |= NSWindowStyleMaskMiniaturizable;
+                            if (wa & WA_MAXIMIZE)
+                                styleMask |= NSWindowStyleMaskResizable;
+                            break;
+
+                        case BS_POPUP:
+                        case BS_COMBO:
+                        case BS_DROPDOWN:
+                            styleMask = NSWindowStyleMaskBorderless;
+                            [pCocoaWindow setLevel:NSFloatingWindowLevel];
+                            break;
+
+                        case BS_NONE:
+                        default:
+                            styleMask = NSWindowStyleMaskBorderless;
+                            break;
+                    }
+                }
+
+                return styleMask;
             }
 
-            //TODO: Translate all Window Border Styles!
             status_t CocoaWindow::get_border_style(border_style_t *style) {
                 using namespace lsp::ws;
 
                 if (style == NULL)
                     return STATUS_BAD_ARGUMENTS;
-
                 if (pCocoaWindow == NULL)
                     return STATUS_BAD_STATE;
 
-                NSWindowStyleMask windowStyle = [pCocoaWindow styleMask];
-
-                if (windowStyle & NSWindowStyleMaskResizable)
-                    *style = BS_SIZEABLE;
-
-                if ((windowStyle & NSWindowStyleMaskTitled) &&
-                    (windowStyle & NSWindowStyleMaskClosable) &&
-                    (windowStyle & NSWindowStyleMaskMiniaturizable))
-                    *style = BS_SINGLE;
-
-                if (windowStyle & NSWindowStyleMaskTitled)
-                    *style = BS_DIALOG;
-
-                if (windowStyle == NSWindowStyleMaskBorderless)
-                    *style = BS_NONE;
-
-                // You may differentiate further if needed
-                return STATUS_OK;;
+                *style    = enBorderStyle;
+                return STATUS_OK;
             }
 
             status_t CocoaWindow::set_border_style(border_style_t style) {
                 if (!pCocoaWindow)
                     return STATUS_BAD_STATE;
 
-                NSWindowStyleMask desiredStyle = get_ns_style(style);
-
-                // Only recreate if style has changed
-                if ([pCocoaWindow styleMask] != desiredStyle) {
-                    NSRect frame = [pCocoaWindow frame];
-                    NSBackingStoreType backing = [pCocoaWindow backingType];
-                    NSString *title = [pCocoaWindow title];
-                    id delegate = [pCocoaWindow delegate];
-                    BOOL isVisible = [pCocoaWindow isVisible];
-
-                    [pCocoaWindow close];  // Dispose the old window
-
-                    pCocoaWindow = [[NSWindow alloc] initWithContentRect:frame
-                                                        styleMask:desiredStyle
-                                                            backing:backing
-                                                            defer:NO];
-                    [pCocoaWindow setTitle:title];
-                    [pCocoaWindow setDelegate:delegate];
-
-                    [pCocoaWindow setContentView:pCocoaView];
-
-                    if (isVisible) {
-                        [pCocoaWindow makeKeyAndOrderFront:nil];
-                    }
-                }
+                enBorderStyle = style;
+                commit_border_style(enBorderStyle, nActions);
 
                 return STATUS_OK;
             }
@@ -547,19 +553,13 @@ namespace lsp
 
                 // Calculate the frame rect from the content rect
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
-                NSRect contentRect = NSMakeRect(sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                ssize_t screenWidth, screenHeight;
+                pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
+                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth , sSize.nHeight);
                 NSRect frameRect = [pCocoaWindow frameRectForContentRect:contentRect];
 
-                
-                // macOS coordinates start from bottom-left, so we may need to flip Y if using a fixed origin
-                NSScreen* screen = [pCocoaWindow screen];
-                if (screen) {
-                    NSRect frame = [screen frame];
-                    CGFloat screenHeight = frame.size.height;
-                    frameRect.origin.y = screenHeight - frameRect.origin.y - frameRect.size.height;
-                }
-
                 [pCocoaWindow setFrame:frameRect display:YES animate:NO];
+
                 return STATUS_OK;
             }
 
@@ -577,7 +577,9 @@ namespace lsp
                 transientParent = nil;
 
                 if (!has_parent()) {
-                    NSRect frame = NSMakeRect(sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                    ssize_t screenWidth, screenHeight;
+                    pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
+                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth , sSize.nHeight);
                     [pCocoaWindow setFrame:frame display:NO];
                 } 
 
@@ -619,59 +621,13 @@ namespace lsp
                 [pCocoaWindow makeKeyAndOrderFront:nil];
             }
 
-            //TODO: Map all needed styles
             status_t CocoaWindow::commit_border_style(border_style_t bs, size_t wa)
             {
                 if (pCocoaWindow == nil)
                     return STATUS_BAD_STATE;
 
-                NSUInteger styleMask = NSWindowStyleMaskTitled;
-
-                if (has_parent())
-                {
-                    // Child windows typically don't need special style on macOS
-                    // Possibly NSBorderlessWindowMask if it's not intended to be interactive
-                    styleMask = NSWindowStyleMaskBorderless;
-                }
-                else
-                {
-                    switch (bs)
-                    {
-                        case BS_DIALOG:
-                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
-                            break;
-
-                        case BS_SINGLE:
-                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable;
-                            if (wa & WA_MINIMIZE)
-                                styleMask |= NSWindowStyleMaskMiniaturizable;
-                            if (wa & WA_MAXIMIZE)
-                                styleMask |= NSWindowStyleMaskResizable;
-                            break;
-
-                        case BS_SIZEABLE:
-                            styleMask = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable;
-                            if (wa & WA_MINIMIZE)
-                                styleMask |= NSWindowStyleMaskMiniaturizable;
-                            if (wa & WA_MAXIMIZE)
-                                styleMask |= NSWindowStyleMaskResizable;
-                            break;
-
-                        case BS_POPUP:
-                        case BS_COMBO:
-                        case BS_DROPDOWN:
-                            styleMask = NSWindowStyleMaskBorderless;
-                            [pCocoaWindow setLevel:NSFloatingWindowLevel];
-                            break;
-
-                        case BS_NONE:
-                        default:
-                            styleMask = NSWindowStyleMaskBorderless;
-                            break;
-                    }
-                }
-
-                [pCocoaWindow setStyleMask:styleMask];
+                NSWindowStyleMask desiredStyle = get_ns_style(bs, wa);
+                [pCocoaWindow setStyleMask:desiredStyle];
 
                 return STATUS_OK;
             }
@@ -694,11 +650,12 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 NSRect frame = [pCocoaWindow frame]; // Frame in screen coordinates
+                NSRect cFrame = [[pCocoaWindow contentView] frame];
 
                 realize->nLeft   = static_cast<ssize_t>(frame.origin.x);
                 realize->nTop    = static_cast<ssize_t>(frame.origin.y);
-                realize->nWidth  = static_cast<ssize_t>(frame.size.width);
-                realize->nHeight = static_cast<ssize_t>(frame.size.height);
+                realize->nWidth  = static_cast<ssize_t>(cFrame.size.width);
+                realize->nHeight = static_cast<ssize_t>(cFrame.size.height);
 
                 return STATUS_OK;
             }
@@ -736,7 +693,6 @@ namespace lsp
 
                     case UIE_REDRAW:
                     {
-                        //Redraw event 
                         break;
                     }
 

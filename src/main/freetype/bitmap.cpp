@@ -30,8 +30,11 @@
 
 #ifdef USE_LIBCAIRO
 
-//TODO: IMPORTANT! cairo/cairo.h for linux, cairo.h for MACOS
-#include <cairo.h>
+#ifdef PLATFORM_MACOSX  
+    #include <cairo.h>  
+#else  
+    #include <cairo/cairo.h>  
+#endif /* PLATFORM_MACOSX */  
 
 #endif /* USE_LIBCAIRO */
 

@@ -163,7 +163,7 @@ namespace lsp
                 NSRect cFrame = [[nsWindow contentView] frame];
 
                 ue.nLeft = locInWindow.x;
-                ue.nTop = target->height() - locInWindow.y - (target->height() - cFrame.size.height);
+                ue.nTop = cFrame.size.height - locInWindow.y;
                 //TODO: Is there any problem when the mouse nTop state can negativ?
 
                 switch (type)
@@ -222,6 +222,14 @@ namespace lsp
                         ue.nRawCode = keyCode;
                         ue.nCode = keysym;
                         ue.nState = decode_modifier(nsevent);
+                        break;
+
+                    case NSEventTypeMouseEntered:
+                        ue.nType = UIE_MOUSE_IN;
+                        break;
+
+                    case NSEventTypeMouseExited:
+                        ue.nType = UIE_MOUSE_OUT;
                         break;
 
                     case NSEventTypeFlagsChanged:
@@ -377,10 +385,6 @@ namespace lsp
 
             status_t CocoaDisplay::screen_size(size_t screen, ssize_t *w, ssize_t *h)
             {
-                /*
-                if (screen != default_screen())
-                    return STATUS_BAD_ARGUMENTS; */
-
                 NSScreen *mainScreen = [NSScreen mainScreen];
                 if (mainScreen == nil)
                     return STATUS_UNKNOWN_ERR;

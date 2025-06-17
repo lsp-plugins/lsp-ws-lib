@@ -86,7 +86,8 @@ namespace lsp
                     static bool                     check_click(const btn_event_t *ev);
                     static bool                     check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     ISurface                       *create_surface(CocoaDisplay *display, size_t width, size_t height);
-                    void                            initNotificationCenter(NSWindow *window); // Creates Events UIE_SHOW / UIE_HIDE
+                    void                            initNotificationCenter(NSWindow *window);           // Creates Events UIE_SHOW / UIE_HIDE
+                    NSWindowStyleMask               get_ns_style(border_style_t style, size_t wa);      // Maps the border_style_t and actions to NSWindowStyleMask
 
                 public:
                     NSWindow *nswindow() const;

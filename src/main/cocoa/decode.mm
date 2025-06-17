@@ -72,6 +72,7 @@ namespace lsp
                 DC(NSEventModifierFlagControl,  MCF_CONTROL);
                 DC(NSEventModifierFlagOption,   MCF_ALT);
                 DC(NSEventModifierFlagCommand,  MCF_META);
+                DC(NSEventModifierFlagCapsLock, MCF_LOCK);
                 //TODO: implement more flags?
 
                 #undef DC

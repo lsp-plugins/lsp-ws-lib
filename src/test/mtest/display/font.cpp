@@ -45,7 +45,6 @@ MTEST_BEGIN("ws.display", font)
                 {
                     case ws::UIE_REDRAW:
                     {
-                        lsp_trace("HERWE!");
                         Color c(0.0f, 0.5f, 0.75f);
                         ws::ISurface *s = pWnd->get_surface();
                         if (s == NULL)
