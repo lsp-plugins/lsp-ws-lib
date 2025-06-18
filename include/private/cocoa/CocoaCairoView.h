@@ -37,6 +37,7 @@
     - (void)setCursor:(NSCursor *)cursor;
     - (void)setImage:(cairo_surface_t *)image;
     - (void)startRedrawLoop;
+    - (void)stopRedrawLoop;
 @end
 
 #endif

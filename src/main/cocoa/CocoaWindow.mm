@@ -112,7 +112,6 @@ namespace lsp
                 CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
                 pCocoaView = view;
                 [pCocoaWindow setContentView:pCocoaView];
-                [pCocoaView startRedrawLoop];
 
                 set_border_style(BS_SIZEABLE);
                 set_window_actions(WA_ALL);
@@ -146,6 +145,9 @@ namespace lsp
                                         handle_event(&ue);
                                     }];
 
+
+
+
                 [center addObserverForName:NSWindowDidMiniaturizeNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
@@ -154,6 +156,17 @@ namespace lsp
                                         event_t ue;
                                         init_event(&ue);
                                         ue.nType       = UIE_HIDE;
+                                        handle_event(&ue);
+                                    }];
+
+                [center addObserverForName:NSWindowDidDeminiaturizeNotification
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        lsp_trace("UIE_SHOW");
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_SHOW;
                                         handle_event(&ue);
                                     }];
 
@@ -612,7 +625,7 @@ namespace lsp
 
                 // Simulate missing show event
                 event_t ue;
-                init_event(&ue);;
+                init_event(&ue);
                 ue.nType       = UIE_SHOW;
                 handle_event(&ue);
 
@@ -732,6 +745,8 @@ namespace lsp
 
                         drop_surface();
                         pSurface = create_surface(pCocoaDisplay, pCocoaWindow, sSize.nWidth, sSize.nHeight);
+
+                        [pCocoaView startRedrawLoop];
                         break;
                     }
 
@@ -740,6 +755,7 @@ namespace lsp
                         bVisible = false;
                         //if (bWrapper) break;
 
+                        [pCocoaView stopRedrawLoop];
                         drop_surface();
                         break;
                     }

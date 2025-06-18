@@ -62,8 +62,8 @@ namespace lsp
             {
                 pDisplay        = dpy;
                 pCocoaWindow    = window;
-                fWidth          = width;
-                fHeight         = height;
+                nWidth          = width;
+                nHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -81,8 +81,8 @@ namespace lsp
             {
                 pDisplay        = dpy;
                 pCocoaWindow    = NULL;
-                fWidth          = width;
-                fHeight         = height;
+                nWidth          = width;
+                nHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -188,10 +188,6 @@ namespace lsp
             {
                 if (pCR != NULL)
                     return STATUS_BAD_STATE;
-
-                // We have to note fHeight / fWidth for Y flip
-                fWidth = width;
-                fHeight = height;
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
@@ -361,7 +357,7 @@ namespace lsp
                 ::cairo_set_tolerance(pCR, 0.5);
 
                 // In Cairo we have also to flip Y for draw from topleft
-                ::cairo_translate(pCR, 0, fHeight);
+                ::cairo_translate(pCR, 0, nHeight);
                 ::cairo_scale(pCR, 1, -1);
 
             #ifdef LSP_DEBUG

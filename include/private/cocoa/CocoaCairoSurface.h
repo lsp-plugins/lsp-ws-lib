@@ -56,8 +56,6 @@ namespace lsp
                     CocoaDisplay           *pDisplay;
                     CGContextRef           pContext;
                     NSWindow               *pCocoaWindow;
-                    size_t                  fWidth;
-                    size_t                  fHeight;
                     
                     float                   fOriginX;
                     float                   fOriginY;

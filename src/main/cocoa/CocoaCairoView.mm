@@ -36,11 +36,14 @@
 @implementation CocoaCairoView
 
 cairo_surface_t *imageSurface;
+NSTimer *_redrawTimer;
+bool needsRedrawing = false;
 
 // We need an overloaded objective c - NSView Class for Rendering, drawRect is triggered on create/update
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
 
+    needsRedrawing = false;
     if (imageSurface != NULL) {
         // Get current CGContext
         CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
@@ -74,6 +77,7 @@ cairo_surface_t *imageSurface;
                         queue:[NSOperationQueue mainQueue]
                         usingBlock:^(NSNotification * _Nonnull note) {
                             imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
+                            needsRedrawing = true;
                         }
         ];
     }
@@ -101,17 +105,25 @@ cairo_surface_t *imageSurface;
     return image;
 }
 
+// Starts the redraw loop
 - (void)startRedrawLoop {
-    [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
-            target:self
-            selector:@selector(triggerRedraw)
-            userInfo:nil
-            repeats:YES];
+    _redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+                            target:self
+                            selector:@selector(triggerRedraw)
+                            userInfo:nil
+                            repeats:YES];
+}
+
+// Stops the redraw loop
+- (void)stopRedrawLoop {
+    [_redrawTimer invalidate]; 
+    _redrawTimer = nil;
 }
 
 // Updates the view
 - (void)triggerRedraw {
-    [self setNeedsDisplay:YES];
+    if (needsRedrawing)
+        [self setNeedsDisplay:YES];
 }
 
 // Sets the cairo image
