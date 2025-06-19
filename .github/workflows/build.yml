@@ -197,7 +197,7 @@ jobs:
         run: brew install make pkgconf cairo freetype
       - uses: actions/checkout@v3
       - name: Configure project
-        run: gmake config TEST=1 STRICT=1
+        run: gmake config TEST=1 STRICT=1 DEBUG=1 ASAN=1
       - name: Fetch project dependencies
         run: gmake fetch
       - name: Build project
