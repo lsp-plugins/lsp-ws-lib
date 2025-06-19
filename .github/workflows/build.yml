@@ -204,10 +204,9 @@ jobs:
         run: gmake VERBOSE=1
       - name: Run unit tests
         run: .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1
-# Find an alternativ to valgrind
-#      - name: Run unit tests with memcheck
-#        run: |
-#          for test in $(.build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --list --suppress); do \
-#            echo "***** MEMCHECK $test *****"; \
-#            valgrind ${{env.VALGRIND_ARGS}} .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1 --nofork --debug $test; \
-#          done
+      - name: Run unit tests with memcheck
+        run: |
+          for test in $(.build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --list --suppress); do \
+            echo "***** MEMCHECK $test *****"; \
+            .build/target/${{env.ARTIFACT}}/${{env.ARTIFACT}}-test utest --verbose --jobs 1 --nofork --debug $test; \
+          done
