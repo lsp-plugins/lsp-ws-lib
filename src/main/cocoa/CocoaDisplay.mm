@@ -134,12 +134,16 @@ namespace lsp
                 // Here, any queued Cocoa events already handled via sendEvent.
                 // Use this to do your own rendering / app logic.
                 @autoreleasepool {
-                    // Process all pending Cocoa events
                     NSEvent *event;
-                    while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
-                                                    untilDate:[NSDate distantPast]
-                                                        inMode:NSDefaultRunLoopMode
-                                                        dequeue:YES]))
+                    while (
+                        (
+                            event = [NSApp  nextEventMatchingMask:NSEventMaskAny
+                                            untilDate:[NSDate distantPast]
+                                            inMode:NSDefaultRunLoopMode
+                                            dequeue:YES] 
+
+                        )
+                    )
                     {
                         [NSApp sendEvent:event];
                         [NSApp updateWindows];
@@ -350,6 +354,7 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
+  
                 // Destroy font manager
             #ifdef USE_LIBFREETYPE
                 sFontManager.destroy();

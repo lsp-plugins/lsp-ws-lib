@@ -112,6 +112,7 @@ namespace lsp
                 CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
                 pCocoaView = view;
                 [pCocoaWindow setContentView:pCocoaView];
+                [pCocoaView registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
 
                 set_border_style(BS_SIZEABLE);
                 set_window_actions(WA_ALL);
@@ -178,6 +179,28 @@ namespace lsp
                                         event_t ue;
                                         init_event(&ue);
                                         ue.nType       = UIE_CLOSE;
+                                        handle_event(&ue);
+                                    }];
+
+                [center addObserverForName:@"DragEnter"
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        lsp_trace("UIE_DRAG_ENTER");
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_DRAG_ENTER;
+                                        handle_event(&ue);
+                                    }];
+
+                [center addObserverForName:@"DragExit"
+                                    object:window
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        lsp_trace("UIE_DRAG_LEAVE");
+                                        event_t ue;
+                                        init_event(&ue);
+                                        ue.nType       = UIE_DRAG_LEAVE;
                                         handle_event(&ue);
                                     }];
 

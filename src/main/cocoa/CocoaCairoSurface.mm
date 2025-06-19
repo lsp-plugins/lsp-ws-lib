@@ -62,8 +62,6 @@ namespace lsp
             {
                 pDisplay        = dpy;
                 pCocoaWindow    = window;
-                nWidth          = width;
-                nHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -81,8 +79,6 @@ namespace lsp
             {
                 pDisplay        = dpy;
                 pCocoaWindow    = NULL;
-                nWidth          = width;
-                nHeight         = height;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;

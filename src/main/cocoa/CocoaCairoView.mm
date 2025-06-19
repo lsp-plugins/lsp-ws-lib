@@ -36,7 +36,7 @@
 @implementation CocoaCairoView
 
 cairo_surface_t *imageSurface;
-NSTimer *_redrawTimer;
+NSTimer *redrawTimer;
 bool needsRedrawing = false;
 
 // We need an overloaded objective c - NSView Class for Rendering, drawRect is triggered on create/update
@@ -107,17 +107,30 @@ bool needsRedrawing = false;
 
 // Starts the redraw loop
 - (void)startRedrawLoop {
-    _redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+    if (redrawTimer == nil) {
+        redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
                             target:self
                             selector:@selector(triggerRedraw)
                             userInfo:nil
                             repeats:YES];
+    }
 }
 
 // Stops the redraw loop
 - (void)stopRedrawLoop {
-    [_redrawTimer invalidate]; 
-    _redrawTimer = nil;
+    if (redrawTimer != nil) {
+        [redrawTimer invalidate]; 
+        redrawTimer = nil;
+    }
+
+}
+
+// Destructor
+- (void)dealloc {
+    [super dealloc];
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self stopRedrawLoop];
 }
 
 // Updates the view
@@ -135,6 +148,42 @@ bool needsRedrawing = false;
 - (void)setCursor:(NSCursor *)cursor {
     [self addCursorRect:[self bounds] cursor: cursor];
 }
+
+//TODO: Finish drag and drop, only a draft
+- (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center postNotificationName:@"DragEnter"
+                        object:[self window]];
+    return NSDragOperationCopy; 
+}
+
+- (void)draggingExited:(id<NSDraggingInfo>)sender {
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center postNotificationName:@"DragExit"
+                        object:[self window]];
+}
+
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
+    return NSDragOperationCopy;
+}
+
+- (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
+    NSPasteboard *pboard = [sender draggingPasteboard];
+    if ([[pboard types] containsObject:NSPasteboardTypeFileURL]) {
+        NSArray<NSURL *> *files = [pboard   readObjectsForClasses:@[[NSURL class]]
+                                            options:@{NSPasteboardURLReadingFileURLsOnlyKey: @YES}];
+        for (NSURL *url in files) {
+            NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+            [center postNotificationName:@"DragDroped"
+                     object:[self window]
+                     userInfo:@{@"URL": url.path}];
+        }
+        return YES;
+    }
+    return NO;
+}
+
+
 
 @end
 
