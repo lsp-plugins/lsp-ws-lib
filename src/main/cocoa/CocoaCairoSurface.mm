@@ -74,7 +74,7 @@ namespace lsp
             #endif 
             }
 
-            X11CairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay        = dpy;
