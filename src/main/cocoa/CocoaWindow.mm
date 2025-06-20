@@ -106,7 +106,7 @@ namespace lsp
                 pCocoaWindow = window;
                 init_notification_center(pCocoaWindow);
 
-                [pCocoaWindow makeKeyAndOrderFront:nil];
+                [pCocoaWindow setIsVisible:NO];
                 
                 // Create a cocoa view and set it to window
                 CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
@@ -645,6 +645,8 @@ namespace lsp
                     [pCocoaWindow setFrame:frame display:NO];
                 } 
 
+                [pCocoaWindow makeKeyAndOrderFront:nil];
+                
                 // Simulate missing show event
                 event_t ue;
                 init_event(&ue);
@@ -829,6 +831,8 @@ namespace lsp
                         {
                             gen = *ev;
                             gen.nType = UIE_MOUSE_CLICK;
+                            gen.nLeft = ev->nLeft;
+                            gen.nTop =  ev->nTop;
 
                             if (check_double_click(&vBtnEvent[1], &vBtnEvent[2]))
                             {
