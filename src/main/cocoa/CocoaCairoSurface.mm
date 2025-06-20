@@ -62,6 +62,7 @@ namespace lsp
             {
                 pDisplay        = dpy;
                 pCocoaWindow    = window;
+                needFlipY       = true;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -78,6 +79,7 @@ namespace lsp
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay        = dpy;
+                needFlipY       = false;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -94,6 +96,7 @@ namespace lsp
                 ISurface(width, height, ST_SIMILAR)
             {
                 pDisplay        = dpy;
+                needFlipY       = false;
                 pCocoaWindow    = NULL;
                 pCR             = NULL;
                 pFO             = NULL;
@@ -240,7 +243,7 @@ namespace lsp
 
                 ::cairo_rectangle(pCR, x, y, sw, sh);
                 ::cairo_clip(pCR);
-
+                
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -250,10 +253,33 @@ namespace lsp
 
                     ::cairo_translate(pCR, x, y);
                     ::cairo_scale(pCR, sx, sy);
+
                     ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
                 }
                 else
                     ::cairo_set_source_surface(pCR, cs->pSurface, x, y);
+                
+                /*
+                if ((sx != 1.0f) || (sy != 1.0f))
+                {
+                    if (sx < 0.0f)
+                        x -= sx * s->width();
+                    if (sy < 0.0f)
+                        y -= sy * s->height();
+
+                    ::cairo_translate(pCR, x, y);
+
+                    ::cairo_translate(pCR, x, y + (sy * s->height()));
+                    ::cairo_scale(pCR, sx, -sy);
+                    ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                }
+                else
+                {
+                    // If scaling is 1, still need to flip Y for Cocoa
+                    ::cairo_translate(pCR, x, y + s->height());
+                    ::cairo_scale(pCR, 1.0f, -1.0f);
+                    ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                } */
 
                 // Draw the surface
                 if (a > 0.0f)
@@ -278,6 +304,7 @@ namespace lsp
                 ::cairo_translate(pCR, x, y);
                 ::cairo_scale(pCR, sx, sy);
                 ::cairo_rotate(pCR, ra);
+
                 ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
                 if (a > 0.0f)
                     ::cairo_paint_with_alpha(pCR, 1.0f - a);
@@ -329,6 +356,7 @@ namespace lsp
                 ::cairo_save(pCR);
                 lsp_finally { ::cairo_restore(pCR); };
 
+                
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -368,9 +396,11 @@ namespace lsp
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
                 ::cairo_set_tolerance(pCR, 0.5);
 
-                // In Cairo we have also to flip Y for draw from topleft
-                ::cairo_translate(pCR, 0, nHeight);
-                ::cairo_scale(pCR, 1, -1);
+                // In CairoView/Window we have also to flip Y for draw from topleft
+                if (needFlipY) {
+                    ::cairo_translate(pCR, 0, nHeight);
+                    ::cairo_scale(pCR, 1, -1);
+                }
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;

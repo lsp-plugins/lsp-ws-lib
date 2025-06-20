@@ -56,6 +56,7 @@ namespace lsp
                     CocoaDisplay           *pDisplay;
                     CGContextRef           pContext;
                     NSWindow               *pCocoaWindow;
+                    bool                   needFlipY;
                     
                     float                   fOriginX;
                     float                   fOriginY;
@@ -108,7 +109,7 @@ namespace lsp
                      */
                     explicit CocoaCairoSurface(CocoaDisplay *pDisplay, NSWindow *window, size_t width, size_t height);
                     explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
-                    
+
                     /** Create image surface
                      *
                      * @param width surface width
