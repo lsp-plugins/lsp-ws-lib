@@ -567,9 +567,10 @@ namespace lsp
                     dst->nWidth = sConstraints.nMinWidth;
                 if ((sConstraints.nMinHeight >= 0) && (dst->nHeight < sConstraints.nMinHeight))
                     dst->nHeight = sConstraints.nMinHeight;
+
+                lsp_trace("minW=%d, minH=%d, maxW=%d, maxH=%d", int(sConstraints.nMinWidth), int(sConstraints.nMinHeight), int(sConstraints.nMaxWidth), int(sConstraints.nMaxHeight));
             }
 
-            //TODO: Fix it for cocoa!!
             status_t CocoaWindow::set_size_constraints(const size_limit_t *c)
             {
                 sConstraints    = *c;
@@ -578,14 +579,12 @@ namespace lsp
                 if (sConstraints.nMinHeight == 0)
                     sConstraints.nMinHeight = 1;
 
-                ws::rectangle_t new_size;
-                apply_constraints(&new_size, &sSize);
+                // Apply constrains to Cocoa Window
+                [pCocoaWindow setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
+                [pCocoaWindow setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
                 lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
-                sSize.nWidth = sConstraints.nMaxWidth;
-                sSize.nHeight = sConstraints.nMaxHeight;
-
-                return set_geometry_impl();
+                return set_geometry(&sSize);
             }
 
             status_t CocoaWindow::get_size_constraints(size_limit_t *c)

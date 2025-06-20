@@ -37,11 +37,16 @@
 
 cairo_surface_t *imageSurface;
 NSTimer *redrawTimer;
+NSCursor *nextCursor;
 bool needsRedrawing = false;
 
 // We need an overloaded objective c - NSView Class for Rendering, drawRect is triggered on create/update
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
+
+    if (nextCursor != NULL) {
+        [self addCursorRect:[self bounds] cursor: nextCursor];
+    }
 
     needsRedrawing = false;
     if (imageSurface != NULL) {
@@ -146,7 +151,7 @@ bool needsRedrawing = false;
 
 // Sets the cursor in window
 - (void)setCursor:(NSCursor *)cursor {
-    [self addCursorRect:[self bounds] cursor: cursor];
+    nextCursor = cursor;
 }
 
 //TODO: Finish drag and drop, only a draft
@@ -169,6 +174,7 @@ bool needsRedrawing = false;
 
 - (BOOL)performDragOperation:(id<NSDraggingInfo>)sender {
     NSPasteboard *pboard = [sender draggingPasteboard];
+
     if ([[pboard types] containsObject:NSPasteboardTypeFileURL]) {
         NSArray<NSURL *> *files = [pboard   readObjectsForClasses:@[[NSURL class]]
                                             options:@{NSPasteboardURLReadingFileURLsOnlyKey: @YES}];
@@ -176,7 +182,10 @@ bool needsRedrawing = false;
             NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
             [center postNotificationName:@"DragDroped"
                      object:[self window]
-                     userInfo:@{@"URL": url.path}];
+                     userInfo:@{
+                        @"URL": url.path
+                    }
+            ];
         }
         return YES;
     }
