@@ -11,3 +11,4 @@
 /Release/
 /DebugWin/
 /DebugLinux/
+.vscode/settings.json
