@@ -74,6 +74,22 @@ namespace lsp
             #endif 
             }
 
+            X11CairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
+                ISurface(width, height, ST_IMAGE)
+            {
+                pDisplay        = dpy;
+                pCR             = NULL;
+                pFO             = NULL;
+                pRoot           = NULL;
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                fOriginX        = 0.0f;
+                fOriginY        = 0.0f;
+
+            #ifdef LSP_DEBUG
+                nNumClips       = 0;
+            #endif /* LSP_DEBUG */
+            }
+
             CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, cairo_surface_t *surface, size_t width, size_t height):
                 ISurface(width, height, ST_SIMILAR)
             {

@@ -107,7 +107,8 @@ namespace lsp
                      * @param height surface height
                      */
                     explicit CocoaCairoSurface(CocoaDisplay *pDisplay, NSWindow *window, size_t width, size_t height);
-
+                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
+                    
                     /** Create image surface
                      *
                      * @param width surface width

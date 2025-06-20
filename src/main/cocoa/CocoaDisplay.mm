@@ -75,8 +75,12 @@ namespace lsp
                 }
             #endif /* USE_LIBFREETYPE */
 
-                pEstimation     = NULL;
                 get_enviroment_frame_sizes();
+
+                // Create estimation surface
+                pEstimation     = new CocoaCairoSurface(this, 1, 1);
+                if (pEstimation == NULL)
+                    return STATUS_NO_MEM;
 
                 return IDisplay::init(argc, argv);
             }
