@@ -31,7 +31,7 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface CocoaCairoView : NSView
+@interface CocoaCairoView : NSView 
     - (CGImageRef)renderCairoImage;
     - (void)triggerRedraw;
     - (void)setCursor:(NSCursor *)cursor;

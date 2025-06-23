@@ -44,6 +44,8 @@ bool needsRedrawing = false;
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
 
+    NSLog(@"Content view: %@", self);
+
     if (nextCursor != NULL) {
         [self addCursorRect:[self bounds] cursor: nextCursor];
     }
@@ -69,20 +71,24 @@ bool needsRedrawing = false;
 
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center postNotificationName:@"RedrawRequest"
-                        object:[self window]];
+                        object:self];
     
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
+        lsp_trace("Register event for view: %p", self);
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
         [center addObserverForName:@"ForceExpose"
-                        object:[self window]
+                        object:self
                         queue:[NSOperationQueue mainQueue]
                         usingBlock:^(NSNotification * _Nonnull note) {
-                            imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
-                            needsRedrawing = true;
+                            if ([note.userInfo[@"Surface"] pointerValue] != nil) {
+                                lsp_trace("Update Surface!");
+                                imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
+                                needsRedrawing = true;
+                            }
                         }
         ];
     }
@@ -112,6 +118,8 @@ bool needsRedrawing = false;
 
 // Starts the redraw loop
 - (void)startRedrawLoop {
+    lsp_trace("Trigger timer start!");
+
     if (redrawTimer == nil) {
         redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
                             target:self

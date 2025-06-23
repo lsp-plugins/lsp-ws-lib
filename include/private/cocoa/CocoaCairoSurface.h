@@ -38,6 +38,13 @@
 #include <lsp-plug.in/ws/IGradient.h>
 #include <lsp-plug.in/ws/ISurface.h>
 
+//#include <private/cocoa/CocoaCairoView.h>
+#ifdef __OBJC__
+@class CocoaCairoView;
+#else
+typedef struct CocoaCairoView CocoaCairoView;
+#endif
+
 #include <cairo.h>
 
 namespace lsp
@@ -55,9 +62,8 @@ namespace lsp
                     cairo_font_options_t   *pFO;
                     CocoaDisplay           *pDisplay;
                     CGContextRef           pContext;
-                    NSWindow               *pCocoaWindow;
-                    bool                   needFlipY;
-                    
+                    CocoaCairoView         *pCocoaView;
+
                     float                   fOriginX;
                     float                   fOriginY;
                 #ifdef LSP_DEBUG
@@ -107,7 +113,7 @@ namespace lsp
                      * @param width surface width
                      * @param height surface height
                      */
-                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, NSWindow *window, size_t width, size_t height);
+                    explicit CocoaCairoSurface(CocoaDisplay *pDisplay, CocoaCairoView *view, size_t width, size_t height);
                     explicit CocoaCairoSurface(CocoaDisplay *pDisplay, size_t width, size_t height);
 
                     /** Create image surface

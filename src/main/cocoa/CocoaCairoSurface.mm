@@ -57,12 +57,12 @@ namespace lsp
                 return CAIRO_ANTIALIAS_DEFAULT;
             }
 
-            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, NSWindow *window, size_t width, size_t height):
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, CocoaCairoView *view, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
+                lsp_trace("Surface %p constructed with view %p", this, view);
                 pDisplay        = dpy;
-                pCocoaWindow    = window;
-                needFlipY       = true;
+                pCocoaView      = view;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -79,7 +79,6 @@ namespace lsp
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay        = dpy;
-                needFlipY       = false;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -96,8 +95,7 @@ namespace lsp
                 ISurface(width, height, ST_SIMILAR)
             {
                 pDisplay        = dpy;
-                needFlipY       = false;
-                pCocoaWindow    = NULL;
+                pCocoaView      = NULL;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -191,6 +189,9 @@ namespace lsp
 
             void CocoaCairoSurface::destroy()
             {
+                if (pCocoaView != NULL) {
+                    [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
+                }
                 destroy_context(true);
             }
 
@@ -380,6 +381,7 @@ namespace lsp
 
             void CocoaCairoSurface::begin()
             {
+                lsp_trace("Surface %p begin, pCocoaView=%p", this, pCocoaView);
                 // Force end() call
                 end();
 
@@ -397,7 +399,7 @@ namespace lsp
                 ::cairo_set_tolerance(pCR, 0.5);
 
                 // In CairoView/Window we have also to flip Y for draw from topleft
-                if (needFlipY) {
+                if (pCocoaView) {
                     ::cairo_translate(pCR, 0, nHeight);
                     ::cairo_scale(pCR, 1, -1);
                 }
@@ -428,16 +430,22 @@ namespace lsp
                     pCR             = NULL;
                 }
 
-                
-                if (pCocoaWindow != NULL) {
-                    
-                    [[NSNotificationCenter defaultCenter] postNotificationName:@"ForceExpose"
-                                                object:pCocoaWindow
-                                                userInfo:@{@"Surface": [NSValue valueWithPointer: get_image_surface()]}];
-                    
-                    //[[pCocoaWindow contentView] setImage: pSurface]; 
-                    //[[pCocoaWindow contentView] triggerRedraw]; 
-                } 
+                lsp_trace("Before autoreleasepool: %p", pCocoaView);
+                @autoreleasepool {
+                    if (pCocoaView != NULL) {
+                        cairo_surface_t *exposeSurface = get_image_surface();
+
+                        if (exposeSurface != NULL) {
+                            lsp_trace("Surface %p end, Send event for pCocoaView=%p", this, pCocoaView);
+                            [[NSNotificationCenter defaultCenter] postNotificationName:@"ForceExpose"
+                                                        object:pCocoaView
+                                                        userInfo:@{@"Surface": [NSValue valueWithPointer: exposeSurface]}];
+                        }
+                        
+                        //[[pCocoaWindow contentView] setImage: pSurface]; 
+                        //[[pCocoaWindow contentView] triggerRedraw]; 
+                    } 
+                }
 
                 ::cairo_surface_flush(pSurface);
 

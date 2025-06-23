@@ -62,9 +62,13 @@ namespace lsp
 
             status_t CocoaDisplay::init(int argc, const char **argv)
             {
-                [NSApplication sharedApplication];
-                [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
-                [NSApp activateIgnoringOtherApps:YES];
+                if (NSApp == NULL) {
+                    [NSApplication sharedApplication];
+                    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+                    [NSApp activateIgnoringOtherApps:YES];
+                    standaloneApp = true;
+                } else 
+                    standaloneApp = false;
 
                 // Initialize font manager
             #ifdef USE_LIBFREETYPE
@@ -213,15 +217,16 @@ namespace lsp
                     case NSEventTypeOtherMouseDown:
                         ue.nType = UIE_MOUSE_DOWN;
                         ue.nCode = decode_mcb(nsevent);
-                        ue.nState = decode_modifier(nsevent);
+                        lastMouseButton = decode_modifier(nsevent);
+                        //ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeLeftMouseUp:
                     case NSEventTypeRightMouseUp:
                     case NSEventTypeOtherMouseUp:
                         ue.nType = UIE_MOUSE_UP;
-                        ue.nCode = decode_mcb(nsevent);
-                        ue.nState = decode_modifier(nsevent);
+                        ue.nCode = decode_mcb(nsevent); //decode_mcb(nsevent);
+                        ue.nState = lastMouseButton;
                         break;
 
                     case NSEventTypeMouseMoved:
@@ -298,22 +303,26 @@ namespace lsp
 
             IWindow *CocoaDisplay::create_window()
             {
-                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                lsp_trace("create_window 1");
+                CocoaWindow *wnd = new CocoaWindow(this, NULL, NULL, false);
                 add_window(wnd);
                 return wnd;
             }
 
             IWindow *CocoaDisplay::create_window(size_t screen)
             {
-                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                lsp_trace("create_window 2");
+                CocoaWindow *wnd = new CocoaWindow(this, NULL, NULL, false);
                 add_window(wnd);
                 return wnd;
             }
 
             IWindow *CocoaDisplay::create_window(void *handle)
             {
+                lsp_trace("create_window 3");
                 lsp_trace("handle = %p", handle);
-                CocoaWindow *wnd = new CocoaWindow(this, NULL, false);
+                //CocoaWindow *wnd = new CocoaWindow(this, NULL, NULL, false);
+                CocoaWindow *wnd = new CocoaWindow(this, (__bridge NSView*)handle, NULL, true);
                 add_window(wnd);
                 return wnd;
             }
@@ -363,6 +372,9 @@ namespace lsp
             #ifdef USE_LIBFREETYPE
                 sFontManager.destroy();
             #endif /* USE_LIBFREETYPE */
+
+                if (standaloneApp)
+                    [NSApp terminate:nil];
 
                 IDisplay::destroy();
             }

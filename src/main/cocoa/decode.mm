@@ -35,11 +35,11 @@ namespace lsp
         {
             mcb_t decode_mcb(NSEvent* event) 
             {
-                NSUInteger button = [event buttonNumber]; // Get mouse button index
-                if (button <= 6) {
-                    return static_cast<mcb_t>(MCB_LEFT + button);  // Direct mapping
-                }
-                return MCB_NONE;
+                NSUInteger mouseButton = [event buttonNumber]; // Get mouse button index
+                if (mouseButton == 0) return MCB_LEFT;
+                else if (mouseButton == 1) return MCB_RIGHT;
+                else if (mouseButton == 2) return MCB_MIDDLE;
+                else return MCB_NONE;
             }
 
             //TODO: do we need to map scroll direction set by user? macos scrolls inverted by default.
@@ -62,6 +62,8 @@ namespace lsp
 
             size_t decode_modifier(NSEvent* event) {
                 NSEventModifierFlags code = [event modifierFlags];
+                NSInteger mouseButton = [event buttonNumber];
+                NSEventType type = [event type];
 
                 size_t result = 0;
                 #define DC(mask, flag)  \
@@ -77,6 +79,13 @@ namespace lsp
 
                 #undef DC
 
+                if (type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown || type == NSEventTypeOtherMouseDown) 
+                {
+                    if (mouseButton == 0) result        |= MCF_LEFT;
+                    else if (mouseButton == 1) result   |= MCF_RIGHT;
+                    else if (mouseButton == 2) result   |= MCF_MIDDLE;
+                }
+                
                 return result;
             }
              

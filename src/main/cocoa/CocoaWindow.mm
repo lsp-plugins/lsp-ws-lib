@@ -57,13 +57,21 @@ namespace lsp
         namespace cocoa
         {
             
-            CocoaWindow::CocoaWindow(CocoaDisplay *dpy, IEventHandler *handler, bool wrapper): ws::IWindow(dpy, handler)
+            CocoaWindow::CocoaWindow(CocoaDisplay *dpy, NSView *view, IEventHandler *handler, bool wrapper): ws::IWindow(dpy, handler)
             {
+                lsp_trace("%zu", wrapper);
+
                 pCocoaDisplay = dpy;
                
                 nActions                = WA_SINGLE;
                 enPointer               = MP_DEFAULT;
                 enState                 = WS_NORMAL;
+
+                bWrapper                = wrapper;
+
+                if (bWrapper) {
+                    pCocoaWindow = [view window];
+                }
 
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
@@ -86,37 +94,72 @@ namespace lsp
 
             status_t CocoaWindow::init()
             {
+
+                lsp_trace("Window init!");
                 // Initialize parent class
                 status_t res = IWindow::init();
                 if (res != STATUS_OK)
                     return res;
 
-                // Create a window
-                ssize_t screenWidth, screenHeight;
-                pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());
-                NSWindow *window = [[NSWindow alloc]
-                                            initWithContentRect:frame
-                                            styleMask:(NSWindowStyleMaskTitled |
-                                                        NSWindowStyleMaskClosable |
-                                                        NSWindowStyleMaskResizable)
-                                            backing:NSBackingStoreBuffered
-                                            defer:NO];
+                if (!bWrapper) {
+                    ssize_t screenWidth, screenHeight;
+                    pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
+                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());    
 
-                pCocoaWindow = window;
-                init_notification_center(pCocoaWindow);
+                    // Create a window
+                    NSWindow *window = [[NSWindow alloc]
+                                                initWithContentRect:frame
+                                                styleMask:(NSWindowStyleMaskTitled |
+                                                            NSWindowStyleMaskClosable |
+                                                            NSWindowStyleMaskResizable)
+                                                backing:NSBackingStoreBuffered
+                                                defer:NO];
 
-                [pCocoaWindow setIsVisible:NO];
+                    pCocoaWindow = window;
+                    [pCocoaWindow setIsVisible:NO];
+
+                    // Create a cocoa view and set it to window
+                    CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
+                    pCocoaView = view;
+                    [pCocoaWindow setContentView:pCocoaView];
+                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+                    [pCocoaView registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
+                    
+                    set_border_style(BS_SIZEABLE);
+                    set_window_actions(WA_ALL);
+                    init_notification_center(pCocoaWindow);
+                    init_notification_center(pCocoaView);
+                } else {
+                    // Host's view is pCocoaView (passed in constructor)
+                    // Create your own drawing view
+                    CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[[pCocoaWindow contentView] bounds]];
+                    [[pCocoaWindow contentView] addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
+                    // Store reference for drawing and events
+                    pCocoaView = wrapperView;
+                    // Optionally, set autoresizing mask
+                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+                    NSLog(@"Subviews: %@", [[pCocoaWindow contentView] subviews]);
+                    lsp_trace("contentView=%p", [pCocoaWindow contentView]);
+                    NSRect bounds = [[pCocoaWindow contentView] bounds];
+                    lsp_trace("contentView bounds: %zu, %zu, %zu, %zu",
+                        bounds.origin.x,
+                        bounds.origin.y,
+                        bounds.size.width,
+                        bounds.size.height);
+
+                    lsp_trace("pCocoaView=%p, pCocoaWindow=%p", pCocoaView, pCocoaWindow);
+                    NSRect viewBounds = [pCocoaView bounds];
+                    lsp_trace("bounds: %zu, %zu, %zu, %zu",
+                        viewBounds.origin.x,
+                        viewBounds.origin.y,
+                        viewBounds.size.width,
+                        viewBounds.size.height);
+                    init_notification_center(pCocoaView);
+                }
+
                 
-                // Create a cocoa view and set it to window
-                CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
-                pCocoaView = view;
-                [pCocoaWindow setContentView:pCocoaView];
-                [pCocoaView registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
-
-                set_border_style(BS_SIZEABLE);
-                set_window_actions(WA_ALL);
                 set_mouse_pointer(MP_DEFAULT);
+                bInvalidate = true;
 
                 return STATUS_OK;
             }
@@ -145,8 +188,6 @@ namespace lsp
                                         ue.nType       = UIE_FOCUS_OUT;
                                         handle_event(&ue);
                                     }];
-
-
 
 
                 [center addObserverForName:NSWindowDidMiniaturizeNotification
@@ -224,22 +265,32 @@ namespace lsp
                                         ue.nHeight     = cFrame.size.height;
                                         handle_event(&ue);
                                     }];
+            }
+
+            void CocoaWindow::init_notification_center(CocoaCairoView *view) {
+                NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
                 [center addObserverForName:@"RedrawRequest"
-                                    object:window
+                                    object:view
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
-                                        event_t ue;
-                                        init_event(&ue);
-                                        ue.nType       = UIE_REDRAW;
-                                        handle_event(&ue);
+                                        if (bInvalidate) {
+                                            event_t ue;
+                                            init_event(&ue);
+                                            ue.nType       = UIE_REDRAW;
+                                            handle_event(&ue);
+                                            bInvalidate = false;
+                                        }
                                     }];
+
             }
 
             void CocoaWindow::destroy()
             {
-                if (pCocoaDisplay != NULL)  
-                    pCocoaDisplay->vWindows.qpremove(this);
+                [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
+
+                hide();
+                drop_surface();
 
                 // Surface related
                 if (pSurface != NULL)
@@ -248,11 +299,12 @@ namespace lsp
                     delete pSurface;
                     pSurface = NULL;
                 }
-                
-                if (pCocoaWindow != NULL)
-                    [pCocoaWindow close];
 
-                [NSApp terminate:nil];
+                if (pCocoaDisplay != NULL)  
+                    pCocoaDisplay->vWindows.qpremove(this);
+                
+                if (!bWrapper && pCocoaWindow != NULL)
+                    [pCocoaWindow close];
                 
                 pCocoaDisplay = NULL;
                 IWindow::destroy();
@@ -262,14 +314,14 @@ namespace lsp
                 return pCocoaWindow;
             }
 
-            ISurface *CocoaWindow::create_surface(CocoaDisplay *display, NSWindow *window, size_t width, size_t height)
+            ISurface *CocoaWindow::create_surface(CocoaDisplay *display, CocoaCairoView *view, size_t width, size_t height)
             {
                 ISurface *result = NULL;
 
                 if (result == NULL)
                 {
                     
-                    result = new CocoaCairoSurface(display, window, width, height);
+                    result = new CocoaCairoSurface(display, view, width, height);
                     if (result != NULL)
                         lsp_trace("Using CocoaCairoSurface ptr=%p", result);
                 }
@@ -282,7 +334,9 @@ namespace lsp
                 if (pSurface == NULL)
                     return STATUS_BAD_STATE;
 
-                /*
+                bInvalidate = true;
+
+                
                 event_t ue;
                 init_event(&ue);
 
@@ -293,7 +347,7 @@ namespace lsp
                 ue.nHeight     = sSize.nHeight;
 
                 handle_event(&ue);
-               */ 
+               
 /*
                 NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
                 [center postNotificationName:@"RedrawRequest"
@@ -310,6 +364,10 @@ namespace lsp
 
             ISurface *CocoaWindow::get_surface()
             {
+                /*
+                if(bWrapper)
+                    return NULL;
+                */
                 if (pSurface != NULL)
                     return pSurface;
 
@@ -365,7 +423,7 @@ namespace lsp
                     case MP_IBEAM:        return [NSCursor IBeamCursor];
                     case MP_PLUS:
                     case MP_CROSS:        return [NSCursor crosshairCursor];
-                    case MP_HAND:         return [NSCursor openHandCursor];
+                    case MP_HAND:         return [NSCursor pointingHandCursor];
                     case MP_SIZE_NS:      return [NSCursor resizeUpDownCursor];
                     case MP_SIZE_WE:      return [NSCursor resizeLeftRightCursor];
                     default:              return [NSCursor arrowCursor]; // Fallback to default cursor
@@ -408,6 +466,7 @@ namespace lsp
                 if (!title)
                     return STATUS_NO_MEM;
 
+                lsp_trace("%s, %p", caption->get_utf8(), pCocoaWindow);
                 [pCocoaWindow setTitle:title];
                 return STATUS_OK;
             }
@@ -549,6 +608,11 @@ namespace lsp
                 return STATUS_OK;
             }
 
+            NSWindow* CocoaWindow::get_window_handler() 
+            {
+                return pCocoaWindow;
+            }
+
             status_t CocoaWindow::resize(ssize_t width, ssize_t height) {
                 rectangle_t rect = sSize;
                 rect.nWidth = width;
@@ -580,8 +644,10 @@ namespace lsp
                     sConstraints.nMinHeight = 1;
 
                 // Apply constrains to Cocoa Window
-                [pCocoaWindow setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
-                [pCocoaWindow setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
+                if (pCocoaWindow != NULL) {
+                    [pCocoaWindow setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
+                    [pCocoaWindow setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
+                }
                 lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 return set_geometry(&sSize);
@@ -617,11 +683,12 @@ namespace lsp
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
-                NSRect frameRect = [pCocoaWindow frameRectForContentRect:contentRect];
+                if (pCocoaWindow != NULL) {
+                    NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
+                    NSRect frameRect = [pCocoaWindow frameRectForContentRect:contentRect];
 
-                [pCocoaWindow setFrame:frameRect display:YES animate:NO];
-
+                    [pCocoaWindow setFrame:frameRect display:YES animate:NO];
+                }
                 return STATUS_OK;
             }
 
@@ -646,7 +713,7 @@ namespace lsp
                 } 
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
-                
+
                 // Simulate missing show event
                 event_t ue;
                 init_event(&ue);
@@ -684,11 +751,13 @@ namespace lsp
             }
 
             void CocoaWindow::place_above(NSWindow *parent) {
+                lsp_trace("place_above");
+
                 if (!pCocoaWindow || !parent)
                     return;
 
                 [parent addChildWindow:pCocoaWindow ordered:NSWindowAbove];
-                [pCocoaWindow makeKeyAndOrderFront:nil];
+                //[pCocoaWindow makeKeyAndOrderFront:nil];
             }
 
             status_t CocoaWindow::hide()
@@ -747,7 +816,7 @@ namespace lsp
 
             void *CocoaWindow::handle()
             {   
-                return reinterpret_cast<void *>(pCocoaWindow);
+                return (__bridge void*)pCocoaView;
             }
 
             //TODO: we need to map all events, and handle create_surface
@@ -768,7 +837,7 @@ namespace lsp
                         //if (bWrapper) break;
 
                         drop_surface();
-                        pSurface = create_surface(pCocoaDisplay, pCocoaWindow, sSize.nWidth, sSize.nHeight);
+                        pSurface = create_surface(pCocoaDisplay, pCocoaView, sSize.nWidth, sSize.nHeight);
 
                         [pCocoaView startRedrawLoop];
                         break;

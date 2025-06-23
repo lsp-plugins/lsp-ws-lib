@@ -78,6 +78,7 @@ namespace lsp
                     bool                            bMouseInside;       // Flag that indicates that mouse is inside of the window
                     bool                            bWrapper;           // Indicates that window is a wrapper
                     bool                            bVisible;           // Indicates that window is visible
+                    bool                            bInvalidate;        // Indicates that window is invalidate
                     btn_event_t                     vBtnEvent[3];   // Events for detecting double click and triple click
                     
                     status_t                        set_geometry_impl();
@@ -87,14 +88,15 @@ namespace lsp
                     cairo_surface_t                *get_image_surface();
                     static bool                     check_click(const btn_event_t *ev);
                     static bool                     check_double_click(const btn_event_t *pe, const btn_event_t *ce);
-                    ISurface                       *create_surface(CocoaDisplay *display, NSWindow *window, size_t width, size_t height);
-                    void                            init_notification_center(NSWindow *window);           // Creates Events UIE_SHOW / UIE_HIDE
+                    ISurface                       *create_surface(CocoaDisplay *display, CocoaCairoView *view, size_t width, size_t height);
+                    void                            init_notification_center(NSWindow *window);               //Creates Events UIE_SHOW / UIE_HIDE
+                    void                            init_notification_center(CocoaCairoView *view);           // Creates Events UIE_SHOW / UIE_HIDE
                     NSWindowStyleMask               get_ns_style(border_style_t style, size_t wa);      // Maps the border_style_t and actions to NSWindowStyleMask
 
                 public:
                     NSWindow *nswindow() const;
 
-                    explicit CocoaWindow(CocoaDisplay *dpy, IEventHandler *handler, bool wrapper);
+                    explicit CocoaWindow(CocoaDisplay *dpy, NSView *view, IEventHandler *handler, bool wrapper);
                     virtual ~CocoaWindow();
 
                     virtual status_t    init() override;
@@ -137,6 +139,7 @@ namespace lsp
                     virtual ssize_t     height() override;
 
                     virtual void       *handle() override;
+                    NSWindow           *get_window_handler();
                 /*
                 public:
                     virtual ISurface   *get_surface() override;

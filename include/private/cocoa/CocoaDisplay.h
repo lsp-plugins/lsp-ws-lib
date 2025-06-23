@@ -51,6 +51,7 @@ namespace lsp
                     friend class CocoaWindow;
                     size_t                      titleHeight;
                     size_t                      borderWidth;
+                    bool                        standaloneApp;
 
                 public:
                     // Main loop management
@@ -101,6 +102,7 @@ namespace lsp
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
                     lltl::parray<CocoaWindow>   sTargets;                   // Targets for event delivery
                     lltl::parray<CocoaWindow>   vWindows;                   // All registered windows
+                    size_t                      lastMouseButton;            
                     virtual bool                r3d_backend_supported(const r3d::backend_metadata_t *meta) override;
                     void                        get_enviroment_frame_sizes();
 
