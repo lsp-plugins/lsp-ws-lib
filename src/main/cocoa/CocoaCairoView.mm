@@ -35,23 +35,18 @@
 
 @implementation CocoaCairoView
 
-cairo_surface_t *imageSurface;
-NSTimer *redrawTimer;
-NSCursor *nextCursor;
-bool needsRedrawing = false;
-
 // We need an overloaded objective c - NSView Class for Rendering, drawRect is triggered on create/update
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
 
     NSLog(@"Content view: %@", self);
 
-    if (nextCursor != NULL) {
-        [self addCursorRect:[self bounds] cursor: nextCursor];
+    if (self->_nextCursor != NULL) {
+        [self addCursorRect:[self bounds] cursor: self->_nextCursor];
     }
 
-    needsRedrawing = false;
-    if (imageSurface != NULL) {
+    self->_needsRedrawing = false;
+    if (self->_imageSurface != NULL) {
         // Get current CGContext
         CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
         CGImageRef image = [self renderCairoImage];
@@ -86,8 +81,8 @@ bool needsRedrawing = false;
                         usingBlock:^(NSNotification * _Nonnull note) {
                             if ([note.userInfo[@"Surface"] pointerValue] != nil) {
                                 lsp_trace("Update Surface!");
-                                imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
-                                needsRedrawing = true;
+                                self->_imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
+                                self->_needsRedrawing = true;
                             }
                         }
         ];
@@ -96,12 +91,12 @@ bool needsRedrawing = false;
 } 
 
 - (CGImageRef)renderCairoImage {
-    cairo_surface_flush(imageSurface);
+    cairo_surface_flush(self->_imageSurface);
 
-    unsigned char *data = cairo_image_surface_get_data(imageSurface);
-    int width = cairo_image_surface_get_width(imageSurface);
-    int height = cairo_image_surface_get_height(imageSurface);
-    int stride = cairo_image_surface_get_stride(imageSurface);
+    unsigned char *data = cairo_image_surface_get_data(self->_imageSurface);
+    int width = cairo_image_surface_get_width(self->_imageSurface);
+    int height = cairo_image_surface_get_height(self->_imageSurface);
+    int stride = cairo_image_surface_get_stride(self->_imageSurface);
 
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     CGBitmapInfo bitmapInfo = kCGBitmapByteOrder32Host | kCGImageAlphaPremultipliedFirst;
@@ -120,8 +115,8 @@ bool needsRedrawing = false;
 - (void)startRedrawLoop {
     lsp_trace("Trigger timer start!");
 
-    if (redrawTimer == nil) {
-        redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+    if (self->_redrawTimer == nil) {
+        self->_redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
                             target:self
                             selector:@selector(triggerRedraw)
                             userInfo:nil
@@ -131,9 +126,9 @@ bool needsRedrawing = false;
 
 // Stops the redraw loop
 - (void)stopRedrawLoop {
-    if (redrawTimer != nil) {
-        [redrawTimer invalidate]; 
-        redrawTimer = nil;
+    if (self->_redrawTimer != nil) {
+        [self->_redrawTimer invalidate]; 
+        self->_redrawTimer = nil;
     }
 
 }
@@ -142,24 +137,24 @@ bool needsRedrawing = false;
 - (void)dealloc {
     [super dealloc];
 
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self stopRedrawLoop];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 // Updates the view
 - (void)triggerRedraw {
-    if (needsRedrawing)
+    if (self->_needsRedrawing)
         [self setNeedsDisplay:YES];
 }
 
 // Sets the cairo image
 - (void)setImage:(cairo_surface_t *)image {
-    imageSurface = image;
+    self->_imageSurface = image;
 }
 
 // Sets the cursor in window
 - (void)setCursor:(NSCursor *)cursor {
-    nextCursor = cursor;
+    self->_nextCursor = cursor;
 }
 
 //TODO: Finish drag and drop, only a draft

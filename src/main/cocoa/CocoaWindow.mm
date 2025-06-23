@@ -130,30 +130,11 @@ namespace lsp
                     init_notification_center(pCocoaWindow);
                     init_notification_center(pCocoaView);
                 } else {
-                    // Host's view is pCocoaView (passed in constructor)
-                    // Create your own drawing view
                     CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[[pCocoaWindow contentView] bounds]];
                     [[pCocoaWindow contentView] addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
-                    // Store reference for drawing and events
                     pCocoaView = wrapperView;
-                    // Optionally, set autoresizing mask
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-                    NSLog(@"Subviews: %@", [[pCocoaWindow contentView] subviews]);
-                    lsp_trace("contentView=%p", [pCocoaWindow contentView]);
-                    NSRect bounds = [[pCocoaWindow contentView] bounds];
-                    lsp_trace("contentView bounds: %zu, %zu, %zu, %zu",
-                        bounds.origin.x,
-                        bounds.origin.y,
-                        bounds.size.width,
-                        bounds.size.height);
-
-                    lsp_trace("pCocoaView=%p, pCocoaWindow=%p", pCocoaView, pCocoaWindow);
-                    NSRect viewBounds = [pCocoaView bounds];
-                    lsp_trace("bounds: %zu, %zu, %zu, %zu",
-                        viewBounds.origin.x,
-                        viewBounds.origin.y,
-                        viewBounds.size.width,
-                        viewBounds.size.height);
+                    
                     init_notification_center(pCocoaView);
                 }
 
@@ -287,7 +268,10 @@ namespace lsp
 
             void CocoaWindow::destroy()
             {
-                [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
+                if (bWrapper)
+                    [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
+                else
+                    [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
 
                 hide();
                 drop_surface();

@@ -218,7 +218,7 @@ namespace lsp
                         ue.nType = UIE_MOUSE_DOWN;
                         ue.nCode = decode_mcb(nsevent);
                         lastMouseButton = decode_modifier(nsevent);
-                        //ue.nState = decode_modifier(nsevent);
+                        ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeLeftMouseUp:
@@ -226,7 +226,8 @@ namespace lsp
                     case NSEventTypeOtherMouseUp:
                         ue.nType = UIE_MOUSE_UP;
                         ue.nCode = decode_mcb(nsevent); //decode_mcb(nsevent);
-                        ue.nState = lastMouseButton;
+                        ue.nState = decode_modifier(nsevent);
+                        //ue.nState = lastMouseButton;
                         break;
 
                     case NSEventTypeMouseMoved:

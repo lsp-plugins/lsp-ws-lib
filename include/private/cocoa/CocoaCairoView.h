@@ -32,6 +32,12 @@
 #import <Cocoa/Cocoa.h>
 
 @interface CocoaCairoView : NSView 
+
+    @property (assign) cairo_surface_t *imageSurface;
+    @property (strong) NSTimer *redrawTimer;
+    @property (strong) NSCursor *nextCursor;
+    @property (assign) bool needsRedrawing;
+
     - (CGImageRef)renderCairoImage;
     - (void)triggerRedraw;
     - (void)setCursor:(NSCursor *)cursor;
