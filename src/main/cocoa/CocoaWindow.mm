@@ -720,7 +720,8 @@ namespace lsp
                 transientParent = nil;
 
                 if (over != nullptr) {
-                    transientParent = (__bridge NSWindow *)(over->handle());
+                    NSView *view = (__bridge NSView *)(over->handle());
+                    transientParent = [view window];
                     [pCocoaWindow setLevel:NSFloatingWindowLevel];
                     [pCocoaWindow setParentWindow:transientParent];
                 }
@@ -730,6 +731,12 @@ namespace lsp
                 }
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
+
+                // Simulate missing show event
+                event_t ue;
+                init_event(&ue);
+                ue.nType       = UIE_SHOW;
+                handle_event(&ue);
 
                 return STATUS_OK;
             }
