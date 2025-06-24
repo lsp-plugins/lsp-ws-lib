@@ -37,6 +37,8 @@
     @property (strong) NSTimer *redrawTimer;
     @property (strong) NSCursor *nextCursor;
     @property (assign) bool needsRedrawing;
+    @property (nonatomic, assign) lsp::ws::cocoa::CocoaDisplay *display;
+    @property (assign) NSTrackingArea *trackingArea;
 
     - (CGImageRef)renderCairoImage;
     - (void)triggerRedraw;

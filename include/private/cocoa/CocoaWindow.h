@@ -29,7 +29,9 @@
 
 #ifdef PLATFORM_MACOSX
 
+#include <vector>
 #include <Cocoa/Cocoa.h>
+#include <Foundation/Foundation.h>
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
 
@@ -56,7 +58,9 @@ namespace lsp
                     CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
-                    void place_above(NSWindow *parent);
+                    void                place_above(NSWindow *parent);
+                    std::vector<id>     windowObserverTokens; 
+                    std::vector<id>     viewObserverTokens; 
                 
                 protected:
                     typedef struct btn_event_t

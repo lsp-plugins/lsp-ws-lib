@@ -96,7 +96,8 @@ namespace lsp
 
                     size_t                      get_window_title_height();
                     size_t                      get_window_border_width();
-
+                    void                        handle_event(void *event);
+                    
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
@@ -114,7 +115,6 @@ namespace lsp
                     
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
-                    void                        handle_event(void *event);
                     CocoaWindow                 *find_window(void *wnd);
 
             };

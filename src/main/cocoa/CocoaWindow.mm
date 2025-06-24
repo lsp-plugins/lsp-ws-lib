@@ -120,10 +120,12 @@ namespace lsp
 
                     // Create a cocoa view and set it to window
                     CocoaCairoView *view = [[CocoaCairoView alloc] initWithFrame:frame];
+                    view.display = pCocoaDisplay;
                     pCocoaView = view;
                     [pCocoaWindow setContentView:pCocoaView];
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
                     [pCocoaView registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
+                    [pCocoaWindow makeFirstResponder:pCocoaView];
                     
                     set_border_style(BS_SIZEABLE);
                     set_window_actions(WA_ALL);
@@ -132,8 +134,10 @@ namespace lsp
                 } else {
                     CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[[pCocoaWindow contentView] bounds]];
                     [[pCocoaWindow contentView] addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
+                    wrapperView.display = pCocoaDisplay;
                     pCocoaView = wrapperView;
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+                    [pCocoaWindow makeFirstResponder:pCocoaView];
                     
                     init_notification_center(pCocoaView);
                 }
@@ -148,7 +152,7 @@ namespace lsp
             void CocoaWindow::init_notification_center(NSWindow *window) {
                 NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
-                [center addObserverForName:NSWindowDidBecomeKeyNotification
+                id didBecomeKeyNotificationToken = [center addObserverForName:NSWindowDidBecomeKeyNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -158,8 +162,9 @@ namespace lsp
                                         ue.nType       = UIE_FOCUS_IN;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(didBecomeKeyNotificationToken);
 
-                [center addObserverForName:NSWindowDidResignKeyNotification
+                id didResignKeyNotificationToken = [center addObserverForName:NSWindowDidResignKeyNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -169,9 +174,9 @@ namespace lsp
                                         ue.nType       = UIE_FOCUS_OUT;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(didResignKeyNotificationToken);
 
-
-                [center addObserverForName:NSWindowDidMiniaturizeNotification
+                id didMiniaturizeNotificationToken = [center addObserverForName:NSWindowDidMiniaturizeNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -181,8 +186,9 @@ namespace lsp
                                         ue.nType       = UIE_HIDE;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(didMiniaturizeNotificationToken);
 
-                [center addObserverForName:NSWindowDidDeminiaturizeNotification
+                id didDeminiaturizeNotificationToken = [center addObserverForName:NSWindowDidDeminiaturizeNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -192,8 +198,9 @@ namespace lsp
                                         ue.nType       = UIE_SHOW;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(didDeminiaturizeNotificationToken);
 
-                [center addObserverForName:NSWindowWillCloseNotification
+                id willCloseNotificationToken = [center addObserverForName:NSWindowWillCloseNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -203,8 +210,9 @@ namespace lsp
                                         ue.nType       = UIE_CLOSE;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(willCloseNotificationToken);
 
-                [center addObserverForName:@"DragEnter"
+                id dragEnterToken = [center addObserverForName:@"DragEnter"
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -214,8 +222,9 @@ namespace lsp
                                         ue.nType       = UIE_DRAG_ENTER;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(dragEnterToken);
 
-                [center addObserverForName:@"DragExit"
+                id dragExitToken = [center addObserverForName:@"DragExit"
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -225,10 +234,11 @@ namespace lsp
                                         ue.nType       = UIE_DRAG_LEAVE;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(dragExitToken);
 
                 //TODO: implement all notification events
                 
-                [center addObserverForName:NSWindowDidResizeNotification
+                id didResizeNotificationToken = [center addObserverForName:NSWindowDidResizeNotification
                                     object:window
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -246,12 +256,13 @@ namespace lsp
                                         ue.nHeight     = cFrame.size.height;
                                         handle_event(&ue);
                                     }];
+                windowObserverTokens.push_back(didResizeNotificationToken);
             }
 
             void CocoaWindow::init_notification_center(CocoaCairoView *view) {
                 NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
-                [center addObserverForName:@"RedrawRequest"
+                id redrawRequestToken = [center addObserverForName:@"RedrawRequest"
                                     object:view
                                     queue:[NSOperationQueue mainQueue]
                                     usingBlock:^(NSNotification *note) {
@@ -263,16 +274,34 @@ namespace lsp
                                             bInvalidate = false;
                                         }
                                     }];
+                viewObserverTokens.push_back(redrawRequestToken);
 
             }
 
             void CocoaWindow::destroy()
             {
-                if (bWrapper)
+                if (bWrapper) {
+                    for (id token : viewObserverTokens) {
+                        [[NSNotificationCenter defaultCenter] removeObserver:token];
+                    }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
+                    viewObserverTokens.clear();
+                }
                 else
+                {
+                    for (id token : windowObserverTokens) {
+                        [[NSNotificationCenter defaultCenter] removeObserver:token];
+                    }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
+                    windowObserverTokens.clear();
+                }
 
+                if ([pCocoaView superview]) {
+                    [pCocoaView removeFromSuperview];
+                    [pCocoaView release];
+                    pCocoaView = NULL;
+                }
+                    
                 hide();
                 drop_surface();
 
@@ -690,6 +719,7 @@ namespace lsp
                 transientParent = nil;
 
                 if (!has_parent()) {
+                    lsp_trace("!has_parent");
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
                     NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());

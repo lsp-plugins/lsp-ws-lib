@@ -62,11 +62,14 @@
         CGContextRestoreGState(context);
 
         CGImageRelease(image);
-    } 
 
+        cairo_surface_destroy(self->_imageSurface);
+        self->_imageSurface = NULL;
+    } 
+    
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center postNotificationName:@"RedrawRequest"
-                        object:self];
+            object:self];
     
 }
 
@@ -76,15 +79,15 @@
         lsp_trace("Register event for view: %p", self);
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
         [center addObserverForName:@"ForceExpose"
-                        object:self
-                        queue:[NSOperationQueue mainQueue]
-                        usingBlock:^(NSNotification * _Nonnull note) {
-                            if ([note.userInfo[@"Surface"] pointerValue] != nil) {
-                                lsp_trace("Update Surface!");
-                                self->_imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
-                                self->_needsRedrawing = true;
-                            }
-                        }
+                object:self
+                queue:[NSOperationQueue mainQueue]
+                usingBlock:^(NSNotification * _Nonnull note) {
+                    if ([note.userInfo[@"Surface"] pointerValue] != nil) {
+                        lsp_trace("Update Surface!");
+                        self->_imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
+                        self->_needsRedrawing = true;
+                    }
+                }
         ];
     }
     return self;
@@ -116,11 +119,11 @@
     lsp_trace("Trigger timer start!");
 
     if (self->_redrawTimer == nil) {
-        self->_redrawTimer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
-                            target:self
-                            selector:@selector(triggerRedraw)
-                            userInfo:nil
-                            repeats:YES];
+        self->_redrawTimer = [NSTimer   scheduledTimerWithTimeInterval:(1.0/60.0)
+                                        target:self
+                                        selector:@selector(triggerRedraw)
+                                        userInfo:nil
+                                        repeats:YES];
     }
 }
 
@@ -135,10 +138,15 @@
 
 // Destructor
 - (void)dealloc {
-    [super dealloc];
-
     [self stopRedrawLoop];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+
+    if (self.trackingArea) {
+        [self removeTrackingArea:self.trackingArea];
+        self.trackingArea = nil;
+    }
+    self.display = nullptr;
+    [super dealloc];
 }
 
 // Updates the view
@@ -161,14 +169,15 @@
 - (NSDragOperation)draggingEntered:(id<NSDraggingInfo>)sender {
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center postNotificationName:@"DragEnter"
-                        object:[self window]];
+            object:[self window]];
+
     return NSDragOperationCopy; 
 }
 
 - (void)draggingExited:(id<NSDraggingInfo>)sender {
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center postNotificationName:@"DragExit"
-                        object:[self window]];
+            object:[self window]];
 }
 
 - (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender {
@@ -184,8 +193,8 @@
         for (NSURL *url in files) {
             NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
             [center postNotificationName:@"DragDroped"
-                     object:[self window]
-                     userInfo:@{
+                    object:[self window]
+                    userInfo:@{
                         @"URL": url.path
                     }
             ];
@@ -195,7 +204,101 @@
     return NO;
 }
 
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (self.trackingArea) {
+        [self removeTrackingArea:self.trackingArea];
+    }
+    NSTrackingArea *area = [[NSTrackingArea alloc]  initWithRect:self.bounds
+                                                    options:
+                                                        NSTrackingMouseEnteredAndExited |
+                                                        NSTrackingActiveInActiveApp |
+                                                        NSTrackingInVisibleRect |
+                                                        NSTrackingMouseMoved |
+                                                        NSTrackingEnabledDuringMouseDrag
+                                                    owner:self
+                                                    userInfo:nil];
+    [self addTrackingArea:area];
+    self.trackingArea = area;
+}
 
+- (void)mouseDown:(NSEvent *)event {
+    lsp_trace("Mouse down event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)rightMouseDown:(NSEvent *)event {
+    lsp_trace("Mouse (right) down event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)otherMouseDown:(NSEvent *)event {
+    lsp_trace("Mouse (other) down event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)mouseUp:(NSEvent *)event {
+    lsp_trace("Mouse up event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)rightMouseUp:(NSEvent *)event {
+    lsp_trace("Mouse (right) up event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)otherMouseUp:(NSEvent *)event {
+    lsp_trace("Mouse (other) up event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)mouseMoved:(NSEvent *)event {
+    lsp_trace("Mouse moved event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)mouseDragged:(NSEvent *)event {
+    lsp_trace("Mouse dragged event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    lsp_trace("Mouse enterd event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    lsp_trace("Mouse exited event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)scrollWheel:(NSEvent *)event {
+    lsp_trace("Mouse scroll event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)keyDown:(NSEvent *)event {
+    lsp_trace("Key down event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
+
+- (void)keyUp:(NSEvent *)event {
+    lsp_trace("Key up event in CocoaCairoView: %p", self);
+    if (self.display)
+        self.display->handle_event(event);
+}
 
 @end
 

@@ -142,22 +142,24 @@ namespace lsp
                 // Here, any queued Cocoa events already handled via sendEvent.
                 // Use this to do your own rendering / app logic.
                 @autoreleasepool {
-                    NSEvent *event;
-                    while (
-                        (
-                            event = [NSApp  nextEventMatchingMask:NSEventMaskAny
-                                            untilDate:[NSDate distantPast]
-                                            inMode:NSDefaultRunLoopMode
-                                            dequeue:YES] 
+                    if (standaloneApp) {
+                        NSEvent *event;
+                        while (
+                            (
+                                event = [NSApp  nextEventMatchingMask:NSEventMaskAny
+                                                untilDate:[NSDate distantPast]
+                                                inMode:NSDefaultRunLoopMode
+                                                dequeue:YES] 
 
+                            )
                         )
-                    )
-                    {
-                        [NSApp sendEvent:event];
-                        [NSApp updateWindows];
+                        {
+                            [NSApp sendEvent:event];
+                            [NSApp updateWindows];
 
-                        //Dispatch to custom handler
-                        handle_event(event);
+                            //Dispatch to custom handler
+                            //handle_event(event);
+                        } 
                     }
 
                     // Handle internal tasks
@@ -204,10 +206,12 @@ namespace lsp
                 unichar keysym = 0;
 
                 NSPoint locInWindow = [nsevent locationInWindow];
-                NSRect cFrame = [[nsWindow contentView] frame];
+                NSView *targetView = [[nsWindow contentView] hitTest:locInWindow];
+                NSPoint locInView = [targetView convertPoint:locInWindow fromView:nil];
+                NSRect cFrame = [targetView frame];
 
-                ue.nLeft = locInWindow.x;
-                ue.nTop = cFrame.size.height - locInWindow.y;
+                ue.nLeft = locInView.x;
+                ue.nTop = cFrame.size.height - locInView.y;
                 //TODO: Is there any problem when the mouse nTop state can negativ?
 
                 switch (type)
@@ -218,7 +222,7 @@ namespace lsp
                         ue.nType = UIE_MOUSE_DOWN;
                         ue.nCode = decode_mcb(nsevent);
                         lastMouseButton = decode_modifier(nsevent);
-                        ue.nState = decode_modifier(nsevent);
+                        //ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeLeftMouseUp:
@@ -227,7 +231,8 @@ namespace lsp
                         ue.nType = UIE_MOUSE_UP;
                         ue.nCode = decode_mcb(nsevent); //decode_mcb(nsevent);
                         ue.nState = decode_modifier(nsevent);
-                        //ue.nState = lastMouseButton;
+                        ue.nState = lastMouseButton;
+                        lastMouseButton = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeMouseMoved:
@@ -235,7 +240,8 @@ namespace lsp
                     case NSEventTypeRightMouseDragged:
                     case NSEventTypeOtherMouseDragged:
                         ue.nType = UIE_MOUSE_MOVE;
-                        ue.nState = decode_modifier(nsevent);
+                        ue.nState = lastMouseButton;
+                        //ue.nState = decode_modifier(nsevent);
                         break;
 
                     case NSEventTypeScrollWheel:
