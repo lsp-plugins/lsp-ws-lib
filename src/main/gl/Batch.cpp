@@ -730,6 +730,71 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::hrectangle_fan(uint32_t v0i, uint32_t count)
+            {
+                const ssize_t index     = alloc_indices(count * 6, v0i + count*2 + 1);
+                if (index < 0)
+                    return index;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    uint32_t *dst   = &buf.u32[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint32_t p1   = v0i + 1;
+                        const uint32_t p2   = v0i + 2;
+
+                        dst[0]          = v0i;
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = v0i + 3;
+
+                        v0i            += 2;
+                    }
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    uint16_t *dst   = &buf.u16[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint16_t p1   = uint16_t(v0i + 1);
+                        const uint16_t p2   = uint16_t(v0i + 2);
+
+                        dst[0]          = uint16_t(v0i);
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = uint16_t(v0i + 3);
+
+                        v0i            += 2;
+                    }
+                }
+                else
+                {
+                    uint8_t *dst    = &buf.u8[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint8_t p1    = uint8_t(v0i + 1);
+                        const uint8_t p2    = uint8_t(v0i + 2);
+
+                        dst[0]          = uint8_t(v0i);
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = uint8_t(v0i + 3);
+
+                        v0i            += 2;
+                    }
+                }
+
+                return index;
+            }
+
             ssize_t Batch::rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
             {
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));

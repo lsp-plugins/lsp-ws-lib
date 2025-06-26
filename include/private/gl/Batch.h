@@ -206,6 +206,14 @@ namespace lsp
                     ssize_t hrectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
 
                     /**
+                     * Add indices that generate rectangle fan chain
+                     * @param v0i index of the first vertex
+                     * @param count number of rectangles
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t hrectangle_fan(uint32_t v0i, uint32_t count);
+
+                    /**
                      * Add command
                      * @param count length of command in 32-bit floats
                      * @param buf pointer to store the pointer to the beginning of the buffer
