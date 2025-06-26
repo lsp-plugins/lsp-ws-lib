@@ -688,6 +688,48 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::htriangle_fan(uint32_t v0i, uint32_t count)
+            {
+                const ssize_t index     = alloc_indices(count * 3, v0i + count + 2);
+                if (index < 0)
+                    return index;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                uint32_t v1i            = v0i + 1;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    uint32_t *dst   = &buf.u32[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = v0i;
+                        dst[1]          = v1i;
+                        dst[2]          = ++v1i;
+                    }
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    uint16_t *dst   = &buf.u16[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = uint16_t(v0i);
+                        dst[1]          = uint16_t(v1i);
+                        dst[2]          = uint16_t(++v1i);
+                    }
+                }
+                else
+                {
+                    uint8_t *dst    = &buf.u8[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = uint8_t(v0i);
+                        dst[1]          = uint8_t(v1i);
+                        dst[2]          = uint8_t(++v1i);
+                    }
+                }
+
+                return index;
+            }
+
             ssize_t Batch::rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
             {
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
