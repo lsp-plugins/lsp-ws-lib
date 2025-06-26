@@ -575,13 +575,13 @@ namespace lsp
                 vertex_t *v         = sBatch.add_vertices(n);
                 if (v == NULL)
                     return;
-                vertex_t *v_end     = &v[n];
+                vertex_t * const v_end  = &v[n];
                 lsp_finally {
                     if (v < v_end)
                         sBatch.release_vertices(v_end - v);
                 };
 
-                void *iv_raw    = sBatch.add_indices((n-2) * 3, v0i + n);
+                void *iv_raw    = sBatch.add_indices((n-2) * 3, v0i + n - 1);
                 if (iv_raw == NULL)
                     return;
 
@@ -651,33 +651,93 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const size_t count  = M_PI * 2.0f / phi;
 
-                // Fill batch
-                float vx = r;
-                float vy = 0.0f;
-
+                // Allocate resources
+                const size_t n      = count + 3;
                 const uint32_t v0i  = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(count + 3);
+                vertex_t *v         = sBatch.add_vertices(n);
                 if (v == NULL)
                     return;
+                vertex_t * const v_end  = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((count + 1) * 3, v0i + n - 1);
+                if (iv_raw == NULL)
+                    return;
+
+                // Generate the geometry
+                float vx = r;
+                float vy = 0.0f;
 
                 uint32_t v1i        = v0i + 1;
                 ADD_VERTEX(v, ci, x, y);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
-                for (size_t i=0; i<count; ++i)
+                switch (sBatch.index_format())
                 {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (size_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
 
-                    ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + r, y);
+                        ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (size_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + r, y);
+                        ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (size_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + r, y);
+                        ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                        break;
+                    }
                 }
-
-                ADD_VERTEX(v, ci, x + r, y);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2)
@@ -696,33 +756,93 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Generate the geometry
-                float vx            = cosf(a1) * r;
-                float vy            = sinf(a1) * r;
-
+                // Allocate resources
+                const size_t n      = count + 3;
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count + 3);
                 if (v == NULL)
                     return;
+                vertex_t * const v_end  = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((count + 1) * 3, v0i + n - 1);
+                if (iv_raw == NULL)
+                    return;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
 
                 uint32_t v1i        = v0i + 1;
                 ADD_VERTEX(v, ci, x, y);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
-                for (ssize_t i=0; i<count; ++i)
+                switch (sBatch.index_format())
                 {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
 
-                    ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                        break;
+                    }
                 }
-
-                ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_textured_sector(uint32_t ci, const texcoord_t & tex, float x, float y, float r, float a1, float a2)
@@ -741,14 +861,25 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Generate the geometry
-                float vx            = cosf(a1) * r;
-                float vy            = sinf(a1) * r;
-
+                // Allocate resources
+                const size_t n      = count + 3;
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count + 3);
                 if (v == NULL)
                     return;
+                vertex_t * const v_end  = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((count + 1) * 3, v0i + n - 1);
+                if (iv_raw == NULL)
+                    return;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
 
                 uint32_t v1i        = v0i + 1;
 
@@ -759,28 +890,93 @@ namespace lsp
                 float tyy           = (yy - tex.y) * tex.sy;
                 ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
 
-                for (ssize_t i=0; i<count; ++i)
+                switch (sBatch.index_format())
                 {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
 
-                    xx          = x + vx;
-                    yy          = y + vy;
-                    txx         = (xx - tex.x) * tex.sx;
-                    tyy         = (yy - tex.y) * tex.sy;
-                    ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
+                            xx          = x + vx;
+                            yy          = y + vy;
+                            txx         = (xx - tex.x) * tex.sx;
+                            tyy         = (yy - tex.y) * tex.sy;
+                            ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                            ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        xx          = x + ex;
+                        yy          = y + ey;
+                        txx         = (xx - tex.x) * tex.sx;
+                        tyy         = (yy - tex.y) * tex.sy;
+                        ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                        ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            xx          = x + vx;
+                            yy          = y + vy;
+                            txx         = (xx - tex.x) * tex.sx;
+                            tyy         = (yy - tex.y) * tex.sy;
+                            ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                            ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                            ++v1i;
+                        }
+
+                        xx          = x + ex;
+                        yy          = y + ey;
+                        txx         = (xx - tex.x) * tex.sx;
+                        tyy         = (yy - tex.y) * tex.sy;
+                        ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                        ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            xx          = x + vx;
+                            yy          = y + vy;
+                            txx         = (xx - tex.x) * tex.sx;
+                            tyy         = (yy - tex.y) * tex.sy;
+                            ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                            ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        xx          = x + ex;
+                        yy          = y + ey;
+                        txx         = (xx - tex.x) * tex.sx;
+                        tyy         = (yy - tex.y) * tex.sy;
+                        ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
+                        ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                        break;
+                    }
                 }
-
-                xx          = x + ex;
-                yy          = y + ey;
-                txx         = (xx - tex.x) * tex.sx;
-                tyy         = (yy - tex.y) * tex.sy;
-                ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::fill_corner(uint32_t ci, float x, float y, float xd, float yd, float r, float a)
@@ -795,35 +991,96 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
+                // Allocate resources
+                const size_t n      = count + 3;
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+                vertex_t * const v_end  = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((count + 1) * 3, v0i + n - 1);
+                if (iv_raw == NULL)
+                    return;
+
                 // Generate the geometry
                 float vx            = cosf(a) * r;
                 float vy            = sinf(a) * r;
                 const float ex      = -vy;
                 const float ey      = vx;
 
-                const uint32_t v0i  = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(count + 3);
-                if (v == NULL)
-                    return;
-
                 uint32_t v1i        = v0i + 1;
                 ADD_VERTEX(v, ci, xd, yd);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
-                for (ssize_t i=0; i<count; ++i)
+                switch (sBatch.index_format())
                 {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
 
-                    ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, uint16_t(v0i), uint16_t(v1i), uint16_t(v1i + 1));
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, v0i, v1i, v1i + 1);
+
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                            ++v1i;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HTRIANGLE(iv, uint8_t(v0i), uint8_t(v1i), uint8_t(v1i + 1));
+                        break;
+                    }
                 }
-
-                ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
             }
 
             void Surface::wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width)
@@ -847,34 +1104,99 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Fill batch
-                float vx            = cosf(a1) * ro;
-                float vy            = sinf(a1) * ro;
-
+                // Allocate resources
+                const size_t n      = count*2 + 4;
                 uint32_t v0i        = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(count*2 + 4);
+                vertex_t *v         = sBatch.add_vertices(n);
                 if (v == NULL)
                     return;
+                vertex_t * const v_end  = &v[n];
+                lsp_finally {
+                    if (v < v_end)
+                        sBatch.release_vertices(v_end - v);
+                };
+
+                void *iv_raw    = sBatch.add_indices((count + 1) * 6, v0i + n - 1);
+                if (iv_raw == NULL)
+                    return;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * ro;
+                float vy            = sinf(a1) * ro;
 
                 ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
-                for (ssize_t i=0; i<count; ++i)
+                switch (sBatch.index_format())
                 {
-                    float nvx   = vx*dx - vy*dy;
-                    float nvy   = vx*dy + vy*dx;
-                    vx          = nvx;
-                    vy          = nvy;
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv        = static_cast<uint16_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
 
-                    ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
-                    ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
-                    v0i        += 2;
+                            ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HRECTANGLE(iv, uint16_t(v0i + 2), uint16_t(v0i), uint16_t(v0i + 1), uint16_t(v0i + 3));
+                            v0i        += 2;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HRECTANGLE(iv, uint16_t(v0i + 2), uint16_t(v0i), uint16_t(v0i + 1), uint16_t(v0i + 3));
+                        break;
+                    }
+
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv        = static_cast<uint32_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HRECTANGLE(iv, v0i + 2, v0i, v0i + 1, v0i + 3);
+                            v0i        += 2;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HRECTANGLE(iv, v0i + 2, v0i, v0i + 1, v0i + 3);
+
+                        break;
+                    }
+
+                    case INDEX_FMT_U8:
+                    default:
+                    {
+                        uint8_t *iv         = static_cast<uint8_t *>(iv_raw);
+                        for (ssize_t i=0; i<count; ++i)
+                        {
+                            float nvx   = vx*dx - vy*dy;
+                            float nvy   = vx*dy + vy*dx;
+                            vx          = nvx;
+                            vy          = nvy;
+
+                            ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
+                            ADD_VERTEX(v, ci, x + vx, y + vy);
+                            ADD_HRECTANGLE(iv, uint8_t(v0i + 2), uint8_t(v0i), uint8_t(v0i + 1), uint8_t(v0i + 3));
+                            v0i        += 2;
+                        }
+
+                        ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
+                        ADD_VERTEX(v, ci, x + ex, y + ey);
+                        ADD_HRECTANGLE(iv, uint8_t(v0i + 2), uint8_t(v0i), uint8_t(v0i + 1), uint8_t(v0i + 3));
+                        break;
+                    }
                 }
-
-                ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
-                ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
             }
 
             void Surface::fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height)
