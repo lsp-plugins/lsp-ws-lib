@@ -20,6 +20,7 @@
  */
 
 #include <lsp-plug.in/ws/factory.h>
+#include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/test-fw/mtest.h>
 
