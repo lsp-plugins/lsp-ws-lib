@@ -84,6 +84,9 @@ namespace lsp
                 sConstraints.nMaxHeight = -1;
                 sConstraints.nPreWidth  = -1;
                 sConstraints.nPreHeight = -1;
+
+                windowObserverTokens = [[NSMutableArray alloc] init];
+                viewObserverTokens = [[NSMutableArray alloc] init];
             }
 
             CocoaWindow::~CocoaWindow()
@@ -162,7 +165,7 @@ namespace lsp
                                         ue.nType       = UIE_FOCUS_IN;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(didBecomeKeyNotificationToken);
+                [windowObserverTokens addObject:didBecomeKeyNotificationToken];
 
                 id didResignKeyNotificationToken = [center addObserverForName:NSWindowDidResignKeyNotification
                                     object:window
@@ -174,7 +177,7 @@ namespace lsp
                                         ue.nType       = UIE_FOCUS_OUT;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(didResignKeyNotificationToken);
+                [windowObserverTokens addObject:didResignKeyNotificationToken];
 
                 id didMiniaturizeNotificationToken = [center addObserverForName:NSWindowDidMiniaturizeNotification
                                     object:window
@@ -186,7 +189,7 @@ namespace lsp
                                         ue.nType       = UIE_HIDE;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(didMiniaturizeNotificationToken);
+                [windowObserverTokens addObject:didMiniaturizeNotificationToken];
 
                 id didDeminiaturizeNotificationToken = [center addObserverForName:NSWindowDidDeminiaturizeNotification
                                     object:window
@@ -198,7 +201,7 @@ namespace lsp
                                         ue.nType       = UIE_SHOW;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(didDeminiaturizeNotificationToken);
+                [windowObserverTokens addObject:didDeminiaturizeNotificationToken];
 
                 id willCloseNotificationToken = [center addObserverForName:NSWindowWillCloseNotification
                                     object:window
@@ -210,7 +213,7 @@ namespace lsp
                                         ue.nType       = UIE_CLOSE;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(willCloseNotificationToken);
+                [windowObserverTokens addObject:willCloseNotificationToken];
 
                 id dragEnterToken = [center addObserverForName:@"DragEnter"
                                     object:window
@@ -222,7 +225,7 @@ namespace lsp
                                         ue.nType       = UIE_DRAG_ENTER;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(dragEnterToken);
+                [windowObserverTokens addObject:dragEnterToken];
 
                 id dragExitToken = [center addObserverForName:@"DragExit"
                                     object:window
@@ -234,7 +237,7 @@ namespace lsp
                                         ue.nType       = UIE_DRAG_LEAVE;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(dragExitToken);
+                [windowObserverTokens addObject:dragExitToken];
 
                 //TODO: implement all notification events
                 
@@ -256,7 +259,7 @@ namespace lsp
                                         ue.nHeight     = cFrame.size.height;
                                         handle_event(&ue);
                                     }];
-                windowObserverTokens.push_back(didResizeNotificationToken);
+                [windowObserverTokens addObject:didResizeNotificationToken];
             }
 
             void CocoaWindow::init_notification_center(CocoaCairoView *view) {
@@ -274,26 +277,26 @@ namespace lsp
                                             bInvalidate = false;
                                         }
                                     }];
-                viewObserverTokens.push_back(redrawRequestToken);
+                [viewObserverTokens addObject:redrawRequestToken];
 
             }
 
             void CocoaWindow::destroy()
             {
                 if (bWrapper) {
-                    for (id token : viewObserverTokens) {
+                    for (id token in viewObserverTokens) {
                         [[NSNotificationCenter defaultCenter] removeObserver:token];
                     }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
-                    viewObserverTokens.clear();
+                    [viewObserverTokens removeAllObjects];
                 }
                 else
                 {
-                    for (id token : windowObserverTokens) {
+                    for (id token in windowObserverTokens) {
                         [[NSNotificationCenter defaultCenter] removeObserver:token];
                     }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
-                    windowObserverTokens.clear();
+                    [windowObserverTokens removeAllObjects];
                 }
 
                 if ([pCocoaView superview]) {
@@ -657,9 +660,9 @@ namespace lsp
                     sConstraints.nMinHeight = 1;
 
                 // Apply constrains to Cocoa Window
-                if (pCocoaWindow != NULL) {
-                    [pCocoaWindow setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
-                    [pCocoaWindow setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
+                if ([pCocoaView window] != NULL) {
+                    [[pCocoaView window] setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
+                    [[pCocoaView window] setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
                 }
                 lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
@@ -689,18 +692,19 @@ namespace lsp
             }
 
             status_t CocoaWindow::set_geometry_impl() {
-                if (!pCocoaWindow)
+                if (![pCocoaView window])
                     return STATUS_BAD_STATE;
 
                 // Calculate the frame rect from the content rect
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                if (pCocoaWindow != NULL) {
+                if ([pCocoaView window] != NULL) {
+                    //NSRect currentFrame = [[pCocoaView window] frame];
                     NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
-                    NSRect frameRect = [pCocoaWindow frameRectForContentRect:contentRect];
+                    NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
 
-                    [pCocoaWindow setFrame:frameRect display:YES animate:NO];
+                    [[pCocoaView window] setFrame:frameRect display:YES animate:NO];
                 }
                 return STATUS_OK;
             }
@@ -725,6 +729,12 @@ namespace lsp
                     NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());
                     [pCocoaWindow setFrame:frame display:NO];
                 } 
+
+                if (bWrapper && pCocoaView && pCocoaWindow) {
+                    lsp_trace("bWrapper && pCocoaView && pCocoaWindow");
+                    NSRect contentRect = [[pCocoaWindow contentView] bounds];
+                    [pCocoaView setFrame:contentRect];
+                }
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
 
@@ -778,6 +788,26 @@ namespace lsp
                     return;
 
                 [parent addChildWindow:pCocoaWindow ordered:NSWindowAbove];
+/*
+                NSRect parentFrame = [parent frame];
+                NSRect childFrame = [pCocoaWindow frame];
+                NSRect viewFrameInWindow = [[pCocoaWindow contentView] frame];
+                NSRect viewFrameOnScreen = [[pCocoaWindow contentView] convertRect:viewFrameInWindow toView:nil];
+
+                // Or for a point:
+                NSPoint originOnScreen = [view convertPoint:viewFrameInWindow.origin toView:nil];
+*/
+                /*
+                NSRect parentFrame = [parent frame]; // bottom-left based
+                CGFloat parentTopY = parentFrame.origin.y + parentFrame.size.height; // top edge in screen coords
+
+                // Suppose you want to place the child window at (offsetX, offsetY) from the parent's top-left
+                CGFloat childY = parentTopY - sSize.nTop - childFrame.size.height; // convert to bottom-left
+                */
+                
+                lsp_trace("Show pos position={l=%d, t=%d,} \n", int(sSize.nLeft), int(sSize.nTop));
+                NSPoint origin = NSMakePoint(sSize.nLeft, sSize.nTop);
+                [pCocoaWindow setFrameOrigin:origin];
                 //[pCocoaWindow makeKeyAndOrderFront:nil];
             }
 

@@ -42,6 +42,7 @@
     NSLog(@"Content view: %@", self);
 
     if (self->_nextCursor != NULL) {
+        //[self discardCursorRects];
         [self addCursorRect:[self bounds] cursor: self->_nextCursor];
     }
 
@@ -84,6 +85,9 @@
                 usingBlock:^(NSNotification * _Nonnull note) {
                     if ([note.userInfo[@"Surface"] pointerValue] != nil) {
                         lsp_trace("Update Surface!");
+                        if (self->_imageSurface) {
+                            cairo_surface_destroy(self->_imageSurface);
+                        }
                         self->_imageSurface = (cairo_surface_t *)[note.userInfo[@"Surface"] pointerValue];
                         self->_needsRedrawing = true;
                     }
