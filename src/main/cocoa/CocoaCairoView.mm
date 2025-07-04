@@ -77,14 +77,14 @@
 - (instancetype)initWithFrame:(NSRect)frameRect {
     self = [super initWithFrame:frameRect];
     if (self) {
-        lsp_trace("Register event for view: %p", self);
+        //lsp_trace("Register event for view: %p", self);
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
         [center addObserverForName:@"ForceExpose"
                 object:self
                 queue:[NSOperationQueue mainQueue]
                 usingBlock:^(NSNotification * _Nonnull note) {
                     if ([note.userInfo[@"Surface"] pointerValue] != nil) {
-                        lsp_trace("Update Surface!");
+                        //lsp_trace("Update Surface!");
                         if (self->_imageSurface) {
                             cairo_surface_destroy(self->_imageSurface);
                         }
@@ -120,7 +120,7 @@
 
 // Starts the redraw loop
 - (void)startRedrawLoop {
-    lsp_trace("Trigger timer start!");
+    //lsp_trace("Trigger timer start!");
 
     if (self->_redrawTimer == nil) {
         self->_redrawTimer = [NSTimer   scheduledTimerWithTimeInterval:(1.0/60.0)

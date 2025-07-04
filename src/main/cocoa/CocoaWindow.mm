@@ -257,6 +257,7 @@ namespace lsp
                                         ue.nLeft       = wFrame.origin.x;
                                         ue.nWidth      = cFrame.size.width;
                                         ue.nHeight     = cFrame.size.height;
+                                        lsp_trace("UIE_RESIZE: {l=%d, t=%d, w=%d, h=%d}", int(ue.nLeft), int(ue.nTop), int(ue.nWidth), int(ue.nHeight));
                                         handle_event(&ue);
                                     }];
                 [windowObserverTokens addObject:didResizeNotificationToken];
@@ -695,6 +696,16 @@ namespace lsp
                 if (![pCocoaView window])
                     return STATUS_BAD_STATE;
 
+                /* Just for debugging 
+                if (sSize.nHeight > 300) {
+                    NSString *msg = [NSString stringWithFormat:@"Current size: width=%zu height=%zu",
+                                    sSize.nWidth, sSize.nHeight];
+                    NSAlert *alert = [[NSAlert alloc] init];
+                    [alert setMessageText:msg];
+                    [alert addButtonWithTitle:@"OK"];
+                    [alert runModal];
+                } */
+
                 // Calculate the frame rect from the content rect
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                 ssize_t screenWidth, screenHeight;
@@ -705,13 +716,18 @@ namespace lsp
                     NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
 
                     [[pCocoaView window] setFrame:frameRect display:YES animate:NO];
+                    NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
+                    [pCocoaView setFrame:newContentBounds];
+
+                    if (pSurface != nullptr) {
+                        pSurface->resize(sSize.nWidth, sSize.nHeight);
+                    }
                 }
                 return STATUS_OK;
             }
 
             status_t CocoaWindow::show()
             {
-                
                 lsp_trace("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d} \n",
                     this, "pCocoaWindow",
                     int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
@@ -723,18 +739,21 @@ namespace lsp
                 transientParent = nil;
 
                 if (!has_parent()) {
-                    lsp_trace("!has_parent");
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
                     NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());
                     [pCocoaWindow setFrame:frame display:NO];
                 } 
 
+                
                 if (bWrapper && pCocoaView && pCocoaWindow) {
-                    lsp_trace("bWrapper && pCocoaView && pCocoaWindow");
                     NSRect contentRect = [[pCocoaWindow contentView] bounds];
                     [pCocoaView setFrame:contentRect];
-                }
+
+                    if (pSurface != nullptr) {
+                        pSurface->resize(contentRect.size.width, contentRect.size.height);
+                    }
+                } 
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
 
@@ -782,33 +801,10 @@ namespace lsp
             }
 
             void CocoaWindow::place_above(NSWindow *parent) {
-                lsp_trace("place_above");
-
                 if (!pCocoaWindow || !parent)
                     return;
 
                 [parent addChildWindow:pCocoaWindow ordered:NSWindowAbove];
-/*
-                NSRect parentFrame = [parent frame];
-                NSRect childFrame = [pCocoaWindow frame];
-                NSRect viewFrameInWindow = [[pCocoaWindow contentView] frame];
-                NSRect viewFrameOnScreen = [[pCocoaWindow contentView] convertRect:viewFrameInWindow toView:nil];
-
-                // Or for a point:
-                NSPoint originOnScreen = [view convertPoint:viewFrameInWindow.origin toView:nil];
-*/
-                /*
-                NSRect parentFrame = [parent frame]; // bottom-left based
-                CGFloat parentTopY = parentFrame.origin.y + parentFrame.size.height; // top edge in screen coords
-
-                // Suppose you want to place the child window at (offsetX, offsetY) from the parent's top-left
-                CGFloat childY = parentTopY - sSize.nTop - childFrame.size.height; // convert to bottom-left
-                */
-                
-                lsp_trace("Show pos position={l=%d, t=%d,} \n", int(sSize.nLeft), int(sSize.nTop));
-                NSPoint origin = NSMakePoint(sSize.nLeft, sSize.nTop);
-                [pCocoaWindow setFrameOrigin:origin];
-                //[pCocoaWindow makeKeyAndOrderFront:nil];
             }
 
             status_t CocoaWindow::hide()
@@ -855,10 +851,13 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 NSRect frame = [pCocoaWindow frame]; // Frame in screen coordinates
-                NSRect cFrame = [[pCocoaWindow contentView] frame];
+                NSRect cFrame = [pCocoaView frame];
+
+                ssize_t screenWidth, screenHeight;
+                pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
 
                 realize->nLeft   = static_cast<ssize_t>(frame.origin.x);
-                realize->nTop    = static_cast<ssize_t>(frame.origin.y);
+                realize->nTop    = static_cast<ssize_t>(screenHeight - frame.origin.y - cFrame.size.height + pCocoaDisplay->get_window_title_height() /*frame.origin.y*/);
                 realize->nWidth  = static_cast<ssize_t>(cFrame.size.width);
                 realize->nHeight = static_cast<ssize_t>(cFrame.size.height);
 
@@ -886,6 +885,8 @@ namespace lsp
                     {
                         bVisible = true;
                         //if (bWrapper) break;
+
+                        if (pCocoaView == nullptr) break;
 
                         drop_surface();
                         pSurface = create_surface(pCocoaDisplay, pCocoaView, sSize.nWidth, sSize.nHeight);
@@ -917,6 +918,7 @@ namespace lsp
 
                     case UIE_RESIZE:
                     {
+                        lsp_trace("Resize event: {l=%d, t=%d, w=%d, h=%d}", int(ev->nLeft), int(ev->nTop), int(ev->nWidth), int(ev->nHeight));
                         if (bWrapper) break;
 
                         sSize.nLeft = ev->nLeft;

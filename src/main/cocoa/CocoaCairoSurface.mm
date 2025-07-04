@@ -381,7 +381,9 @@ namespace lsp
 
             void CocoaCairoSurface::begin()
             {
-                lsp_trace("Surface %p begin, pCocoaView=%p", this, pCocoaView);
+                if (pCocoaView != nullptr)
+                    lsp_trace("Surface %p begin, pCocoaView=%p, w=%zu, h=%zu", this, pCocoaView, nWidth, nHeight);
+                
                 // Force end() call
                 end();
 
@@ -430,7 +432,7 @@ namespace lsp
                     pCR             = NULL;
                 }
 
-                lsp_trace("Before autoreleasepool: %p", pCocoaView);
+                //lsp_trace("Before autoreleasepool: %p", pCocoaView);
                 @autoreleasepool {
                     if (pCocoaView != NULL) {
                         cairo_surface_t *exposeSurface = get_image_surface();
