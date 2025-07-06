@@ -3996,6 +3996,20 @@ namespace lsp
                 XFlush(pDisplay);
             }
 
+            status_t X11Display::get_file_descriptor(int *fd)
+            {
+                if (fd == NULL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                if (pDisplay == NULL)
+                    return STATUS_BAD_STATE;
+
+                const int x11_fd    = ConnectionNumber(pDisplay);
+                *fd     = x11_fd;
+
+                return STATUS_OK;
+            }
+
         } /* namespace x11 */
     } /* namespace ws */
 } /* namespace lsp */

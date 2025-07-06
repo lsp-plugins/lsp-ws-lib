@@ -1006,5 +1006,10 @@ namespace lsp
             return old;
         }
 
+        status_t IDisplay::get_file_descriptor(int *fd)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
     } /* namespace ws */
 } /* namespace lsp */
