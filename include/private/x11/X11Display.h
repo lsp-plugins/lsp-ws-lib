@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -294,12 +294,17 @@ namespace lsp
 
                 public:
                     explicit X11Display();
-                    virtual ~X11Display();
+                    X11Display(const X11Display &) = delete;
+                    X11Display(X11Display &&) = delete;
+                    virtual ~X11Display() override;
+
+                    X11Display & operator = (const X11Display &) = delete;
+                    X11Display & operator = (X11Display &&) = delete;
 
                     virtual status_t            init(int argc, const char **argv) override;
                     virtual void                destroy() override;
 
-                public:
+                public: // ws::IDisplay
                     virtual IWindow            *create_window() override;
                     virtual IWindow            *create_window(size_t screen) override;
                     virtual IWindow            *create_window(void *handle) override;
@@ -337,6 +342,8 @@ namespace lsp
                     virtual const MonitorInfo  *enum_monitors(size_t *count) override;
 
                     virtual void                sync() override;
+
+                    virtual status_t            get_file_descriptor(int *fd) override;
 
                 public:
                     void                        handle_error(XErrorEvent *ev);

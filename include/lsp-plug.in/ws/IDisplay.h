@@ -532,6 +532,16 @@ namespace lsp
                  * @return previous value of the idle interval
                  */
                 size_t                          set_idle_interval(size_t interval);
+
+                /**
+                 * Obtain the file descriptor of the connection associated with the event loop
+                 * if it is supported (usually Unix-based systems with X11 protocol).
+                 *
+                 * @param fd pointer to store file descriptor
+                 * @return status of operation, STATUS_NOT_SUPPORTED if platform does
+                 * not support file desciptors for event loops
+                 */
+                virtual status_t                get_file_descriptor(int *fd);
         };
 
     } /* namespace ws */

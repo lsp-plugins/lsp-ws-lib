@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.29 ===
-
+* Implemented ws::IDisplay::get_file_descriptor method for obtaining event loop
+  descriptor for Unix-based systems that use X11 protocol
 
 === 1.0.28 ===
 * Added support of minimized, maximized and normal window state settings.
