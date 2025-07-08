@@ -97,8 +97,6 @@ namespace lsp
 
             status_t CocoaWindow::init()
             {
-
-                lsp_trace("Window init!");
                 // Initialize parent class
                 status_t res = IWindow::init();
                 if (res != STATUS_OK)
@@ -708,14 +706,16 @@ namespace lsp
 
                 // Calculate the frame rect from the content rect
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+
+                // TODO: handle case when window is resized in wrapper mode with some menu added from DAW
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
                 if ([pCocoaView window] != NULL) {
                     //NSRect currentFrame = [[pCocoaView window] frame];
                     NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
                     NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
-
-                    [[pCocoaView window] setFrame:frameRect display:YES animate:NO];
+                
+                    [[pCocoaView window] setFrame:frameRect display:YES animate:NO];             
                     NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
                     [pCocoaView setFrame:newContentBounds];
 
@@ -742,17 +742,36 @@ namespace lsp
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
                     NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());
-                    [pCocoaWindow setFrame:frame display:NO];
                 } 
 
                 
                 if (bWrapper && pCocoaView && pCocoaWindow) {
+                    /* Only for debug
+                    NSView *contentView = [pCocoaWindow contentView];
+                    NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
+                    if (fh) {
+                        [fh seekToEndOfFile];
+                        NSString *log = [NSString stringWithFormat:@"ContentView bounds: %@", NSStringFromRect([contentView bounds])];
+                        [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
+                        [fh closeFile];
+                    }          
+                    for (NSView *subview in [contentView subviews]) {
+                        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
+                        if (fh) {
+                            [fh seekToEndOfFile];
+                            NSString *log = [NSString stringWithFormat:@"Subview: %@ frame: %@", subview, NSStringFromRect([subview frame])];
+                            [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
+                            [fh closeFile];
+                        }
+                    } */
+
                     NSRect contentRect = [[pCocoaWindow contentView] bounds];
                     [pCocoaView setFrame:contentRect];
 
+                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
                     if (pSurface != nullptr) {
                         pSurface->resize(contentRect.size.width, contentRect.size.height);
-                    }
+                    } 
                 } 
 
                 [pCocoaWindow makeKeyAndOrderFront:nil];
