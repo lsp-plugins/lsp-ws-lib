@@ -694,16 +694,6 @@ namespace lsp
                 if (![pCocoaView window])
                     return STATUS_BAD_STATE;
 
-                /* Just for debugging 
-                if (sSize.nHeight > 300) {
-                    NSString *msg = [NSString stringWithFormat:@"Current size: width=%zu height=%zu",
-                                    sSize.nWidth, sSize.nHeight];
-                    NSAlert *alert = [[NSAlert alloc] init];
-                    [alert setMessageText:msg];
-                    [alert addButtonWithTitle:@"OK"];
-                    [alert runModal];
-                } */
-
                 // Calculate the frame rect from the content rect
                 lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
@@ -717,7 +707,7 @@ namespace lsp
                 
                     [[pCocoaView window] setFrame:frameRect display:YES animate:NO];             
                     NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
-                    [pCocoaView setFrame:newContentBounds];
+                    [pCocoaView updateFrame:newContentBounds];
 
                     if (pSurface != nullptr) {
                         pSurface->resize(sSize.nWidth, sSize.nHeight);
@@ -738,35 +728,9 @@ namespace lsp
                 commit_border_style(enBorderStyle, nActions);
                 transientParent = nil;
 
-                if (!has_parent()) {
-                    ssize_t screenWidth, screenHeight;
-                    pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());
-                } 
-
-                
                 if (bWrapper && pCocoaView && pCocoaWindow) {
-                    /* Only for debug
-                    NSView *contentView = [pCocoaWindow contentView];
-                    NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
-                    if (fh) {
-                        [fh seekToEndOfFile];
-                        NSString *log = [NSString stringWithFormat:@"ContentView bounds: %@", NSStringFromRect([contentView bounds])];
-                        [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
-                        [fh closeFile];
-                    }          
-                    for (NSView *subview in [contentView subviews]) {
-                        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
-                        if (fh) {
-                            [fh seekToEndOfFile];
-                            NSString *log = [NSString stringWithFormat:@"Subview: %@ frame: %@", subview, NSStringFromRect([subview frame])];
-                            [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
-                            [fh closeFile];
-                        }
-                    } */
-
                     NSRect contentRect = [[pCocoaWindow contentView] bounds];
-                    [pCocoaView setFrame:contentRect];
+                    [pCocoaView updateFrame:contentRect];
 
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
                     if (pSurface != nullptr) {

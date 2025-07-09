@@ -39,8 +39,6 @@
 - (void)drawRect:(NSRect)dirtyRect {
     [super drawRect:dirtyRect];
 
-    NSLog(@"Content view: %@", self);
-
     if (self->_nextCursor != NULL) {
         //[self discardCursorRects];
         [self addCursorRect:[self bounds] cursor: self->_nextCursor];
@@ -48,21 +46,6 @@
 
     self->_needsRedrawing = false;
     if (self->_imageSurface != NULL) {
-        /* only for debug
-        NSRect viewFrame = [self frame];
-        size_t surfaceWidth = 0, surfaceHeight = 0;
-        surfaceWidth = cairo_image_surface_get_width(self->_imageSurface);
-        surfaceHeight = cairo_image_surface_get_height(self->_imageSurface);
-    
-        NSString *log = [NSString stringWithFormat:@"drawRect: view w=%g h=%g, surface w=%zu h=%zu\n",
-                        viewFrame.size.width, viewFrame.size.height, surfaceWidth, surfaceHeight];
-        NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
-        if (fh) {
-            [fh seekToEndOfFile];
-            [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
-            [fh closeFile];
-        }
-        */
         // Get current CGContext
         CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
         CGImageRef image = [self renderCairoImage];
@@ -89,40 +72,16 @@
     
 }
 
-//TODO: Make an own function for rezizing the view and disable the default resizing from DAW
+- (void)updateFrame:(NSRect)frameRect {
+    [super setFrame:frameRect];
+}
+
+// Only update the position from DAW, keep the current size
 - (void)setFrame:(NSRect)frameRect {
-    NSArray *stack = [NSThread callStackSymbols];
-    BOOL fromCocoaWindow = false;
-    for (NSString *line in stack) {
-        if ([line containsString:@"CocoaWindow"]) {
-            fromCocoaWindow = true;
-            break;
-        }
-    }
-
-    if (fromCocoaWindow) {
-        [super setFrame:frameRect];
-    } else {
-        // Only update the position from DAW, keep the current size
-        NSRect currentFrame = [self frame];
-        NSRect newFrame = NSMakeRect(frameRect.origin.x, frameRect.origin.y, currentFrame.size.width, currentFrame.size.height);
-        [super setFrame:newFrame];
-    }
-
-    /* only for debug
-    NSFileHandle *fh = [NSFileHandle fileHandleForWritingAtPath:@"/tmp/myplugin-debug.log"];
-    if (fh) {
-        [fh seekToEndOfFile];
-        NSString *log = [NSString stringWithFormat:@"setFrame called: %@\n", NSStringFromRect(frameRect)];
-        [fh writeData:[log dataUsingEncoding:NSUTF8StringEncoding]];
-
-        // Log the stack trace
-        NSArray *stack = [NSThread callStackSymbols];
-        for (NSString *line in stack) {
-            [fh writeData:[[line stringByAppendingString:@"\n"] dataUsingEncoding:NSUTF8StringEncoding]];
-        }
-        [fh closeFile];
-    } */
+    
+    NSRect currentFrame = [self frame];
+    NSRect newFrame = NSMakeRect(frameRect.origin.x, frameRect.origin.y, currentFrame.size.width, currentFrame.size.height);
+    [super setFrame:newFrame];
 }
 
 - (instancetype)initWithFrame:(NSRect)frameRect {
@@ -171,8 +130,6 @@
 
 // Starts the redraw loop
 - (void)startRedrawLoop {
-    //lsp_trace("Trigger timer start!");
-
     if (self->_redrawTimer == nil) {
         self->_redrawTimer = [NSTimer   scheduledTimerWithTimeInterval:(1.0/60.0)
                                         target:self

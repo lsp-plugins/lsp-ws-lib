@@ -46,6 +46,7 @@
     - (void)setImage:(cairo_surface_t *)image;
     - (void)startRedrawLoop;
     - (void)stopRedrawLoop;
+    - (void)updateFrame:(NSRect)frameRect;
 @end
 
 #endif
