@@ -12,3 +12,5 @@
 /DebugWin/
 /DebugLinux/
 .vscode/settings.json
+**/.DS_store
+

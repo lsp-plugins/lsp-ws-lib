@@ -72,10 +72,13 @@ CXX_SRC_EXPORT          = $(call rwildcard, export, *.cpp)
 CXX_SRC_TEST            = $(call rwildcard, test, *.cpp)
 CXX_SRC_NOTEST          =
 CXX_SRC_EXT             =
-CXX_SRC                 = $(CXX_SRC_MAIN) $(MM_SRC_MAIN) $(CXX_SRC_EXT)
+CXX_SRC                 = $(CXX_SRC_MAIN) $(CXX_SRC_EXT)
+ifeq ($(PLATFORM),MacOS)
+  CXX_SRC                += $(MM_SRC_MAIN)
+endif
 
 CXX_OBJ_MAIN            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN))
-MM_OBJ_MAIN             = $(patsubst %.mm, $(ARTIFACT_BIN)/%.o, $(MM_SRC_MAIN))
+MM_OBJ_MAIN             = $(patsubst %.mm,  $(ARTIFACT_BIN)/%.o, $(MM_SRC_MAIN))
 CXX_OBJ_EXPORT          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXPORT))
 CXX_OBJ_TEST            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
 CXX_OBJ_NOTEST          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_NOTEST))
@@ -83,7 +86,7 @@ CXX_OBJ_EXT             = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXT))
 
 CXX_OBJ                 = $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT)
 ifeq ($(PLATFORM),MacOS)
-  CXX_OBJ              += $(MM_OBJ_MAIN)
+  CXX_OBJ                += $(MM_OBJ_MAIN)
 endif
 
 CXX_OBJ_ALL             = \
@@ -93,7 +96,13 @@ CXX_OBJ_ALL             = \
   $(CXX_OBJ_TEST) \
   $(CXX_OBJ_NOTEST)
 
-MM_OBJ_ALL              = $(MM_OBJ_MAIN) 
+MM_OBJ_ALL              = \
+  $(MM_OBJ_MAIN) 
+
+OBJ_ALL                 = $(CXX_OBJ_ALL)
+ifeq ($(PLATFORM),MacOS)
+  OBJ_ALL                += $(MM_OBJ_ALL)
+endif
 
 ALL_HEADERS             = $(call rwildcard, $(ARTIFACT_INC), *.h)
 
@@ -198,4 +207,5 @@ uninstall:
 	echo "Uninstall OK"
 
 # Dependencies
--include $(foreach objfile,$(CXX_OBJ_ALL),$(patsubst %.o,%.d,$(objfile)))
+-include $(foreach objfile,$(OBJ_ALL),$(patsubst %.o,%.d,$(objfile)))
+

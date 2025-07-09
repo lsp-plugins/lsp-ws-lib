@@ -33,37 +33,42 @@ namespace lsp
     {
         namespace cocoa
         {
-            mcb_t decode_mcb(NSEvent* event) 
+            mcb_t decode_mcb(const NSEvent* event) 
             {
-                NSUInteger mouseButton = [event buttonNumber]; // Get mouse button index
-                if (mouseButton == 0) return MCB_LEFT;
-                else if (mouseButton == 1) return MCB_RIGHT;
-                else if (mouseButton == 2) return MCB_MIDDLE;
-                else return MCB_NONE;
+                const NSUInteger mouseButton = [event buttonNumber]; // Get mouse button index
+                switch (mouseButton)
+                {
+                    case 0: return MCB_LEFT;
+                    case 1: return MCB_RIGHT;
+                    case 2: return MCB_MIDDLE;
+                    default: break;
+                }
+                return MCB_NONE;
             }
 
-            //TODO: do we need to map scroll direction set by user? macos scrolls inverted by default.
-            mcd_t decode_mcd(NSEvent* event) 
+            // TODO: do we need to map scroll direction set by user? macos scrolls inverted by default.
+            mcd_t decode_mcd(const NSEvent* event) 
             {
                 if ([event type] != NSEventTypeScrollWheel)
                     return MCD_NONE;
             
-                CGFloat dx = [event scrollingDeltaX];
-                CGFloat dy = [event scrollingDeltaY];
+                const CGFloat dx   = [event scrollingDeltaX];
+                const CGFloat dy   = [event scrollingDeltaY];
+                const CGFloat adx   = fabs(dx);
             
-                if (fabs(dy) > fabs(dx)) {
+                if (fabs(dy) > adx)
                     return (dy > 0) ? MCD_UP : MCD_DOWN;
-                } else if (fabs(dx) > 0) {
+                else if (adx > 0)
                     return (dx > 0) ? MCD_LEFT : MCD_RIGHT;
-                }
             
                 return MCD_NONE;
             }
 
-            size_t decode_modifier(NSEvent* event) {
-                NSEventModifierFlags code = [event modifierFlags];
-                NSInteger mouseButton = [event buttonNumber];
-                NSEventType type = [event type];
+            size_t decode_modifier(const NSEvent* event)
+            {
+                const NSEventModifierFlags code = [event modifierFlags];
+                const NSInteger mouseButton = [event buttonNumber];
+                const NSEventType type = [event type];
 
                 size_t result = 0;
                 #define DC(mask, flag)  \
@@ -79,21 +84,36 @@ namespace lsp
 
                 #undef DC
 
-                if (type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown || type == NSEventTypeOtherMouseDown) 
+                switch (type)
                 {
-                    if (mouseButton == 0) result        |= MCF_LEFT;
-                    else if (mouseButton == 1) result   |= MCF_RIGHT;
-                    else if (mouseButton == 2) result   |= MCF_MIDDLE;
+                    case NSEventTypeLeftMouseDown:
+                    case NSEventTypeRightMouseDown:
+                    case NSEventTypeOtherMouseDown:
+                    {
+                        switch (mouseButton)
+                        {
+                            case 0: result     |= MCF_LEFT; break;
+                            case 1: result     |= MCF_RIGHT; break;
+                            case 2: result     |= MCF_MIDDLE; break;
+                            default: break;
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
                 
                 return result;
             }
-             
+
             code_t decode_keycode(unsigned long code)
             {
                 return code;
             }
-        }
-    }
-}
-#endif
+
+        } /* namespace cocoa */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* PLATFORM_MACOSX */
+

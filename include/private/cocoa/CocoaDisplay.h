@@ -60,7 +60,7 @@ namespace lsp
                     virtual void                quit_main() override;
 
                     explicit CocoaDisplay();
-                    virtual ~CocoaDisplay();
+                    virtual ~CocoaDisplay() override;
 
                     virtual status_t            init(int argc, const char **argv) override;
                     virtual void                destroy() override;

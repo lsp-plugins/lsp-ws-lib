@@ -57,7 +57,6 @@ namespace lsp
                     CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
-                    void                place_above(NSWindow *parent);
                     NSMutableArray      *windowObserverTokens; 
                     NSMutableArray      *viewObserverTokens; 
                 
@@ -68,7 +67,6 @@ namespace lsp
                         event_t         sUp;
                     } btn_event_t;
 
-                             
                     CocoaDisplay                   *pCocoaDisplay;      // Pointer to the display
                     mouse_pointer_t                 enPointer;          // Mouse pointer
                     rectangle_t                     sSize;              // Size of the window
@@ -76,13 +74,13 @@ namespace lsp
                     border_style_t                  enBorderStyle;      // Border style of the window
                     size_t                          nActions;           // Allowed window actions
                     window_state_t                  enState;            // Window state
-                    ISurface                        *pSurface;          // Drawing surface
+                    ISurface                       *pSurface;           // Drawing surface
                     CGContextRef                    testSurface;
                     bool                            bMouseInside;       // Flag that indicates that mouse is inside of the window
                     bool                            bWrapper;           // Indicates that window is a wrapper
                     bool                            bVisible;           // Indicates that window is visible
                     bool                            bInvalidate;        // Indicates that window is invalidate
-                    btn_event_t                     vBtnEvent[3];   // Events for detecting double click and triple click
+                    btn_event_t                     vBtnEvent[3];       // Events for detecting double click and triple click
                     
                     status_t                        set_geometry_impl();
                     void                            apply_constraints(rectangle_t *dst, const rectangle_t *req);
@@ -92,15 +90,21 @@ namespace lsp
                     static bool                     check_click(const btn_event_t *ev);
                     static bool                     check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     ISurface                       *create_surface(CocoaDisplay *display, CocoaCairoView *view, size_t width, size_t height);
-                    void                            init_notification_center(NSWindow *window);               //Creates Events UIE_SHOW / UIE_HIDE
-                    void                            init_notification_center(CocoaCairoView *view);           // Creates Events UIE_SHOW / UIE_HIDE
-                    NSWindowStyleMask               get_ns_style(border_style_t style, size_t wa);      // Maps the border_style_t and actions to NSWindowStyleMask
+                    void                            init_notification_center(NSWindow *window);             // Creates Events UIE_SHOW / UIE_HIDE
+                    void                            init_notification_center(CocoaCairoView *view);         // Creates Events UIE_SHOW / UIE_HIDE
+                    NSWindowStyleMask               get_ns_style(border_style_t style, size_t wa);          // Maps the border_style_t and actions to NSWindowStyleMask
+                    void                            place_above(NSWindow *parent);
 
                 public:
-                    NSWindow *nswindow() const;
-
                     explicit CocoaWindow(CocoaDisplay *dpy, NSView *view, IEventHandler *handler, bool wrapper);
-                    virtual ~CocoaWindow();
+                    CocoaWindow(const CocoaWindow &) = delete;
+                    CocoaWindow(CocoaWindow &&) = delete;
+                    virtual ~CocoaWindow() override;
+
+                    CocoaWindow & operator = (const CocoaWindow &) = delete;
+                    CocoaWindow & operator = (CocoaWindow &&) = delete;
+
+                    NSWindow *nswindow() const;
 
                     virtual status_t    init() override;
                     virtual void        destroy() override;

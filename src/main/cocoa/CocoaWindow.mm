@@ -102,7 +102,8 @@ namespace lsp
                 if (res != STATUS_OK)
                     return res;
 
-                if (!bWrapper) {
+                if (!bWrapper)
+                {
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
                     NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());    
@@ -132,7 +133,9 @@ namespace lsp
                     set_window_actions(WA_ALL);
                     init_notification_center(pCocoaWindow);
                     init_notification_center(pCocoaView);
-                } else {
+                }
+                else
+                {
                     CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[[pCocoaWindow contentView] bounds]];
                     [[pCocoaWindow contentView] addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
                     wrapperView.display = pCocoaDisplay;
@@ -150,7 +153,8 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void CocoaWindow::init_notification_center(NSWindow *window) {
+            void CocoaWindow::init_notification_center(NSWindow *window)
+            {
                 NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
                 id didBecomeKeyNotificationToken = [center addObserverForName:NSWindowDidBecomeKeyNotification
@@ -261,7 +265,8 @@ namespace lsp
                 [windowObserverTokens addObject:didResizeNotificationToken];
             }
 
-            void CocoaWindow::init_notification_center(CocoaCairoView *view) {
+            void CocoaWindow::init_notification_center(CocoaCairoView *view)
+            {
                 NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
                 id redrawRequestToken = [center addObserverForName:@"RedrawRequest"
@@ -282,8 +287,10 @@ namespace lsp
 
             void CocoaWindow::destroy()
             {
-                if (bWrapper) {
-                    for (id token in viewObserverTokens) {
+                if (bWrapper)
+                {
+                    for (id token in viewObserverTokens)
+                    {
                         [[NSNotificationCenter defaultCenter] removeObserver:token];
                     }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
@@ -291,14 +298,16 @@ namespace lsp
                 }
                 else
                 {
-                    for (id token in windowObserverTokens) {
+                    for (id token in windowObserverTokens)
+                    {
                         [[NSNotificationCenter defaultCenter] removeObserver:token];
                     }
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaWindow];
                     [windowObserverTokens removeAllObjects];
                 }
 
-                if ([pCocoaView superview]) {
+                if ([pCocoaView superview])
+                {
                     [pCocoaView removeFromSuperview];
                     [pCocoaView release];
                     pCocoaView = NULL;
@@ -325,7 +334,8 @@ namespace lsp
                 IWindow::destroy();
             }
 
-            NSWindow *CocoaWindow::nswindow() const {
+            NSWindow *CocoaWindow::nswindow() const
+            {
                 return pCocoaWindow;
             }
 
@@ -391,7 +401,8 @@ namespace lsp
 
             cairo_surface_t *CocoaWindow::get_image_surface()
             {
-                if (pSurface != NULL) {
+                if (pSurface != NULL)
+                {
                     return reinterpret_cast<CocoaCairoSurface *>(pSurface)->get_image_surface();
                 }
 
@@ -409,9 +420,11 @@ namespace lsp
             }
 
             //TODO: Translate all Cursors!
-            static NSCursor* translate_cursor(mouse_pointer_t pointer) {
+            static NSCursor* translate_cursor(mouse_pointer_t pointer)
+            {
                 using namespace lsp::ws;
-                switch (pointer) {
+                switch (pointer)
+                {
                     case MP_ARROW:        return [NSCursor arrowCursor];
                     /* TODO: implement custom cursor?
                     MP_ARROW_LEFT,      // Arrow left
@@ -529,7 +542,8 @@ namespace lsp
             }
 
             //TODO: Translate all Window Border Styles!
-            NSWindowStyleMask CocoaWindow::get_ns_style(border_style_t style, size_t wa) {
+            NSWindowStyleMask CocoaWindow::get_ns_style(border_style_t style, size_t wa)
+            {
                 NSUInteger styleMask = NSWindowStyleMaskTitled;
 
                 if (has_parent())
@@ -579,7 +593,8 @@ namespace lsp
                 return styleMask;
             }
 
-            status_t CocoaWindow::get_border_style(border_style_t *style) {
+            status_t CocoaWindow::get_border_style(border_style_t *style)
+            {
                 using namespace lsp::ws;
 
                 if (style == NULL)
@@ -591,7 +606,8 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t CocoaWindow::set_border_style(border_style_t style) {
+            status_t CocoaWindow::set_border_style(border_style_t style)
+            {
                 if (!pCocoaWindow)
                     return STATUS_BAD_STATE;
 
@@ -635,7 +651,8 @@ namespace lsp
                 return set_geometry(&rect);
             }
 
-            void CocoaWindow::apply_constraints(rectangle_t *dst, const rectangle_t *req) {
+            void CocoaWindow::apply_constraints(rectangle_t *dst, const rectangle_t *req)
+            {
                 *dst = *req;
 
                 if ((sConstraints.nMaxWidth >= 0) && (dst->nWidth > sConstraints.nMaxWidth))
@@ -674,7 +691,8 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t CocoaWindow::set_geometry(const rectangle_t *realize) {
+            status_t CocoaWindow::set_geometry(const rectangle_t *realize)
+            {
                 if (!pCocoaWindow)
                     return STATUS_BAD_STATE;
 
@@ -690,7 +708,8 @@ namespace lsp
                 return set_geometry_impl();
             }
 
-            status_t CocoaWindow::set_geometry_impl() {
+            status_t CocoaWindow::set_geometry_impl()
+            {
                 if (![pCocoaView window])
                     return STATUS_BAD_STATE;
 
@@ -761,14 +780,16 @@ namespace lsp
 
                 transientParent = nil;
 
-                if (over != nullptr) {
+                if (over != nullptr)
+                {
                     NSView *view = (__bridge NSView *)(over->handle());
                     transientParent = [view window];
                     [pCocoaWindow setLevel:NSFloatingWindowLevel];
                     [pCocoaWindow setParentWindow:transientParent];
                 }
 
-                if (!has_parent()) {
+                if (!has_parent())
+                {
                     place_above(transientParent);
                 }
 
@@ -783,7 +804,8 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void CocoaWindow::place_above(NSWindow *parent) {
+            void CocoaWindow::place_above(NSWindow *parent)
+            {
                 if (!pCocoaWindow || !parent)
                     return;
 

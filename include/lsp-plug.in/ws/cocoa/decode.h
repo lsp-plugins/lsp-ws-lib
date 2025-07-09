@@ -36,16 +36,18 @@ namespace lsp
     {
         namespace cocoa
         {
-            mcb_t       decode_mcb(NSEvent *event);
+            mcb_t       decode_mcb(const NSEvent *event);
 
-            mcd_t       decode_mcd(NSEvent *event);
+            mcd_t       decode_mcd(const NSEvent *event);
 
-            size_t      decode_modifier(NSEvent *event);
+            size_t      decode_modifier(const NSEvent *event);
 
             code_t      decode_keycode(unsigned long code);
-        }
-    }
-}
 
-#endif
-#endif
+        } /* namespace cocoa */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* PLATFORM_MACOSX */
+
+#endif /* LSP_PLUG_IN_WS_COCOA_DECODE_H_ */

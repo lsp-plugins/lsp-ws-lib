@@ -62,12 +62,14 @@ namespace lsp
 
             status_t CocoaDisplay::init(int argc, const char **argv)
             {
-                if (NSApp == NULL) {
+                if (NSApp == NULL)
+                {
                     [NSApplication sharedApplication];
                     [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
                     [NSApp activateIgnoringOtherApps:YES];
                     standaloneApp = true;
-                } else 
+                }
+                else 
                     standaloneApp = false;
 
                 // Initialize font manager
@@ -89,43 +91,48 @@ namespace lsp
                 return IDisplay::init(argc, argv);
             }
 
-            status_t CocoaDisplay::main() {
-                while (!bExit) {
+            status_t CocoaDisplay::main()
+            {
+                while (!bExit)
+                {
                     timestamp_t ts = system::get_time_millis();
 
                     // Do one main iteration
                     status_t result = do_main_iteration(ts);
                     
                     if (result != STATUS_OK)
-                            return result;
+                        return result;
                 }
                 
                 return STATUS_OK;
             }
 
-            void CocoaDisplay::get_enviroment_frame_sizes() {
-                    NSWindow *tempWindow = [[NSWindow alloc]  initWithContentRect:NSMakeRect(0,0,20,20)
-                                                              styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
-                                                              backing:NSBackingStoreBuffered
-                                                              defer:NO];
+            void CocoaDisplay::get_enviroment_frame_sizes()
+            {
+                NSWindow *tempWindow = [[NSWindow alloc]  initWithContentRect:NSMakeRect(0,0,20,20)
+                                                          styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
+                                                          backing:NSBackingStoreBuffered
+                                                          defer:NO];
 
-                    // Get frame and content rect
-                    NSRect fRect = tempWindow.frame;
-                    NSRect cRect = [tempWindow contentRectForFrameRect:fRect];
+                // Get frame and content rect
+                NSRect fRect = tempWindow.frame;
+                NSRect cRect = [tempWindow contentRectForFrameRect:fRect];
 
-                    titleHeight = fRect.size.height - cRect.size.height;
-                    borderWidth = fRect.size.width - cRect.size.width;
+                titleHeight = fRect.size.height - cRect.size.height;
+                borderWidth = fRect.size.width - cRect.size.width;
 
-                    [tempWindow orderOut:nil];
-                    [tempWindow close];
-                    tempWindow = nil;  
+                [tempWindow orderOut:nil];
+                [tempWindow close];
+                tempWindow = nil;  
             }
 
-            size_t CocoaDisplay::get_window_title_height() {
+            size_t CocoaDisplay::get_window_title_height()
+            {
                 return titleHeight;
             }
 
-            size_t CocoaDisplay::get_window_border_width() {
+            size_t CocoaDisplay::get_window_border_width()
+            {
                 return borderWidth;
             }
 
@@ -138,11 +145,13 @@ namespace lsp
             #endif /* USE_LIBFREETYPE */
             }
 
-            status_t CocoaDisplay::do_main_iteration(timestamp_t ts) {
+            status_t CocoaDisplay::do_main_iteration(timestamp_t ts)
+            {
                 // Here, any queued Cocoa events already handled via sendEvent.
                 // Use this to do your own rendering / app logic.
                 @autoreleasepool {
-                    if (standaloneApp) {
+                    if (standaloneApp)
+                    {
                         NSEvent *event;
                         while (
                             (
@@ -171,7 +180,6 @@ namespace lsp
 
                     return result;
                 }
-                
             }
 
             bool CocoaDisplay::r3d_backend_supported(const r3d::backend_metadata_t *meta)
@@ -190,7 +198,6 @@ namespace lsp
                     return;
 
                 NSEventType type = [nsevent type];
-                
                 NSWindow *nsWindow = [nsevent window];
                 CocoaWindow *target = find_window(nsWindow);
 
@@ -296,17 +303,16 @@ namespace lsp
                 target->handle_event(&ue);
             }
 
-
-
-            status_t CocoaDisplay::main_iteration() {
+            status_t CocoaDisplay::main_iteration()
+            {
                 timestamp_t ts = system::get_time_millis();
                 return do_main_iteration(ts);
             }
 
-            void CocoaDisplay::quit_main() {
+            void CocoaDisplay::quit_main()
+            {
                 bExit = true;
             }
-
 
             IWindow *CocoaDisplay::create_window()
             {
@@ -355,12 +361,14 @@ namespace lsp
                 return true;
             }
 
-            CocoaWindow *CocoaDisplay::find_window(void *wnd) {
+            CocoaWindow *CocoaDisplay::find_window(void *wnd)
+            {
                 NSWindow *nswnd = (__bridge NSWindow *)wnd;
                 
                 size_t n = vWindows.size();
 
-                for (size_t i = 0; i < n; ++i) {
+                for (size_t i = 0; i < n; ++i)
+                {
                     CocoaWindow *w = vWindows.uget(i);
                     if (w == NULL)
                         continue;
@@ -374,7 +382,6 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
-  
                 // Destroy font manager
             #ifdef USE_LIBFREETYPE
                 sFontManager.destroy();
@@ -386,7 +393,8 @@ namespace lsp
                 IDisplay::destroy();
             }
 
-            const MonitorInfo *CocoaDisplay::enum_monitors(size_t *count) {
+            const MonitorInfo *CocoaDisplay::enum_monitors(size_t *count)
+            {
                 // Prepare result array
                 lltl::darray<MonitorInfo> result;
 
@@ -397,7 +405,8 @@ namespace lsp
                 if (items == nullptr)
                     return nullptr;
 
-                for (NSUInteger i = 0; i < nmonitors; ++i) {
+                for (NSUInteger i = 0; i < nmonitors; ++i)
+                {
                     MonitorInfo *di = &items[i];
                     new (&di->name, inplace_new_tag_t()) LSPString;
 

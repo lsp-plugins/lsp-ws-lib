@@ -61,7 +61,7 @@ namespace lsp
                     cairo_t                *pCR;
                     cairo_font_options_t   *pFO;
                     CocoaDisplay           *pDisplay;
-                    CGContextRef           pContext;
+                    CGContextRef            pContext;
                     CocoaCairoView         *pCocoaView;
 
                     float                   fOriginX;
@@ -126,7 +126,7 @@ namespace lsp
                     CocoaCairoSurface(const CocoaCairoSurface &) = delete;
                     CocoaCairoSurface(CocoaCairoSurface &&) = delete;
 
-                    virtual ~CocoaCairoSurface();
+                    virtual ~CocoaCairoSurface() override;
 
                     CocoaCairoSurface & operator = (const CocoaCairoSurface &) = delete;
                     CocoaCairoSurface & operator = (CocoaCairoSurface &&) = delete;

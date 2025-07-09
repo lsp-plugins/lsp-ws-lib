@@ -114,7 +114,8 @@ namespace lsp
                 return pDisplay;
             }
 
-            cairo_surface_t *CocoaCairoSurface::get_image_surface() {
+            cairo_surface_t *CocoaCairoSurface::get_image_surface()
+            {
                 if (!pSurface || cairo_surface_get_type(pSurface) != CAIRO_SURFACE_TYPE_IMAGE)
                     return nullptr;
 
@@ -189,7 +190,8 @@ namespace lsp
 
             void CocoaCairoSurface::destroy()
             {
-                if (pCocoaView != NULL) {
+                if (pCocoaView != NULL)
+                {
                     [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
                 }
                 destroy_context(true);
@@ -434,10 +436,12 @@ namespace lsp
 
                 //lsp_trace("Before autoreleasepool: %p", pCocoaView);
                 @autoreleasepool {
-                    if (pCocoaView != NULL) {
+                    if (pCocoaView != NULL)
+                    {
                         cairo_surface_t *exposeSurface = get_image_surface();
 
-                        if (exposeSurface != NULL) {
+                        if (exposeSurface != NULL)
+                        {
                             lsp_trace("Surface %p end, Send event for pCocoaView=%p", this, pCocoaView);
                             [[NSNotificationCenter defaultCenter] postNotificationName:@"ForceExpose"
                                                         object:pCocoaView
