@@ -996,18 +996,19 @@ namespace lsp
                         lsp_finally{ cairo_surface_destroy(fs); };
 
                         setSourceRGBA(color);
-                        x += tr.x_bearing;
-                        y += tr.y_bearing;
-                        cairo_mask_surface(pCR, fs, x, y);
+                        const float sx  = x + tr.x_bearing;
+                        const float sy  = y + tr.y_bearing;
+                        cairo_mask_surface(pCR, fs, sx, sy);
 
                         // Draw underline if required
                         if (f.is_underline())
                         {
-                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float bottom  = y + width * 1.5f;
 
                             cairo_set_line_width(pCR, width);
-                            cairo_move_to(pCR, x, y + tr.y_advance + 1 + width);
-                            cairo_line_to(pCR, x + tr.x_advance, y + tr.y_advance + 1 + width);
+                            cairo_move_to(pCR, sx, bottom);
+                            cairo_line_to(pCR, sx + tr.x_advance, bottom);
                             cairo_stroke(pCR);
                         }
 
@@ -1068,18 +1069,19 @@ namespace lsp
                         lsp_finally{ cairo_surface_destroy(fs); };
 
                         setSourceRGBA(color);
-                        x += tr.x_bearing;
-                        y += tr.y_bearing;
-                        cairo_mask_surface(pCR, fs, x, y);
+                        const float sx = x + tr.x_bearing;
+                        const float sy = y + tr.y_bearing;
+                        cairo_mask_surface(pCR, fs, sx, sy);
 
                         // Draw underline if required
                         if (f.is_underline())
                         {
-                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float bottom  = y + width * 1.5f;
 
                             cairo_set_line_width(pCR, width);
-                            cairo_move_to(pCR, x, y + tr.y_advance + 1 + width);
-                            cairo_line_to(pCR, x + tr.x_advance, y + tr.y_advance + 1 + width);
+                            cairo_move_to(pCR, sx, bottom);
+                            cairo_line_to(pCR, sx + tr.x_advance, bottom);
                             cairo_stroke(pCR);
                         }
 
@@ -1159,11 +1161,12 @@ namespace lsp
                         // Draw underline if required
                         if (f.is_underline())
                         {
-                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float bottom  = fy + width * 1.5f;
 
                             cairo_set_line_width(pCR, width);
-                            cairo_move_to(pCR, fx, fy + tr.y_advance + 1 + width);
-                            cairo_line_to(pCR, fx + tr.x_advance, fy + tr.y_advance + 1 + width);
+                            cairo_move_to(pCR, fx, bottom);
+                            cairo_line_to(pCR, fx + tr.x_advance, bottom);
                             cairo_stroke(pCR);
                         }
 
@@ -1183,8 +1186,8 @@ namespace lsp
 
                 r_w   = te.x_advance;
                 r_h   = -te.y_bearing;
-                fx    = x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                fx    = truncf(x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                fy    = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
 
                 setSourceRGBA(color);
                 cairo_move_to(pCR, fx, fy);
@@ -1233,18 +1236,19 @@ namespace lsp
                         setSourceRGBA(color);
                         r_w   = tr.x_advance;
                         r_h   = -tr.y_bearing;
-                        fx    = x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                        fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                        fx    = truncf(x - tr.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                        fy    = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
                         cairo_mask_surface(pCR, fs, fx + tr.x_bearing, fy + tr.y_bearing);
 
                         // Draw underline if required
                         if (f.is_underline())
                         {
-                            float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float width = lsp_max(1.0f, f.get_size() / 12.0f);
+                            const float bottom  = fy + width * 1.5f;
 
                             cairo_set_line_width(pCR, width);
-                            cairo_move_to(pCR, fx, fy + tr.y_advance + 1 + width);
-                            cairo_line_to(pCR, fx + tr.x_advance, fy + tr.y_advance + 1 + width);
+                            cairo_move_to(pCR, fx, bottom);
+                            cairo_line_to(pCR, fx + tr.x_advance, bottom);
                             cairo_stroke(pCR);
                         }
 
@@ -1268,8 +1272,8 @@ namespace lsp
 
                 r_w   = te.x_advance;
                 r_h   = -te.y_bearing;
-                fx    = x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx;
-                fy    = y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy;
+                fx    = truncf(x - te.x_bearing - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+                fy    = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
 
                 setSourceRGBA(color);
                 cairo_move_to(pCR, fx, fy);

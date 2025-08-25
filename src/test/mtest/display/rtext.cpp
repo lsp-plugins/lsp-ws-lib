@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 12 июл. 2022 г.
@@ -57,6 +57,10 @@ MTEST_BEGIN("ws.display", rtext)
                         // Draw the text
                         ws::Font f;
                         f.set_name("arial");
+                        f.set_underline(true);
+
+                        LSPString str;
+                        str.set_utf8("Text");
 
                         s->set_antialiasing(false);
                         for (size_t y=0; y<3; ++y)
@@ -69,7 +73,7 @@ MTEST_BEGIN("ws.display", rtext)
 
                                 c.set_rgb24(0x000000);
                                 f.set_size(32);
-                                s->out_text_relative(f, c, xx, yy, dx, dy, "Text");
+                                s->out_text_relative(f, c, xx, yy, dx, dy, &str);
 
                                 c.set_rgb24(0x00cc00);
                                 f.set_size(12);

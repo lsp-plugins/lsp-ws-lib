@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 11 июл. 2022 г.
@@ -62,6 +62,9 @@ MTEST_BEGIN("ws.display", text)
                         ws::font_parameters_t fp;
                         ws::text_parameters_t tp1, tp2;
 
+                        LSPString str;
+                        str.set_utf8("Text");
+
                         for (size_t i=0; i<=0x07; ++i)
                         {
                             f.set_bold(i & 0x1);
@@ -95,7 +98,7 @@ MTEST_BEGIN("ws.display", text)
                             // Output text
                             c.set_rgb24(0x000000);
                             c.alpha(0.25f);
-                            s->out_text(f, c, x, y, "Text");
+                            s->out_text(f, c, x, y, &str);
 
                             // Update position
                             y += 40;
