@@ -24,7 +24,7 @@
 
 #define LSP_WS_LIB_MAJOR            1
 #define LSP_WS_LIB_MINOR            0
-#define LSP_WS_LIB_MICRO            29
+#define LSP_WS_LIB_MICRO            30
 
 #if defined(LSP_WS_LIB_PUBLISHER)
     #define LSP_WS_LIB_PUBLIC               LSP_EXPORT_MODIFIER

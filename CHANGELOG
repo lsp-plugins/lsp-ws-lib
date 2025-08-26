@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.30 ===
+
+
 === 1.0.29 ===
 * Added experimental support of MacOS with Cairo and Freetype libraries.
 * Implemented ws::IDisplay::get_file_descriptor method for obtaining event loop
