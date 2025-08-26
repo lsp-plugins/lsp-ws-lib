@@ -30,6 +30,7 @@
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/lltl/parray.h>
 
+#include <private/gl/Allocator.h>
 #include <private/gl/IContext.h>
 #include <private/gl/Texture.h>
 
@@ -39,121 +40,16 @@ namespace lsp
     {
         namespace gl
         {
-            enum batch_flags_t
-            {
-                BATCH_STENCIL_OP_MASK       = 0x03 << 0,
-                BATCH_STENCIL_OP_NONE       = 0x00 << 0,
-                BATCH_STENCIL_OP_OR         = 0x01 << 0,
-                BATCH_STENCIL_OP_XOR        = 0x02 << 0,
-                BATCH_STENCIL_OP_APPLY      = 0x03 << 0,
-
-                BATCH_MULTISAMPLE           = 1 << 2,
-                BATCH_WRITE_COLOR           = 1 << 3,
-                BATCH_CLEAR_STENCIL         = 1 << 4,
-                BATCH_NO_BLENDING           = 1 << 5,
-
-                BATCH_IMPORTANT_FLAGS       = BATCH_CLEAR_STENCIL,
-            };
-
-            typedef struct LSP_HIDDEN_MODIFIER batch_header_t
-            {
-                gl::program_t   enProgram;  // Used program for rendering
-                int32_t         nLeft;      // Origin offset left
-                int32_t         nTop;       // Origin offset top
-                uint32_t        nFlags;     // Flags
-                gl::Texture    *pTexture;   // Related texture
-            } batch_header_t;
-
-            enum uniform_type_t
-            {
-                UNI_NONE,
-
-                UNI_FLOAT,
-                UNI_VEC2F,
-                UNI_VEC3F,
-                UNI_VEC4F,
-
-                UNI_INT,
-                UNI_VEC2I,
-                UNI_VEC3I,
-                UNI_VEC4I,
-
-                UNI_UINT,
-                UNI_VEC2U,
-                UNI_VEC3U,
-                UNI_VEC4U,
-
-                UNI_MAT4F,
-            };
-
-            typedef struct LSP_HIDDEN_MODIFIER uniform_t
-            {
-                const char     *name;
-                uniform_type_t  type;
-                union {
-                    const void    *raw;
-                    const GLfloat *f32;
-                    const GLint   *i32;
-                    const GLuint  *u32;
-                };
-            } uniform_t;
-
-            typedef struct vertex_t
-            {
-                float       x;      // X Coordinate
-                float       y;      // Y Coordinate
-                float       s;      // Texture Coordinate S
-                float       t;      // Texture Coordinate T
-                uint32_t    cmd;    // Draw command
-            } vertex_t;
-
             class LSP_HIDDEN_MODIFIER Batch
             {
                 private:
-                    typedef struct vbuffer_t
-                    {
-                        vertex_t   *v;
-                        uint32_t    count;
-                        uint32_t    capacity;
-                    } vbuffer_t;
-
-                    typedef struct ibuffer_t
-                    {
-                        union {
-                            uint8_t    *u8;
-                            uint16_t   *u16;
-                            uint32_t   *u32;
-                            void       *data;
-                        };
-
-                        uint32_t    count;
-                        uint32_t    capacity;
-                        uint32_t    szof;
-                    } ibuffer_t;
-
-                    typedef struct cbuffer_t
-                    {
-                        float      *data;       // Pointer to actual data
-                        uint32_t    count;      // Number of filled floats (should be always multiple of 4)
-                        uint32_t    size;       // Texture size
-                        uint32_t    capacity;   // Overall capacity in RGBAF32 components (4 floats per record)
-                    } cbuffer_t;
-
-                    typedef struct draw_t
-                    {
-                        batch_header_t  header;
-                        vbuffer_t       vertices;
-                        ibuffer_t       indices;
-                    } draw_t;
-
-                private:
-                    cbuffer_t               vCommands;
-                    lltl::parray<draw_t>    vBatches;
-                    draw_t                 *pCurrent;
+                    batch_cbuffer_t             vCommands;
+                    lltl::parray<batch_draw_t>  vBatches;
+                    batch_draw_t               *pCurrent;
+                    Allocator                  *pAllocator;
 
                 private:
                     static inline bool header_mismatch(const batch_header_t & a, const batch_header_t & b);
-                    static void destroy(draw_t *draw);
 
                     static void bind_uniforms(const gl::vtbl_t *vtbl, GLuint program, const gl::uniform_t *uniform);
 
@@ -162,7 +58,7 @@ namespace lsp
                     ssize_t         alloc_vertices(size_t count);
 
                 public:
-                    Batch();
+                    Batch(Allocator * alloc);
                     Batch(const Batch &) = delete;
                     Batch(Batch &&) = delete;
                     ~Batch();
@@ -238,6 +134,32 @@ namespace lsp
                     vertex_t *add_vertices(size_t count);
 
                     /**
+                     * Release set of vertices at the tail of the buffer
+                     * @param count number of vertices to release
+                     */
+                    void release_vertices(size_t count);
+
+                    /**
+                     * Add indices. The index element size can be 1, 2 or 4 bytes size, so you need
+                     * to check the size by issuing index_format() function
+                     * @param count number of indices to add
+                     * @param max_value maximum value stored to index
+                     */
+                    void *add_indices(size_t count, size_t max_value);
+
+                    /**
+                     * Release set of indices at the tail of the buffer
+                     * @param count number of indices to release
+                     */
+                    void release_indices(size_t count);
+
+                    /**
+                     * Get format of the index item
+                     * @return format of the index item
+                     */
+                    index_format_t index_format() const;
+
+                    /**
                      * Add triangle
                      * @param a index of the first vertex
                      * @param b index of the second vertex
@@ -266,6 +188,14 @@ namespace lsp
                     ssize_t htriangle(uint32_t a, uint32_t b, uint32_t c);
 
                     /**
+                     * Add indices that generate triangle fan chain
+                     * @param v0i index of the first vertex
+                     * @param count number of triangles
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t htriangle_fan(uint32_t v0i, uint32_t count);
+
+                    /**
                      * Add rectangle with hint
                      * @param a index of the first vertex
                      * @param b index of the second vertex
@@ -274,6 +204,14 @@ namespace lsp
                      * @return absolute index of record in index buffer or negative error code
                      */
                     ssize_t hrectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
+
+                    /**
+                     * Add indices that generate rectangle fan chain
+                     * @param v0i index of the first vertex
+                     * @param count number of rectangles
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t hrectangle_fan(uint32_t v0i, uint32_t count);
 
                     /**
                      * Add command

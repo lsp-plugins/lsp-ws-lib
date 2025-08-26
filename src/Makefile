@@ -60,24 +60,35 @@ ARTIFACT_PC             = $(ARTIFACT_BIN)/$(ARTIFACT_NAME)$(PKGCONFIG_EXT)
 ARTIFACT_DEPS           = $(call dquery, OBJ, $(ARTIFACT_DEPENDENCIES))
 ARTIFACT_CFLAGS         = $(call query, CFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 ARTIFACT_LDFLAGS        = $(call query, LDFLAGS, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
+
 ARTIFACT_OBJFILES       = $(call query, OBJ, $(ARTIFACT_DEPENDENCIES) $(HOST)$(ARTIFACT_ID))
 
 ARTIFACT_TARGETS        = $(ARTIFACT_LIB) $(ARTIFACT_SLIB) $(ARTIFACT_PC)
 
 # Source code
 CXX_SRC_MAIN            = $(call rwildcard, main, *.cpp)
+MM_SRC_MAIN             = $(call rwildcard, main, *.mm)
 CXX_SRC_EXPORT          = $(call rwildcard, export, *.cpp)
 CXX_SRC_TEST            = $(call rwildcard, test, *.cpp)
 CXX_SRC_NOTEST          =
 CXX_SRC_EXT             =
 CXX_SRC                 = $(CXX_SRC_MAIN) $(CXX_SRC_EXT)
+ifeq ($(PLATFORM),MacOS)
+  CXX_SRC                += $(MM_SRC_MAIN)
+endif
 
 CXX_OBJ_MAIN            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_MAIN))
+MM_OBJ_MAIN             = $(patsubst %.mm,  $(ARTIFACT_BIN)/%.o, $(MM_SRC_MAIN))
 CXX_OBJ_EXPORT          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXPORT))
 CXX_OBJ_TEST            = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_TEST))
 CXX_OBJ_NOTEST          = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_NOTEST))
 CXX_OBJ_EXT             = $(patsubst %.cpp, $(ARTIFACT_BIN)/%.o, $(CXX_SRC_EXT))
+
 CXX_OBJ                 = $(CXX_OBJ_MAIN) $(CXX_OBJ_EXT)
+ifeq ($(PLATFORM),MacOS)
+  CXX_OBJ                += $(MM_OBJ_MAIN)
+endif
+
 CXX_OBJ_ALL             = \
   $(CXX_OBJ_MAIN) \
   $(CXX_OBJ_EXPORT) \
@@ -85,8 +96,19 @@ CXX_OBJ_ALL             = \
   $(CXX_OBJ_TEST) \
   $(CXX_OBJ_NOTEST)
 
+MM_OBJ_ALL              = \
+  $(MM_OBJ_MAIN) 
+
+OBJ_ALL                 = $(CXX_OBJ_ALL)
+ifeq ($(PLATFORM),MacOS)
+  OBJ_ALL                += $(MM_OBJ_ALL)
+endif
+
 ALL_HEADERS             = $(call rwildcard, $(ARTIFACT_INC), *.h)
+
 CXX_FILE                = $(patsubst $(ARTIFACT_BIN)/%.o,%.cpp, $(@))
+MM_FILE                 = $(patsubst $(ARTIFACT_BIN)/%.o,%.mm, $(@)) 
+
 CXX_HDR_PATHS           = $(foreach hdr,$(ARTIFACT_HEADERS),$(ARTIFACT_INC)/$(hdr))
 CXX_HEADERS             = $(foreach path,$(CXX_HDR_PATHS),$(call rwildcard, $(path), *.h))
 CXX_INSTHEADERS         = $(patsubst $(ARTIFACT_INC)/%,$(DESTDIR)$(INCDIR)/%,$(CXX_HEADERS))
@@ -118,7 +140,12 @@ $(CXX_OBJ_ALL):
 	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(CXX_FILE)"
 	mkdir -p $(dir $@)
 	$($(HOST)CXX) -o $(@) -c $(CXX_FILE) -fPIC $($(HOST)CXXFLAGS) $(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
-	
+
+$(MM_OBJ_ALL):
+	echo "  $($(HOST)CXX)  [$(ARTIFACT_NAME)] $(MM_FILE)"
+	mkdir -p $(dir $@)
+	$($(HOST)CXX) -o $(@) -c $(MM_FILE) -fPIC $($(HOST)CXXFLAGS) $(ARTIFACT_MFLAGS) $($(HOST)EXT_FLAGS) $(INCLUDE) $(ARTIFACT_CFLAGS) -MMD -MP -MF $(DEP_FILE) -MT $(@)
+
 # Producing large object files
 $(ARTIFACT_OBJ): $(CXX_OBJ)
 	@echo "  $($(HOST)LD)   [$(ARTIFACT_NAME)] $(notdir $(ARTIFACT_OBJ))"
@@ -180,4 +207,5 @@ uninstall:
 	echo "Uninstall OK"
 
 # Dependencies
--include $(foreach objfile,$(CXX_OBJ_ALL),$(patsubst %.o,%.d,$(objfile)))
+-include $(foreach objfile,$(OBJ_ALL),$(patsubst %.o,%.d,$(objfile)))
+

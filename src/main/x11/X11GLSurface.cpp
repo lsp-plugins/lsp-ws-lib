@@ -199,22 +199,21 @@ namespace lsp
                     lsp_finally { sBatch.end(); };
 
                     // Draw primitives
-                    x                  += tr.x_bearing;
-                    y                  += tr.y_bearing;
-
                     const uint32_t ci   = uint32_t(res);
-                    const float xe      = x + bitmap->width;
-                    const float ye      = y + bitmap->height;
+                    const float xs      = x + tr.x_bearing;
+                    const float ys      = y + tr.y_bearing;
+                    const float xe      = xs + bitmap->width;
+                    const float ye      = ys + bitmap->height;
 
                     const uint32_t vi   = sBatch.next_vertex_index();
                     gl::vertex_t *v     = sBatch.add_vertices(4);
                     if (v == NULL)
                         return;
 
-                    ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
-                    ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
+                    ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
+                    ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
                     ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
-                    ADD_TVERTEX(v, ci, xe, y, rect.se, rect.tb);
+                    ADD_TVERTEX(v, ci, xe, ys, rect.se, rect.tb);
 
                     sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
                 }
@@ -227,10 +226,10 @@ namespace lsp
                         return;
                     lsp_finally { sBatch.end(); };
 
-                    const float width = lsp_max(1.0f, f.get_size() / 12.0f);
-                    fill_rect(uint32_t(res),
-                        x, y + tr.y_advance + 1.0f + width * 0.5f,
-                        x + tr.x_advance, y + tr.y_advance + 1.0f + width * 1.5f);
+                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
+                    const float xs      = x + tr.x_bearing;
+                    const float bottom  = y + width * 2.0f;
+                    fill_rect(uint32_t(res), xs, bottom - width, xs + tr.x_advance, bottom);
                 }
 
             #endif /* USE_LIBFREETYPE */
@@ -287,8 +286,8 @@ namespace lsp
                     r_h                 = -tr.y_bearing;
                     fx                  = truncf(x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
                     fy                  = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
-                    x                   = fx + float(tr.x_bearing);
-                    y                   = fy + float(tr.y_bearing);
+                    x                   = fx + tr.x_bearing;
+                    y                   = fy + tr.y_bearing;
 
                     const uint32_t ci   = uint32_t(res);
                     const float xe      = x + bitmap->width;
@@ -315,10 +314,10 @@ namespace lsp
                         return;
                     lsp_finally { sBatch.end(); };
 
-                    const float width = lsp_max(1.0f, f.get_size() / 12.0f);
-                    fill_rect(uint32_t(res),
-                        fx, fy + tr.y_advance + 1.0f + width * 0.5f,
-                        fx + tr.x_advance, fy + tr.y_advance + 1.0f + width * 1.5f);
+                    x                   = x + tr.x_bearing;
+                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
+                    const float bottom  = fy + width * 2.0f;
+                    fill_rect(uint32_t(res), x, bottom - width, x + tr.x_advance, bottom);
                 }
 
             #endif /* USE_LIBFREETYPE */

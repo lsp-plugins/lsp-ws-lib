@@ -1,9 +1,10 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 25 окт. 2016 г.
+ * Created on: 12 June 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,25 +20,29 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if defined(USE_LIBX11) && defined(USE_LIBCAIRO)
-
 #include <lsp-plug.in/common/types.h>
+
+#ifdef PLATFORM_MACOSX
+
+#import <CoreGraphics/CoreGraphics.h>
+
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/stdlib/math.h>
 
-#include <cairo/cairo.h>
-#include <cairo/cairo-xlib.h>
+#include <cairo.h>
+#include <cairo-quartz.h>
 
 #include <private/freetype/FontManager.h>
-#include <private/x11/X11CairoGradient.h>
-#include <private/x11/X11CairoSurface.h>
-#include <private/x11/X11Display.h>
+#include <private/cocoa/CocoaCairoGradient.h>
+#include <private/cocoa/CocoaCairoSurface.h>
+#include <private/cocoa/CocoaDisplay.h>
+#include <private/cocoa/CocoaCairoView.h>
 
 namespace lsp
 {
     namespace ws
     {
-        namespace x11
+        namespace cocoa
         {
             constexpr float k_color = 1.0f / 255.0f;
 
@@ -52,23 +57,25 @@ namespace lsp
                 return CAIRO_ANTIALIAS_DEFAULT;
             }
 
-            X11CairoSurface::X11CairoSurface(X11Display *dpy, Drawable drawable, Visual *visual, size_t width, size_t height):
-                ISurface(width, height, ST_XLIB)
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, CocoaCairoView *view, size_t width, size_t height):
+                ISurface(width, height, ST_IMAGE)
             {
+                lsp_trace("Surface %p constructed with view %p", this, view);
                 pDisplay        = dpy;
+                pCocoaView      = view;
                 pCR             = NULL;
                 pFO             = NULL;
-                pRoot           = ::cairo_xlib_surface_create(dpy->x11display(), drawable, visual, width, height);
+                pRoot           = NULL;
                 pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
-            #endif /* LSP_DEBUG */
+            #endif 
             }
 
-            X11CairoSurface::X11CairoSurface(X11Display *dpy, size_t width, size_t height):
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, size_t width, size_t height):
                 ISurface(width, height, ST_IMAGE)
             {
                 pDisplay        = dpy;
@@ -84,10 +91,11 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
-            X11CairoSurface::X11CairoSurface(X11Display *dpy, cairo_surface_t *surface, size_t width, size_t height):
+            CocoaCairoSurface::CocoaCairoSurface(CocoaDisplay *dpy, cairo_surface_t *surface, size_t width, size_t height):
                 ISurface(width, height, ST_SIMILAR)
             {
                 pDisplay        = dpy;
+                pCocoaView      = NULL;
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
@@ -101,39 +109,62 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
-            IDisplay *X11CairoSurface::display()
+            IDisplay *CocoaCairoSurface::display()
             {
                 return pDisplay;
             }
 
-            ISurface *X11CairoSurface::create(size_t width, size_t height)
+            cairo_surface_t *CocoaCairoSurface::get_image_surface()
             {
-                return new X11CairoSurface(pDisplay, pSurface, width, height);
+                if (!pSurface || cairo_surface_get_type(pSurface) != CAIRO_SURFACE_TYPE_IMAGE)
+                    return nullptr;
+
+                int width = cairo_image_surface_get_width(pSurface);
+                int height = cairo_image_surface_get_height(pSurface);
+                cairo_format_t format = cairo_image_surface_get_format(pSurface);
+
+                // Create new surface with same format and size
+                cairo_surface_t *copy = cairo_image_surface_create(format, width, height);
+                if (!copy)
+                    return nullptr;
+
+                // Create a cairo context for the destination surface
+                cairo_t *cr = cairo_create(copy);
+                cairo_set_source_surface(cr, pSurface, 0, 0);
+                cairo_paint(cr);
+                cairo_destroy(cr);
+
+                return copy;
             }
 
-            IGradient *X11CairoSurface::linear_gradient(float x0, float y0, float x1, float y1)
+            ISurface *CocoaCairoSurface::create(size_t width, size_t height)
             {
-                return new X11CairoGradient(
-                    X11CairoGradient::linear_t {
+                return new CocoaCairoSurface(pDisplay, pSurface, width, height);
+            }
+
+            IGradient *CocoaCairoSurface::linear_gradient(float x0, float y0, float x1, float y1)
+            {
+                return new CocoaCairoGradient(
+                    CocoaCairoGradient::linear_t {
                         x0, y0,
                         x1, y1});
             }
 
-            IGradient *X11CairoSurface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
+            IGradient *CocoaCairoSurface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
             {
-                return new X11CairoGradient(
-                    X11CairoGradient::radial_t {
+                return new CocoaCairoGradient(
+                    CocoaCairoGradient::radial_t {
                         cx0, cy0,
                         cx1, cy1,
                         r});
             }
 
-            X11CairoSurface::~X11CairoSurface()
+            CocoaCairoSurface::~CocoaCairoSurface()
             {
                 destroy_context(true);
             }
 
-            void X11CairoSurface::destroy_context(bool root)
+            void CocoaCairoSurface::destroy_context(bool root)
             {
                 if (pFO != NULL)
                 {
@@ -157,23 +188,24 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::destroy()
+            void CocoaCairoSurface::destroy()
             {
+                if (pCocoaView != NULL)
+                {
+                    [[NSNotificationCenter defaultCenter] removeObserver:pCocoaView];
+                }
                 destroy_context(true);
             }
 
-            bool X11CairoSurface::valid() const
+            bool CocoaCairoSurface::valid() const
             {
                 return pSurface != NULL;
             }
 
-            status_t X11CairoSurface::resize(size_t width, size_t height)
+            status_t CocoaCairoSurface::resize(size_t width, size_t height)
             {
                 if (pCR != NULL)
                     return STATUS_BAD_STATE;
-
-                if (pRoot != NULL)
-                    ::cairo_xlib_surface_set_size(pRoot, width, height);
 
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
@@ -195,7 +227,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            void X11CairoSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
+            void CocoaCairoSurface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
                 if (pCR == NULL)
                     return;
@@ -203,7 +235,7 @@ namespace lsp
                 if ((type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
 
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
+                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
                 if (cs->pSurface == NULL)
                     return;
 
@@ -214,7 +246,7 @@ namespace lsp
 
                 ::cairo_rectangle(pCR, x, y, sw, sh);
                 ::cairo_clip(pCR);
-
+                
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -224,10 +256,33 @@ namespace lsp
 
                     ::cairo_translate(pCR, x, y);
                     ::cairo_scale(pCR, sx, sy);
+
                     ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
                 }
                 else
                     ::cairo_set_source_surface(pCR, cs->pSurface, x, y);
+                
+                /*
+                if ((sx != 1.0f) || (sy != 1.0f))
+                {
+                    if (sx < 0.0f)
+                        x -= sx * s->width();
+                    if (sy < 0.0f)
+                        y -= sy * s->height();
+
+                    ::cairo_translate(pCR, x, y);
+
+                    ::cairo_translate(pCR, x, y + (sy * s->height()));
+                    ::cairo_scale(pCR, sx, -sy);
+                    ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                }
+                else
+                {
+                    // If scaling is 1, still need to flip Y for Cocoa
+                    ::cairo_translate(pCR, x, y + s->height());
+                    ::cairo_scale(pCR, 1.0f, -1.0f);
+                    ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
+                } */
 
                 // Draw the surface
                 if (a > 0.0f)
@@ -236,14 +291,14 @@ namespace lsp
                     ::cairo_paint(pCR);
             }
 
-            void X11CairoSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
+            void CocoaCairoSurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
                 surface_type_t type = s->type();
                 if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
                 if (pCR == NULL)
                     return;
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
+                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
                 if (cs->pSurface == NULL)
                     return;
 
@@ -252,6 +307,7 @@ namespace lsp
                 ::cairo_translate(pCR, x, y);
                 ::cairo_scale(pCR, sx, sy);
                 ::cairo_rotate(pCR, ra);
+
                 ::cairo_set_source_surface(pCR, cs->pSurface, 0.0f, 0.0f);
                 if (a > 0.0f)
                     ::cairo_paint_with_alpha(pCR, 1.0f - a);
@@ -260,14 +316,14 @@ namespace lsp
                 ::cairo_restore(pCR);
             }
 
-            void X11CairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
+            void CocoaCairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
             {
                 surface_type_t type = s->type();
                 if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
                 if (pCR == NULL)
                     return;
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
+                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
                 if (cs->pSurface == NULL)
                     return;
 
@@ -284,7 +340,7 @@ namespace lsp
                     ::cairo_paint(pCR);
             }
 
-            void X11CairoSurface::draw_raw(
+            void CocoaCairoSurface::draw_raw(
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)
             {
@@ -303,6 +359,7 @@ namespace lsp
                 ::cairo_save(pCR);
                 lsp_finally { ::cairo_restore(pCR); };
 
+                
                 if ((sx != 1.0f) && (sy != 1.0f))
                 {
                     if (sx < 0.0f)
@@ -324,8 +381,11 @@ namespace lsp
                     ::cairo_paint(pCR);
             }
 
-            void X11CairoSurface::begin()
+            void CocoaCairoSurface::begin()
             {
+                if (pCocoaView != nullptr)
+                    lsp_trace("Surface %p begin, pCocoaView=%p, w=%zu, h=%zu", this, pCocoaView, nWidth, nHeight);
+                
                 // Force end() call
                 end();
 
@@ -342,12 +402,18 @@ namespace lsp
                 ::cairo_set_line_join(pCR, CAIRO_LINE_JOIN_BEVEL);
                 ::cairo_set_tolerance(pCR, 0.5);
 
+                // In CairoView/Window we have also to flip Y for draw from topleft
+                if (pCocoaView) {
+                    ::cairo_translate(pCR, 0, nHeight);
+                    ::cairo_scale(pCR, 1, -1);
+                }
+
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
             }
 
-            void X11CairoSurface::end()
+            void CocoaCairoSurface::end()
             {
                 if (pCR == NULL)
                     return;
@@ -368,6 +434,25 @@ namespace lsp
                     pCR             = NULL;
                 }
 
+                //lsp_trace("Before autoreleasepool: %p", pCocoaView);
+                @autoreleasepool {
+                    if (pCocoaView != NULL)
+                    {
+                        cairo_surface_t *exposeSurface = get_image_surface();
+
+                        if (exposeSurface != NULL)
+                        {
+                            lsp_trace("Surface %p end, Send event for pCocoaView=%p", this, pCocoaView);
+                            [[NSNotificationCenter defaultCenter] postNotificationName:@"ForceExpose"
+                                                        object:pCocoaView
+                                                        userInfo:@{@"Surface": [NSValue valueWithPointer: exposeSurface]}];
+                        }
+                        
+                        //[[pCocoaWindow contentView] setImage: pSurface]; 
+                        //[[pCocoaWindow contentView] triggerRedraw]; 
+                    } 
+                }
+
                 ::cairo_surface_flush(pSurface);
 
                 // Copy back surface to front surface if it is present
@@ -386,7 +471,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::set_current_font(font_context_t *ctx, const Font &f)
+            void CocoaCairoSurface::set_current_font(font_context_t *ctx, const Font &f)
             {
                 // Apply antialiasint to the font
                 ctx->aa     = cairo_font_options_get_antialias(pFO);
@@ -404,7 +489,7 @@ namespace lsp
                 return;
             }
 
-            void X11CairoSurface::unset_current_font(font_context_t *ctx)
+            void CocoaCairoSurface::unset_current_font(font_context_t *ctx)
             {
                 cairo_font_options_set_antialias(pFO, ctx->aa);
                 cairo_set_font_face(pCR, NULL);
@@ -413,7 +498,7 @@ namespace lsp
                 ctx->aa     = CAIRO_ANTIALIAS_DEFAULT;
             }
 
-            void X11CairoSurface::clear_rgb(uint32_t rgb)
+            void CocoaCairoSurface::clear_rgb(uint32_t rgb)
             {
                 if (pCR == NULL)
                     return;
@@ -430,7 +515,7 @@ namespace lsp
                 ::cairo_set_operator (pCR, op);
             }
 
-            void X11CairoSurface::clear_rgba(uint32_t rgba)
+            void CocoaCairoSurface::clear_rgba(uint32_t rgba)
             {
                 if (pCR == NULL)
                     return;
@@ -447,7 +532,7 @@ namespace lsp
                 ::cairo_set_operator (pCR, op);
             }
 
-            inline void X11CairoSurface::setSourceRGB(const Color &col)
+            inline void CocoaCairoSurface::setSourceRGB(const Color &col)
             {
                 if (pCR == NULL)
                     return;
@@ -456,7 +541,7 @@ namespace lsp
                 ::cairo_set_source_rgb(pCR, r, g, b);
             }
 
-            inline void X11CairoSurface::setSourceRGBA(const Color &col)
+            inline void CocoaCairoSurface::setSourceRGBA(const Color &col)
             {
                 if (pCR == NULL)
                     return;
@@ -465,7 +550,7 @@ namespace lsp
                 ::cairo_set_source_rgba(pCR, r, g, b, o);
             }
 
-            void X11CairoSurface::clear(const Color &color)
+            void CocoaCairoSurface::clear(const Color &color)
             {
                 if (pCR == NULL)
                     return;
@@ -477,7 +562,7 @@ namespace lsp
                 ::cairo_set_operator (pCR, op);
             }
 
-            void X11CairoSurface::drawRoundRect(float xmin, float ymin, float width, float height, float radius, size_t mask)
+            void CocoaCairoSurface::drawRoundRect(float xmin, float ymin, float width, float height, float radius, size_t mask)
             {
                 if ((!(mask & SURFMASK_ALL_CORNER)) || (radius <= 0.0f))
                 {
@@ -514,7 +599,7 @@ namespace lsp
                 cairo_close_path(pCR);
             }
 
-            void X11CairoSurface::wire_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            void CocoaCairoSurface::wire_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;
@@ -533,7 +618,7 @@ namespace lsp
                 cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::wire_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
+            void CocoaCairoSurface::wire_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
                 if (pCR == NULL)
                     return;
@@ -552,12 +637,12 @@ namespace lsp
                 cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
+            void CocoaCairoSurface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 double w = cairo_get_line_width(pCR);
                 cairo_line_join_t j = cairo_get_line_join(pCR);
                 cairo_set_line_join(pCR, CAIRO_LINE_JOIN_MITER);
@@ -572,12 +657,12 @@ namespace lsp
                 cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
+            void CocoaCairoSurface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
 
                 double w = cairo_get_line_width(pCR);
                 cairo_line_join_t j = cairo_get_line_join(pCR);
@@ -593,7 +678,7 @@ namespace lsp
                 cairo_set_line_join(pCR, j);
             }
 
-            void X11CairoSurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
+            void CocoaCairoSurface::fill_rect(const Color &color, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
@@ -603,7 +688,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
+            void CocoaCairoSurface::fill_rect(const Color &color, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 if (pCR == NULL)
                     return;
@@ -612,29 +697,29 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
+            void CocoaCairoSurface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
                 drawRoundRect(left, top, width, height, radius, mask);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
+            void CocoaCairoSurface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
                 drawRoundRect(r->nLeft, r->nTop, r->nWidth, r->nHeight, radius, mask);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
+            void CocoaCairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
             {
                 if (pCR == NULL)
                     return;
@@ -642,7 +727,7 @@ namespace lsp
                 if ((type != ST_IMAGE) && (type != ST_SIMILAR))
                     return;
 
-                X11CairoSurface *cs = static_cast<X11CairoSurface *>(s);
+                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
                 if (cs->pSurface == NULL)
                     return;
 
@@ -674,12 +759,12 @@ namespace lsp
                 ::cairo_paint_with_alpha(pCR, 1.0f - alpha);
             }
 
-            void X11CairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
+            void CocoaCairoSurface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 fill_rect(s, alpha, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
-            void X11CairoSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
+            void CocoaCairoSurface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
             {
                 if (pCR == NULL)
                     return;
@@ -700,12 +785,12 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
+            void CocoaCairoSurface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
                 cairo_move_to(pCR, x0, y0);
                 cairo_line_to(pCR, x1, y1);
@@ -714,7 +799,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
+            void CocoaCairoSurface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
                 if (pCR == NULL)
                     return;
@@ -727,7 +812,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            bool X11CairoSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
+            bool CocoaCairoSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
             {
                 // Get font parameter using font manager
             #ifdef USE_LIBFREETYPE
@@ -764,7 +849,7 @@ namespace lsp
                 return true;
             }
 
-            bool X11CairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
+            bool CocoaCairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const char *text)
             {
                 if (text == NULL)
                     return false;
@@ -824,7 +909,7 @@ namespace lsp
                 return true;
             }
 
-            bool X11CairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
+            bool CocoaCairoSurface::get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if (text == NULL)
                     return false;
@@ -880,7 +965,7 @@ namespace lsp
                 return true;
             }
 
-            void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
+            void CocoaCairoSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -957,7 +1042,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+            void CocoaCairoSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -1034,7 +1119,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+            void CocoaCairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -1120,7 +1205,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
+            void CocoaCairoSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
                 if ((pCR == NULL) || (f.get_name() == NULL) || (text == NULL))
                     return;
@@ -1206,7 +1291,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::line(const Color &color, float x0, float y0, float x1, float y1, float width)
+            void CocoaCairoSurface::line(const Color &color, float x0, float y0, float x1, float y1, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -1220,12 +1305,12 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
+            void CocoaCairoSurface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
 
                 double ow = cairo_get_line_width(pCR);
@@ -1236,7 +1321,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_line(const Color &color, float a, float b, float c, float width)
+            void CocoaCairoSurface::parametric_line(const Color &color, float a, float b, float c, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -1260,7 +1345,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
+            void CocoaCairoSurface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -1284,7 +1369,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::parametric_bar(
+            void CocoaCairoSurface::parametric_bar(
                 IGradient *g,
                 float a1, float b1, float c1, float a2, float b2, float c2,
                 float left, float right, float top, float bottom)
@@ -1292,7 +1377,7 @@ namespace lsp
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
 
                 if (fabsf(a1) > fabsf(b1))
@@ -1321,7 +1406,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
+            void CocoaCairoSurface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
                 if (pCR == NULL)
                     return;
@@ -1340,7 +1425,7 @@ namespace lsp
                 cairo_set_line_width(pCR, ow);
             }
 
-            void X11CairoSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
+            void CocoaCairoSurface::fill_poly(const Color & color, const float *x, const float *y, size_t n)
             {
                 if ((pCR == NULL) || (n < 2))
                     return;
@@ -1353,7 +1438,7 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
+            void CocoaCairoSurface::fill_poly(IGradient *gr, const float *x, const float *y, size_t n)
             {
                 if ((pCR == NULL) || (n < 2) || (gr == NULL))
                     return;
@@ -1362,12 +1447,12 @@ namespace lsp
                 for (size_t i=1; i < n; ++i)
                     cairo_line_to(pCR, x[i], y[i]);
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(gr);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(gr);
                 cg->apply(pCR);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
+            void CocoaCairoSurface::wire_poly(const Color & color, float width, const float *x, const float *y, size_t n)
             {
                 if ((pCR == NULL) || (n < 2))
                     return;
@@ -1381,7 +1466,7 @@ namespace lsp
                 cairo_stroke(pCR);
             }
 
-            void X11CairoSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
+            void CocoaCairoSurface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
                 if ((pCR == NULL) || (n < 2))
                     return;
@@ -1406,7 +1491,7 @@ namespace lsp
                 }
             }
 
-            void X11CairoSurface::fill_circle(const Color &c, float x, float y, float r)
+            void CocoaCairoSurface::fill_circle(const Color &c, float x, float y, float r)
             {
                 if (pCR == NULL)
                     return;
@@ -1416,18 +1501,18 @@ namespace lsp
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_circle(IGradient *g, float x, float y, float r)
+            void CocoaCairoSurface::fill_circle(IGradient *g, float x, float y, float r)
             {
                 if (pCR == NULL)
                     return;
 
-                X11CairoGradient *cg = static_cast<X11CairoGradient *>(g);
+                CocoaCairoGradient *cg = static_cast<CocoaCairoGradient *>(g);
                 cg->apply(pCR);
                 cairo_arc(pCR, x, y, r, 0, M_PI * 2.0f);
                 cairo_fill(pCR);
             }
 
-            void X11CairoSurface::fill_frame(
+            void CocoaCairoSurface::fill_frame(
                 const Color &color,
                 size_t flags, float radius,
                 float fx, float fy, float fw, float fh,
@@ -1587,7 +1672,7 @@ namespace lsp
                 }
             }
 
-            bool X11CairoSurface::get_antialiasing()
+            bool CocoaCairoSurface::get_antialiasing()
             {
                 if (pCR == NULL)
                     return false;
@@ -1595,7 +1680,7 @@ namespace lsp
                 return cairo_get_antialias(pCR) != CAIRO_ANTIALIAS_NONE;
             }
 
-            bool X11CairoSurface::set_antialiasing(bool set)
+            bool CocoaCairoSurface::set_antialiasing(bool set)
             {
                 if (pCR == NULL)
                     return false;
@@ -1606,12 +1691,12 @@ namespace lsp
                 return old;
             }
 
-            ws::point_t X11CairoSurface::set_origin(const ws::point_t & origin)
+            ws::point_t CocoaCairoSurface::set_origin(const ws::point_t & origin)
             {
                 return set_origin(origin.nLeft, origin.nTop);
             }
 
-            ws::point_t X11CairoSurface::set_origin(ssize_t left, ssize_t top)
+            ws::point_t CocoaCairoSurface::set_origin(ssize_t left, ssize_t top)
             {
                 ws::point_t result;
                 result.nLeft    = fOriginX;
@@ -1637,7 +1722,7 @@ namespace lsp
                 return result;
             }
 
-            void X11CairoSurface::clip_begin(float x, float y, float w, float h)
+            void CocoaCairoSurface::clip_begin(float x, float y, float w, float h)
             {
                 if (pCR == NULL)
                     return;
@@ -1652,7 +1737,7 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
-            void X11CairoSurface::clip_end()
+            void CocoaCairoSurface::clip_end()
             {
                 if (pCR == NULL)
                     return;
@@ -1669,8 +1754,8 @@ namespace lsp
                 cairo_restore(pCR);
             }
 
-        } /* namespace x11 */
+        } /* namespace cocoa */
     } /* namespace ws */
 } /* namespace lsp */
 
-#endif /* defined(USE_LIBX11) && defined(USE_LIBCAIRO) */
+#endif /* defined(PLATFORM_MAXOSX) */

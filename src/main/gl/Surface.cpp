@@ -33,6 +33,7 @@
 #include <private/freetype/FontManager.h>
 #include <private/gl/Batch.h>
 #include <private/gl/Gradient.h>
+#include <private/gl/Stats.h>
 #include <private/gl/Surface.h>
 #include <private/x11/X11Display.h>
 
@@ -52,11 +53,29 @@ namespace lsp
 
             #define ADD_VERTEX(v, v_ci, v_x, v_y)  ADD_TVERTEX(v, v_ci, v_x, v_y, 0.0f, 0.0f)
 
+            #define ADD_HRECTANGLE(v, a, b, c, d) \
+                v[0]        = a; \
+                v[1]        = b; \
+                v[2]        = c; \
+                v[3]        = a; \
+                v[4]        = c; \
+                v[5]        = d; \
+                v += 6;
+
+            #define ADD_HTRIANGLE(v, a, b, c) \
+                v[0]        = a; \
+                v[1]        = b; \
+                v[2]        = c; \
+                v += 3;
+
             constexpr float k_color = 1.0f / 255.0f;
 
             Surface::Surface(IDisplay *display, gl::IContext *ctx, size_t width, size_t height):
-                ISurface(width, height, ST_OPENGL)
+                ISurface(width, height, ST_OPENGL),
+                sBatch(ctx->allocator())
             {
+                OPENGL_INC_STATS(surface_alloc);
+
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
@@ -80,8 +99,11 @@ namespace lsp
             }
 
             Surface::Surface(gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height):
-                ISurface(width, height, ST_OPENGL)
+                ISurface(width, height, ST_OPENGL),
+                sBatch(ctx->allocator())
             {
+                OPENGL_INC_STATS(surface_alloc);
+
                 pDisplay        = NULL;
                 pContext        = safe_acquire(ctx);
                 pTexture        = NULL;
@@ -116,10 +138,7 @@ namespace lsp
             {
                 Surface *s = create_nested(pText, width, height);
                 if (s != NULL)
-                {
                     s->pDisplay     = pDisplay;
-                    s->pContext     = safe_acquire(pContext);
-                }
 
                 return s;
             }
@@ -161,7 +180,11 @@ namespace lsp
 
             Surface::~Surface()
             {
+                OPENGL_INC_STATS(surface_free);
+
                 do_destroy();
+
+                OPENGL_OUTPUT_STATS(true);
             }
 
             void Surface::destroy()
@@ -214,10 +237,10 @@ namespace lsp
 
             inline float *Surface::serialize_texture(float *dst, const gl::Texture *t)
             {
-                dst[0]      = float(t->width());
-                dst[1]      = float(t->height());
-                dst[2]      = t->format();
-                dst[3]      = t->multisampling();
+                dst[0]          = float(t->width());
+                dst[1]          = float(t->height());
+                dst[2]          = t->format();
+                dst[3]          = t->multisampling();
 
                 return dst + 4;
             }
@@ -266,10 +289,10 @@ namespace lsp
 
             inline void Surface::limit_rect(clip_rect_t & rect)
             {
-                rect.left           = lsp_max(rect.left, 0.0f);
-                rect.top            = lsp_max(rect.top, 0.0f);
-                rect.right          = lsp_min(rect.right, float(nWidth));
-                rect.bottom         = lsp_min(rect.bottom, float(nHeight));
+                rect.left           = lsp_max(rect.left, -sOrigin.left);
+                rect.top            = lsp_max(rect.top, -sOrigin.top);
+                rect.right          = lsp_min(rect.right, float(nWidth) - sOrigin.left);
+                rect.bottom         = lsp_min(rect.bottom, float(nHeight) - sOrigin.top);
             }
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a)
@@ -284,7 +307,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -313,7 +336,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -344,7 +367,7 @@ namespace lsp
                         sOrigin.left,
                         sOrigin.top,
                         enrich_flags(flags),
-                        pText->current(),
+                        NULL,
                     });
                 if (res != STATUS_OK)
                     return -res;
@@ -548,12 +571,13 @@ namespace lsp
                 if (n < 3)
                     return;
 
+                // Allocate resources
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(n);
                 if (v == NULL)
                     return;
 
-                uint32_t vi         = v0i + 1;
+                // Fill geometry
                 ADD_VERTEX(v, ci, x[0], y[0]);
                 ADD_VERTEX(v, ci, x[1], y[1]);
 
@@ -566,11 +590,12 @@ namespace lsp
                 {
                     extend_rect(rect, x[i], y[i]);
                     ADD_VERTEX(v, ci, x[i], y[i]);
-                    sBatch.htriangle(v0i, vi, vi + 1);
-                    ++vi;
                 }
 
                 limit_rect(rect);
+
+                // Generate indices
+                sBatch.htriangle_fan(v0i, n - 2);
             }
 
             void Surface::fill_circle(uint32_t ci, float x, float y, float r)
@@ -583,16 +608,16 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const size_t count  = M_PI * 2.0f / phi;
 
-                // Fill batch
-                float vx = r;
-                float vy = 0.0f;
-
+                // Allocate resources
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count + 3);
                 if (v == NULL)
                     return;
 
-                uint32_t v1i        = v0i + 1;
+                // Generate the geometry
+                float vx = r;
+                float vy = 0.0f;
+
                 ADD_VERTEX(v, ci, x, y);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
@@ -604,12 +629,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + r, y);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
+
+                // Generate indices
+                sBatch.htriangle_fan(v0i, count + 1);
             }
 
             void Surface::fill_sector(uint32_t ci, float x, float y, float r, float a1, float a2)
@@ -628,16 +653,16 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Generate the geometry
-                float vx            = cosf(a1) * r;
-                float vy            = sinf(a1) * r;
-
+                // Allocate resources
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count + 3);
                 if (v == NULL)
                     return;
 
-                uint32_t v1i        = v0i + 1;
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
+
                 ADD_VERTEX(v, ci, x, y);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
@@ -649,12 +674,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
+
+                // Generate indices
+                sBatch.htriangle_fan(v0i, count + 1);
             }
 
             void Surface::fill_textured_sector(uint32_t ci, const texcoord_t & tex, float x, float y, float r, float a1, float a2)
@@ -673,16 +698,15 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Generate the geometry
-                float vx            = cosf(a1) * r;
-                float vy            = sinf(a1) * r;
-
+                // Allocate resources
                 const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count + 3);
                 if (v == NULL)
                     return;
 
-                uint32_t v1i        = v0i + 1;
+                // Generate the geometry
+                float vx            = cosf(a1) * r;
+                float vy            = sinf(a1) * r;
 
                 ADD_TVERTEX(v, ci, x, y, (x - tex.x) * tex.sx, (y - tex.y) * tex.sy);
                 float xx            = x + vx;
@@ -703,8 +727,6 @@ namespace lsp
                     txx         = (xx - tex.x) * tex.sx;
                     tyy         = (yy - tex.y) * tex.sy;
                     ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
                 }
 
                 xx          = x + ex;
@@ -712,7 +734,9 @@ namespace lsp
                 txx         = (xx - tex.x) * tex.sx;
                 tyy         = (yy - tex.y) * tex.sy;
                 ADD_TVERTEX(v, ci, xx, yy, txx, tyy);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
+
+                // Generate indices
+                sBatch.htriangle_fan(v0i, count + 1);
             }
 
             void Surface::fill_corner(uint32_t ci, float x, float y, float xd, float yd, float r, float a)
@@ -727,18 +751,18 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
+                // Allocate resources
+                const uint32_t v0i  = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(count + 3);
+                if (v == NULL)
+                    return;
+
                 // Generate the geometry
                 float vx            = cosf(a) * r;
                 float vy            = sinf(a) * r;
                 const float ex      = -vy;
                 const float ey      = vx;
 
-                const uint32_t v0i  = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(count + 3);
-                if (v == NULL)
-                    return;
-
-                uint32_t v1i        = v0i + 1;
                 ADD_VERTEX(v, ci, xd, yd);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
 
@@ -750,12 +774,12 @@ namespace lsp
                     vy          = nvy;
 
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.htriangle(v0i, v1i, v1i + 1);
-                    ++v1i;
                 }
 
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.htriangle(v0i, v1i, v1i + 1);
+
+                // Generate indices
+                sBatch.htriangle_fan(v0i, count + 1);
             }
 
             void Surface::wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width)
@@ -779,14 +803,15 @@ namespace lsp
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
 
-                // Fill batch
-                float vx            = cosf(a1) * ro;
-                float vy            = sinf(a1) * ro;
-
-                uint32_t v0i        = sBatch.next_vertex_index();
+                // Allocate resources
+                const uint32_t v0i  = sBatch.next_vertex_index();
                 vertex_t *v         = sBatch.add_vertices(count*2 + 4);
                 if (v == NULL)
                     return;
+
+                // Generate the geometry
+                float vx            = cosf(a1) * ro;
+                float vy            = sinf(a1) * ro;
 
                 ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
                 ADD_VERTEX(v, ci, x + vx, y + vy);
@@ -800,13 +825,13 @@ namespace lsp
 
                     ADD_VERTEX(v, ci, x + vx * kr, y + vy * kr);
                     ADD_VERTEX(v, ci, x + vx, y + vy);
-                    sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
-                    v0i        += 2;
                 }
 
                 ADD_VERTEX(v, ci, x + ex * kr, y + ey * kr);
                 ADD_VERTEX(v, ci, x + ex, y + ey);
-                sBatch.hrectangle(v0i + 2, v0i, v0i + 1, v0i + 3);
+
+                // Generate indices
+                sBatch.hrectangle_fan(v0i, count + 1);
             }
 
             void Surface::fill_rect(uint32_t ci, size_t mask, float radius, float left, float top, float width, float height)
@@ -988,17 +1013,20 @@ namespace lsp
                     fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
             }
 
-            void Surface::draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            template <class T>
+            inline void Surface::draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, const float *x, const float *y, float width, size_t n)
             {
+                vertex_t *v     = vertices;
+                T *iv           = indices;
+                lsp_finally
+                {
+                    vertices        = v;
+                    indices         = iv;
+                };
+
                 size_t i;
                 float dx, dy, d;
                 float kd, ndx, ndy;
-                float px, py;
-
-                rect.left       = nWidth;
-                rect.top        = nHeight;
-                rect.right      = 0.0f;
-                rect.bottom     = 0.0f;
 
                 // Find first not short segment
                 width          *= 0.5f;
@@ -1019,10 +1047,74 @@ namespace lsp
                 ndx             = -dy * kd;
                 ndy             = dx * kd;
 
-                uint32_t vi     = sBatch.next_vertex_index();
-                vertex_t *v     = sBatch.add_vertices(4);
-                if (v == NULL)
+                ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+
+                ADD_HRECTANGLE(iv, vi, vi + 1, vi + 2, vi + 3);
+                si                  = i++;
+
+                // Draw the rest segments
+                for (; i < n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                    {
+                        kd              = width / sqrtf(d);
+                        ndx             = -dy * kd;
+                        ndy             = dx * kd;
+
+                        ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
+                        ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
+                        ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
+                        ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+
+                        ADD_HRECTANGLE(iv, vi + 4, vi + 5, vi + 6, vi + 7);
+                        ADD_HRECTANGLE(iv, vi, vi + 6, vi + 1, vi + 7);
+
+                        si              = i;
+                        vi             += 4;
+                    }
+                }
+            }
+
+            template <class T>
+            inline void Surface::draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            {
+                vertex_t *v     = vertices;
+                T *iv           = indices;
+                lsp_finally
+                {
+                    vertices        = v;
+                    indices         = iv;
+                };
+
+                size_t i;
+                float dx, dy, d;
+                float kd, ndx, ndy;
+                float px, py;
+
+                // Find first not short segment
+                width          *= 0.5f;
+                size_t si       = 0;
+                for (i = 1; i < n; ++i)
+                {
+                    dx              = x[i] - x[si];
+                    dy              = y[i] - y[si];
+                    d               = dx*dx + dy*dy;
+                    if (d > 1e-10f)
+                        break;
+                }
+                if (i >= n)
                     return;
+
+                // Draw first segment
+                kd              = width / sqrtf(d);
+                ndx             = -dy * kd;
+                ndy             = dx * kd;
 
                 px              = x[i] + ndx;
                 py              = y[i] + ndy;
@@ -1044,7 +1136,7 @@ namespace lsp
                 extend_rect(rect, px, py);
                 ADD_VERTEX(v, ci, px, py);
 
-                sBatch.hrectangle(vi, vi+1, vi+2, vi+3);
+                ADD_HRECTANGLE(iv, vi, vi + 1, vi + 2, vi + 3);
                 si                  = i++;
 
                 // Draw the rest segments
@@ -1058,10 +1150,6 @@ namespace lsp
                         kd              = width / sqrtf(d);
                         ndx             = -dy * kd;
                         ndy             = dx * kd;
-
-                        v               = sBatch.add_vertices(4);
-                        if (v == NULL)
-                            return;
 
                         px              = x[i] + ndx;
                         py              = y[i] + ndy;
@@ -1083,84 +1171,136 @@ namespace lsp
                         extend_rect(rect, px, py);
                         ADD_VERTEX(v, ci, px, py);
 
-                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
+                        ADD_HRECTANGLE(iv, vi + 4, vi + 5, vi + 6, vi + 7);
+                        ADD_HRECTANGLE(iv, vi, vi + 6, vi + 1, vi + 7);
 
                         si              = i;
                         vi             += 4;
                     }
                 }
-
-                // Limit the rectangle
-                limit_rect(rect);
             }
 
             void Surface::draw_polyline(uint32_t ci, const float *x, const float *y, float width, size_t n)
             {
-                size_t i;
-                float dx, dy, d;
-                float kd, ndx, ndy;
-
-                // Find first not short segment
-                width          *= 0.5f;
-                size_t si       = 0;
-                for (i = 1; i < n; ++i)
-                {
-                    dx              = x[i] - x[si];
-                    dy              = y[i] - y[si];
-                    d               = dx*dx + dy*dy;
-                    if (d > 1e-10f)
-                        break;
-                }
-                if (i >= n)
-                    return;
-
-                // Draw first segment
-                kd              = width / sqrtf(d);
-                ndx             = -dy * kd;
-                ndy             = dx * kd;
-
-                uint32_t vi     = sBatch.next_vertex_index();
-                vertex_t *v     = sBatch.add_vertices(4);
+                // Allocate vertices
+                const uint32_t segs = n - 1;
+                const uint32_t v_reserve = segs * 4;
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(v_reserve);
                 if (v == NULL)
                     return;
+                const vertex_t *v_tail = &v[v_reserve];
+                lsp_finally {
+                    if (v_tail > v)
+                        sBatch.release_vertices(v_tail - v);
+                };
 
-                ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
-                ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
-                ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
-                ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
+                // Allocate indices
+                const uint32_t iv_reserve = (2*segs - 1) * 6;
+                void *iv_raw    = sBatch.add_indices(iv_reserve, vi + v_reserve - 1);
+                if (iv_raw == NULL)
+                    return;
+                ssize_t iv_release = iv_reserve;
+                lsp_finally {
+                    if (iv_release > 0)
+                        sBatch.release_indices(iv_release);
+                };
 
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
-                si                  = i++;
-
-                // Draw the rest segments
-                for (; i < n; ++i)
+                switch (sBatch.index_format())
                 {
-                    dx              = x[i] - x[si];
-                    dy              = y[i] - y[si];
-                    d               = dx*dx + dy*dy;
-                    if (d > 1e-10f)
+                    case INDEX_FMT_U8:
                     {
-                        kd              = width / sqrtf(d);
-                        ndx             = -dy * kd;
-                        ndy             = dx * kd;
-
-                        v               = sBatch.add_vertices(4);
-                        if (v == NULL)
-                            return;
-
-                        ADD_VERTEX(v, ci, x[i] + ndx, y[i] + ndy);
-                        ADD_VERTEX(v, ci, x[i] - ndx, y[i] - ndy);
-                        ADD_VERTEX(v, ci, x[si] - ndx, y[si] - ndy);
-                        ADD_VERTEX(v, ci, x[si] + ndx, y[si] + ndy);
-
-                        sBatch.hrectangle(vi + 4, vi + 5, vi + 6, vi + 7);
-                        sBatch.hrectangle(vi, vi + 6, vi + 1, vi + 7);
-
-                        si              = i;
-                        vi             += 4;
+                        uint8_t *iv     = static_cast<uint8_t *>(iv_raw);
+                        const uint8_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint8_t>(v, iv, uint8_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
                     }
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv    = static_cast<uint16_t *>(iv_raw);
+                        const uint16_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint16_t>(v, iv, uint16_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv    = static_cast<uint32_t *>(iv_raw);
+                        const uint32_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint32_t>(v, iv, uint32_t(vi), ci, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    default:
+                        break;
                 }
+            }
+
+            void Surface::draw_polyline(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n)
+            {
+                // Initialize rectangle of invalid size
+                rect.left       = nWidth;
+                rect.top        = nHeight;
+                rect.right      = 0.0f;
+                rect.bottom     = 0.0f;
+
+                // Allocate vertices
+                const uint32_t segs = n - 1;
+                const uint32_t v_reserve = segs * 4;
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(v_reserve);
+                if (v == NULL)
+                    return;
+                const vertex_t *v_tail = &v[v_reserve];
+                lsp_finally {
+                    if (v_tail > v)
+                        sBatch.release_vertices(v_tail - v);
+                };
+
+                // Allocate indices
+                const uint32_t iv_reserve = (2*segs - 1) * 6;
+                void *iv_raw    = sBatch.add_indices(iv_reserve, vi + v_reserve - 1);
+                if (iv_raw == NULL)
+                    return;
+                ssize_t iv_release = iv_reserve;
+                lsp_finally {
+                    if (iv_release > 0)
+                        sBatch.release_indices(iv_release);
+                };
+
+                switch (sBatch.index_format())
+                {
+                    case INDEX_FMT_U8:
+                    {
+                        uint8_t *iv     = static_cast<uint8_t *>(iv_raw);
+                        const uint8_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint8_t>(v, iv, uint8_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U16:
+                    {
+                        uint16_t *iv    = static_cast<uint16_t *>(iv_raw);
+                        const uint16_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint16_t>(v, iv, uint16_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    case INDEX_FMT_U32:
+                    {
+                        uint32_t *iv    = static_cast<uint32_t *>(iv_raw);
+                        const uint32_t *iv_tail = &iv[iv_reserve];
+                        draw_polyline<uint32_t>(v, iv, uint32_t(vi), ci, rect, x, y, width, n);
+                        iv_release      = iv_tail - iv;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+                // Limit the rectangle
+                limit_rect(rect);
             }
 
             bool Surface::valid() const
@@ -1371,6 +1511,7 @@ namespace lsp
                 {
                     if (pContext->activate() == STATUS_OK)
                         bIsDrawing  = true;
+                    OPENGL_OUTPUT_STATS(false);
                 }
 
                 sBatch.clear();

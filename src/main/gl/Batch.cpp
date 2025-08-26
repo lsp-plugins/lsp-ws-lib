@@ -19,11 +19,15 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <private/gl/Batch.h>
+#include <private/gl/defs.h>
 
 #ifdef LSP_PLUGINS_USE_OPENGL
 
+#include <private/gl/Batch.h>
+#include <private/gl/Stats.h>
+
 #include <lsp-plug.in/common/debug.h>
+#include <lsp-plug.in/runtime/system.h>
 
 #include <stddef.h>
 
@@ -50,43 +54,36 @@ namespace lsp
                     dst[i]      = src[i];
             }
 
-            void Batch::destroy(draw_t *draw)
-            {
-                if (draw == NULL)
-                    return;
-
-                safe_release(draw->header.pTexture);
-
-                if (draw->vertices.v != NULL)
-                {
-                    free(draw->vertices.v);
-                    draw->vertices.v        = NULL;
-                }
-                if (draw->indices.data != NULL)
-                {
-                    free(draw->indices.data);
-                    draw->indices.data      = NULL;
-                }
-
-                free(draw);
-            }
-
-            Batch::Batch()
+            Batch::Batch(Allocator *alloc)
             {
                 vCommands.data      = NULL;
                 vCommands.count     = 0;
                 vCommands.capacity  = 0;
                 pCurrent            = NULL;
+                pAllocator          = alloc;
+
+                OPENGL_INC_STATS(batch_alloc);
             }
 
             Batch::~Batch()
             {
-                clear();
+                OPENGL_INC_STATS(batch_free);
+
+                // Destroy all acquired draws
+                for (size_t i=0, n=vBatches.size(); i < n; ++i)
+                    pAllocator->release_draw(vBatches.uget(i));
+
+                // Destroy command buffer
                 if (vCommands.data != NULL)
                 {
                     free(vCommands.data);
                     vCommands.data      = NULL;
+                    vCommands.count     = 0;
+                    vCommands.capacity  = 0;
                 }
+
+                // Clear pointer to current batch
+                pCurrent            = NULL;
             }
 
             status_t Batch::init()
@@ -100,6 +97,8 @@ namespace lsp
                 if (vCommands.data == NULL)
                     return STATUS_NO_MEM;
 
+                OPENGL_INC_STATS(cmd_alloc);
+
                 bzero(vCommands.data, vCommands.capacity * sizeof(float));
 
                 return STATUS_OK;
@@ -107,34 +106,14 @@ namespace lsp
 
             status_t Batch::begin(const batch_header_t & header)
             {
-                draw_t *draw            = vBatches.last();
+                batch_draw_t *draw      = vBatches.last();
                 if ((draw == NULL) || (header_mismatch(draw->header, header)))
                 {
-                    // Create new draw batch
-                    draw                    = static_cast<draw_t *>(malloc(sizeof(draw_t)));
+                    // Allocate new draw batch
+                    draw                    = pAllocator->alloc_draw(header);
                     if (draw == NULL)
                         return STATUS_NO_MEM;
-                    draw->header            = header;
-                    draw->vertices.v        = NULL;
-                    draw->vertices.count    = 0;
-                    draw->vertices.capacity = 0x40;
-
-                    safe_acquire(draw->header.pTexture);
-
-                    draw->indices.data      = NULL;
-                    draw->indices.count     = 0;
-                    draw->indices.capacity  = 0x100;
-                    draw->indices.szof      = sizeof(uint8_t);
-
-                    lsp_finally { destroy(draw); };
-
-                    // Initialize new draw batch
-                    draw->vertices.v        = static_cast<vertex_t *>(malloc(sizeof(vertex_t) * draw->vertices.capacity));
-                    if (draw->vertices.v == NULL)
-                        return STATUS_NO_MEM;
-                    draw->indices.data      = malloc(sizeof(uint8_t) * draw->indices.capacity);
-                    if (draw->indices.data == NULL)
-                        return STATUS_NO_MEM;
+                    lsp_finally { pAllocator->release_draw(draw); };
 
                     // Add new batch to list
                     if (!vBatches.add(draw))
@@ -155,9 +134,9 @@ namespace lsp
                 // Destroy all batches except current
                 for (size_t i=0, n=vBatches.size(); i < n; ++i)
                 {
-                    draw_t *draw = vBatches.uget(i);
+                    batch_draw_t *draw = vBatches.uget(i);
                     if (draw != pCurrent)
-                        destroy(draw);
+                        pAllocator->release_draw(draw);
                 }
                 vBatches.clear();
                 vCommands.count     = 0;
@@ -167,7 +146,7 @@ namespace lsp
                 {
                     if (!vBatches.add(pCurrent))
                     {
-                        destroy(pCurrent);
+                        pAllocator->release_draw(pCurrent);
                         pCurrent        = NULL;
                     }
                 }
@@ -184,7 +163,7 @@ namespace lsp
                     if (!(pCurrent->header.nFlags & BATCH_IMPORTANT_FLAGS))
                     {
                         vBatches.pop();
-                        destroy(pCurrent);
+                        pAllocator->release_draw(pCurrent);
                     }
                 }
 
@@ -279,7 +258,7 @@ namespace lsp
 
                 for (size_t i=0, n=vBatches.size(); i<n; ++i)
                 {
-                    draw_t *draw        = vBatches.uget(i);
+                    batch_draw_t *draw  = vBatches.uget(i);
                     const size_t flags  = draw->header.nFlags;
                     const gl::program_t program = draw->header.enProgram;
 
@@ -516,7 +495,7 @@ namespace lsp
                 );
 
                 // Check if we need to resize the buffer
-                vbuffer_t & buf = pCurrent->vertices;
+                batch_vbuffer_t & buf = pCurrent->vertices;
                 const size_t new_count = buf.count + count;
                 if (new_count > buf.capacity)
                 {
@@ -528,6 +507,9 @@ namespace lsp
                     vertex_t *ptr           = static_cast<vertex_t *>(realloc(buf.v, sizeof(vertex_t) * new_cap));
                     if (ptr == NULL)
                         return -STATUS_NO_MEM;
+
+                    OPENGL_INC_STATS(vertex_realloc);
+
                     buf.v                   = ptr;
                     buf.capacity            = new_cap;
                 }
@@ -544,7 +526,7 @@ namespace lsp
                 if (index < 0)
                     return index;
 
-                vbuffer_t & buf         = pCurrent->vertices;
+                batch_vbuffer_t & buf   = pCurrent->vertices;
                 vertex_t *v             = &buf.v[index];
                 v->x                    = x;
                 v->y                    = y;
@@ -561,7 +543,7 @@ namespace lsp
                 if (index < 0)
                     return index;
 
-                vbuffer_t & buf         = pCurrent->vertices;
+                batch_vbuffer_t & buf   = pCurrent->vertices;
                 vertex_t *v             = &buf.v[index];
                 v->x                    = x;
                 v->y                    = y;
@@ -578,10 +560,16 @@ namespace lsp
                 return (index >= 0) ? &pCurrent->vertices.v[index] : NULL;
             }
 
+            void Batch::release_vertices(size_t count)
+            {
+                batch_vbuffer_t & buf = pCurrent->vertices;
+                buf.count   -= lsp_min(count, buf.count);
+            }
+
             ssize_t Batch::alloc_indices(size_t count, uint32_t max_index)
             {
                 // Check indices
-                ibuffer_t & buf         = pCurrent->indices;
+                batch_ibuffer_t & buf   = pCurrent->indices;
                 const size_t new_size   = buf.count + count;
                 const size_t szof       =
                     (max_index > UINT16_MAX) ? sizeof(uint32_t) :
@@ -592,13 +580,17 @@ namespace lsp
                 if ((new_size > buf.capacity) || (szof > buf.szof))
                 {
                     // Check if we need to widen the indices
-                    const size_t new_cap    = (new_size > buf.capacity) ? buf.capacity << 1 : buf.capacity;
+                    size_t new_cap          = buf.capacity;
+                    while (new_cap < new_size)
+                        new_cap               <<= 1;
                     void *data              = NULL;
 
                     if (szof > buf.szof)
                     {
                         if ((data = malloc(new_cap * szof)) == NULL)
                             return -STATUS_NO_MEM;
+
+                        OPENGL_INC_STATS(index_alloc);
 
                         // Perform widening
                         if (szof > sizeof(uint16_t))
@@ -622,6 +614,8 @@ namespace lsp
                         // We can perform simple realloc operation
                         if ((data = realloc(buf.data, new_cap * buf.szof)) == NULL)
                             return -STATUS_NO_MEM;
+
+                        OPENGL_INC_STATS(index_realloc);
                     }
 
                     // Store new pointer
@@ -642,7 +636,7 @@ namespace lsp
                 if (index < 0)
                     return index;
 
-                ibuffer_t & buf     = pCurrent->indices;
+                batch_ibuffer_t & buf   = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
                     buf.u32[index]      = a;
@@ -671,7 +665,7 @@ namespace lsp
                 if (index < 0)
                     return index;
 
-                ibuffer_t & buf     = pCurrent->indices;
+                batch_ibuffer_t & buf   = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
                     buf.u32[index]      = a;
@@ -694,6 +688,113 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::htriangle_fan(uint32_t v0i, uint32_t count)
+            {
+                const ssize_t index     = alloc_indices(count * 3, v0i + count + 2);
+                if (index < 0)
+                    return index;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                uint32_t v1i            = v0i + 1;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    uint32_t *dst   = &buf.u32[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = v0i;
+                        dst[1]          = v1i;
+                        dst[2]          = ++v1i;
+                    }
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    uint16_t *dst   = &buf.u16[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = uint16_t(v0i);
+                        dst[1]          = uint16_t(v1i);
+                        dst[2]          = uint16_t(++v1i);
+                    }
+                }
+                else
+                {
+                    uint8_t *dst    = &buf.u8[index];
+                    for (size_t i=0; i<count; ++i, dst += 3)
+                    {
+                        dst[0]          = uint8_t(v0i);
+                        dst[1]          = uint8_t(v1i);
+                        dst[2]          = uint8_t(++v1i);
+                    }
+                }
+
+                return index;
+            }
+
+            ssize_t Batch::hrectangle_fan(uint32_t v0i, uint32_t count)
+            {
+                const ssize_t index     = alloc_indices(count * 6, v0i + count*2 + 1);
+                if (index < 0)
+                    return index;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    uint32_t *dst   = &buf.u32[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint32_t p1   = v0i + 1;
+                        const uint32_t p2   = v0i + 2;
+
+                        dst[0]          = v0i;
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = v0i + 3;
+
+                        v0i            += 2;
+                    }
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    uint16_t *dst   = &buf.u16[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint16_t p1   = uint16_t(v0i + 1);
+                        const uint16_t p2   = uint16_t(v0i + 2);
+
+                        dst[0]          = uint16_t(v0i);
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = uint16_t(v0i + 3);
+
+                        v0i            += 2;
+                    }
+                }
+                else
+                {
+                    uint8_t *dst    = &buf.u8[index];
+                    for (size_t i=0; i<count; ++i, dst += 6)
+                    {
+                        const uint8_t p1    = uint8_t(v0i + 1);
+                        const uint8_t p2    = uint8_t(v0i + 2);
+
+                        dst[0]          = uint8_t(v0i);
+                        dst[1]          = p1;
+                        dst[2]          = p2;
+                        dst[3]          = p2;
+                        dst[4]          = p1;
+                        dst[5]          = uint8_t(v0i + 3);
+
+                        v0i            += 2;
+                    }
+                }
+
+                return index;
+            }
+
             ssize_t Batch::rectangle(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
             {
                 const ssize_t index     = alloc_indices(6, lsp_max(a, b, c, d));
@@ -701,7 +802,7 @@ namespace lsp
                     return index;
 
                 // Append vertex indices
-                ibuffer_t & buf     = pCurrent->indices;
+                batch_ibuffer_t & buf   = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
                     buf.u32[index]      = a;
@@ -740,7 +841,7 @@ namespace lsp
                     return index;
 
                 // Append vertex indices
-                ibuffer_t & buf     = pCurrent->indices;
+                batch_ibuffer_t & buf   = pCurrent->indices;
                 if (buf.szof > sizeof(uint16_t))
                 {
                     buf.u32[index]      = a;
@@ -772,6 +873,38 @@ namespace lsp
                 return index;
             }
 
+            void *Batch::add_indices(size_t count, size_t max_value)
+            {
+                const ssize_t index     = alloc_indices(count, max_value);
+                if (index < 0)
+                    return NULL;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                    return &buf.u32[index];
+                else if (buf.szof > sizeof(uint8_t))
+                    return &buf.u16[index];
+
+                return &buf.u8[index];
+            }
+
+            void Batch::release_indices(size_t count)
+            {
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                buf.count              -= lsp_min(count, buf.count);
+            };
+
+            index_format_t Batch::index_format() const
+            {
+                const batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                    return INDEX_FMT_U32;
+                else if (buf.szof > sizeof(uint8_t))
+                    return INDEX_FMT_U16;
+
+                return INDEX_FMT_U8;
+            }
+
             ssize_t Batch::command(float **data, size_t count)
             {
                 IF_DEBUG(
@@ -782,7 +915,7 @@ namespace lsp
                 const size_t to_alloc   = (count + 3) & (~size_t(3));
 
                 // Check if we need to resize the buffer
-                cbuffer_t & buf     = vCommands;
+                batch_cbuffer_t & buf   = vCommands;
                 if ((buf.count + to_alloc) > buf.capacity)
                 {
                     const size_t new_cap    = buf.capacity << 2;
@@ -791,6 +924,8 @@ namespace lsp
                         return -STATUS_NO_MEM;
 
                     bzero(&ptr[buf.capacity], (new_cap - buf.capacity) * sizeof(float));
+
+                    OPENGL_INC_STATS(cmd_realloc);
 
                     buf.data                = ptr;
                     buf.size              <<= 1;

@@ -249,9 +249,9 @@ namespace lsp
                 {
                     if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
                         return STATUS_UNKNOWN_ERR;
-                }
 
-                perform_gc();
+                    perform_gc();
+                }
 
                 return STATUS_OK;
             }

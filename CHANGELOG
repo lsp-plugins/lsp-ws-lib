@@ -2,6 +2,12 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.29 ===
+* Added experimental support of MacOS with Cairo and Freetype libraries.
+* Implemented ws::IDisplay::get_file_descriptor method for obtaining event loop
+  descriptor for Unix-based systems that use X11 protocol
+* Updated module versions in dependencies.
+
 === 1.0.28 ===
 * Added support of minimized, maximized and normal window state settings.
 * Implemented fill_rect method for ws::ISurface with surface argument.

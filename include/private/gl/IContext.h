@@ -30,6 +30,9 @@
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
 
+#include <private/gl/Allocator.h>
+#include <private/gl/Data.h>
+#include <private/gl/Stats.h>
 #include <private/gl/vtbl.h>
 
 namespace lsp
@@ -63,19 +66,6 @@ namespace lsp
                 };
             } context_param_t;
 
-            enum program_t
-            {
-                GEOMETRY,
-                STENCIL,
-            };
-
-            enum attribute_t
-            {
-                VERTEX_COORDS,
-                TEXTURE_COORDS,
-                COMMAND_BUFFER,
-            };
-
             class LSP_HIDDEN_MODIFIER IContext
             {
                 protected:
@@ -103,6 +93,8 @@ namespace lsp
                     uint32_t            nCommandsSize;      // Size of the command texture
                     GLuint              nCommandsProcessor; // Commands processor
 
+                    Allocator           sAllocator;
+
                 protected:
                     const gl::vtbl_t   *pVtbl;
 
@@ -129,6 +121,12 @@ namespace lsp
                     void        perform_gc();
 
                 public:
+                    /**
+                     * Get data allocator
+                     * @return data allocator
+                     */
+                    inline Allocator      *allocator()  { return &sAllocator; };
+
                     /**
                      * Mark OpenGL context as invalid
                      */
@@ -281,24 +279,6 @@ namespace lsp
                      */
                     virtual size_t height() const;
             };
-
-            template <class T>
-            T *safe_acquire(T *ptr)
-            {
-                if (ptr != NULL)
-                    ptr->reference_up();
-                return ptr;
-            }
-
-            template <class T>
-            void safe_release(T * &ptr)
-            {
-                if (ptr == NULL)
-                    return;
-
-                ptr->reference_down();
-                ptr = NULL;
-            }
 
             /**
              * Create OpenGL context using specified params
