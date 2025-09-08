@@ -79,6 +79,9 @@ namespace lsp
 
             static bool check_gl_extension(const char *list, const char *check)
             {
+                if (list == NULL)
+                    return false;
+
                 const size_t len = strlen(check);
 
                 while (true)
@@ -604,13 +607,8 @@ namespace lsp
                 uint32_t features   = Context::NO_FEATURES;
 
                 const char *extensions = reinterpret_cast<const char *>(vtbl->glGetString(GL_EXTENSIONS));
-                if (extensions != NULL)
-                {
-                    lsp_gl_trace("OpenGL extensions: %s", extensions);
-                    features               |= test_features(extensions);
-                }
-
                 lsp_gl_trace("OpenGL extensions: %s", extensions);
+                features               |= test_features(extensions);
 
                 GLint num_extensions = 0;
                 vtbl->glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
