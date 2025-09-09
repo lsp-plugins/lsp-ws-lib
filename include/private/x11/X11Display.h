@@ -41,6 +41,7 @@
     #include <cairo/cairo.h>
 #endif /* USE_LIBCAIRO */
 
+#include <private/gl/defs.h>
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
 #include <private/freetype/FontManager.h>
@@ -211,6 +212,9 @@ namespace lsp
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;
                 #endif /* USE_LIBFREETYPE */
+                #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                    const char                 *sGLXExtensions;
+                #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                     lltl::darray<x11_screen_t>  vScreens;
                     lltl::parray<X11Window>     vWindows;
@@ -369,6 +373,10 @@ namespace lsp
                     bool                        set_input_focus(::Window wnd);
 
                     void                        flush();
+
+                #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                    const char                 *glx_extensions();
+                #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 public:
                     static const char          *event_name(int xev_code);

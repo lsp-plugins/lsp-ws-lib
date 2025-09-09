@@ -52,6 +52,10 @@
     #include <cairo/cairo.h>
 #endif /* USE_LIBCAIRO */
 
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+    #include <GL/glx.h>
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+
 #define X11IOBUF_SIZE               0x100000
 
 namespace lsp
@@ -151,6 +155,10 @@ namespace lsp
                 nIOBufSize      = X11IOBUF_SIZE;
                 pIOBuf          = NULL;
                 hFtLibrary      = NULL;
+
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                sGLXExtensions  = NULL;
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                     pCbOwner[i]     = NULL;
@@ -4009,6 +4017,16 @@ namespace lsp
 
                 return STATUS_OK;
             }
+
+        #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+            const char *X11Display::glx_extensions()
+            {
+                if (sGLXExtensions == NULL)
+                    sGLXExtensions = ::glXQueryExtensionsString(pDisplay, DefaultScreen(pDisplay));
+
+                return sGLXExtensions;
+            }
+        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
         } /* namespace x11 */
     } /* namespace ws */

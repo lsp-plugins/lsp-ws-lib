@@ -623,10 +623,9 @@ namespace lsp
                 return features;
             }
 
-            gl::IContext *create_context(Display *dpy, int screen, Window window)
+            gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions)
             {
                 // Query extensions
-                const char *extensions  = ::glXQueryExtensionsString(dpy, screen);
                 lsp_gl_trace("GLX extensions: %s", extensions);
                 if (!check_gl_extension(extensions, "GLX_ARB_create_context"))
                 {

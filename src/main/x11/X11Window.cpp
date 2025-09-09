@@ -40,7 +40,9 @@
 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
     #include <private/glx/defs.h>
     #include <private/gl/Surface.h>
-#endif /* USE_LIBGL */
+
+    #include <GL/glx.h>
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #include <limits.h>
 #include <errno.h>
@@ -115,14 +117,16 @@ namespace lsp
             #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                 if (check_env_option_enabled("LSP_WS_LIB_GLXSURFACE"))
                 {
-                    gl::context_param_t cp[4];
+                    gl::context_param_t cp[5];
                     cp[0].id        = gl::DISPLAY;
                     cp[0].ptr       = dpy->x11display();
                     cp[1].id        = gl::SCREEN;
                     cp[1].sint      = screen;
                     cp[2].id        = gl::WINDOW;
                     cp[2].ulong     = window;
-                    cp[3].id        = gl::END;
+                    cp[3].id        = gl::DISPLAY_EXTENSIONS;
+                    cp[3].text      = dpy->glx_extensions();
+                    cp[4].id        = gl::END;
 
                     gl::IContext *ctx   = gl::create_context(cp);
                     lsp_finally { safe_release(ctx); };

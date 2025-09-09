@@ -49,6 +49,7 @@ namespace lsp
                 DISPLAY = 1,
                 SCREEN = 2,
                 WINDOW = 3,
+                DISPLAY_EXTENSIONS = 4,
             };
 
             typedef struct context_param_t
