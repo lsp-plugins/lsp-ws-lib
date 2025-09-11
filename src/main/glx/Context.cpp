@@ -633,7 +633,10 @@ namespace lsp
                 // Create virtual table
                 glx::vtbl_t *vtbl       = glx::create_vtbl();
                 if (vtbl == NULL)
+                {
+                    lsp_trace("Could not obtain vtbl for OpenGL calls");
                     return NULL;
+                }
                 lsp_finally {
                     if (vtbl != NULL)
                         free(vtbl);
@@ -647,7 +650,10 @@ namespace lsp
                 // Choose FBConfig
                 GLXFBConfig fb_config = choose_fb_config(dpy, screen);
                 if (fb_config == NULL)
+                {
+                    lsp_trace("Could not select matching FB config");
                     return NULL;
+                }
 
                 // Try to create OpenGL 3.0+ context
                 GLXContext ctx = NULL;
@@ -692,7 +698,10 @@ namespace lsp
 
                 // If we could not create OpenGL context, return NULL
                 if (ctx == NULL)
+                {
+                    lsp_trace("Could not create OpenGL context");
                     return NULL;
+                }
                 lsp_finally {
                     if (ctx != NULL)
                         ::glXDestroyContext(dpy, ctx);
@@ -707,7 +716,10 @@ namespace lsp
 
                 glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl, features, max_multisampling);
                 if (glx_ctx == NULL)
+                {
+                    lsp_trace("Could not allocate glx::Context");
                     return NULL;
+                }
 
                 // Release tracked pointers
                 ctx             = NULL;
