@@ -436,6 +436,13 @@ namespace lsp
             #ifdef USE_LIBFREETYPE
                 sFontManager.clear();
             #endif /* USE_LIBFREETYPE */
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                if (sGLXExtensions != NULL)
+                {
+                    free(sGLXExtensions);
+                    sGLXExtensions  = NULL;
+                }
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 // Remove FT library
                 if (hFtLibrary != NULL)
@@ -4022,7 +4029,11 @@ namespace lsp
             const char *X11Display::glx_extensions()
             {
                 if (sGLXExtensions == NULL)
-                    sGLXExtensions = ::glXQueryExtensionsString(pDisplay, DefaultScreen(pDisplay));
+                {
+                    const char *extensions = ::glXQueryExtensionsString(pDisplay, DefaultScreen(pDisplay));
+                    if (extensions != NULL)
+                        sGLXExtensions = strdup(extensions);
+                }
 
                 return sGLXExtensions;
             }

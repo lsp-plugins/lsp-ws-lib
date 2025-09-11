@@ -626,12 +626,9 @@ namespace lsp
             gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions)
             {
                 // Query extensions
-                lsp_gl_trace("GLX extensions: %s", extensions);
+                lsp_trace("GLX extensions: %s", extensions);
                 if (!check_gl_extension(extensions, "GLX_ARB_create_context"))
-                {
-                    lsp_trace("GLX_ARB_create_context not supported");
-                    return NULL;
-                }
+                    lsp_warn("GLX_ARB_create_context not supported");
 
                 // Create virtual table
                 glx::vtbl_t *vtbl       = glx::create_vtbl();

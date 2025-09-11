@@ -213,7 +213,7 @@ namespace lsp
                     ft::FontManager             sFontManager;
                 #endif /* USE_LIBFREETYPE */
                 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                    const char                 *sGLXExtensions;
+                    char                       *sGLXExtensions;
                 #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                     lltl::darray<x11_screen_t>  vScreens;
