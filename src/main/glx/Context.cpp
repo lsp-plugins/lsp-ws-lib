@@ -79,6 +79,9 @@ namespace lsp
 
             static bool check_gl_extension(const char *list, const char *check)
             {
+                if (list == NULL)
+                    return false;
+
                 const size_t len = strlen(check);
 
                 while (true)
@@ -604,13 +607,8 @@ namespace lsp
                 uint32_t features   = Context::NO_FEATURES;
 
                 const char *extensions = reinterpret_cast<const char *>(vtbl->glGetString(GL_EXTENSIONS));
-                if (extensions != NULL)
-                {
-                    lsp_gl_trace("OpenGL extensions: %s", extensions);
-                    features               |= test_features(extensions);
-                }
-
                 lsp_gl_trace("OpenGL extensions: %s", extensions);
+                features               |= test_features(extensions);
 
                 GLint num_extensions = 0;
                 vtbl->glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
@@ -625,21 +623,20 @@ namespace lsp
                 return features;
             }
 
-            gl::IContext *create_context(Display *dpy, int screen, Window window)
+            gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions)
             {
                 // Query extensions
-                const char *extensions  = ::glXQueryExtensionsString(dpy, screen);
-                lsp_gl_trace("GLX extensions: %s", extensions);
+                lsp_trace("GLX extensions: %s", extensions);
                 if (!check_gl_extension(extensions, "GLX_ARB_create_context"))
-                {
-                    lsp_trace("GLX_ARB_create_context not supported");
-                    return NULL;
-                }
+                    lsp_warn("GLX_ARB_create_context not supported");
 
                 // Create virtual table
                 glx::vtbl_t *vtbl       = glx::create_vtbl();
                 if (vtbl == NULL)
+                {
+                    lsp_trace("Could not obtain vtbl for OpenGL calls");
                     return NULL;
+                }
                 lsp_finally {
                     if (vtbl != NULL)
                         free(vtbl);
@@ -653,7 +650,10 @@ namespace lsp
                 // Choose FBConfig
                 GLXFBConfig fb_config = choose_fb_config(dpy, screen);
                 if (fb_config == NULL)
+                {
+                    lsp_trace("Could not select matching FB config");
                     return NULL;
+                }
 
                 // Try to create OpenGL 3.0+ context
                 GLXContext ctx = NULL;
@@ -698,7 +698,10 @@ namespace lsp
 
                 // If we could not create OpenGL context, return NULL
                 if (ctx == NULL)
+                {
+                    lsp_trace("Could not create OpenGL context");
                     return NULL;
+                }
                 lsp_finally {
                     if (ctx != NULL)
                         ::glXDestroyContext(dpy, ctx);
@@ -713,7 +716,10 @@ namespace lsp
 
                 glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl, features, max_multisampling);
                 if (glx_ctx == NULL)
+                {
+                    lsp_trace("Could not allocate glx::Context");
                     return NULL;
+                }
 
                 // Release tracked pointers
                 ctx             = NULL;

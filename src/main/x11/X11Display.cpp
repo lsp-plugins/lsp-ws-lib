@@ -52,6 +52,10 @@
     #include <cairo/cairo.h>
 #endif /* USE_LIBCAIRO */
 
+#ifdef LSP_PLUGINS_USE_OPENGL_GLX
+    #include <GL/glx.h>
+#endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+
 #define X11IOBUF_SIZE               0x100000
 
 namespace lsp
@@ -151,6 +155,10 @@ namespace lsp
                 nIOBufSize      = X11IOBUF_SIZE;
                 pIOBuf          = NULL;
                 hFtLibrary      = NULL;
+
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                sGLXExtensions  = NULL;
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                     pCbOwner[i]     = NULL;
@@ -428,6 +436,13 @@ namespace lsp
             #ifdef USE_LIBFREETYPE
                 sFontManager.clear();
             #endif /* USE_LIBFREETYPE */
+            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+                if (sGLXExtensions != NULL)
+                {
+                    free(sGLXExtensions);
+                    sGLXExtensions  = NULL;
+                }
+            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 // Remove FT library
                 if (hFtLibrary != NULL)
@@ -4009,6 +4024,20 @@ namespace lsp
 
                 return STATUS_OK;
             }
+
+        #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+            const char *X11Display::glx_extensions()
+            {
+                if (sGLXExtensions == NULL)
+                {
+                    const char *extensions = ::glXQueryExtensionsString(pDisplay, DefaultScreen(pDisplay));
+                    if (extensions != NULL)
+                        sGLXExtensions = strdup(extensions);
+                }
+
+                return sGLXExtensions;
+            }
+        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
         } /* namespace x11 */
     } /* namespace ws */

@@ -117,9 +117,10 @@ namespace lsp
              * @param dpy display
              * @param screen screen
              * @param window associated window
+             * @param extensions list of GLX extensions
              * @return pointer to created context or NULL
              */
-            gl::IContext *create_context(Display *dpy, int screen, Window window);
+            gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions);
 
         } /* namespace glx */
     } /* namespace ws */

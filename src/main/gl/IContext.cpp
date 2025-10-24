@@ -369,6 +369,7 @@ namespace lsp
                 const context_param_t *display = NULL;
                 const context_param_t *screen = NULL;
                 const context_param_t *window = NULL;
+                const context_param_t *extensions = NULL;
 
                 for (; (params != NULL) && (params->id != gl::END); ++params)
                 {
@@ -383,6 +384,9 @@ namespace lsp
                         case gl::WINDOW:
                             window      = params;
                             break;
+                        case gl::DISPLAY_EXTENSIONS:
+                            extensions  = params;
+                            break;
                         default:
                             return NULL;
                     }
@@ -396,8 +400,9 @@ namespace lsp
                     ::Display *dpy = static_cast<::Display *>(display->ptr);
                     ::Window wnd = window->ulong;
                     const int scr = (screen != NULL) ? screen->sint : DefaultScreen(dpy);
+                    const char * ext = (extensions != NULL) ? extensions->text : NULL;
 
-                    result = glx::create_context(dpy, scr, wnd);
+                    result = glx::create_context(dpy, scr, wnd, ext);
                 }
             #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 

@@ -52,6 +52,7 @@ namespace lsp
                         vtbl->name  = reinterpret_cast<decltype(vtbl_t::name)>(glXGetProcAddressARB(reinterpret_cast<const GLubyte *>(#name)));
 
                 FETCH(glXCreateContextAttribsARB);
+                FETCH(glXCreateContextAttribsARB);
 
                 // Program operations
                 FETCH(glCreateProgram);
