@@ -234,9 +234,21 @@ namespace lsp
             return (visible) ? show() : hide();
         }
 
+        bool IWindow::verify_size_constraints(const size_limit_t *c)
+        {
+            if ((c->nMinWidth == 0) || (c->nMaxWidth == 0) || (c->nMinHeight == 0) || (c->nMaxHeight == 0))
+                return false;
+            if ((c->nMinWidth > 0) && (c->nMaxWidth > 0) && (c->nMinWidth > c->nMaxWidth))
+                return false;
+            if ((c->nMinHeight > 0) && (c->nMaxHeight > 0) && (c->nMinHeight > c->nMaxHeight))
+                return false;
+
+            return true;
+        }
+
         status_t IWindow::set_size_constraints(const size_limit_t *c)
         {
-            return STATUS_OK;
+            return verify_size_constraints(c) ? STATUS_OK : STATUS_INVALID_VALUE;
         }
 
         status_t IWindow::set_size_constraints(ssize_t min_width, ssize_t min_height, ssize_t max_width, ssize_t max_height)
@@ -246,11 +258,18 @@ namespace lsp
             sr.nMinHeight       = min_height;
             sr.nMaxWidth        = max_width;
             sr.nMaxHeight       = max_height;
+            sr.nPreWidth        = -1;
+            sr.nPreHeight       = -1;
 
             return set_size_constraints(&sr);
         }
 
         status_t IWindow::get_size_constraints(size_limit_t *c)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
+        status_t IWindow::get_actual_size_constraints(size_limit_t *c)
         {
             return STATUS_NOT_IMPLEMENTED;
         }

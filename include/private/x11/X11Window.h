@@ -75,6 +75,7 @@ namespace lsp
                     window_state_t      enState;
                     bool                bWrapper;
                     bool                bVisible;
+                    bool                bInvalidated;
 
                     rectangle_t         sSize;
                     size_limit_t        sConstraints;
@@ -86,13 +87,10 @@ namespace lsp
                     static bool         check_click(const btn_event_t *ev);
                     static bool         check_double_click(const btn_event_t *pe, const btn_event_t *ce);
                     void                send_focus_event();
-                    status_t            commit_size(const ws::rectangle_t *new_size);
 
                 protected:
 
-                    void                calc_constraints(rectangle_t *dst, const rectangle_t *req);
-
-                    status_t            do_update_constraints(bool disable);
+                    status_t            update_window_hints();
 
                 public:
                     explicit X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper);
@@ -112,6 +110,9 @@ namespace lsp
                 public:
                     inline ::Window x11handle() const { return hWindow; }
                     inline ::Window x11parent() const { return hParent; }
+
+                public:
+                    void                redraw();
 
                 public:
                     virtual ISurface   *get_surface() override;
@@ -149,6 +150,7 @@ namespace lsp
 
                     virtual status_t    set_size_constraints(const size_limit_t *c) override;
                     virtual status_t    get_size_constraints(size_limit_t *c) override;
+                    virtual status_t    get_actual_size_constraints(size_limit_t *c) override;
 
                     virtual status_t    take_focus() override;
 

@@ -583,6 +583,14 @@ namespace lsp
                 // Process pending tasks
                 status_t result  = process_pending_tasks(ts);
 
+                // Redraw invalidated windows
+                for (size_t i=0, n=vWindows.size(); i<n; ++i)
+                {
+                    X11Window *wnd  = vWindows.uget(i);
+                    if (wnd != NULL)
+                        wnd->redraw();
+                }
+
                 // Flush & sync display
                 ::XFlush(pDisplay);
 //                XSync(pDisplay, False);

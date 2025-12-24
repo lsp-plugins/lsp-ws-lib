@@ -220,13 +220,13 @@ MTEST_BEGIN("ws.display", rectangles)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test rectangles") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

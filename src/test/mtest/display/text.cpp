@@ -162,6 +162,7 @@ MTEST_BEGIN("ws.display", text)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test text") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(400, 640) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(400, 640, 400, 640) == STATUS_OK);
 
         Handler h(this, wnd);
