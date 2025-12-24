@@ -658,9 +658,9 @@ namespace lsp
                         if (bWrapper)
                             break;
 
-//                        lsp_trace("new window location = %d x %d, size = %d x %d",
-//                            int(ev->nLeft), int(ev->nTop),
-//                            int(ev->nWidth), int(ev->nHeight));
+                        lsp_trace("new window location = %d x %d, size = %d x %d",
+                            int(ev->nLeft), int(ev->nTop),
+                            int(ev->nWidth), int(ev->nHeight));
                         sSize.nLeft         = ev->nLeft;
                         sSize.nTop          = ev->nTop;
                         sSize.nWidth        = ev->nWidth;

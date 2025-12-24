@@ -1484,15 +1484,6 @@ namespace lsp
                 nWidth      = width;
                 nHeight     = height;
 
-                if (pTexture != NULL)
-                {
-                    status_t res = pTexture->resize(width, height);
-                    if (res != STATUS_OK)
-                        safe_release(pTexture);
-                }
-
-                sync_matrix();
-
                 return STATUS_OK;
             }
 
@@ -1519,6 +1510,8 @@ namespace lsp
             #ifdef LSP_DEBUG
                 nNumClips       = 0;
             #endif /* LSP_DEBUG */
+
+                sync_matrix();
             }
 
             bool Surface::update_uniforms()
@@ -1547,6 +1540,8 @@ namespace lsp
             void Surface::end()
             {
                 // Update drawing status
+                status_t res;
+
                 if (!bIsDrawing)
                     return;
                 lsp_finally
@@ -1587,9 +1582,18 @@ namespace lsp
                         if (pTexture == NULL)
                             return;
                     }
+//                    else
+//                    {
+//                        res = pTexture->resize(nWidth, nHeight);
+//                        if (res != STATUS_OK)
+//                        {
+//                            safe_release(pTexture);
+//                            return;
+//                        }
+//                    }
 
                     // Setup texture for drawing
-                    status_t res = pTexture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
+                    res = pTexture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
                     if (res != STATUS_OK)
                         return;
                     lsp_finally { pTexture->end_draw(); };
