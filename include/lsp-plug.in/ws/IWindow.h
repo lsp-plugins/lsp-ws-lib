@@ -388,7 +388,7 @@ namespace lsp
 
                 /** Set mouse pointer
                  *
-                 * @param ponter mouse pointer
+                 * @param pointer mouse pointer
                  * @return status of operation
                  */
                 virtual status_t set_mouse_pointer(mouse_pointer_t pointer);

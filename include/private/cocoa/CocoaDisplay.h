@@ -31,6 +31,7 @@
 
 #include <lsp-plug.in/ws/IDisplay.h>
 #include <lsp-plug.in/ws/IWindow.h>
+#include <private/cocoa/fwd_defs.h>
 #include <private/freetype/FontManager.h>
 
 namespace lsp
@@ -44,6 +45,9 @@ namespace lsp
         namespace cocoa
         {
             class CocoaWindow;
+            
+            struct event_ptr;
+            struct window_ptr;
 
             class LSP_HIDDEN_MODIFIER CocoaDisplay: public IDisplay
             {
@@ -96,7 +100,7 @@ namespace lsp
 
                     size_t                      get_window_title_height();
                     size_t                      get_window_border_width();
-                    void                        handle_event(void *event);
+                    void                        handle_event(const nsevent_t & event);
                     
                 protected:
                     volatile bool               bExit;                      // Indicator that forces to leave the main loop
@@ -115,7 +119,7 @@ namespace lsp
                     
                 protected:
                     status_t                    do_main_iteration(timestamp_t ts);
-                    CocoaWindow                 *find_window(void *wnd);
+                    CocoaWindow                 *find_window(const nswindow_t & wnd);
 
             };
         } /* namespace cocoa */

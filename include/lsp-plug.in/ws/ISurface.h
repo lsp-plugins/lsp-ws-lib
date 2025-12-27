@@ -126,7 +126,7 @@ namespace lsp
                  * @param cy0 y coordinate of the center of the blink
                  * @param cx1 x coordinate of the center of the radial gradient
                  * @param cy1 y coordinate of the center of the radial gradient
-                 * @param r
+                 * @param r gradient radius
                  * @return pointer to the gradient object or NULL on error
                  */
                 virtual IGradient *radial_gradient
@@ -214,7 +214,7 @@ namespace lsp
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
-                 * @param color rectangle color
+                 * @param c rectangle color
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
@@ -231,7 +231,7 @@ namespace lsp
 
                 /** Wire rectangle with rounded corners that fits inside the specified area
                  *
-                 * @param color rectangle color
+                 * @param c rectangle color
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
                  *      0x02 - right-top corner is rounded
@@ -292,7 +292,7 @@ namespace lsp
 
                 /** Fill rectangle with rounded corners
                  *
-                 * @param g gradient to use
+                 * @param color color to use
                  * @param radius the corner radius
                  * @param mask the corner mask:
                  *      0x01 - left-top corner is rounded
@@ -649,10 +649,10 @@ namespace lsp
                  * @param a2 the x multiplier 2
                  * @param b2 the y multiplier 2
                  * @param c2 the shift 2
-                 * @param left
-                 * @param right
-                 * @param top
-                 * @param bottom
+                 * @param left coordinates of left culling boundary
+                 * @param right coordinates of right culling boundary
+                 * @param top corrdinates of top culling boundary
+                 * @param bottom coordinates of bottom culling boundary
                  */
                 virtual void parametric_bar(
                     IGradient *gr,
@@ -771,7 +771,7 @@ namespace lsp
                 /**
                  * Set up drawing origin
                  * @param origin drawing origin (left and top coordinates)
-                 * @return old drawing origin value
+                 * @return previous drawing origin value
                  */
                 virtual ws::point_t set_origin(const ws::point_t & origin);
 
@@ -779,7 +779,7 @@ namespace lsp
                  * Set up drawing origin
                  * @param left left coordinate of drawing origin
                  * @param top top coordinate of drawing origin
-                 * @return
+                 * @return previous drawing origin value
                  */
                 virtual ws::point_t set_origin(ssize_t left, ssize_t top);
         };

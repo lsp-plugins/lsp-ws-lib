@@ -280,7 +280,7 @@ namespace lsp
             if (delta <= 0)
                 return 0;
             else if (delta <= poll_delay)
-                return delta;
+                return int(delta);
 
             return poll_delay;
         }

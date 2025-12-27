@@ -108,8 +108,8 @@ namespace lsp
                     //explicit CocoaCairoSurface(CocoaDisplay *pDisplay, cairo_surface_t *surface, size_t width, size_t height);
 
                     /** Create image surface
-                     * @param dpy display
-                     * @param wnd window
+                     * @param pDisplay display
+                     * @param view view
                      * @param width surface width
                      * @param height surface height
                      */
