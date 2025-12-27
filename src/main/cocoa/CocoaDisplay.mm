@@ -166,18 +166,24 @@ namespace lsp
                         {
                             [NSApp sendEvent:event];
                             [NSApp updateWindows];
-
-                            //Dispatch to custom handler
-                            //handle_event(event);
-                        } 
+                        }
                     }
 
                     // Handle internal tasks
+                    lsp_trace("process_pending_tasks");
                     status_t result = process_pending_tasks(ts);
 
                 #ifdef USE_LIBFREETYPE
                     sFontManager.gc();
                 #endif
+                    
+                    // Redraw windows if they are invalidated
+                    for (size_t i=0, n=vWindows.size(); i<n; ++i)
+                    {
+                        CocoaWindow * const wnd = vWindows.uget(i);
+                        if (wnd != NULL)
+                            wnd->redraw();
+                    }
 
                     return result;
                 }
