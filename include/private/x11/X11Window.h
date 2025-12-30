@@ -77,6 +77,7 @@ namespace lsp
                     bool                bVisible;
                     bool                bInvalidated;
 
+                    rectangle_t         sCurrentSize;
                     rectangle_t         sSize;
                     size_limit_t        sConstraints;
                     btn_event_t         vBtnEvent[3];
@@ -113,6 +114,7 @@ namespace lsp
 
                 public:
                     void                redraw();
+                    void                sync_size();
 
                 public:
                     virtual ISurface   *get_surface() override;

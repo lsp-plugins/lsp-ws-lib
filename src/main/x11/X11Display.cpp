@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2024 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2024 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -580,16 +580,19 @@ namespace lsp
                     handle_event(&event);
                 }
 
-                // Process pending tasks
-                status_t result  = process_pending_tasks(ts);
-
                 // Redraw invalidated windows
                 for (size_t i=0, n=vWindows.size(); i<n; ++i)
                 {
                     X11Window *wnd  = vWindows.uget(i);
                     if (wnd != NULL)
+                    {
+                        wnd->sync_size();
                         wnd->redraw();
+                    }
                 }
+
+                // Process pending tasks
+                status_t result  = process_pending_tasks(ts);
 
                 // Flush & sync display
                 ::XFlush(pDisplay);
@@ -1680,6 +1683,10 @@ namespace lsp
                         ue->nTop        = ev->xconfigure.y;
                         ue->nWidth      = ev->xconfigure.width;
                         ue->nHeight     = ev->xconfigure.height;
+//                        lsp_trace(
+//                            "ConfigureNotify: wnd=0x%lx, left=%d, top=%d, width=%d, height=%d",
+//                            long(ev->xconfigure.window),
+//                            int(ue->nLeft), int(ue->nTop), int(ue->nWidth), int(ue->nHeight));
                         break;
 
                     case MapNotify:

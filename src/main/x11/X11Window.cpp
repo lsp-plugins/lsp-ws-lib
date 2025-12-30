@@ -186,6 +186,10 @@ namespace lsp
                 enPointer               = MP_DEFAULT;
                 enState                 = WS_NORMAL;
 
+                sCurrentSize.nLeft      = 0;
+                sCurrentSize.nTop       = 0;
+                sCurrentSize.nWidth     = 32;
+                sCurrentSize.nHeight    = 32;
                 sSize.nLeft             = 0;
                 sSize.nTop              = 0;
                 sSize.nWidth            = 32;
@@ -485,6 +489,37 @@ namespace lsp
                 return pSurface;
             }
 
+            void X11Window::sync_size()
+            {
+                rectangle_t * const curr = &sCurrentSize;
+                rectangle_t * const sz = &sSize;
+                if ((curr->nLeft != sz->nLeft) ||
+                    (curr->nTop != sz->nTop) ||
+                    (curr->nWidth != sz->nWidth) ||
+                    (curr->nHeight != sz->nHeight))
+                {
+                    lsp_trace("Emitting resize event (%d, %d, %d, %d) -> (%d, %d, %d, %d)",
+                        int(curr->nLeft), int(curr->nTop), int(curr->nWidth), int(curr->nHeight),
+                        int(sz->nLeft), int(sz->nTop), int(sz->nWidth), int(sz->nHeight));
+
+                    // Update state
+                    *curr       = *sz;
+
+                    // Emit resize event
+                    ws::event_t ev;
+                    init_event(&ev);
+
+                    ev.nTime    = system::get_time_millis();
+                    ev.nType    = UIE_RESIZE;
+                    ev.nLeft    = curr->nLeft;
+                    ev.nTop     = curr->nTop;
+                    ev.nWidth   = curr->nWidth;
+                    ev.nHeight  = curr->nHeight;
+
+                    pHandler->handle_event(&ev);
+                }
+            }
+
             void X11Window::redraw()
             {
                 if (!bInvalidated)
@@ -518,22 +553,6 @@ namespace lsp
 
                 bInvalidated    = true;
 
-//                XEvent ev;
-//                XExposeEvent *ex = &ev.xexpose;
-//
-//                ex->type        = Expose;
-//                ex->serial      = 0;
-//                ex->send_event  = True;
-//                ex->display     = NULL;
-//                ex->window      = hWindow;
-//                ex->x           = sSize.nLeft;
-//                ex->y           = sSize.nHeight;
-//                ex->width       = sSize.nWidth;
-//                ex->height      = sSize.nHeight;
-//                ex->count       = 0;
-//
-//                ::XSendEvent(pX11Display->x11display(), hWindow, False, NoEventMask, &ev);
-//                pX11Display->flush();
                 return STATUS_OK;
             }
 
@@ -923,6 +942,7 @@ namespace lsp
                 {
                     if (hParent <= 0)
                     {
+//                        lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
                         ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                         pX11Display->flush();
                     }
@@ -938,7 +958,7 @@ namespace lsp
 //                    int(width), int(height));
 
                 // Compute new size
-                const ws::rectangle_t old_size = sSize;
+                const ws::rectangle_t old = sSize;
 
                 sSize.nWidth        = lsp_max(width, 1);
                 sSize.nHeight       = lsp_max(height, 1);
@@ -947,14 +967,14 @@ namespace lsp
                 status_t res = update_window_hints();
                 if (res != STATUS_OK)
                 {
-                    sSize               = old_size;
+                    sSize               = old;
                     return res;
                 }
 
                 // Resize the window
-                if ((sSize.nWidth != old_size.nWidth) || (sSize.nHeight != old_size.nHeight))
+                if ((sSize.nWidth != old.nWidth) || (sSize.nHeight != old.nHeight))
                 {
-//                    lsp_trace("XResizeWindow(%d, %d)", int(new_size->nWidth), int(new_size->nHeight));
+//                    lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
                     ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                     pX11Display->flush();
                 }
@@ -970,9 +990,6 @@ namespace lsp
                     return STATUS_BAD_STATE;
                 }
 
-//                lsp_trace("received: l=%d, t=%d, w=%d, h=%d", int(realize->nLeft), int(realize->nTop), int(realize->nWidth), int(realize->nHeight));
-//                lsp_trace("old: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
-
                 rectangle_t old = sSize;
 
                 sSize.nLeft = realize->nLeft;
@@ -980,7 +997,9 @@ namespace lsp
                 sSize.nWidth = lsp_max(realize->nWidth, 1);
                 sSize.nHeight= lsp_max(realize->nHeight, 1);
 
-//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+//                lsp_trace("change geometry (%d, %d, %d, %d) ->  (%d, %d, %d, %d)",
+//                    int(old.nLeft), int(old.nTop), int(old.nWidth), int(old.nHeight),
+//                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 if ((old.nLeft == sSize.nLeft) &&
                     (old.nTop == sSize.nTop) &&
