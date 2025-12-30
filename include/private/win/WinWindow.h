@@ -98,7 +98,6 @@ namespace lsp
                     btn_event_t         vBtnEvent[3];   // Events for detecting double click and triple click
 
                 protected:
-                    void                apply_constraints(rectangle_t *dst, const rectangle_t *req);
                     void                process_mouse_event(timestamp_t ts, const ws::event_t *ev);
                     status_t            commit_border_style(border_style_t bs, size_t wa);
                     bool                has_border() const;
@@ -107,7 +106,6 @@ namespace lsp
                     bool                process_virtual_key(event_t *ev, WPARAM wParam, LPARAM lParam);
                     void                handle_mouse_leave();
                     void                handle_mouse_enter(const ws::event_t *ev);
-                    status_t            set_geomety_impl();
                     void                place_above(HWND wnd);
                     bool                placement_window(HWND *result, HWND wnd);
                     static HWND         wrapping_window(HWND wnd);
@@ -115,7 +113,12 @@ namespace lsp
 
                 public:
                     explicit WinWindow(WinDisplay *dpy, HWND wnd, IEventHandler *handler, bool wrapper);
+                    WinWindow(const WinWindow &) = delete;
+                    WinWindow(WinWindow &&) = delete;
                     virtual ~WinWindow();
+
+                    WinWindow & operator = (const WinWindow &) = delete;
+                    WinWindow & operator = (WinWindow &&) = delete;
 
                     virtual status_t    init() override;
                     virtual void        destroy() override;
@@ -146,8 +149,6 @@ namespace lsp
                     virtual status_t    get_caption(char *text, size_t len) override;
                     virtual status_t    get_caption(LSPString *text) override;
 
-                    virtual status_t    move(ssize_t left, ssize_t top) override;
-                    virtual status_t    resize(ssize_t width, ssize_t height) override;
                     virtual status_t    set_geometry(const rectangle_t *realize) override;
                     virtual status_t    set_border_style(border_style_t style) override;
                     virtual status_t    get_border_style(border_style_t *style) override;
@@ -156,6 +157,7 @@ namespace lsp
 
                     virtual status_t    set_size_constraints(const size_limit_t *c) override;
                     virtual status_t    get_size_constraints(size_limit_t *c) override;
+                    virtual status_t    get_actual_size_constraints(size_limit_t *c) override;
 
                     virtual status_t    get_window_actions(size_t *actions) override;
                     virtual status_t    set_window_actions(size_t actions) override;

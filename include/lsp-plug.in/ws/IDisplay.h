@@ -439,7 +439,7 @@ namespace lsp
                 /**
                  * Load font from stream and add to the repository
                  * @param name font name in UTF-8
-                 * @param path path to the file that contains the font data (UTF-8)
+                 * @param is input stream to load font
                  * @return status of operation
                  */
                 virtual status_t add_font(const char *name, io::IInStream *is);

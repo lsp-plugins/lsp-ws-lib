@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 31 окт. 2022 г.
@@ -179,14 +179,14 @@ MTEST_BEGIN("ws.display", async_tasks)
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test async tasks") == STATUS_OK);
-        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
-        MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE | ws::WA_RESIZE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
+        MTEST_ASSERT(wnd->set_size_constraints(320, 200, 640, 400) == STATUS_OK);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         Submitter submitter(wnd, &h);
         MTEST_ASSERT(submitter.start() == STATUS_OK);

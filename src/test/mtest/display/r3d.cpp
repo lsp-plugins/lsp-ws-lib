@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2022 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2022 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 июл. 2022 г.
@@ -530,7 +530,7 @@ MTEST_BEGIN("ws.display", r3d)
                     case ws::UIE_MOUSE_SCROLL:
                     {
                         bOversampling   = ! bOversampling;
-                        pTest->printf("Oversampling: %s", (bOversampling) ? "ON" : "OFF");
+                        pTest->printf("Oversampling: %s\n", (bOversampling) ? "ON" : "OFF");
                         break;
                     }
 
@@ -621,6 +621,7 @@ MTEST_BEGIN("ws.display", r3d)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test 3D rendering") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_ALL) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(320, 200) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(320, 200, 640, 400) == STATUS_OK);
 
         ws::IR3DBackend *r3d = dpy->create_r3d_backend(wnd);
@@ -637,7 +638,6 @@ MTEST_BEGIN("ws.display", r3d)
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

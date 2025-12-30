@@ -108,7 +108,7 @@ namespace lsp
 
             code_t decode_keycode(unsigned long code)
             {
-                return code;
+                return code_t(code);
             }
 
         } /* namespace cocoa */

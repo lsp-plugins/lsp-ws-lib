@@ -44,6 +44,7 @@
 
 #include <private/cocoa/CocoaDisplay.h>
 #include <private/cocoa/CocoaWindow.h>
+#include <private/cocoa/defs.h>
 
 namespace lsp
 {
@@ -165,18 +166,24 @@ namespace lsp
                         {
                             [NSApp sendEvent:event];
                             [NSApp updateWindows];
-
-                            //Dispatch to custom handler
-                            //handle_event(event);
-                        } 
+                        }
                     }
 
                     // Handle internal tasks
+                    lsp_trace("process_pending_tasks");
                     status_t result = process_pending_tasks(ts);
 
                 #ifdef USE_LIBFREETYPE
                     sFontManager.gc();
                 #endif
+                    
+                    // Redraw windows if they are invalidated
+                    for (size_t i=0, n=vWindows.size(); i<n; ++i)
+                    {
+                        CocoaWindow * const wnd = vWindows.uget(i);
+                        if (wnd != NULL)
+                            wnd->redraw();
+                    }
 
                     return result;
                 }
@@ -190,15 +197,14 @@ namespace lsp
                 return IDisplay::r3d_backend_supported(meta);
             }
 
-            void CocoaDisplay::handle_event(void *event)
+            void CocoaDisplay::handle_event(const nsevent_t & event)
             {
-                NSEvent *nsevent = (__bridge NSEvent *)event;
-
+                const NSEvent * const nsevent = event.event;
                 if (!nsevent)
                     return;
 
                 NSEventType type = [nsevent type];
-                NSWindow *nsWindow = [nsevent window];
+                const nswindow_t nsWindow = nswindow_t { [nsevent window] };
                 CocoaWindow *target = find_window(nsWindow);
 
                 if (!target)
@@ -213,7 +219,7 @@ namespace lsp
                 unichar keysym = 0;
 
                 NSPoint locInWindow = [nsevent locationInWindow];
-                NSView *targetView = [[nsWindow contentView] hitTest:locInWindow];
+                NSView *targetView = [[nsWindow.window contentView] hitTest:locInWindow];
                 NSPoint locInView = [targetView convertPoint:locInWindow fromView:nil];
                 NSRect cFrame = [targetView frame];
 
@@ -361,9 +367,9 @@ namespace lsp
                 return true;
             }
 
-            CocoaWindow *CocoaDisplay::find_window(void *wnd)
+            CocoaWindow *CocoaDisplay::find_window(const nswindow_t & wnd)
             {
-                NSWindow *nswnd = (__bridge NSWindow *)wnd;
+                const NSWindow * const nswnd = wnd.window;
                 
                 size_t n = vWindows.size();
 
@@ -508,7 +514,7 @@ namespace lsp
                 if (name == NULL)
                     return STATUS_BAD_ARGUMENTS;
 
-                status_t res;
+                status_t res = STATUS_OK;
             #ifdef USE_LIBFREETYPE
                 if ((res = sFontManager.remove(name)) != STATUS_OK)
                     return res;

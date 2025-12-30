@@ -360,8 +360,16 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 bInvalidate = true;
-
                 
+                return STATUS_OK;
+            }
+
+            void CocoaWindow::redraw()
+            {
+                if (!bInvalidate)
+                    return;
+                
+                bInvalidate = false;
                 event_t ue;
                 init_event(&ue);
 
@@ -372,20 +380,7 @@ namespace lsp
                 ue.nHeight     = sSize.nHeight;
 
                 handle_event(&ue);
-               
-/*
-                NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-                [center postNotificationName:@"RedrawRequest"
-                                    object:pCocoaWindow];
-*/
-                //Trigger CocoaCairoView to redraw!
-                //[pCocoaView setCursor: pCocoaCursor];
-                //[pCocoaView setImage: get_image_surface()];
-                //[pCocoaView triggerRedraw];
-                
-                return STATUS_OK;
             }
-
 
             ISurface *CocoaWindow::get_surface()
             {
@@ -619,13 +614,14 @@ namespace lsp
 
             status_t CocoaWindow::set_window_actions(size_t actions)
             {
-                if (pCocoaWindow == NULL)
-                {
-                    nActions = actions;
+                if (nActions == actions)
                     return STATUS_OK;
-                }
+                
+                if (pCocoaWindow == NULL)
+                    return STATUS_OK;
 
-                return (nActions != actions) ? commit_border_style(enBorderStyle, actions) : STATUS_OK;
+                nActions = actions;
+                return commit_border_style(enBorderStyle, actions);
             }
 
             status_t CocoaWindow::get_window_actions(size_t *actions)
@@ -644,45 +640,43 @@ namespace lsp
                 return pCocoaWindow;
             }
 
-            status_t CocoaWindow::resize(ssize_t width, ssize_t height) {
-                rectangle_t rect = sSize;
+            status_t CocoaWindow::resize(ssize_t width, ssize_t height)
+            {
+                rectangle_t rect;
+                rect.nLeft = sSize.nLeft;
+                rect.nTop = sSize.nTop;
                 rect.nWidth = width;
                 rect.nHeight = height;
                 return set_geometry(&rect);
             }
 
-            void CocoaWindow::apply_constraints(rectangle_t *dst, const rectangle_t *req)
-            {
-                *dst = *req;
-
-                if ((sConstraints.nMaxWidth >= 0) && (dst->nWidth > sConstraints.nMaxWidth))
-                    dst->nWidth = sConstraints.nMaxWidth;
-                if ((sConstraints.nMaxHeight >= 0) && (dst->nHeight > sConstraints.nMaxHeight))
-                    dst->nHeight = sConstraints.nMaxHeight;
-                if ((sConstraints.nMinWidth >= 0) && (dst->nWidth < sConstraints.nMinWidth))
-                    dst->nWidth = sConstraints.nMinWidth;
-                if ((sConstraints.nMinHeight >= 0) && (dst->nHeight < sConstraints.nMinHeight))
-                    dst->nHeight = sConstraints.nMinHeight;
-
-                lsp_trace("minW=%d, minH=%d, maxW=%d, maxH=%d", int(sConstraints.nMinWidth), int(sConstraints.nMinHeight), int(sConstraints.nMaxWidth), int(sConstraints.nMaxHeight));
-            }
-
             status_t CocoaWindow::set_size_constraints(const size_limit_t *c)
             {
+                if (!verify_size_constraints(c))
+                    return STATUS_INVALID_VALUE;
+
                 sConstraints    = *c;
-                if (sConstraints.nMinWidth == 0)
-                    sConstraints.nMinWidth  = 1;
-                if (sConstraints.nMinHeight == 0)
-                    sConstraints.nMinHeight = 1;
+//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
+                return update_window_hints();
+            }
+        
+            status_t CocoaWindow::update_window_hints()
+            {
+                NSWindow * const window = [pCocoaView window];
+                if (window == NULL)
+                    return STATUS_BAD_STATE;
+                
+                ws::size_limit_t c;
+                status_t res = get_actual_size_constraints(&c);
+                if (res != STATUS_OK)
+                    return res;
+                
                 // Apply constrains to Cocoa Window
-                if ([pCocoaView window] != NULL) {
-                    [[pCocoaView window] setContentMinSize:NSMakeSize(sConstraints.nMinWidth, sConstraints.nMinHeight)];
-                    [[pCocoaView window] setContentMaxSize:NSMakeSize(sConstraints.nMaxWidth, sConstraints.nMaxHeight)];
-                }
-                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                [window setContentMinSize:NSMakeSize(c.nMinWidth, c.nMinHeight)];
+                [window setContentMaxSize:NSMakeSize(c.nMaxWidth, c.nMaxHeight)];
 
-                return set_geometry(&sSize);
+                return STATUS_OK;
             }
 
             status_t CocoaWindow::get_size_constraints(size_limit_t *c)
@@ -690,49 +684,78 @@ namespace lsp
                 *c = sConstraints;
                 return STATUS_OK;
             }
+        
+            status_t CocoaWindow::get_actual_size_constraints(size_limit_t *c)
+            {
+                const ssize_t width     = lsp_max(sSize.nWidth, 1);
+                const ssize_t height    = lsp_max(sSize.nHeight, 1);
+
+                if (nActions & WA_RESIZE)
+                {
+                    c->nMinWidth    = (sConstraints.nMinWidth >= 0) ? lsp_min(sConstraints.nMinWidth, width) : -1;
+                    c->nMinHeight   = (sConstraints.nMinHeight >= 0) ? lsp_min(sConstraints.nMinHeight, height) : -1;
+                    c->nMaxWidth    = (sConstraints.nMaxWidth >= 0) ? lsp_max(sConstraints.nMaxWidth, width) : -1;
+                    c->nMaxHeight   = (sConstraints.nMaxHeight >= 0) ? lsp_max(sConstraints.nMaxHeight, height) : -1;
+                }
+                else
+                {
+                    c->nMinWidth    = width;
+                    c->nMinHeight   = height;
+                    c->nMaxWidth    = width;
+                    c->nMaxHeight   = height;
+                }
+
+                c->nPreWidth    = sSize.nWidth;
+                c->nPreHeight   = sSize.nHeight;
+
+                return STATUS_OK;
+            }
 
             status_t CocoaWindow::set_geometry(const rectangle_t *realize)
             {
                 if (!pCocoaWindow)
                     return STATUS_BAD_STATE;
-
+                NSWindow * const  window = [pCocoaView window];
+                if (!window)
+                    return STATUS_BAD_STATE;
+                
                 rectangle_t old = sSize;
-                apply_constraints(&sSize, realize);
+
+                sSize.nLeft = realize->nLeft;
+                sSize.nTop = realize->nTop;
+                sSize.nWidth = lsp_max(realize->nWidth, 1);
+                sSize.nHeight= lsp_max(realize->nHeight, 1);
 
                 if ((old.nLeft == sSize.nLeft) &&
                     (old.nTop == sSize.nTop) &&
                     (old.nWidth == sSize.nWidth) &&
                     (old.nHeight == sSize.nHeight))
-                        return STATUS_OK;
+                    return STATUS_OK;
                 
-                return set_geometry_impl();
-            }
-
-            status_t CocoaWindow::set_geometry_impl()
-            {
-                if (![pCocoaView window])
-                    return STATUS_BAD_STATE;
-
                 // Calculate the frame rect from the content rect
-                lsp_trace("Resize / move window {nL=%d, nT=%d, nW=%d, nH=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                lsp_trace("Resize / move window {left=%d, top=%d, width=%d, height=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
                 // TODO: handle case when window is resized in wrapper mode with some menu added from DAW
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                if ([pCocoaView window] != NULL) {
-                    //NSRect currentFrame = [[pCocoaView window] frame];
-                    NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
-                    NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
-                
-                    [[pCocoaView window] setFrame:frameRect display:YES animate:NO];             
-                    NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
-                    [pCocoaView updateFrame:newContentBounds];
 
-                    if (pSurface != nullptr) {
-                        pSurface->resize(sSize.nWidth, sSize.nHeight);
-                    }
+                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
+                NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
+            
+                [[pCocoaView window] setFrame:frameRect display:YES animate:NO];
+                NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
+                [pCocoaView updateFrame:newContentBounds];
+
+                status_t res = update_window_hints();
+                if (res != STATUS_OK)
+                    return res;
+                
+                if (pSurface != nullptr)
+                {
+                    pSurface->resize(sSize.nWidth, sSize.nHeight);
                 }
-                return STATUS_OK;
+
+                return res;
             }
 
             status_t CocoaWindow::show()
@@ -933,6 +956,7 @@ namespace lsp
 
                         if (pSurface != nullptr)
                             pSurface->resize(sSize.nWidth, sSize.nHeight);
+                        invalidate();
                         break;
                     }
 

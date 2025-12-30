@@ -3,7 +3,9 @@
 *******************************************************************************
 
 === 1.0.32 ===
-
+* Changed the meaning of window constraints from strict constraints to
+  window manager hints.
+* Improvements related to window rendering for X11.
 
 === 1.0.31 ===
 * Updated module versions in dependencies.

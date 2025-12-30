@@ -66,7 +66,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -82,7 +82,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -99,7 +99,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -210,10 +210,9 @@ namespace lsp
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
                 if ((nType == ST_IMAGE) || (nType == ST_XLIB))
-                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 else if (nType == ST_SIMILAR)
-                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-//                    s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
 
                 if (s == NULL)
                     return STATUS_NO_MEM;
@@ -350,7 +349,7 @@ namespace lsp
                 cairo_surface_t *cs = cairo_image_surface_create_for_data(
                     static_cast<unsigned char *>(const_cast<void *>(data)),
                     CAIRO_FORMAT_ARGB32,
-                    width, height, stride);
+                    int(width), int(height), int(stride));
                 if (cs == NULL)
                     return;
                 lsp_finally { cairo_surface_destroy(cs); };

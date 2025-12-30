@@ -124,6 +124,7 @@ MTEST_BEGIN("ws.display", rtext)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test relative text") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(400, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(400, 400, 400, 400) == STATUS_OK);
 
         Handler h(this, wnd);

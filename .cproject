@@ -94,6 +94,16 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.15240785" name="/" resourcePath="modules/lsp-test-fw/src/test">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.1719495524" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug" unusedChildren="">
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1312832231" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.1433478151"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.2068553584" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.545489760" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.939932035"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.833833866" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1012199875"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.77146224" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.988453294"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.937823455" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug.1930046047"/>
+						</toolChain>
+					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.605669147" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925.169296649">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925.169296649" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1203487925">
 							<option id="gnu.cpp.compiler.option.other.other.2058905678" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
@@ -101,7 +111,7 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="modules/lsp-test-fw/src/test|modules/lsp-runtime-lib/src/test|modules/lsp-lltl-lib/src/test|modules/lsp-common-lib/src/test|modules/lsp-dsp-lib/src/test|modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -153,6 +163,16 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.release.2093466427.1863373758" name="/" resourcePath="modules/lsp-test-fw/src/test">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.release.2099508682" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.release" unusedChildren="">
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.208462602" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.1537430390"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.1459921289" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.2058233551" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release.2123585293"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.2063112201" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release.553425440"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1440560850" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1067599196"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.1646074151" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release.1295250395"/>
+						</toolChain>
+					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.exe.release.2093466427.1283387153" name="avx512.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/avx512.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511.2044920176">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511.2044920176" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.675932511">
 							<option id="gnu.cpp.compiler.option.other.other.2105448366" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" value="-c -fmessage-length=0 -mavx512f -mavx512vl" valueType="string"/>
@@ -160,7 +180,7 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="modules/lsp-test-fw/src/test|modules/lsp-runtime-lib/src/test|modules/lsp-lltl-lib/src/test|modules/lsp-common-lib/src/test|modules/lsp-dsp-lib/src/test|modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -256,6 +276,16 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<folderInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.1786573548.1345196135" name="/" resourcePath="modules/lsp-test-fw/src/test">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.1309456376" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug" unusedChildren="">
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.58980983" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base.812928903"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.477967317" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1408792270" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.2101176418"/>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.92073743" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug.265876247"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1352408123" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.2071617238"/>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.debug.1410649590" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug.1263185056"/>
+						</toolChain>
+					</folderInfo>
 					<fileInfo id="cdt.managedbuild.config.gnu.exe.debug.1006088949.1786573548.1973163312" name="sse3.cpp" rcbsApplicability="disable" resourcePath="modules/lsp-dsp-lib/src/main/x86/sse3.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.1778206551">
 						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992.1778206551" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.772178992">
 							<option id="gnu.cpp.compiler.option.other.other.822865306" name="Other flags" superClass="gnu.cpp.compiler.option.other.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -msse -msse2 -msse3 -mssse3" valueType="string"/>
@@ -335,7 +365,7 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="modules/lsp-test-fw/src/test|modules/lsp-runtime-lib/src/test|modules/lsp-lltl-lib/src/test|modules/lsp-common-lib/src/test|modules/lsp-dsp-lib/src/test|modules/lsp-dsp-lib/src/test/main.cpp|modules/lsp-r3d-wgl-lib/src/test/main.cpp|modules/lsp-r3d-iface/src/test/main.cpp|modules/lsp-r3d-glx-lib/src/test/main.cpp|modules/lsp-test-fw/src/test/main.cpp|modules/lsp-runtime-lib/src/test/main.cpp|modules/lsp-r3d-base-lib/src/test/main.cpp|modules/lsp-lltl-lib/src/test/main.cpp|modules/lsp-common-lib/src/test/main.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

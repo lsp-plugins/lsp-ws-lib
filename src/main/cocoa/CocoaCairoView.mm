@@ -27,6 +27,7 @@
 #import <private/cocoa/CocoaCairoView.h>
 #include <private/cocoa/CocoaCairoSurface.h>
 #include <private/cocoa/CocoaDisplay.h>
+#include <private/cocoa/defs.h>
 #include <lsp-plug.in/ws/ISurface.h>
 #include <lsp-plug.in/common/debug.h>
 
@@ -265,91 +266,91 @@
 {
     lsp_trace("Mouse down event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)rightMouseDown:(NSEvent *)event
 {
     lsp_trace("Mouse (right) down event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)otherMouseDown:(NSEvent *)event
 {
     lsp_trace("Mouse (other) down event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
     lsp_trace("Mouse up event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)rightMouseUp:(NSEvent *)event
 {
     lsp_trace("Mouse (right) up event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)otherMouseUp:(NSEvent *)event
 {
     lsp_trace("Mouse (other) up event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)mouseMoved:(NSEvent *)event
 {
     lsp_trace("Mouse moved event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
     lsp_trace("Mouse dragged event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)mouseEntered:(NSEvent *)event
 {
     lsp_trace("Mouse enterd event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)mouseExited:(NSEvent *)event
 {
     lsp_trace("Mouse exited event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)scrollWheel:(NSEvent *)event
 {
     lsp_trace("Mouse scroll event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)keyDown:(NSEvent *)event
 {
     lsp_trace("Key down event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 - (void)keyUp:(NSEvent *)event
 {
     lsp_trace("Key up event in CocoaCairoView: %p", self);
     if (self.display)
-        self.display->handle_event(event);
+        self.display->handle_event(lsp::ws::cocoa::nsevent_t { event });
 }
 
 @end

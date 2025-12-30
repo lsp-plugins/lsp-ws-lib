@@ -34,8 +34,8 @@ namespace lsp
     {
         class IDisplay;
 
-        /** Native window class
-         *
+        /**
+         * Native window class
          */
         class LSP_WS_LIB_PUBLIC IWindow
         {
@@ -43,13 +43,17 @@ namespace lsp
                 IEventHandler  *pHandler;
                 IDisplay       *pDisplay;
 
-            private:
-                IWindow & operator = (const IWindow);
-                IWindow(const IWindow &);
+            protected:
+                static bool verify_size_constraints(const size_limit_t *c);
 
             public:
                 explicit IWindow(IDisplay *dpy, IEventHandler *handler = NULL);
+                IWindow(const IWindow &) = delete;
+                IWindow(IWindow &&) = delete;
                 virtual ~IWindow();
+
+                IWindow & operator = (const IWindow &) = delete;
+                IWindow & operator = (IWindow &&) = delete;
 
                 /** Window initialization routine
                  *
@@ -274,27 +278,39 @@ namespace lsp
                  */
                 virtual status_t set_visibility(bool visible);
 
-                /** Set size constraints of the window
-                 *
-                 * @param c size constraints
-                 * @return status of operations
-                 */
-                virtual status_t set_size_constraints(const size_limit_t *c);
-
-                /** Get size constraints
+                /**
+                 * Get size constraints
                  *
                  * @param c size constraints
                  * @return status of operation
                  */
                 virtual status_t get_size_constraints(size_limit_t *c);
 
-                /** Set size constraints
+                /**
+                 * Get actual size constraints, depending on other window attributes like size, border, etc
+                 *
+                 * @param c size constraints
+                 * @return status of operation
+                 */
+                virtual status_t get_actual_size_constraints(size_limit_t *c);
+
+                /** Set size constraints of the window
+                 *
+                 * @param c size constraints
+                 * @return status of operation (STATUS_INVALID_VALUE if constraints are invalid)
+                 */
+                virtual status_t set_size_constraints(const size_limit_t *c);
+
+                /**
+                 * Set window size constraints hint for the window manager. This method only informs window manager
+                 * about minimum possible size of the window and maximum possible size of the window. It does not
+                 * affect the window size. But the window size can affect
                  *
                  * @param min_width minimum width
                  * @param min_height minimum height
                  * @param max_width maximum width
                  * @param max_height maximum height
-                 * @return status of operation
+                 * @return status of operation (STATUS_INVALID_VALUE if constraints are invalid)
                  */
                 virtual status_t set_size_constraints(ssize_t min_width, ssize_t min_height, ssize_t max_width, ssize_t max_height);
 
@@ -372,7 +388,7 @@ namespace lsp
 
                 /** Set mouse pointer
                  *
-                 * @param ponter mouse pointer
+                 * @param pointer mouse pointer
                  * @return status of operation
                  */
                 virtual status_t set_mouse_pointer(mouse_pointer_t pointer);
