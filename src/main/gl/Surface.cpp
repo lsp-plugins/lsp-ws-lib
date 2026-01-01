@@ -194,7 +194,7 @@ namespace lsp
 
             inline ssize_t Surface::make_command(ssize_t index, cmd_color_t color) const
             {
-                return (index << 5) | (size_t(color) << 3) | nNumClips;
+                return (index << 8) | (size_t(color) << 6) | (nNumClips << 3);
             }
 
             float *Surface::serialize_clipping(float *dst) const

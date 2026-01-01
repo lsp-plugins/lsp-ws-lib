@@ -100,11 +100,7 @@ namespace lsp
 
             static GLXFBConfig choose_fb_config(Display *dpy, int screen)
             {
-                GLXFBConfig result = NULL;
-                int max_sample_buffers = -1;
-                int max_samples = -1;
-                const int max_multisampling = 8;
-
+                // We prefere non-multisampled fb_config against multisampled one
                 for (const int * const *atts = fb_params; *atts != NULL; ++atts)
                 {
                     // Get framebuffer configurations
@@ -115,6 +111,10 @@ namespace lsp
                     lsp_finally { XFree(fb_list); };
 
                     // Scan for the best result
+                    GLXFBConfig result = NULL;
+                    int max_sample_buffers = -1;
+                    int max_samples = -1;
+
                     for (int i=0; i<fbcount; ++i)
                     {
                         GLXFBConfig fbc = fb_list[i];
@@ -122,10 +122,8 @@ namespace lsp
                         int samples = 0;
                         ::glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLE_BUFFERS, &sample_buffers);
                         ::glXGetFBConfigAttrib(dpy, fbc, GLX_SAMPLES, &samples);
-                        if (samples > max_multisampling)
-                            continue;
 
-                        if ((max_sample_buffers < 0) || ((sample_buffers >= max_sample_buffers) && (samples >= max_samples)))
+                        if ((result == NULL) || ((sample_buffers >= max_sample_buffers) && (samples <= max_samples)))
                         {
                             result              = fbc;
                             max_sample_buffers  = sample_buffers;
@@ -134,7 +132,7 @@ namespace lsp
                     }
 
                     // Check if we reached the desired result
-                    if ((max_sample_buffers > 0) && (max_samples > 0))
+                    if (result != NULL)
                     {
                     #ifdef LSP_TRACE
                         int fbconfig_id = 0;
