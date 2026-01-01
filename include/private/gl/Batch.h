@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 19 янв. 2025 г.
@@ -100,26 +100,6 @@ namespace lsp
                     void clear();
 
                 public:
-                    /**
-                     * Add vertex
-                     * @param cmd command for a vertex
-                     * @param x vertex X coordinate
-                     * @param y vertex Y coordinate
-                     * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
-                     */
-                    ssize_t vertex(uint32_t cmd, float x, float y);
-
-                    /**
-                     * Add vertex with texture coordinates
-                     * @param cmd command for a vertex
-                     * @param x vertex X coordinate
-                     * @param y vertex Y coordinate
-                     * @param s texture coordinate S
-                     * @param t texture coordinate T
-                     * @return relative to the beginning of batch index of vertex in vertex buffer or negative error code
-                     */
-                    ssize_t textured_vertex(uint32_t cmd, float x, float y, float s, float t);
-
                     /**
                      * Identifier of the next vertex that will be allocated on addition call
                      * @return identifier of the next allocated vertex

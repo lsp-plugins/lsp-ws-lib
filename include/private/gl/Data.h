@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 2 июн. 2025 г.
@@ -45,9 +45,11 @@ namespace lsp
 
             enum attribute_t
             {
-                VERTEX_COORDS,
-                TEXTURE_COORDS,
-                COMMAND_BUFFER,
+                VX0_COORDS,
+                VX1_COORDS,
+                VX2_COORDS,
+                TEX_COORDS,
+                COMMAND,
             };
 
             enum batch_flags_t
@@ -117,8 +119,12 @@ namespace lsp
 
             typedef struct LSP_HIDDEN_MODIFIER vertex_t
             {
-                float               x;      // X Coordinate
-                float               y;      // Y Coordinate
+                float               x0;     // X Coordinate of the vertex
+                float               y0;     // Y Coordinate of the vertex
+                float               x1;     // X Coordinate of supplementary vertex 1 for anti-aliasing
+                float               y1;     // Y Coordinate of supplementary vertex 1 for anti-aliasing
+                float               x2;     // X Coordinate of supplementary vertex 2 for anti-aliasing
+                float               y2;     // Y Coordinate of supplementary vertex 2 for anti-aliasing
                 float               s;      // Texture Coordinate S
                 float               t;      // Texture Coordinate T
                 uint32_t            cmd;    // Draw command

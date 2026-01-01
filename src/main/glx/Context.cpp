@@ -332,9 +332,11 @@ namespace lsp
                         {
                             switch (attribute)
                             {
-                                case gl::VERTEX_COORDS: return 0;
-                                case gl::TEXTURE_COORDS: return 1;
-                                case gl::COMMAND_BUFFER: return 2;
+                                case gl::VX0_COORDS: return 0;
+                                case gl::VX1_COORDS: return 1;
+                                case gl::VX2_COORDS: return 2;
+                                case gl::TEX_COORDS: return 3;
+                                case gl::COMMAND: return 4;
                                 default: break;
                             }
                         }
@@ -344,7 +346,7 @@ namespace lsp
                         {
                             switch (attribute)
                             {
-                                case gl::VERTEX_COORDS: return 0;
+                                case gl::VX0_COORDS: return 0;
                                 default: break;
                             }
                         }
@@ -365,9 +367,11 @@ namespace lsp
                 const char *name = NULL;
                 switch (attribute)
                 {
-                    case gl::VERTEX_COORDS:     name = "a_vertex"; break;
-                    case gl::TEXTURE_COORDS:    name = "a_texcoord"; break;
-                    case gl::COMMAND_BUFFER:    name = "a_command"; break;
+                    case gl::VX0_COORDS:        name = "a_vx0"; break;
+                    case gl::VX1_COORDS:        name = "a_vx1"; break;
+                    case gl::VX2_COORDS:        name = "a_vx2"; break;
+                    case gl::TEX_COORDS:        name = "a_texcoord"; break;
+                    case gl::COMMAND:           name = "a_command"; break;
                     default: return -STATUS_INVALID_VALUE;
                 }
 

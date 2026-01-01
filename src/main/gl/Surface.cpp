@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 15 янв. 2025 г.
@@ -44,8 +44,12 @@ namespace lsp
         namespace gl
         {
             #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
-                v->x        = v_x; \
-                v->y        = v_y; \
+                v->x0       = v_x; \
+                v->y0       = v_y; \
+                v->x1       = 0.0f; \
+                v->y1       = 0.0f; \
+                v->x2       = 0.0f; \
+                v->y2       = 0.0f; \
                 v->s        = v_s; \
                 v->t        = v_t; \
                 v->cmd      = v_ci; \

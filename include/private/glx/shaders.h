@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 19 янв. 2025 г.
@@ -39,21 +39,27 @@ namespace lsp
                 SHADER("uniform vec2 u_origin;")
                 SHADER("")
                 SHADER("#ifdef USE_LAYOUTS")
-                SHADER("layout(location=0) in vec2 a_vertex;")
-                SHADER("layout(location=1) in vec2 a_texcoord;")
-                SHADER("layout(location=2) in uint a_command;")
+                SHADER("layout(location=0) in vec2 a_vx0;")
+                SHADER("layout(location=1) in vec2 a_vx1;")
+                SHADER("layout(location=2) in vec2 a_vx2;")
+                SHADER("layout(location=3) in vec2 a_texcoord;")
+                SHADER("layout(location=4) in uint a_command;")
                 SHADER("#else")
-                SHADER("in vec2 a_vertex;")
+                SHADER("in vec2 a_vx0;")
+                SHADER("in vec2 a_vx1;")
+                SHADER("in vec2 a_vx2;")
                 SHADER("in vec2 a_texcoord;")
                 SHADER("in uint a_command;")
                 SHADER("#endif")
                 SHADER("")
-                SHADER("out vec2 b_texcoord;")
-                SHADER("flat out int b_index;")
-                SHADER("flat out int b_coloring;")
-                SHADER("flat out int b_clips;")
-                SHADER("flat out vec3 b_antialias;")
-                SHADER("out vec2 b_frag_coord;")
+                SHADER("out vec2 b_texcoord;")      // texture coordinates
+                SHADER("flat out int b_index;")     // position of coloring parameters in the texture
+                SHADER("flat out int b_coloring;")  // coloring mode
+                SHADER("flat out int b_clips;")     // number of clipping rectangles
+                SHADER("out vec2 b_vx0;")           // coordinates of the fragment
+                SHADER("flat out vec2 b_vx1;")      // supplementary vertex for anti-aliasing
+                SHADER("flat out vec2 b_vx2;")      // supplementary vertex for anti-aliasing
+                SHADER("flat out vec3 b_aa;")       // anti-aliasing state
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
@@ -61,10 +67,12 @@ namespace lsp
                 SHADER("    b_index = int(a_command >> 8);")
                 SHADER("    b_coloring = int(a_command >> 6) & 0x3;")
                 SHADER("    b_clips = int(a_command >> 3) & 0x7;")
-                SHADER("    b_frag_coord = a_vertex;")
-                SHADER("    b_antialias = vec3(float(int(a_command) & 0x1), float(int(a_command >> 1) & 0x1), float(int(a_command >> 2) & 0x1));")
+                SHADER("    b_vx0 = a_vx0;")
+                SHADER("    b_vx1 = a_vx1;")
+                SHADER("    b_vx2 = a_vx2;")
+                SHADER("    b_aa = vec3(float(int(a_command) & 0x1), float(int(a_command >> 1) & 0x1), float(int(a_command >> 2) & 0x1));")
                 SHADER("")
-                SHADER("    gl_Position = u_model * vec4(a_vertex.x + u_origin.x, a_vertex.y + u_origin.y, 0.0f, 1.0f);")
+                SHADER("    gl_Position = u_model * vec4(a_vx0.x + u_origin.x, a_vx0.y + u_origin.y, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
 
@@ -76,12 +84,14 @@ namespace lsp
                 SHADER("uniform sampler2DMS u_ms_texture;")
                 SHADER("#endif")
                 SHADER("")
-                SHADER("in vec2 b_texcoord;")
-                SHADER("flat in int b_index;")
-                SHADER("flat in int b_coloring;")
-                SHADER("flat in int b_clips;")
-                SHADER("flat in vec3 b_antialias;")
-                SHADER("in vec2 b_frag_coord;")
+                SHADER("in vec2 b_texcoord;")       // texture coordinates
+                SHADER("flat in int b_index;")      // position of coloring parameters in the texture
+                SHADER("flat in int b_coloring;")   // coloring mode
+                SHADER("flat in int b_clips;")      // number of clipping rectangles
+                SHADER("in vec2 b_vx0;")            // coordinates of the fragment
+                SHADER("flat in vec2 b_vx1;")       // supplementary vertex for anti-aliasing
+                SHADER("flat in vec2 b_vx2;")       // supplementary vertex for anti-aliasing
+                SHADER("flat in vec3 b_aa;")        // anti-aliasing state
                 SHADER("")
                 SHADER("vec4 commandFetch(sampler2D sampler, int offset)")
                 SHADER("{")
@@ -107,21 +117,22 @@ namespace lsp
                 SHADER("void main()")
                 SHADER("{")
                 SHADER("    int index = b_index;")
-                SHADER("") // Apply clipping
+                SHADER("")  // Apply clipping
                 SHADER("    for (int i=0; i<b_clips; ++i)")
                 SHADER("    {")
                 SHADER("        vec4 rect = commandFetch(u_commands, index);")          // Axis-aligned bound box
-                SHADER("        if ((b_frag_coord.x < rect.x) ||")
-                SHADER("            (b_frag_coord.y < rect.y) ||")
-                SHADER("            (b_frag_coord.x > rect.z) ||")
-                SHADER("            (b_frag_coord.y > rect.w))")
+                SHADER("        if ((b_vx0.x < rect.x) ||")
+                SHADER("            (b_vx0.y < rect.y) ||")
+                SHADER("            (b_vx0.x > rect.z) ||")
+                SHADER("            (b_vx0.y > rect.w))")
                 SHADER("            discard;")
                 SHADER("        ++index;")
                 SHADER("    }")
-                SHADER("") // Compute color of fragment
+                SHADER("")  // Compute color of fragment
+                SHADER("    vec4 color;")
                 SHADER("    if (b_coloring == 0)") // Solid color
                 SHADER("    {")
-                SHADER("        gl_FragColor = commandFetch(u_commands, index);")       // Fill color
+                SHADER("        color = commandFetch(u_commands, index);")       // Fill color
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 1)") // Linear gradient
                 SHADER("    {")
@@ -129,8 +140,8 @@ namespace lsp
                 SHADER("        vec4 ce = commandFetch(u_commands, index + 1);")        // End color
                 SHADER("        vec4 gp = commandFetch(u_commands, index + 2);")        // Gradient parameters
                 SHADER("        vec2 dv = gp.zw - gp.xy;") // Gradient direction vector
-                SHADER("        vec2 dp = b_frag_coord - gp.xy;") // Dot direction vector
-                SHADER("        gl_FragColor = mix(cs, ce, clamp(dot(dv, dp) / dot(dv, dv), 0.0f, 1.0f));")
+                SHADER("        vec2 dp = b_vx0 - gp.xy;") // Dot direction vector
+                SHADER("        color = mix(cs, ce, clamp(dot(dv, dp) / dot(dv, dv), 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else if (b_coloring == 2)") // Radial gradient
                 SHADER("    {")
@@ -138,13 +149,13 @@ namespace lsp
                 SHADER("        vec4 ce = commandFetch(u_commands, index + 1);")        // End color
                 SHADER("        vec4 gp = commandFetch(u_commands, index + 2);")        // Gradient parameters: center {xc, yc} and focal {xf, yf}
                 SHADER("        vec4 r  = commandFetch(u_commands, index + 3);")        // Radius (R)
-                SHADER("        vec2 d  = b_frag_coord.xy - gp.zw;")                    // D = {x, y} - {xf, yf }
+                SHADER("        vec2 d  = b_vx0.xy - gp.zw;")                           // D = {x, y} - {xf, yf }
                 SHADER("        vec2 f  = gp.zw - gp.xy;")                              // F = {xf, yf} - {xc, yc }
                 SHADER("        float a = dot(d.xy, d.xy);")                            // a = D*D = { Dx*Dx + Dy*Dy }
                 SHADER("        float b = 2.0f * dot(f.xy, d.xy);")                     // b = 2*F*D = { 2*Fx*Dx + 2*Fy*Dy }
                 SHADER("        float c = dot(f.xy, f.xy) - r.x*r.x;")                  // c = F*F = { Fx*Fx + Fy*Fy - R*R }
                 SHADER("        float k = (2.0f*a)/(sqrt(b*b - 4.0f*a*c)-b);")          // k = 1/t
-                SHADER("        gl_FragColor = mix(cs, ce, clamp(k, 0.0f, 1.0f));")
+                SHADER("        color = mix(cs, ce, clamp(k, 0.0f, 1.0f));")
                 SHADER("    }")
                 SHADER("    else") // if (b_coloring == 3) Texture-based fill
                 SHADER("    {")
@@ -158,11 +169,13 @@ namespace lsp
                 SHADER("        vec4 tcolor = texture(u_texture, b_texcoord);")     // Get color from texture
                 SHADER("#endif")
                 SHADER("        int format = int(tp.z);")                           // Get texture format
-                SHADER("        gl_FragColor = ")
+                SHADER("        color = ")
                 SHADER("            (format == 0) ? vec4(tcolor.rgb * mc.rgb * tcolor.a, tcolor.a * mc.a)") // Usual RGBA
                 SHADER("            : (format == 1) ? vec4(mc.rgb * tcolor.r, mc.a * tcolor.r)") // Alpha-blending channel
                 SHADER("            : vec4(tcolor.rgb * mc.rgb, tcolor.a * mc.a);") // Pre-multiplied RGBA in texture
                 SHADER("    }")
+                SHADER("")  // Commit the fragment color
+                SHADER("    gl_FragColor = color;")
                 SHADER("}")
                 SHADER("");
 
@@ -171,14 +184,14 @@ namespace lsp
                 SHADER("uniform vec2 u_origin;")
                 SHADER("")
                 SHADER("#ifdef USE_LAYOUTS")
-                SHADER("layout(location=0) in vec2 a_vertex;")
+                SHADER("layout(location=0) in vec2 a_vx0;")
                 SHADER("#else")
-                SHADER("in vec2 a_vertex;")
+                SHADER("in vec2 a_vx0;")
                 SHADER("#endif")
                 SHADER("")
                 SHADER("void main()")
                 SHADER("{")
-                SHADER("    gl_Position = u_model * vec4(a_vertex.x + u_origin.x, a_vertex.y + u_origin.y, 0.0f, 1.0f);")
+                SHADER("    gl_Position = u_model * vec4(a_vx0.x + u_origin.x, a_vx0.y + u_origin.y, 0.0f, 1.0f);")
                 SHADER("}")
                 SHADER("");
 

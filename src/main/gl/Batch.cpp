@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 19 янв. 2025 г.
@@ -437,15 +437,28 @@ namespace lsp
                     lsp_finally { vtbl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_NONE); };
 
                     // Bind vertex attributes
-                    const GLint a_vertex = ctx->attribute_location(program, gl::VERTEX_COORDS);
-                    const GLint a_texcoord = ctx->attribute_location(program, gl::TEXTURE_COORDS);
-                    const GLint a_command = ctx->attribute_location(program, gl::COMMAND_BUFFER);
+                    const GLint a_vx0_coords = ctx->attribute_location(program, gl::VX0_COORDS);
+                    const GLint a_vx1_coords = ctx->attribute_location(program, gl::VX1_COORDS);
+                    const GLint a_vx2_coords = ctx->attribute_location(program, gl::VX2_COORDS);
+                    const GLint a_texcoord = ctx->attribute_location(program, gl::TEX_COORDS);
+                    const GLint a_command = ctx->attribute_location(program, gl::COMMAND);
 
-                    // position attribute
-                    if (a_vertex >= 0)
+                    // Vertex position attribute
+                    if (a_vx0_coords >= 0)
                     {
-                        vtbl->glVertexAttribPointer(a_vertex, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x));
-                        vtbl->glEnableVertexAttribArray(a_vertex);
+                        vtbl->glVertexAttribPointer(a_vx0_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x0));
+                        vtbl->glEnableVertexAttribArray(a_vx0_coords);
+                    }
+                    // Additional position attributes for anti-aliasing
+                    if (a_vx0_coords >= 0)
+                    {
+                        vtbl->glVertexAttribPointer(a_vx1_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x1));
+                        vtbl->glEnableVertexAttribArray(a_vx1_coords);
+                    }
+                    if (a_vx1_coords >= 0)
+                    {
+                        vtbl->glVertexAttribPointer(a_vx2_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x2));
+                        vtbl->glEnableVertexAttribArray(a_vx2_coords);
                     }
                     // texture coordinates
                     if (a_texcoord >= 0)
@@ -460,8 +473,12 @@ namespace lsp
                         vtbl->glEnableVertexAttribArray(a_command);
                     }
                     lsp_finally {
-                        if (a_vertex >= 0)
-                            vtbl->glDisableVertexAttribArray(a_vertex);
+                        if (a_vx0_coords >= 0)
+                            vtbl->glDisableVertexAttribArray(a_vx0_coords);
+                        if (a_vx1_coords >= 0)
+                            vtbl->glDisableVertexAttribArray(a_vx1_coords);
+                        if (a_vx2_coords >= 0)
+                            vtbl->glDisableVertexAttribArray(a_vx2_coords);
                         if (a_texcoord >= 0)
                             vtbl->glDisableVertexAttribArray(a_texcoord);
                         if (a_command >= 0)
@@ -517,40 +534,6 @@ namespace lsp
                 // Allocate vertices
                 const ssize_t index = buf.count;
                 buf.count          += count;
-                return index;
-            }
-
-            ssize_t Batch::vertex(uint32_t cmd, float x, float y)
-            {
-                const ssize_t index     = alloc_vertices(1);
-                if (index < 0)
-                    return index;
-
-                batch_vbuffer_t & buf   = pCurrent->vertices;
-                vertex_t *v             = &buf.v[index];
-                v->x                    = x;
-                v->y                    = y;
-                v->s                    = 0.0f;
-                v->t                    = 0.0f;
-                v->cmd                  = cmd;
-
-                return index;
-            }
-
-            ssize_t Batch::textured_vertex(uint32_t cmd, float x, float y, float s, float t)
-            {
-                const ssize_t index     = alloc_vertices(1);
-                if (index < 0)
-                    return index;
-
-                batch_vbuffer_t & buf   = pCurrent->vertices;
-                vertex_t *v             = &buf.v[index];
-                v->x                    = x;
-                v->y                    = y;
-                v->s                    = s;
-                v->t                    = t;
-                v->cmd                  = cmd;
-
                 return index;
             }
 
