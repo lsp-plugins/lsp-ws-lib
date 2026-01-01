@@ -33,12 +33,12 @@ namespace lsp
         namespace x11
         {
             #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
-                v->x0       = v_x; \
-                v->y0       = v_y; \
-                v->x1       = 0.0f; \
-                v->y1       = 0.0f; \
-                v->x2       = 0.0f; \
-                v->y2       = 0.0f; \
+                v->p0.x     = v_x; \
+                v->p0.y     = v_y; \
+                v->p1.x     = 0.0f; \
+                v->p1.y     = 0.0f; \
+                v->p2.x     = 0.0f; \
+                v->p2.y     = 0.0f; \
                 v->s        = v_s; \
                 v->t        = v_t; \
                 v->cmd      = v_ci; \

@@ -117,18 +117,23 @@ namespace lsp
                 };
             } uniform_t;
 
+        #pragma pack(push, 1)
+            typedef struct LSP_HIDDEN_MODIFIER point_t
+            {
+                float               x;
+                float               y;
+            } point_t;
+
             typedef struct LSP_HIDDEN_MODIFIER vertex_t
             {
-                float               x0;     // X Coordinate of the vertex
-                float               y0;     // Y Coordinate of the vertex
-                float               x1;     // X Coordinate of supplementary vertex 1 for anti-aliasing
-                float               y1;     // Y Coordinate of supplementary vertex 1 for anti-aliasing
-                float               x2;     // X Coordinate of supplementary vertex 2 for anti-aliasing
-                float               y2;     // Y Coordinate of supplementary vertex 2 for anti-aliasing
+                point_t             p0;     // Coordinates of vertex
+                point_t             p1;     // Coordinates of supplementary point 1 for anti-aliasing
+                point_t             p2;     // Coordinates of supplementary point 2 for anti-aliasing
                 float               s;      // Texture Coordinate S
                 float               t;      // Texture Coordinate T
                 uint32_t            cmd;    // Draw command
             } vertex_t;
+        #pragma pack(pop)
 
             typedef struct LSP_HIDDEN_MODIFIER batch_vbuffer_t
             {

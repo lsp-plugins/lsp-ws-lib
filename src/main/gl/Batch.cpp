@@ -446,18 +446,18 @@ namespace lsp
                     // Vertex position attribute
                     if (a_vx0_coords >= 0)
                     {
-                        vtbl->glVertexAttribPointer(a_vx0_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x0));
+                        vtbl->glVertexAttribPointer(a_vx0_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, p0));
                         vtbl->glEnableVertexAttribArray(a_vx0_coords);
                     }
                     // Additional position attributes for anti-aliasing
                     if (a_vx0_coords >= 0)
                     {
-                        vtbl->glVertexAttribPointer(a_vx1_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x1));
+                        vtbl->glVertexAttribPointer(a_vx1_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, p1));
                         vtbl->glEnableVertexAttribArray(a_vx1_coords);
                     }
                     if (a_vx1_coords >= 0)
                     {
-                        vtbl->glVertexAttribPointer(a_vx2_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, x2));
+                        vtbl->glVertexAttribPointer(a_vx2_coords, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), gl_offsetof(vertex_t, p2));
                         vtbl->glEnableVertexAttribArray(a_vx2_coords);
                     }
                     // texture coordinates
