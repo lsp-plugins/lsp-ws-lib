@@ -185,8 +185,8 @@ namespace lsp
                 SHADER("            : vec4(tcolor.rgb * mc.rgb, tcolor.a * mc.a);") // Pre-multiplied RGBA in texture
                 SHADER("    }")
                 SHADER("")  // Perform anti-aliasing
-//                SHADER("    if (b_aa != 0)") // debug
-//                SHADER("    {")
+                SHADER("    if (b_aa != 0)") // debug
+                SHADER("    {")
                 SHADER("        float d0 = dot(b_vx0.xy, b_vx.xy) + b_vx0.z;")
                 SHADER("        float d1 = dot(b_vx1.xy, b_vx.xy) + b_vx1.z;")
                 SHADER("        float d2 = dot(b_vx2.xy, b_vx.xy) + b_vx2.z;")
@@ -195,7 +195,7 @@ namespace lsp
                 SHADER("        float aa2 = clamp(d2, 0.0f, 1.0f);")
                 SHADER("        float alpha = min(aa0, min(aa1, aa2));")
                 SHADER("        color *= alpha;")
-//                SHADER("    }")
+                SHADER("    }")
                 SHADER("")  // Commit the fragment color
                 SHADER("    gl_FragColor = color;")
                 SHADER("}")

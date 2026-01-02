@@ -31,12 +31,14 @@ MTEST_BEGIN("ws.display", primitives)
         private:
             test_type_t    *pTest;
             ws::IWindow    *pWnd;
+            bool            bAntiAlias;
 
         public:
             inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
                 pTest       = test;
                 pWnd        = wnd;
+                bAntiAlias  = true;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
@@ -53,6 +55,7 @@ MTEST_BEGIN("ws.display", primitives)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
+                        s->set_antialiasing(bAntiAlias);
 
                         // Method 3: Filled solid triangles
 //                        c.set_rgb24(0x00ff00);
@@ -200,6 +203,18 @@ MTEST_BEGIN("ws.display", primitives)
                         s->end();
 
                         return STATUS_OK;
+                    }
+
+                    case ws::UIE_MOUSE_CLICK:
+                    {
+                        // Left mouse button toggles anti-aliasing
+                        if (ev->nCode == ws::MCB_LEFT)
+                        {
+                            bAntiAlias = !bAntiAlias;
+                            pTest->printf("Anti-aliasing enabled: %s\n", (bAntiAlias) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        break;
                     }
 
                     case ws::UIE_CLOSE:
