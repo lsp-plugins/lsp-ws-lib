@@ -69,7 +69,6 @@ namespace lsp
                 SHADER("    b_coloring = int(a_command >> 6) & 0x3;")
                 SHADER("    b_clips = int(a_command >> 3) & 0x7;")
                 SHADER("    b_aa = int(a_command) & 0x7;")
-                SHADER("    b_vx  = a_vx0;")
                 SHADER("") // Perform counter-clockwise test
                 SHADER("    float orientation = (a_vx1.x - a_vx0.x)*(a_vx2.y - a_vx0.y) - (a_vx1.y - a_vx0.y)*(a_vx2.x - a_vx0.x);")
                 SHADER("    float direction = (orientation <= 0.0f) ? 1.0f : -1.0f;")
@@ -80,6 +79,13 @@ namespace lsp
                 SHADER("    b_vx0 = vec3(d0.y, -d0.x, a_vx0.y * d0.x - a_vx0.x * d0.y + 1.5f - float(int(a_command) & 0x1));")
                 SHADER("    b_vx1 = vec3(d1.y, -d1.x, a_vx1.y * d1.x - a_vx1.x * d1.y + 1.5f - float(int(a_command >> 1) & 0x1));")
                 SHADER("    b_vx2 = vec3(d2.y, -d2.x, a_vx2.y * d2.x - a_vx2.x * d2.y + 1.5f - float(int(a_command >> 2) & 0x1));")
+                SHADER("") // Output fragment position
+                SHADER("    b_vx = a_vx0;")
+                SHADER("    if ((int(a_command) & 0x7) != 0)")
+                SHADER("    {")
+                SHADER("    vec2 center = (a_vx0 + a_vx1 + a_vx2) / 3.0f;")
+                SHADER("    b_vx = center + (a_vx0 - center) * 0.5f;")
+                SHADER("    }")
                 SHADER("") // Output fragment position
                 SHADER("    gl_Position = u_model * vec4(a_vx0.x + u_origin.x, a_vx0.y + u_origin.y, 0.0f, 1.0f);")
                 SHADER("}")
