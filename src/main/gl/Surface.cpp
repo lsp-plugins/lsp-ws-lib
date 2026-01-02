@@ -66,6 +66,30 @@ namespace lsp
                 v[5]        = d; \
                 v += 6;
 
+            #define ADD_NA_TVERTEX(v, v_ci, v_p0, v_s, v_t) \
+                v->p0       = v_p0; \
+                v->p1       = { 0.0f, 0.0f }; \
+                v->p2       = { 0.0f, 0.0f }; \
+                v->s        = v_s; \
+                v->t        = v_t; \
+                v->cmd      = v_ci; \
+                ++v;
+
+            #define ADD_NA_VERTEX(v, v_ci, v_p0) \
+                ADD_NA_TVERTEX(v, v_ci, v_p0, 0.0f, 0.0f)
+
+            #define ADD_AA_TVERTEX(v, v_ci, v_p0, v_p1, v_p2, v_s, v_t) \
+                v->p0       = v_p0; \
+                v->p1       = v_p1; \
+                v->p2       = v_p2; \
+                v->s        = v_s; \
+                v->t        = v_t; \
+                v->cmd      = v_ci; \
+                ++v;
+
+            #define ADD_AA_VERTEX(v, v_ci, v_p0, v_p1, v_p2) \
+                ADD_AA_TVERTEX(v, v_ci, v_p0, v_p1, v_p2, 0.0f, 0.0f)
+
             #define ADD_HTRIANGLE(v, a, b, c) \
                 v[0]        = a; \
                 v[1]        = b; \
@@ -500,9 +524,15 @@ namespace lsp
                 if (v == NULL)
                     return;
 
-                ADD_VERTEX(v, ci, x0, y0);
-                ADD_VERTEX(v, ci, x1, y1);
-                ADD_VERTEX(v, ci, x2, y2);
+                const point_t p0 = { x0, y0 };
+                const point_t p1 = { x1, y1 };
+                const point_t p2 = { x2, y2 };
+
+                ADD_AA_VERTEX(v, ci, p0, p1, p2);
+                ADD_AA_VERTEX(v, ci, p1, p2, p0);
+                if (bAntiAliasing)
+                    ci     |= C_AA_ALL;
+                ADD_AA_VERTEX(v, ci, p2, p0, p1);
 
                 sBatch.htriangle(vi, vi + 1, vi + 2);
             }
@@ -514,10 +544,24 @@ namespace lsp
                 if (v == NULL)
                     return;
 
-                ADD_VERTEX(v, ci, x0, y0);
-                ADD_VERTEX(v, ci, x0, y1);
-                ADD_VERTEX(v, ci, x1, y1);
-                ADD_VERTEX(v, ci, x1, y0);
+                const point_t p0 = { x0, y0 };
+                const point_t p1 = { x0, y1 };
+                const point_t p2 = { x1, y1 };
+                const point_t p3 = { x1, y0 };
+
+                ADD_AA_VERTEX(v, ci, p0, p1, p2);
+                ADD_AA_VERTEX(v, ci, p1, p2, p0);
+
+                if (bAntiAliasing)
+                {
+                    ADD_AA_VERTEX(v, ci | C_AA_EDGE1 | C_AA_EDGE2, p2, p0, p1);
+                    ADD_AA_VERTEX(v, ci | C_AA_EDGE0 | C_AA_EDGE2, p3, p0, p2);
+                }
+                else
+                {
+                    ADD_AA_VERTEX(v, ci, p2, p0, p1);
+                    ADD_AA_VERTEX(v, ci, p3, p0, p2);
+                }
 
                 sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
@@ -1635,7 +1679,12 @@ namespace lsp
                     0.0f);
                 if (res < 0)
                     return;
-                lsp_finally { sBatch.end(); };
+                const bool aa = bAntiAliasing;
+                bAntiAliasing = false;
+                lsp_finally {
+                    sBatch.end();
+                    bAntiAliasing = aa;
+                };
 
                 // Draw geometry
                 fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
@@ -1653,7 +1702,12 @@ namespace lsp
                     float((rgba >> 24) & 0xff) * k_color);
                 if (res < 0)
                     return;
-                lsp_finally { sBatch.end(); };
+                const bool aa = bAntiAliasing;
+                bAntiAliasing = false;
+                lsp_finally {
+                    sBatch.end();
+                    bAntiAliasing = aa;
+                };
 
                 // Draw geometry
                 fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
@@ -1665,7 +1719,12 @@ namespace lsp
                 const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, c);
                 if (res < 0)
                     return;
-                lsp_finally { sBatch.end(); };
+                const bool aa = bAntiAliasing;
+                bAntiAliasing = false;
+                lsp_finally {
+                    sBatch.end();
+                    bAntiAliasing = aa;
+                };
 
                 // Draw geometry
                 fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);

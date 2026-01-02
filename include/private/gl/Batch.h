@@ -168,6 +168,14 @@ namespace lsp
                     ssize_t htriangle(uint32_t a, uint32_t b, uint32_t c);
 
                     /**
+                     * Add indices that generate separate triangle chain
+                     * @param v0i index of the first vertex
+                     * @param count number of triangles
+                     * @return absolute index of record in index buffer or negative error code
+                     */
+                    ssize_t htriangle_separate(uint32_t v0i, uint32_t count);
+
+                    /**
                      * Add indices that generate triangle fan chain
                      * @param v0i index of the first vertex
                      * @param count number of triangles

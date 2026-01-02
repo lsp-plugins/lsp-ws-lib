@@ -50,10 +50,19 @@ namespace lsp
                 private:
                     enum cmd_color_t
                     {
-                        C_SOLID     = 0,
-                        C_LINEAR    = 1,
-                        C_RADIAL    = 2,
-                        C_TEXTURE   = 3
+                        C_SOLID         = 0,
+                        C_LINEAR        = 1,
+                        C_RADIAL        = 2,
+                        C_TEXTURE       = 3
+                    };
+
+                    enum cmd_flags_t
+                    {
+                        C_AA_EDGE0      = 1 << 0,
+                        C_AA_EDGE1      = 1 << 1,
+                        C_AA_EDGE2      = 1 << 2,
+
+                        C_AA_ALL        = C_AA_EDGE0 | C_AA_EDGE1 | C_AA_EDGE2
                     };
 
                     typedef struct clip_rect_t

@@ -54,6 +54,29 @@ MTEST_BEGIN("ws.display", primitives)
                         s->begin();
                         s->clear(c);
 
+                        // Method 3: Filled solid triangles
+//                        c.set_rgb24(0x00ff00);
+//                        s->fill_triangle(c,
+//                            50.0f, 50.0f,
+//                            50.0f, 150.0f,
+//                            200.0f, 50.0f);
+//
+//                        s->fill_triangle(c,
+//                            400.0f, 50.0f,
+//                            250.0f, 50.0f,
+//                            400.0f, 150.0f);
+//
+//                        s->fill_triangle(c,
+//                            200.0f, 300.0f,
+//                            50.0f, 200.0f,
+//                            50.0f, 300.0f);
+//
+//                        s->fill_triangle(c,
+//                            250.0f, 300.0f,
+//                            400.0f, 300.0f,
+//                            400.0f, 200.0f);
+
+
                         ssize_t y = 8;
 
                         // Method 1: Filled solid sectors

@@ -713,6 +713,35 @@ namespace lsp
                 return index;
             }
 
+            ssize_t Batch::htriangle_separate(uint32_t v0i, uint32_t count)
+            {
+                const ssize_t index     = alloc_indices(count * 3, v0i + count*3);
+                if (index < 0)
+                    return index;
+
+                batch_ibuffer_t & buf   = pCurrent->indices;
+                if (buf.szof > sizeof(uint16_t))
+                {
+                    uint32_t *dst   = &buf.u32[index];
+                    for (uint32_t i=0; i<count; ++i)
+                        dst[i]          = v0i + i;
+                }
+                else if (buf.szof > sizeof(uint8_t))
+                {
+                    uint16_t *dst   = &buf.u16[index];
+                    for (uint16_t i=0; i<count; ++i)
+                        dst[i]          = v0i + i;
+                }
+                else
+                {
+                    uint8_t *dst    = &buf.u8[index];
+                    for (uint8_t i=0; i<count; ++i)
+                        dst[i]          = v0i + i;
+                }
+
+                return index;
+            }
+
             ssize_t Batch::hrectangle_fan(uint32_t v0i, uint32_t count)
             {
                 const ssize_t index     = alloc_indices(count * 6, v0i + count*2 + 1);
