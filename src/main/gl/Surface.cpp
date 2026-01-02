@@ -43,6 +43,12 @@ namespace lsp
     {
         namespace gl
         {
+            static constexpr float MATH_PI = M_PI;
+            static constexpr float MATH_PI_MUL_1D4  = MATH_PI * 0.25f;
+            static constexpr float MATH_PI_MUL_1D2  = MATH_PI * 0.5f;
+            static constexpr float MATH_PI_MUL_3D2  = MATH_PI * 1.5f;
+            static constexpr float MATH_PI_MUL_2    = MATH_PI * 2.0f;
+
             #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
                 v->x        = v_x; \
                 v->y        = v_y; \
@@ -603,10 +609,10 @@ namespace lsp
                 // Compute parameters
                 if (r <= 0.0f)
                     return;
-                const float phi     = lsp_min(M_PI / r, M_PI_4);
+                const float phi     = lsp_min(MATH_PI / r, MATH_PI_MUL_1D4);
                 const float dx      = cosf(phi);
                 const float dy      = sinf(phi);
-                const size_t count  = M_PI * 2.0f / phi;
+                const size_t count  = MATH_PI_MUL_2 / phi;
 
                 // Allocate resources
                 const uint32_t v0i  = sBatch.next_vertex_index();
@@ -646,7 +652,7 @@ namespace lsp
                 if (delta == 0.0f)
                     return;
 
-                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float phi     = (delta > 0.0f) ? lsp_min(MATH_PI / r, MATH_PI_MUL_1D4) : lsp_min(-MATH_PI / r, MATH_PI_MUL_1D4);
                 const float ex      = cosf(a2) * r;
                 const float ey      = sinf(a2) * r;
                 const float dx      = cosf(phi);
@@ -691,7 +697,7 @@ namespace lsp
                 if (delta == 0.0f)
                     return;
 
-                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float phi     = (delta > 0.0f) ? lsp_min(MATH_PI / r, MATH_PI_MUL_1D4) : lsp_min(-MATH_PI / r, MATH_PI_MUL_1D4);
                 const float ex      = cosf(a2) * r;
                 const float ey      = sinf(a2) * r;
                 const float dx      = cosf(phi);
@@ -745,8 +751,8 @@ namespace lsp
                 if (r <= 0.0f)
                     return;
 
-                const float delta   = M_PI * 0.5f;
-                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / r, M_PI_4) : lsp_min(-M_PI / r, M_PI_4);
+                const float delta   = MATH_PI_MUL_1D2;
+                const float phi     = (delta > 0.0f) ? lsp_min(MATH_PI / r, MATH_PI_MUL_1D4) : lsp_min(-MATH_PI / r, MATH_PI_MUL_1D4);
                 const float dx      = cosf(phi);
                 const float dy      = sinf(phi);
                 const ssize_t count = delta / phi;
@@ -795,7 +801,7 @@ namespace lsp
                 const float ro      = r + hw;
                 const float kr      = lsp_max(r - hw, 0.0f) / ro;
 
-                const float phi     = (delta > 0.0f) ? lsp_min(M_PI / ro, M_PI_4) : lsp_min(-M_PI / ro, M_PI_4);
+                const float phi     = (delta > 0.0f) ? lsp_min(MATH_PI / ro, MATH_PI_MUL_1D4) : lsp_min(-MATH_PI / ro, MATH_PI_MUL_1D4);
                 const float ex      = cosf(a2) * ro;
                 const float ey      = sinf(a2) * ro;
 
@@ -848,12 +854,12 @@ namespace lsp
                     if (mask & SURFMASK_LT_CORNER)
                     {
                         l              += radius;
-                        fill_sector(ci, l, top, radius, M_PI, M_PI * 1.5f);
+                        fill_sector(ci, l, top, radius, MATH_PI, MATH_PI_MUL_3D2);
                     }
                     if (mask & SURFMASK_RT_CORNER)
                     {
                         r              -= radius;
-                        fill_sector(ci, r, top, radius, M_PI * 1.5f, M_PI * 2.0f);
+                        fill_sector(ci, r, top, radius, MATH_PI_MUL_3D2, MATH_PI_MUL_2);
                     }
                     fill_rect(ci, l, top - radius, r, top);
                 }
@@ -866,12 +872,12 @@ namespace lsp
                     if (mask & SURFMASK_LB_CORNER)
                     {
                         l              += radius;
-                        fill_sector(ci, l, bottom, radius, M_PI * 0.5f, M_PI);
+                        fill_sector(ci, l, bottom, radius, MATH_PI_MUL_1D2, MATH_PI);
                     }
                     if (mask & SURFMASK_RB_CORNER)
                     {
                         r              -= radius;
-                        fill_sector(ci, r, bottom, radius, 0.0f, M_PI * 0.5f);
+                        fill_sector(ci, r, bottom, radius, 0.0f, MATH_PI_MUL_1D2);
                     }
                     fill_rect(ci, l, bottom, r, bottom + radius);
                 }
@@ -893,12 +899,12 @@ namespace lsp
                     if (mask & SURFMASK_LT_CORNER)
                     {
                         l              += radius;
-                        fill_textured_sector(ci, tex, l, top, radius, M_PI, M_PI * 1.5f);
+                        fill_textured_sector(ci, tex, l, top, radius, MATH_PI, MATH_PI_MUL_3D2);
                     }
                     if (mask & SURFMASK_RT_CORNER)
                     {
                         r              -= radius;
-                        fill_textured_sector(ci, tex, r, top, radius, M_PI * 1.5f, M_PI * 2.0f);
+                        fill_textured_sector(ci, tex, r, top, radius, MATH_PI_MUL_3D2, MATH_PI_MUL_2);
                     }
                     fill_textured_rect(ci, tex, l, top - radius, r, top);
                 }
@@ -911,12 +917,12 @@ namespace lsp
                     if (mask & SURFMASK_LB_CORNER)
                     {
                         l              += radius;
-                        fill_textured_sector(ci, tex, l, bottom, radius, M_PI * 0.5f, M_PI);
+                        fill_textured_sector(ci, tex, l, bottom, radius, MATH_PI_MUL_1D2, MATH_PI);
                     }
                     if (mask & SURFMASK_RB_CORNER)
                     {
                         r              -= radius;
-                        fill_textured_sector(ci, tex, r, bottom, radius, 0.0f, M_PI * 0.5f);
+                        fill_textured_sector(ci, tex, r, bottom, radius, 0.0f, MATH_PI_MUL_1D2);
                     }
                     fill_textured_rect(ci, tex, l, bottom, r, bottom + radius);
                 }
@@ -944,25 +950,25 @@ namespace lsp
                 {
                     top_l           = left + radius;
                     lef_t           = top + radius;
-                    wire_arc(ci, top_l, lef_t, xr, M_PI, M_PI * 1.5f, line_width);
+                    wire_arc(ci, top_l, lef_t, xr, MATH_PI, MATH_PI_MUL_3D2, line_width);
                 }
                 if (mask & SURFMASK_RT_CORNER)
                 {
                     top_r           = right - radius;
                     rig_t           = top + radius;
-                    wire_arc(ci, top_r, rig_t, xr, M_PI * 1.5f, M_PI * 2.0f, line_width);
+                    wire_arc(ci, top_r, rig_t, xr, MATH_PI_MUL_3D2, MATH_PI_MUL_2, line_width);
                 }
                 if (mask & SURFMASK_LB_CORNER)
                 {
                     bot_l           = left + radius;
                     lef_b           = bottom - radius;
-                    wire_arc(ci, bot_l, lef_b, xr, M_PI * 0.5f, M_PI, line_width);
+                    wire_arc(ci, bot_l, lef_b, xr, MATH_PI_MUL_1D2, MATH_PI, line_width);
                 }
                 if (mask & SURFMASK_RB_CORNER)
                 {
                     bot_r           = right - radius;
                     rig_b           = bottom - radius;
-                    wire_arc(ci, bot_r, rig_b, xr, 0.0f, M_PI * 0.5f, line_width);
+                    wire_arc(ci, bot_r, rig_b, xr, 0.0f, MATH_PI_MUL_1D2, line_width);
                 }
 
                 fill_rect(ci, top_l, top, top_r, top + line_width);
@@ -1004,11 +1010,11 @@ namespace lsp
                     fill_rect(ci, ixe, vt, fxe, vb);
 
                 if (flags & SURFMASK_LT_CORNER)
-                    fill_corner(ci, ix + r, iy + r, ix, iy, r, M_PI);
+                    fill_corner(ci, ix + r, iy + r, ix, iy, r, MATH_PI);
                 if (flags & SURFMASK_RT_CORNER)
-                    fill_corner(ci, ixe - r, iy + r, ixe, iy, r, 1.5f *M_PI);
+                    fill_corner(ci, ixe - r, iy + r, ixe, iy, r, MATH_PI_MUL_3D2);
                 if (flags & SURFMASK_LB_CORNER)
-                    fill_corner(ci, ix + r, iye - r, ix, iye, r, 0.5f * M_PI);
+                    fill_corner(ci, ix + r, iye - r, ix, iye, r, MATH_PI_MUL_1D2);
                 if (flags & SURFMASK_RB_CORNER)
                     fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
             }
