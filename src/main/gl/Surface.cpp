@@ -89,12 +89,12 @@ namespace lsp
                 pText           = new TextAllocator(pContext);
                 nWidth          = width;
                 nHeight         = height;
-                nNumClips       = 0;
                 bNested         = false;
                 bAntiAliasing   = true;
 
                 bzero(vMatrix, sizeof(float) * 16);
-                bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
+                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
+                sClipping.count = 0;
                 sOrigin.left    = 0;
                 sOrigin.top     = 0;
 
@@ -118,11 +118,11 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
-                nNumClips       = 0;
                 bAntiAliasing   = true;
 
                 bzero(vMatrix, sizeof(float) * 16);
-                bzero(vClips, sizeof(clip_rect_t) * MAX_CLIPS);
+                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
+                sClipping.count = 0;
                 sOrigin.left    = 0;
                 sOrigin.top     = 0;
 
@@ -152,18 +152,24 @@ namespace lsp
             IGradient *Surface::linear_gradient(float x0, float y0, float x1, float y1)
             {
                 return new gl::Gradient(
-                    gl::Gradient::linear_t {
+                    gl::linear_gradient_t {
+                        { 0.0f, 0.0f, 0.0f, 1.0f, },
+                        { 1.0f, 1.0f, 1.0f, 0.0f, },
                         x0, y0,
-                        x1, y1});
+                        x1, y1
+                    });
             }
 
             IGradient *Surface::radial_gradient(float cx0, float cy0, float cx1, float cy1, float r)
             {
                 return new gl::Gradient(
-                    gl::Gradient::radial_t {
+                    gl::radial_gradient_t {
+                        { 0.0f, 0.0f, 0.0f, 1.0f, },
+                        { 1.0f, 1.0f, 1.0f, 0.0f, },
                         cx0, cy0,
                         cx1, cy1,
-                        r});
+                        r
+                    });
             }
 
             void Surface::do_destroy()
@@ -201,14 +207,14 @@ namespace lsp
 
             inline ssize_t Surface::make_command(ssize_t index, cmd_color_t color) const
             {
-                return (index << 5) | (size_t(color) << 3) | nNumClips;
+                return (index << 5) | (size_t(color) << 3) | sClipping.count;
             }
 
             float *Surface::serialize_clipping(float *dst) const
             {
-                for (size_t i=0; i<nNumClips; ++i)
+                for (size_t i=0; i<sClipping.count; ++i)
                 {
-                    const clip_rect_t *r = &vClips[i];
+                    const gl::clip_rect_t *r = &sClipping.clips[i];
                     dst[0]          = r->left;
                     dst[1]          = r->top;
                     dst[2]          = r->right;
@@ -237,6 +243,17 @@ namespace lsp
                 dst[0]          = c.red() * a;
                 dst[1]          = c.green() * a;
                 dst[2]          = c.blue() * a;
+                dst[3]          = a;
+
+                return dst + 4;
+            }
+
+            inline float *Surface::serialize_color(float *dst, const gl::color_t & c)
+            {
+                const float a   = 1.0f - c.a;
+                dst[0]          = c.r * a;
+                dst[1]          = c.g * a;
+                dst[2]          = c.b * a;
                 dst[3]          = a;
 
                 return dst + 4;
@@ -321,7 +338,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + sClipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
 
@@ -350,7 +367,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + sClipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
 
@@ -384,14 +401,14 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                ssize_t index = sBatch.command(&buf, (szof + nNumClips * sizeof(clip_rect_t)) / sizeof(float));
+                ssize_t index = sBatch.command(&buf, (szof + sClipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
 
                 buf     = serialize_clipping(buf);
                 grad->serialize(buf);
 
-                return make_command(index, grad->linear() ? C_LINEAR : C_RADIAL);
+                return make_command(index, grad->is_linear() ? C_LINEAR : C_RADIAL);
             }
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, float a)
@@ -415,7 +432,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + sClipping.count * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
                 if (index < 0)
                     return index;
 
@@ -447,7 +464,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + nNumClips * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + sClipping.count * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
                 if (index < 0)
                     return index;
 
@@ -1472,7 +1489,7 @@ namespace lsp
                 sBatch.clear();
 
             #ifdef LSP_DEBUG
-                nNumClips       = 0;
+                sClipping.count = 0;
             #endif /* LSP_DEBUG */
 
                 sync_matrix();
@@ -1514,12 +1531,15 @@ namespace lsp
                     pSurface->end_draw();
                 };
 
+                // Perform rendering
+                render();
+
                 // Update uniforms
                 if (!update_uniforms())
                     return;
 
                 #ifdef LSP_DEBUG
-                    if (nNumClips > 0)
+                    if (sClipping.count > 0)
                         lsp_error("Mismatching number of clip_begin() and clip_end() calls");
                 #endif /* LSP_DEBUG */
 
@@ -1562,8 +1582,9 @@ namespace lsp
                         return;
                     lsp_finally { pTexture->end_draw(); };
 
-                    // Execute batch
                     vtbl->glViewport(0, 0, nWidth, nHeight);
+
+                    // Prepare and execute batch
                     sBatch.execute(pContext, vUniforms.array());
                 }
                 else
@@ -1575,7 +1596,7 @@ namespace lsp
                     // Set drawing buffer and viewport
                     vtbl->glDrawBuffer(GL_BACK);
 
-                    // Execute batch
+                    // Prepare and execute batch
                     sBatch.execute(pContext, vUniforms.array());
 
                     // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
@@ -1585,50 +1606,35 @@ namespace lsp
 
             void Surface::clear_rgb(uint32_t rgb)
             {
-                // Start batch
-                const ssize_t res = start_batch(
-                    gl::GEOMETRY,
-                    gl::BATCH_WRITE_COLOR,
-                    float((rgb >> 16) & 0xff) * k_color,
-                    float((rgb >> 8) & 0xff) * k_color,
-                    float(rgb & 0xff) * k_color,
-                    0.0f);
-                if (res < 0)
+                gl::actions::clear_t * const cmd = pSurface->append<gl::actions::clear_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
+                cmd->color.r = float((rgb >> 16) & 0xff) * k_color;
+                cmd->color.g = float((rgb >> 8) & 0xff) * k_color;
+                cmd->color.b = float(rgb & 0xff) * k_color;
+                cmd->color.a = 0.0f;
             }
 
             void Surface::clear_rgba(uint32_t rgba)
             {
-                // Start batch
-                const ssize_t res = start_batch(
-                    gl::GEOMETRY,
-                    gl::BATCH_WRITE_COLOR,
-                    float((rgba >> 16) & 0xff) * k_color,
-                    float((rgba >> 8) & 0xff) * k_color,
-                    float(rgba & 0xff) * k_color,
-                    float((rgba >> 24) & 0xff) * k_color);
-                if (res < 0)
+                gl::actions::clear_t * const cmd = pSurface->append<gl::actions::clear_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
+                cmd->color.r = float((rgba >> 16) & 0xff) * k_color;
+                cmd->color.g = float((rgba >> 8) & 0xff) * k_color;
+                cmd->color.b = float(rgba & 0xff) * k_color;
+                cmd->color.a = float((rgba >> 24) & 0xff) * k_color;
             }
 
-            void Surface::clear(const Color &c)
+            void Surface::clear(const Color & c)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, c);
-                if (res < 0)
+                gl::actions::clear_t * const cmd = pSurface->append<gl::actions::clear_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
+                set_color(cmd->color, c);
             }
 
             void Surface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
@@ -1785,40 +1791,51 @@ namespace lsp
                 fill_textured_rect(uint32_t(res), tex, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
             }
 
-            void Surface::fill_sector(const Color &c, float x, float y, float r, float a1, float a2)
+            void Surface::fill_sector(const Color & c, float x, float y, float r, float a1, float a2)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                if (r <= 0.0f)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_sector(uint32_t(res), x, y, r, a1, a2);
+                gl::actions::fill_sector_t * const cmd = pSurface->append<gl::actions::fill_sector_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_fill(cmd->fill, c);
+                cmd->center_x   = x;
+                cmd->center_y   = y;
+                cmd->radius     = r;
+                cmd->angle_start= a1;
+                cmd->angle_end  = a2;
             }
 
             void Surface::fill_triangle(IGradient *g, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::fill_triangle_t * const cmd = pSurface->append<gl::actions::fill_triangle_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
+                set_fill(cmd->fill, g);
+                cmd->x[0]   = x0;
+                cmd->x[1]   = x1;
+                cmd->x[2]   = x2;
+                cmd->y[0]   = y0;
+                cmd->y[1]   = y1;
+                cmd->y[2]   = y2;
             }
 
             void Surface::fill_triangle(const Color &c, float x0, float y0, float x1, float y1, float x2, float y2)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::fill_triangle_t * const cmd = pSurface->append<gl::actions::fill_triangle_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_triangle(uint32_t(res), x0, y0, x1, y1, x2, y2);
+                set_fill(cmd->fill, c);
+                cmd->x[0]   = x0;
+                cmd->x[1]   = x1;
+                cmd->x[2]   = x2;
+                cmd->y[0]   = y0;
+                cmd->y[1]   = y1;
+                cmd->y[2]   = y2;
             }
 
             void Surface::line(const Color & c, float x0, float y0, float x1, float y1, float width)
@@ -1926,14 +1943,20 @@ namespace lsp
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                if (r <= 0.0f)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                wire_arc(uint32_t(res), x, y, r, a1, a2, width);
+                gl::actions::wire_arc_t * const cmd = pSurface->append<gl::actions::wire_arc_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_fill(cmd->fill, c);
+                cmd->center_x   = x;
+                cmd->center_y   = y;
+                cmd->radius     = r;
+                cmd->angle_start= a1;
+                cmd->angle_end  = a2;
+                cmd->width      = width;
             }
 
             void Surface::fill_poly(const Color & c, const float *x, const float *y, size_t n)
@@ -2080,28 +2103,34 @@ namespace lsp
                 wire_poly(wire, width, x, y, n);
             }
 
-            void Surface::fill_circle(const Color &c, float x, float y, float r)
+            void Surface::fill_circle(const Color & c, float x, float y, float r)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                if (r <= 0.0f)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_circle(uint32_t(res), x, y, r);
+                gl::actions::fill_circle_t * const cmd = pSurface->append<gl::actions::fill_circle_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_fill(cmd->fill, c);
+                cmd->center_x   = x;
+                cmd->center_y   = y;
+                cmd->radius     = r;
             }
 
             void Surface::fill_circle(IGradient *g, float x, float y, float r)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                if (r <= 0.0f)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_circle(uint32_t(res), x, y, r);
+                gl::actions::fill_circle_t * const cmd = pSurface->append<gl::actions::fill_circle_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_fill(cmd->fill, g);
+                cmd->center_x   = x;
+                cmd->center_y   = y;
+                cmd->radius     = r;
             }
 
             void Surface::fill_frame(
@@ -2182,13 +2211,13 @@ namespace lsp
                 if (!pSurface->is_drawing())
                     return;
 
-                if (nNumClips >= MAX_CLIPS)
+                if (sClipping.count >= gl::clip_state_t::MAX_CLIPS)
                 {
-                    lsp_error("Too many clipping regions specified (%d)", int(nNumClips + 1));
+                    lsp_error("Too many clipping regions specified (%d)", int(gl::clip_state_t::MAX_CLIPS + 1));
                     return;
                 }
 
-                clip_rect_t *rect = &vClips[nNumClips++];
+                clip_rect_t *rect = &sClipping.clips[sClipping.count++];
                 rect->left      = x;
                 rect->top       = y;
                 rect->right     = x + w;
@@ -2200,12 +2229,392 @@ namespace lsp
                 if (!pSurface->is_drawing())
                     return;
 
-                if (nNumClips <= 0)
+                if (sClipping.count <= 0)
                 {
                     lsp_error("Mismatched number of clip_begin() and clip_end() calls");
                     return;
                 }
-                --nNumClips;
+                --sClipping.count;
+            }
+
+            void Surface::render()
+            {
+                status_t res;
+                for (const gl::actions::action_t * action = pSurface->current(); action != NULL; action = pSurface->next())
+                {
+                    if ((res = process(*action)) != STATUS_OK)
+                        break;
+                }
+                pSurface->clear();
+            }
+
+            status_t Surface::process(const gl::actions::action_t & action)
+            {
+                #define PROC(enum, field) \
+                    case actions::enum: return process(action.field);
+
+                switch (action.type)
+                {
+                    PROC(INIT, init);
+                    PROC(CLEAR, clear);
+                    PROC(RESIZE, resize);
+                    PROC(DRAW_SURFACE, draw_surface);
+                    PROC(DRAW_RAW, draw_raw);
+                    PROC(WIRE_RECT, wire_rect);
+                    PROC(FILL_RECT, fill_rect);
+                    PROC(FILL_SECTOR, fill_sector);
+                    PROC(FILL_TRIANGLE, fill_triangle);
+                    PROC(FILL_CIRCLE, fill_circle);
+                    PROC(WIRE_ARC, wire_arc);
+                    PROC(OUT_TEXT, out_text);
+                    PROC(OUT_TEXT_RELATIVE, out_text_relative);
+                    PROC(LINE, line);
+                    PROC(PARAMETRIC_LINE, parametric_line);
+                    PROC(CLIPPED_PARAMETRIC_LINE, clipped_parametric_line);
+                    PROC(CLIPPED_PARAMETRIC_BAR, clipped_parametric_bar);
+                    PROC(FILL_FRAME, fill_frame);
+                    PROC(DRAW_POLY, draw_poly);
+                    PROC(CLIP_BEGIN, clip_begin);
+                    PROC(CLIP_END, clip_end);
+                    PROC(SET_ANTIALIASING, set_antialiasing);
+                    PROC(SET_ORIGIN, set_origin);
+                    default:
+                        break;
+                }
+
+                #undef PROC
+
+                return STATUS_INVALID_VALUE;
+            }
+
+            status_t Surface::process(const actions::init_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::clear_t & action)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, action.color);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_rect(uint32_t(res), 0.0f, 0.0f, nWidth, nHeight);
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::resize_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::draw_surface_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::draw_raw_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::wire_rect_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::fill_rect_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::fill_sector_t & action)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_sector(uint32_t(res), action.center_x, action.center_y, action.radius, action.angle_start, action.angle_end);
+
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::fill_triangle_t & action)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_triangle(uint32_t(res),
+                    action.x[0], action.y[0],
+                    action.x[1], action.y[1],
+                    action.x[2], action.y[2]);
+
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::fill_circle_t & action)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                fill_circle(uint32_t(res), action.center_x, action.center_y, action.radius);
+
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::wire_arc_t & action)
+            {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                wire_arc(uint32_t(res),
+                    action.center_x, action.center_y,
+                    action.radius, action.angle_start, action.angle_end,
+                    action.width);
+
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::out_text_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::out_text_relative_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::line_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::parametric_line_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::clipped_parametric_line_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::clipped_parametric_bar_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::fill_frame_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::draw_poly_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::clip_begin_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::clip_end_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::set_antialiasing_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::set_origin_t & action)
+            {
+                return STATUS_OK;
+            }
+
+            float *Surface::serialize_clipping(float *dst, const gl::clip_state_t & clipping)
+            {
+                for (size_t i=0; i<clipping.count; ++i)
+                {
+                    const gl::clip_rect_t & r = clipping.clips[i];
+                    dst[0]          = r.left;
+                    dst[1]          = r.top;
+                    dst[2]          = r.right;
+                    dst[3]          = r.bottom;
+
+                    dst            += 4;
+                }
+
+                return dst;
+            }
+
+            ssize_t Surface::make_command(ssize_t index, cmd_color_t color, const gl::clip_state_t & clipping)
+            {
+                return (index << 5) | (size_t(color) << 3) | clipping.count;
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::color_t & color)
+            {
+                // Start batch
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        sOrigin.left,
+                        sOrigin.top,
+                        enrich_flags(flags),
+                        NULL,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                const gl::clip_state_t & clipping = pSurface->clipping();
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf, clipping);
+                serialize_color(buf, color);
+
+                return make_command(index, C_SOLID, clipping);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
+            {
+                // Start batch
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        sOrigin.left,
+                        sOrigin.top,
+                        enrich_flags(flags),
+                        NULL,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                const size_t szof = 12 * sizeof(float);
+                const gl::clip_state_t & clipping = pSurface->clipping();
+                ssize_t index = sBatch.command(&buf, (szof + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                // Serialize clipping
+                buf     = serialize_clipping(buf);
+
+                // Serialize gradient
+                const float sa  = 1.0f - g.start.a;
+                const float ea  = 1.0f - g.end.a;
+
+                buf[0]  = g.start.r * sa;
+                buf[1]  = g.start.g * sa;
+                buf[2]  = g.start.b * sa;
+                buf[3]  = sa;
+
+                buf[4]  = g.end.r * ea;
+                buf[5]  = g.end.g * ea;
+                buf[6]  = g.end.b * ea;
+                buf[7]  = ea;
+
+                buf[8]  = g.x1;
+                buf[9]  = g.y1;
+                buf[10] = g.x2;
+                buf[11] = g.y2;
+
+                return make_command(index, C_LINEAR, clipping);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
+            {
+                // Start batch
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        sOrigin.left,
+                        sOrigin.top,
+                        enrich_flags(flags),
+                        NULL,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                const size_t szof = 16 * sizeof(float);
+                const gl::clip_state_t & clipping = pSurface->clipping();
+                ssize_t index = sBatch.command(&buf, (szof + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                // Serialize clipping
+                buf     = serialize_clipping(buf);
+
+                // Serialize gradient
+                const float sa  = 1.0f - g.start.a;
+                const float ea  = 1.0f - g.end.a;
+
+                buf[0]  = g.start.r * sa;
+                buf[1]  = g.start.g * sa;
+                buf[2]  = g.start.b * sa;
+                buf[3]  = sa;
+
+                buf[4]  = g.end.r * ea;
+                buf[5]  = g.end.g * ea;
+                buf[6]  = g.end.b * ea;
+                buf[7]  = ea;
+
+                buf[8]  = g.x1;
+                buf[9]  = g.y1;
+                buf[10] = g.x2;
+                buf[11] = g.y2;
+
+                buf[12] = g.r;
+                buf[13] = 0.0f;
+                buf[14] = 0.0f;
+                buf[15] = 0.0f;
+
+                return make_command(index, C_RADIAL, clipping);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
+            {
+                switch (fill.type)
+                {
+                    case gl::FILL_SOLID_COLOR:
+                        return start_batch(program, flags, fill.color);
+                    case gl::FILL_LINEAR_GRADIENT:
+                        return start_batch(program, flags, fill.linear);
+                    case gl::FILL_RADIAL_GRADIENT:
+                        return start_batch(program, flags, fill.radial);
+                    default:
+                        // TODO
+                        break;
+                }
+
+                return STATUS_INVALID_VALUE;
             }
 
         } /* namespace gl */

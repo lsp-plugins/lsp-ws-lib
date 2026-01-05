@@ -34,6 +34,10 @@ namespace lsp
             SurfaceContext::SurfaceContext()
             {
                 atomic_store(&nReferences, 1);
+
+                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
+                sClipping.count = 0;
+
                 bIsDrawing      = false;
             }
 
@@ -44,6 +48,9 @@ namespace lsp
 
             gl::actions::action_t *SurfaceContext::push_action(gl::actions::action_type_t type)
             {
+                if (!bIsDrawing)
+                    return NULL;
+
                 return actions::init(sCommands.push_back(), type);
             }
 
@@ -77,10 +84,11 @@ namespace lsp
                 sCommands.clear();
             }
 
-            void SurfaceContext::next()
+            const gl::actions::action_t *SurfaceContext::next()
             {
                 actions::destroy(sCommands.front());
                 sCommands.pop_front();
+                return sCommands.first();
             }
 
         } /* namespace gl */

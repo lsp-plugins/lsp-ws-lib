@@ -45,6 +45,7 @@ namespace lsp
                     uatomic_t                           nReferences;        // Number of references
                     lltl::ddeque<gl::actions::action_t> sCommands;          // Drawing commands
                     ipc::Condition                      sCondition;         // Drawing condition
+                    gl::clip_state_t                    sClipping;          // Clipping state
                     bool                                bIsDrawing;         // Context is currently in drawing state
 
                 public:
@@ -65,11 +66,18 @@ namespace lsp
 
                 public:
                     /**
+                     * Get clipping state
+                     * @return clipping state
+                     */
+                    inline gl::clip_state_t & clipping()    { return sClipping;     }
+
+                    /**
                      * Check that context is active
                      * @return true if context is active
                      */
                     inline bool is_drawing() const          { return bIsDrawing;    }
 
+                public:
                     /**
                      * Begin drawing on the context
                      */
@@ -98,7 +106,7 @@ namespace lsp
                      * Get current action
                      * @return current action
                      */
-                    inline gl::actions::action_t *current()
+                    inline const gl::actions::action_t *current() const
                     {
                         return sCommands.first();
                     }
@@ -106,7 +114,7 @@ namespace lsp
                     /**
                      * Move to the next command
                      */
-                    void next();
+                    const gl::actions::action_t *next();
 
                     /**
                      * Add drawing command
@@ -114,7 +122,7 @@ namespace lsp
                      * @return pointer to newly allocated drawing command
                      */
                     template <typename T>
-                    inline T *add()
+                    inline T *append()
                     {
                         gl::actions::action_t *result = push_action(T::type_id);
                         return (result != NULL) ? reinterpret_cast<T *>(result->data) : NULL;

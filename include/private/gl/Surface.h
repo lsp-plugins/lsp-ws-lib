@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/common/types.h>
 
+#include <private/gl/Actions.h>
 #include <private/gl/Batch.h>
 #include <private/gl/IContext.h>
 #include <private/gl/SurfaceContext.h>
@@ -57,27 +58,6 @@ namespace lsp
                         C_TEXTURE   = 3
                     };
 
-                    typedef struct clip_rect_t
-                    {
-                        float               left;
-                        float               top;
-                        float               right;
-                        float               bottom;
-                    } clip_rect_t;
-
-                    typedef struct origin_t
-                    {
-                        int32_t             left;
-                        int32_t             top;
-                    } origin_t;
-
-                    typedef struct color_t
-                    {
-                        float               r, g, b, a;
-                    } color_t;
-
-                    static constexpr size_t MAX_CLIPS       = 8;
-
                 protected:
                     typedef struct texture_rect_t
                     {
@@ -103,10 +83,9 @@ namespace lsp
                     gl::TextAllocator      *pText;              // Text allocator
                     gl::Batch               sBatch;
 
-                    size_t                  nNumClips;
                     float                   vMatrix[16];
-                    clip_rect_t             vClips[MAX_CLIPS];  // Clipping rectangles
-                    origin_t                sOrigin;            // Origin
+                    gl::clip_state_t        sClipping;
+                    gl::origin_t            sOrigin;            // Origin
                     lltl::darray<gl::uniform_t> vUniforms;
 
                     bool                    bNested;
@@ -177,6 +156,44 @@ namespace lsp
                     inline void draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, const float *x, const float *y, float width, size_t n);
                     template <class T>
                     inline void draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
+
+                protected:
+                    static inline ssize_t   make_command(ssize_t index, cmd_color_t color, const gl::clip_state_t & clipping);
+                    static inline float    *serialize_clipping(float *dst, const gl::clip_state_t & clipping);
+                    static inline float    *serialize_color(float *dst, const gl::color_t & c);
+
+                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::color_t & color);
+                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
+                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
+                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill);
+
+                protected:
+                    void                render();
+                    status_t            process(const actions::action_t & action);
+
+                    status_t            process(const actions::init_t & action);
+                    status_t            process(const actions::clear_t & action);
+                    status_t            process(const actions::resize_t & action);
+                    status_t            process(const actions::draw_surface_t & action);
+                    status_t            process(const actions::draw_raw_t & action);
+                    status_t            process(const actions::wire_rect_t & action);
+                    status_t            process(const actions::fill_rect_t & action);
+                    status_t            process(const actions::fill_sector_t & action);
+                    status_t            process(const actions::fill_triangle_t & action);
+                    status_t            process(const actions::fill_circle_t & action);
+                    status_t            process(const actions::wire_arc_t & action);
+                    virtual status_t    process(const actions::out_text_t & action);
+                    virtual status_t    process(const actions::out_text_relative_t & action);
+                    status_t            process(const actions::line_t & action);
+                    status_t            process(const actions::parametric_line_t & action);
+                    status_t            process(const actions::clipped_parametric_line_t & action);
+                    status_t            process(const actions::clipped_parametric_bar_t & action);
+                    status_t            process(const actions::fill_frame_t & action);
+                    status_t            process(const actions::draw_poly_t & action);
+                    status_t            process(const actions::clip_begin_t & action);
+                    status_t            process(const actions::clip_end_t & action);
+                    status_t            process(const actions::set_antialiasing_t & action);
+                    status_t            process(const actions::set_origin_t & action);
 
                 public:
                     /** Create primary GL surface

@@ -27,8 +27,9 @@
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 
-#include <private/gl/SurfaceContext.h>
 #include <private/gl/Data.h>
+#include <private/gl/Gradient.h>
+#include <private/gl/SurfaceContext.h>
 
 namespace lsp
 {
@@ -36,6 +37,36 @@ namespace lsp
     {
         namespace gl
         {
+            void set_color(color_t & color, const lsp::Color & c)
+            {
+                color.r     = c.red();
+                color.g     = c.green();
+                color.b     = c.blue();
+                color.a     = c.alpha();
+            }
+
+            void set_fill(fill_t & fill, const lsp::Color & c)
+            {
+                fill.type   = FILL_SOLID_COLOR;
+                set_color(fill.color, c);
+            }
+
+            void set_fill(fill_t & fill, const IGradient * g)
+            {
+                const gl::Gradient * const gradient = static_cast<const gl::Gradient *>(g);
+
+                if (gradient->is_linear())
+                {
+                    fill.type   = FILL_LINEAR_GRADIENT;
+                    fill.linear = gradient->linear_gradient();
+                }
+                else
+                {
+                    fill.type   = FILL_RADIAL_GRADIENT;
+                    fill.radial = gradient->radial_gradient();
+                }
+            }
+
             namespace actions
             {
                 inline void init_fill(gl::fill_t & fill)

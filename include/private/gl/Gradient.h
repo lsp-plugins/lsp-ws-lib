@@ -30,6 +30,8 @@
 
 #include <lsp-plug.in/ws/IGradient.h>
 
+#include <private/gl/Actions.h>
+
 namespace lsp
 {
     namespace ws
@@ -38,43 +40,18 @@ namespace lsp
         {
             class LSP_HIDDEN_MODIFIER Gradient: public IGradient
             {
-                public:
-                    typedef struct linear_t
-                    {
-                        float x1;
-                        float y1;
-                        float x2;
-                        float y2;
-                    } linear_t;
-
-                    typedef struct radial_t
-                    {
-                        float x1;
-                        float y1;
-                        float x2;
-                        float y2;
-                        float r;
-                    } radial_t;
-
                 protected:
-                    typedef struct color_t
-                    {
-                        float r, g, b, a;
-                    } color_t;
-
-                protected:
-                    color_t             sStart;
-                    color_t             sEnd;
                     union
                     {
-                        linear_t    sLinear;
-                        radial_t    sRadial;
+                        gl::base_gradient_t     sBase;
+                        gl::linear_gradient_t   sLinear;
+                        gl::radial_gradient_t   sRadial;
                     };
                     bool                bLinear;
 
                 public:
-                    explicit Gradient(const linear_t & params);
-                    explicit Gradient(const radial_t & params);
+                    explicit Gradient(const gl::linear_gradient_t & params);
+                    explicit Gradient(const gl::radial_gradient_t & params);
                     Gradient(const Gradient &) = delete;
                     Gradient(Gradient &&) = delete;
                     virtual ~Gradient() override;
@@ -85,6 +62,10 @@ namespace lsp
                 public:
                     virtual void set_start(float r, float g, float b, float a) override;
                     virtual void set_stop(float r, float g, float b, float a) override;
+
+                public:
+                    inline const gl::linear_gradient_t & linear_gradient() const { return sLinear;  }
+                    inline const gl::radial_gradient_t & radial_gradient() const { return sRadial;  }
 
                 public:
                     /**
@@ -103,7 +84,7 @@ namespace lsp
                      * Check if gradient is linear
                      * @return true if gradient is linear
                      */
-                    bool    linear() const;
+                    inline bool is_linear() const { return bLinear; }
             };
         } /* namespace gl */
     } /* namespace ws */

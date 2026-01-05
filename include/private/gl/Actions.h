@@ -27,6 +27,8 @@
 #ifdef LSP_PLUGINS_USE_OPENGL
 
 #include <lsp-plug.in/ws/Font.h>
+#include <lsp-plug.in/ws/IGradient.h>
+#include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 
 namespace lsp
@@ -51,17 +53,21 @@ namespace lsp
             } base_gradient_t;
 
             // Linear gradient parameters
-            typedef struct linear_gradient_t: public base_gradient_t
+            typedef struct linear_gradient_t
             {
-                float x[2];
-                float y[2];
+                color_t         start;
+                color_t         end;
+                float x1, y1;
+                float x2, y2;
             } linear_gradient_t;
 
             // Radial gradient parameters
-            typedef struct radial_gradient_t: public base_gradient_t
+            typedef struct radial_gradient_t
             {
-                float x[2];
-                float y[2];
+                color_t         start;
+                color_t         end;
+                float x1, y1;
+                float x2, y2;
                 float r;
             } radial_gradient_t;
 
@@ -422,6 +428,10 @@ namespace lsp
                 void destroy(action_t *action);
 
             } /* namespace actions */
+
+            void set_color(color_t & color, const lsp::Color & c);
+            void set_fill(fill_t & fill, const lsp::Color & c);
+            void set_fill(fill_t & fill, const IGradient * g);
 
         } /* namespace gl */
     } /* namespace ws */
