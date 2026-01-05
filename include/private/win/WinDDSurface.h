@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -169,7 +169,6 @@ namespace lsp
 
                     virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
                     virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
-                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
                     virtual void draw_raw(
                         const void *data, size_t width, size_t height, size_t stride,
                         float x, float y, float sx, float sy, float a) override;

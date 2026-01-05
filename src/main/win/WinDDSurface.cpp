@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 5 июл. 2022 г.
@@ -1493,49 +1493,6 @@ namespace lsp
                     1.0f - a,
                     D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
                 pDC->SetTransform(&m);
-            }
-
-            void WinDDSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
-            {
-                if (bad_state())
-                    return;
-                if (s->type() != ST_IMAGE)
-                    return;
-
-                // Get the source surface
-                WinDDSurface *ws            = static_cast<WinDDSurface *>(s);
-                if (ws->pDC == NULL)
-                    return;
-                ID2D1BitmapRenderTarget *dc = static_cast<ID2D1BitmapRenderTarget *>(ws->pDC);
-
-                // Get the bitmap of the surface
-                ID2D1Bitmap *bm             = NULL;
-                if (FAILED(dc->GetBitmap(&bm)))
-                    return;
-                lsp_finally{ safe_release(bm); };
-
-                // Create the clipping layer
-                ID2D1Layer *layer = NULL;
-                if (!SUCCEEDED(pDC->CreateLayer(NULL, &layer)))
-                    return;
-                lsp_finally{ safe_release(layer); };
-
-                // Apply the clipping layer
-                pDC->PushLayer(
-                    D2D1::LayerParameters(D2D1::RectF(x, y, x+sw, y+sh)),
-                    layer);
-
-                // Draw the bitmap
-                x -= sx;
-                y -= sy;
-                pDC->DrawBitmap(
-                    bm,
-                    D2D1::RectF(x, y, x + ws->nWidth, y + ws->nHeight),
-                    1.0f - a,
-                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
-
-                // Pop the clipping layer
-                pDC->PopLayer();
             }
 
             void WinDDSurface::draw_raw(

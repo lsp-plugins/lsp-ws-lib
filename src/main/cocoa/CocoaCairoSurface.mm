@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
- *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2026 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 12 June 2025
@@ -313,30 +313,6 @@ namespace lsp
                 else
                     ::cairo_paint(pCR);
                 ::cairo_restore(pCR);
-            }
-
-            void CocoaCairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
-            {
-                surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
-                    return;
-                if (pCR == NULL)
-                    return;
-                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
-                if (cs->pSurface == NULL)
-                    return;
-
-                // Draw one surface on another
-                ::cairo_save(pCR);
-                lsp_finally { ::cairo_restore(pCR); };
-
-                ::cairo_rectangle(pCR, x, y, sw, sh);
-                ::cairo_clip(pCR);
-                ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
-                if (a > 0.0f)
-                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
-                else
-                    ::cairo_paint(pCR);
             }
 
             void CocoaCairoSurface::draw_raw(

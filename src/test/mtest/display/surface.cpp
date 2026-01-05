@@ -81,7 +81,6 @@ MTEST_BEGIN("ws.display", surface)
                             s->draw(x, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f);
                             s->draw(x, 320.0f, 0.0f, 1.0f, 1.0f, 0.0f);
                             s->draw(x, 320.0f, 100.0f, 1.0f, 1.0f, 0.5f);
-                            s->draw_clipped(x, 480.0f, 0.0f, 16, 10, 128, 80, 0.0f);
                             s->draw_rotate(x, 320, 240, 1.0f, 1.0f, M_PI * 0.5f, 0.5f);
                             s->draw_rotate(x, 160, 240, 1.0f, 1.0f, M_PI / 6.0f, 0.5f);
                             s->draw(x, 320, 200, 1.5f, 1.5f, 0.0f);

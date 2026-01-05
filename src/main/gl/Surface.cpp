@@ -1397,49 +1397,6 @@ namespace lsp
                 sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
             }
 
-            void Surface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
-            {
-                // Create texture
-                if (!bIsDrawing)
-                    return;
-
-                if (s->type() != ST_OPENGL)
-                    return;
-                gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pTexture;
-                if (t == NULL)
-                    return;
-
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
-
-                // Draw primitives
-                const float kw      = 1.0f / t->width();
-                const float kh      = 1.0f / t->height();
-                const uint32_t ci   = uint32_t(res);
-                const float xe      = x + sw;
-                const float ye      = y + sh;
-                const float sxb     = sx * kw;
-                const float syb     = sy * kh;
-                const float sxe     = (sx + sw) * kw;
-                const float sye     = (sy + sh) * kh;
-
-                const uint32_t vi   = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(4);
-                if (v == NULL)
-                    return;
-
-                ADD_TVERTEX(v, ci, x, y, sxb, sye);
-                ADD_TVERTEX(v, ci, x, ye, sxb, syb);
-                ADD_TVERTEX(v, ci, xe, ye, sxe, syb);
-                ADD_TVERTEX(v, ci, xe, y, sxe, sye);
-
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
-            }
-
             void Surface::draw_raw(
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)

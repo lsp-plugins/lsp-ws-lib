@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -82,10 +82,6 @@ namespace lsp
         }
 
         void ISurface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
-        {
-        }
-
-        void ISurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
         {
         }
 
