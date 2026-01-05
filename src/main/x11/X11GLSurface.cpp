@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 янв. 2025 г.
@@ -167,7 +167,7 @@ namespace lsp
 
             void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if ((f.get_name() == NULL) || (text == NULL))
                     return;
@@ -249,7 +249,7 @@ namespace lsp
 
             void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if ((f.get_name() == NULL) || (text == NULL))
                     return;

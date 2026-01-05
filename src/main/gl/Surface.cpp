@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 15 янв. 2025 г.
@@ -84,13 +84,13 @@ namespace lsp
 
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
+                pSurface        = new SurfaceContext();
                 pTexture        = NULL;
                 pText           = new TextAllocator(pContext);
                 nWidth          = width;
                 nHeight         = height;
                 nNumClips       = 0;
                 bNested         = false;
-                bIsDrawing      = false;
                 bAntiAliasing   = true;
 
                 bzero(vMatrix, sizeof(float) * 16);
@@ -112,13 +112,13 @@ namespace lsp
 
                 pDisplay        = NULL;
                 pContext        = safe_acquire(ctx);
+                pSurface        = new SurfaceContext();
                 pTexture        = NULL;
                 pText           = safe_acquire(text);
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
                 nNumClips       = 0;
-                bIsDrawing      = false;
                 bAntiAliasing   = true;
 
                 bzero(vMatrix, sizeof(float) * 16);
@@ -176,6 +176,7 @@ namespace lsp
                     lsp_trace("primary surface destroyed ptr=%p", this);
                 }
 
+                safe_release(pSurface);
                 safe_release(pTexture);
                 safe_release(pText);
                 safe_release(pContext);
@@ -303,7 +304,7 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, float r, float g, float b, float a)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return -STATUS_BAD_STATE;
 
                 // Start batch
@@ -332,7 +333,7 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const Color & color)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return -STATUS_BAD_STATE;
 
                 // Start batch
@@ -361,7 +362,7 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const IGradient * g)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return -STATUS_BAD_STATE;
                 if (g == NULL)
                     return -STATUS_BAD_ARGUMENTS;
@@ -395,7 +396,7 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, float a)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return -STATUS_BAD_STATE;
                 if (t == NULL)
                     return -STATUS_BAD_ARGUMENTS;
@@ -427,7 +428,7 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, gl::Texture *t, const Color & color)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return -STATUS_BAD_STATE;
                 if (t == NULL)
                     return -STATUS_BAD_ARGUMENTS;
@@ -1317,7 +1318,7 @@ namespace lsp
             void Surface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
                 // Create texture
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
@@ -1354,7 +1355,7 @@ namespace lsp
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
                 // Create texture
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
@@ -1402,7 +1403,7 @@ namespace lsp
                 float x, float y, float sx, float sy, float a)
             {
                 // Create texture
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
 
                 // Activate context
@@ -1460,11 +1461,11 @@ namespace lsp
 
                 // Activate GLX context
                 if (bNested)
-                    bIsDrawing  = true;
+                    pSurface->begin_draw();
                 else
                 {
                     if (pContext->activate() == STATUS_OK)
-                        bIsDrawing  = true;
+                        pSurface->begin_draw();
                     OPENGL_OUTPUT_STATS(false);
                 }
 
@@ -1505,12 +1506,12 @@ namespace lsp
                 // Update drawing status
                 status_t res;
 
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 lsp_finally
                 {
                     sBatch.clear();
-                    bIsDrawing = false;
+                    pSurface->end_draw();
                 };
 
                 // Update uniforms
@@ -1729,7 +1730,7 @@ namespace lsp
             void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
             {
                 // Create texture
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
@@ -1758,7 +1759,7 @@ namespace lsp
             void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
             {
                 // Create texture
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
                 if (s->type() != ST_OPENGL)
                     return;
@@ -2178,7 +2179,7 @@ namespace lsp
 
             void Surface::clip_begin(float x, float y, float w, float h)
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
 
                 if (nNumClips >= MAX_CLIPS)
@@ -2196,7 +2197,7 @@ namespace lsp
 
             void Surface::clip_end()
             {
-                if (!bIsDrawing)
+                if (!pSurface->is_drawing())
                     return;
 
                 if (nNumClips <= 0)

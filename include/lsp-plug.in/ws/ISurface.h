@@ -174,7 +174,8 @@ namespace lsp
                  * @param s surface to draw
                  * @param x offset from left
                  * @param y offset from top
-                 * @param sx surface scale x                 * @param sy surface scale y
+                 * @param sx surface scale x
+                 * @param sy surface scale y
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */

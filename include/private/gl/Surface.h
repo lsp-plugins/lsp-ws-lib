@@ -28,8 +28,9 @@
 
 #include <lsp-plug.in/common/types.h>
 
-#include <private/gl/IContext.h>
 #include <private/gl/Batch.h>
+#include <private/gl/IContext.h>
+#include <private/gl/SurfaceContext.h>
 #include <private/gl/TextAllocator.h>
 
 #include <lsp-plug.in/runtime/Color.h>
@@ -97,6 +98,7 @@ namespace lsp
                 protected:
                     IDisplay               *pDisplay;
                     gl::IContext           *pContext;
+                    SurfaceContext         *pSurface;           // Surface context
                     gl::Texture            *pTexture;           // Texture for the nested surface
                     gl::TextAllocator      *pText;              // Text allocator
                     gl::Batch               sBatch;
@@ -108,7 +110,6 @@ namespace lsp
                     lltl::darray<gl::uniform_t> vUniforms;
 
                     bool                    bNested;
-                    bool                    bIsDrawing;         // Surface is currently in drawing mode
                     bool                    bAntiAliasing;      // Anti-aliasing option
 
                 private:
