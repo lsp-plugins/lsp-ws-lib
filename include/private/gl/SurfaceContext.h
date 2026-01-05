@@ -45,8 +45,12 @@ namespace lsp
                     uatomic_t                           nReferences;        // Number of references
                     lltl::ddeque<gl::actions::action_t> sCommands;          // Drawing commands
                     ipc::Condition                      sCondition;         // Drawing condition
+                    gl::surface_size_t                  sSize;              // Surface size
+                    gl::origin_t                        sOrigin;            // Drawing origin
                     gl::clip_state_t                    sClipping;          // Clipping state
+                    gl::matrix_t                        sMatrix;            // Matrix
                     bool                                bIsDrawing;         // Context is currently in drawing state
+                    bool                                bAntiAliasing;      // Anti-aliasing state
 
                 public:
                     SurfaceContext();
@@ -66,16 +70,61 @@ namespace lsp
 
                 public:
                     /**
+                     * Get drawing origin
+                     * @return drawing origin
+                     */
+                    inline gl::origin_t &       origin()                { return sOrigin;       }
+
+                    /**
                      * Get clipping state
                      * @return clipping state
                      */
-                    inline gl::clip_state_t & clipping()    { return sClipping;     }
+                    inline gl::clip_state_t &   clipping()              { return sClipping;     }
 
                     /**
                      * Check that context is active
                      * @return true if context is active
                      */
-                    inline bool is_drawing() const          { return bIsDrawing;    }
+                    inline bool                 is_drawing() const      { return bIsDrawing;    }
+
+                    /**
+                     * Check anti-aliasing is enabled
+                     * @return true if anti-aliasing is enabled
+                     */
+                    inline bool                 antialiasing() const    { return bAntiAliasing; }
+
+                    /**
+                     * Set anti-aliasing
+                     * @param enable enable/disable flag
+                     */
+                    inline void                 set_antialiasing(bool enable)
+                    {
+                        bAntiAliasing       = enable;
+                    }
+
+                    /**
+                     * Get surface width
+                     * @return surface width
+                     */
+                    inline size_t               width()                 { return sSize.width;   }
+
+                    /**
+                     * Get surface height
+                     * @return surface height
+                     */
+                    inline size_t               height()                { return sSize.height;  }
+
+                    /**
+                     * Set surface size
+                     * @param size surface size
+                     */
+                    void                        set_size(const gl::surface_size_t & size);
+
+                    /**
+                     * Get drawing matrix
+                     * @return drawing matrix
+                     */
+                    inline const gl::matrix_t & matrix() const          { return sMatrix;       }
 
                 public:
                     /**

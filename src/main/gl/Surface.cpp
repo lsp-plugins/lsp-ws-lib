@@ -90,13 +90,11 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = false;
-                bAntiAliasing   = true;
+                bAntiAliasing   = pSurface->antialiasing();
 
                 bzero(vMatrix, sizeof(float) * 16);
-                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
-                sClipping.count = 0;
-                sOrigin.left    = 0;
-                sOrigin.top     = 0;
+                sClipping       = pSurface->clipping();
+                sOrigin         = pSurface->origin();
 
                 sBatch.init();
                 sync_matrix();
@@ -118,13 +116,11 @@ namespace lsp
                 nWidth          = width;
                 nHeight         = height;
                 bNested         = true;
-                bAntiAliasing   = true;
+                bAntiAliasing   = pSurface->antialiasing();
 
                 bzero(vMatrix, sizeof(float) * 16);
-                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
-                sClipping.count = 0;
-                sOrigin.left    = 0;
-                sOrigin.top     = 0;
+                sClipping       = pSurface->clipping();
+                sOrigin         = pSurface->origin();
 
                 sBatch.init();
                 sync_matrix();
@@ -1462,8 +1458,18 @@ namespace lsp
 
             status_t Surface::resize(size_t width, size_t height)
             {
+                if ((nWidth == width) && (nHeight == height))
+                    return STATUS_OK;
+
                 nWidth      = width;
                 nHeight     = height;
+
+                gl::actions::resize_t * const cmd = pSurface->append<gl::actions::resize_t>();
+                if (cmd != NULL)
+                {
+                    cmd->size.width     = uint32_t(nWidth);
+                    cmd->size.height    = uint32_t(nHeight);
+                }
 
                 return STATUS_OK;
             }
@@ -1484,6 +1490,16 @@ namespace lsp
                     if (pContext->activate() == STATUS_OK)
                         pSurface->begin_draw();
                     OPENGL_OUTPUT_STATS(false);
+                }
+
+                // Emit initialization command
+                gl::actions::init_t * const cmd = pSurface->append<gl::actions::init_t>();
+                if (cmd != NULL)
+                {
+                    cmd->size.width     = nWidth;
+                    cmd->size.height    = nHeight;
+                    cmd->origin         = sOrigin;
+                    cmd->antialiasing   = bAntiAliasing;
                 }
 
                 sBatch.clear();
@@ -2177,19 +2193,28 @@ namespace lsp
 
             bool Surface::set_antialiasing(bool set)
             {
-                const bool old = bAntiAliasing;
+                const bool old      = bAntiAliasing;
                 bAntiAliasing       = set;
+
+                gl::actions::set_antialiasing_t * const cmd = pSurface->append<gl::actions::set_antialiasing_t>();
+                if (cmd != NULL)
+                    cmd->enable         = set;
+
                 return old;
             }
 
             ws::point_t Surface::set_origin(const ws::point_t & origin)
             {
                 ws::point_t result;
-                result.nLeft    = sOrigin.left;
-                result.nTop     = sOrigin.top;
+                result.nLeft        = sOrigin.left;
+                result.nTop         = sOrigin.top;
 
-                sOrigin.left    = int32_t(origin.nLeft);
-                sOrigin.top     = int32_t(origin.nTop);
+                sOrigin.left        = int32_t(origin.nLeft);
+                sOrigin.top         = int32_t(origin.nTop);
+
+                gl::actions::set_origin_t * const cmd = pSurface->append<gl::actions::set_origin_t>();
+                if (cmd != NULL)
+                    cmd->origin         = sOrigin;
 
                 return result;
             }
@@ -2197,19 +2222,29 @@ namespace lsp
             ws::point_t Surface::set_origin(ssize_t left, ssize_t top)
             {
                 ws::point_t result;
-                result.nLeft    = sOrigin.left;
-                result.nTop     = sOrigin.top;
+                result.nLeft        = sOrigin.left;
+                result.nTop         = sOrigin.top;
 
-                sOrigin.left    = int32_t(left);
-                sOrigin.top     = int32_t(top);
+                sOrigin.left        = int32_t(left);
+                sOrigin.top         = int32_t(top);
+
+                gl::actions::set_origin_t * const cmd = pSurface->append<gl::actions::set_origin_t>();
+                if (cmd != NULL)
+                    cmd->origin         = sOrigin;
 
                 return result;
             }
 
             void Surface::clip_begin(float x, float y, float w, float h)
             {
-                if (!pSurface->is_drawing())
+                gl::actions::clip_begin_t * const cmd = pSurface->append<gl::actions::clip_begin_t>();
+                if (cmd == NULL)
                     return;
+
+                cmd->rect.left      = x;
+                cmd->rect.top       = y;
+                cmd->rect.right     = x + w;
+                cmd->rect.bottom    = y + h;
 
                 if (sClipping.count >= gl::clip_state_t::MAX_CLIPS)
                 {
@@ -2217,16 +2252,13 @@ namespace lsp
                     return;
                 }
 
-                clip_rect_t *rect = &sClipping.clips[sClipping.count++];
-                rect->left      = x;
-                rect->top       = y;
-                rect->right     = x + w;
-                rect->bottom    = y + h;
+                sClipping.clips[sClipping.count++] = cmd->rect;
             }
 
             void Surface::clip_end()
             {
-                if (!pSurface->is_drawing())
+                gl::actions::clip_end_t * const cmd = pSurface->append<gl::actions::clip_end_t>();
+                if (cmd == NULL)
                     return;
 
                 if (sClipping.count <= 0)
@@ -2289,6 +2321,10 @@ namespace lsp
 
             status_t Surface::process(const actions::init_t & action)
             {
+                pSurface->set_size(action.size);
+                pSurface->origin()  = action.origin;
+                pSurface->set_antialiasing(action.antialiasing);
+
                 return STATUS_OK;
             }
 
@@ -2307,6 +2343,7 @@ namespace lsp
 
             status_t Surface::process(const actions::resize_t & action)
             {
+                pSurface->set_size(action.size);
                 return STATUS_OK;
             }
 
@@ -2434,16 +2471,32 @@ namespace lsp
 
             status_t Surface::process(const actions::clip_begin_t & action)
             {
+                if (sClipping.count >= gl::clip_state_t::MAX_CLIPS)
+                {
+                    lsp_error("Too many clipping regions specified (%d)", int(gl::clip_state_t::MAX_CLIPS + 1));
+                    return STATUS_OVERFLOW;
+                }
+
+                sClipping.clips[sClipping.count++] = action.rect;
+
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::clip_end_t & action)
             {
+                if (sClipping.count <= 0)
+                {
+                    lsp_error("Mismatched number of clip_begin() and clip_end() calls");
+                    return STATUS_UNDERFLOW;
+                }
+                --sClipping.count;
+
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::set_antialiasing_t & action)
             {
+                pSurface->set_antialiasing(action.enable);
                 return STATUS_OK;
             }
 
@@ -2476,12 +2529,13 @@ namespace lsp
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::color_t & color)
             {
                 // Start batch
+                const gl::origin_t & origin = pSurface->origin();
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        sOrigin.left,
-                        sOrigin.top,
-                        enrich_flags(flags),
+                        origin.left,
+                        origin.top,
+                        flags,
                         NULL,
                     });
                 if (res != STATUS_OK)
@@ -2503,12 +2557,13 @@ namespace lsp
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
             {
                 // Start batch
+                const gl::origin_t & origin = pSurface->origin();
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        sOrigin.left,
-                        sOrigin.top,
-                        enrich_flags(flags),
+                        origin.left,
+                        origin.top,
+                        flags,
                         NULL,
                     });
                 if (res != STATUS_OK)
@@ -2550,12 +2605,13 @@ namespace lsp
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
             {
                 // Start batch
+                const gl::origin_t & origin = pSurface->origin();
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
-                        sOrigin.left,
-                        sOrigin.top,
-                        enrich_flags(flags),
+                        origin.left,
+                        origin.top,
+                        flags,
                         NULL,
                     });
                 if (res != STATUS_OK)
@@ -2601,6 +2657,9 @@ namespace lsp
 
             ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
             {
+                if (pSurface->antialiasing())
+                    flags      |= BATCH_MULTISAMPLE;
+
                 switch (fill.type)
                 {
                     case gl::FILL_SOLID_COLOR:

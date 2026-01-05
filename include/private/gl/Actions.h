@@ -57,8 +57,8 @@ namespace lsp
             {
                 color_t         start;
                 color_t         end;
-                float x1, y1;
-                float x2, y2;
+                float           x1, y1;
+                float           x2, y2;
             } linear_gradient_t;
 
             // Radial gradient parameters
@@ -66,9 +66,9 @@ namespace lsp
             {
                 color_t         start;
                 color_t         end;
-                float x1, y1;
-                float x2, y2;
-                float r;
+                float           x1, y1;
+                float           x2, y2;
+                float           r;
             } radial_gradient_t;
 
             enum fill_type_t
@@ -106,6 +106,12 @@ namespace lsp
                 int32_t             left;
                 int32_t             top;
             } origin_t;
+
+            typedef struct surface_size_t
+            {
+                uint32_t            width;
+                uint32_t            height;
+            } surface_size_t;
 
             typedef struct matrix_t
             {
@@ -163,8 +169,9 @@ namespace lsp
                 {
                     static constexpr action_type_t type_id = action_type_t::INIT;
 
-                    uint32_t        width;
-                    uint32_t        height;
+                    surface_size_t  size;
+                    origin_t        origin;
+                    bool            antialiasing;
                 } init_t;
 
                 typedef struct clear_t
@@ -178,8 +185,7 @@ namespace lsp
                 {
                     static constexpr action_type_t type_id = action_type_t::RESIZE;
 
-                    uint32_t        width;
-                    uint32_t        height;
+                    surface_size_t  size;
                 } resize_t;
 
                 typedef struct draw_surface_t
@@ -388,8 +394,7 @@ namespace lsp
                 typedef struct set_origin_t
                 {
                     static constexpr action_type_t type_id = action_type_t::SET_ORIGIN;
-                    float           x;
-                    float           y;
+                    gl::origin_t    origin;
                 } set_origin_t;
 
                 typedef struct action_t

@@ -36,9 +36,16 @@ namespace lsp
                 atomic_store(&nReferences, 1);
 
                 bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
+                sSize.width     = 0;
+                sSize.height    = 0;
+                sOrigin.left    = 0;
+                sOrigin.top     = 0;
                 sClipping.count = 0;
 
+                bzero(&sMatrix, sizeof(sMatrix));
+
                 bIsDrawing      = false;
+                bAntiAliasing   = true;
             }
 
             SurfaceContext::~SurfaceContext()
@@ -89,6 +96,40 @@ namespace lsp
                 actions::destroy(sCommands.front());
                 sCommands.pop_front();
                 return sCommands.first();
+            }
+
+            void SurfaceContext::set_size(const gl::surface_size_t & size)
+            {
+                if ((size.width == sSize.width) &&
+                    (size.height == sSize.height))
+                    return;
+
+                sSize       = size;
+                float *m    = sMatrix.v;
+
+                // Set-up drawing matrix
+                const float dx = 2.0f / float(size.width);
+                const float dy = 2.0f / float(size.height);
+
+                m[0]        = dx;
+                m[1]        = 0.0f;
+                m[2]        = 0.0f;
+                m[3]        = 0.0f;
+
+                m[4]        = 0.0f;
+                m[5]        = -dy;
+                m[6]        = 0.0f;
+                m[7]        = 0.0f;
+
+                m[8]        = 0.0f;
+                m[9]        = 0.0f;
+                m[10]       = 1.0f;
+                m[11]       = 0.0f;
+
+                m[12]       = -1.0f;
+                m[13]       = 1.0f;
+                m[14]       = 0.0f;
+                m[15]       = 1.0f;
             }
 
         } /* namespace gl */
