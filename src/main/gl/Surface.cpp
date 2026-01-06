@@ -1655,98 +1655,126 @@ namespace lsp
 
             void Surface::wire_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::wire_rect_t * const cmd = pSurface->append<gl::actions::wire_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                wire_rect(uint32_t(res), mask, radius, left, top, width, height, line_width);
+                set_fill(cmd->fill, c);
+                cmd->rectangle.x        = left;
+                cmd->rectangle.y        = top;
+                cmd->rectangle.width    = width;
+                cmd->rectangle.height   = height;
+                cmd->radius             = radius;
+                cmd->line_width         = line_width;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::wire_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::wire_rect_t * const cmd = pSurface->append<gl::actions::wire_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                wire_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight, line_width);
+                set_fill(cmd->fill, c);
+                cmd->rectangle.x        = r->nLeft;
+                cmd->rectangle.y        = r->nTop;
+                cmd->rectangle.width    = r->nWidth;
+                cmd->rectangle.height   = r->nHeight;
+                cmd->radius             = radius;
+                cmd->line_width         = line_width;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r, float line_width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::wire_rect_t * const cmd = pSurface->append<gl::actions::wire_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                wire_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight, line_width);
+                set_fill(cmd->fill, g);
+                cmd->rectangle.x        = r->nLeft;
+                cmd->rectangle.y        = r->nTop;
+                cmd->rectangle.width    = r->nWidth;
+                cmd->rectangle.height   = r->nHeight;
+                cmd->radius             = radius;
+                cmd->line_width         = line_width;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::wire_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height, float line_width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::wire_rect_t * const cmd = pSurface->append<gl::actions::wire_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                wire_rect(uint32_t(res), mask, radius, left, top, width, height, line_width);
+                set_fill(cmd->fill, g);
+                cmd->rectangle.x        = left;
+                cmd->rectangle.y        = top;
+                cmd->rectangle.width    = width;
+                cmd->rectangle.height   = height;
+                cmd->radius             = radius;
+                cmd->line_width         = line_width;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(const Color &c, size_t mask, float radius, float left, float top, float width, float height)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                fill_rect(uint32_t(res), mask, radius, left, top, width, height);
+                set_fill(cmd->fill, c);
+                cmd->rectangle.x        = left;
+                cmd->rectangle.y        = top;
+                cmd->rectangle.width    = width;
+                cmd->rectangle.height   = height;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(const Color &c, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                fill_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+                set_fill(cmd->fill, c);
+                cmd->rectangle.x        = r->nLeft;
+                cmd->rectangle.y        = r->nTop;
+                cmd->rectangle.width    = r->nWidth;
+                cmd->rectangle.height   = r->nHeight;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, float left, float top, float width, float height)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                fill_rect(uint32_t(res), mask, radius, left, top, width, height);
+                set_fill(cmd->fill, g);
+                cmd->rectangle.x        = left;
+                cmd->rectangle.y        = top;
+                cmd->rectangle.width    = width;
+                cmd->rectangle.height   = height;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(IGradient *g, size_t mask, float radius, const ws::rectangle_t *r)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw primitives
-                fill_rect(uint32_t(res), mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+                set_fill(cmd->fill, g);
+                cmd->rectangle.x        = r->nLeft;
+                cmd->rectangle.y        = r->nTop;
+                cmd->rectangle.width    = r->nWidth;
+                cmd->rectangle.height   = r->nHeight;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
@@ -2359,11 +2387,38 @@ namespace lsp
 
             status_t Surface::process(const actions::wire_rect_t & action)
             {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                wire_rect(
+                    uint32_t(res),
+                    action.corners, action.radius,
+                    action.rectangle.x, action.rectangle.y,
+                    action.rectangle.width, action.rectangle.height,
+                    action.line_width);
+
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::fill_rect_t & action)
             {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                fill_rect(
+                    uint32_t(res),
+                    action.corners, action.radius,
+                    action.rectangle.x, action.rectangle.y,
+                    action.rectangle.width, action.rectangle.height);
+
                 return STATUS_OK;
             }
 
