@@ -1327,85 +1327,46 @@ namespace lsp
 
             void Surface::draw(ISurface *s, float x, float y, float sx, float sy, float a)
             {
-                // Create texture
-                if (!pSurface->is_drawing())
-                    return;
                 if (s->type() != ST_OPENGL)
                     return;
 
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pSurface->texture();
-                if (t == NULL)
+                if (gls->pSurface == NULL)
+                    return;
+                if (gls->pSurface->is_drawing())
                     return;
 
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
+                gl::actions::draw_surface_t *cmd = pSurface->append<gl::actions::draw_surface_t>();
 
-                // Draw primitives
-                const uint32_t ci   = uint32_t(res);
-                const float xe      = x + t->width() * sx;
-                const float ye      = y + t->height() * sy;
-
-                const uint32_t vi   = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(4);
-                if (v == NULL)
-                    return;
-
-                ADD_TVERTEX(v, ci, x, y, 0.0f, 1.0f);
-                ADD_TVERTEX(v, ci, x, ye, 0.0f, 0.0f);
-                ADD_TVERTEX(v, ci, xe, ye, 1.0f, 0.0f);
-                ADD_TVERTEX(v, ci, xe, y, 1.0f, 1.0f);
-
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                cmd->surface        = safe_acquire(gls->pSurface);
+                cmd->x              = x;
+                cmd->y              = y;
+                cmd->scale_x        = sx;
+                cmd->scale_y        = sy;
+                cmd->angle          = 0.0f;
+                cmd->alpha          = a;
             }
 
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
             {
-                // Create texture
-                if (!pSurface->is_drawing())
-                    return;
                 if (s->type() != ST_OPENGL)
                     return;
 
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pSurface->texture();
-                if (t == NULL)
+                if (gls->pSurface == NULL)
+                    return;
+                if (gls->pSurface->is_drawing())
                     return;
 
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, a);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
+                gl::actions::draw_surface_t *cmd = pSurface->append<gl::actions::draw_surface_t>();
 
-                // Draw primitives
-                const uint32_t ci   = uint32_t(res);
-                const float ca      = cosf(ra);
-                const float sa      = sinf(ra);
-
-                sx                 *= s->width();
-                sy                 *= s->height();
-
-                const float v1x     = ca * sx;
-                const float v1y     = sa * sx;
-                const float v2x     = -sa * sy;
-                const float v2y     = ca * sy;
-
-                // Draw picture
-                const uint32_t vi   = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(4);
-                if (v == NULL)
-                    return;
-
-                ADD_TVERTEX(v, ci, x, y, 0.0f, 1.0f);
-                ADD_TVERTEX(v, ci, x + v2x, y + v2y, 0.0f, 0.0f);
-                ADD_TVERTEX(v, ci, x + v1x + v2x, y + v1y + v2y, 1.0f, 0.0f);
-                ADD_TVERTEX(v, ci, x + v1x, y + v1y, 1.0f, 1.0f);
-
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                cmd->surface        = safe_acquire(gls->pSurface);
+                cmd->x              = x;
+                cmd->y              = y;
+                cmd->scale_x        = sx;
+                cmd->scale_y        = sy;
+                cmd->angle          = ra;
+                cmd->alpha          = a;
             }
 
             void Surface::draw_raw(
@@ -2300,6 +2261,52 @@ namespace lsp
 
             status_t Surface::process(const actions::draw_surface_t & action)
             {
+                // Start batch
+                gl::Texture * const t = action.surface->texture();
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, action.alpha);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return STATUS_NO_MEM;
+
+                if (fabsf(action.angle < 1e-6))
+                {
+                    const uint32_t ci   = uint32_t(res);
+                    const float xe      = action.x + t->width() * action.scale_x;
+                    const float ye      = action.y + t->height() * action.scale_y;
+
+                    ADD_TVERTEX(v, ci, action.x, action.y, 0.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, action.x, ye, 0.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, xe, ye, 1.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, xe, action.y, 1.0f, 1.0f);
+                }
+                else
+                {
+                    const uint32_t ci   = uint32_t(res);
+                    const float ca      = cosf(action.angle);
+                    const float sa      = sinf(action.angle);
+
+                    const float sx      = action.scale_x * t->width();
+                    const float sy      = action.scale_y * t->height();
+
+                    const float v1x     = ca * sx;
+                    const float v1y     = sa * sx;
+                    const float v2x     = -sa * sy;
+                    const float v2y     = ca * sy;
+
+                    ADD_TVERTEX(v, ci, action.x, action.y, 0.0f, 1.0f);
+                    ADD_TVERTEX(v, ci, action.x + v2x, action.y + v2y, 0.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, action.x + v1x + v2x, action.y + v1y + v2y, 1.0f, 0.0f);
+                    ADD_TVERTEX(v, ci, action.x + v1x, action.y + v1y, 1.0f, 1.0f);
+                }
+
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+
                 return STATUS_OK;
             }
 
