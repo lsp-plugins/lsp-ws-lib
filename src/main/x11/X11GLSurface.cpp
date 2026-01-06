@@ -153,62 +153,218 @@ namespace lsp
                 return false;
             }
 
-            void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
+//            void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
+//            {
+//                if (text == NULL)
+//                    return;
+//
+//                LSPString tmp;
+//                if (!tmp.set_utf8(text))
+//                    return;
+//
+//                out_text(f, color, x, y, &tmp, 0, tmp.length());
+//            }
+//
+//            void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+//            {
+//                if (!pSurface->is_drawing())
+//                    return;
+//                if ((f.get_name() == NULL) || (text == NULL))
+//                    return;
+//
+//            #ifdef USE_LIBFREETYPE
+//                // Rasterize text string
+//                ft::FontManager *mgr = pX11Display->font_manager();
+//                if (mgr == NULL)
+//                    return;
+//
+//                ft::text_range_t tr;
+//                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+//                if (bitmap == NULL)
+//                    return;
+//                lsp_finally { ft::free_bitmap(bitmap); };
+//
+//                // Allocate texture
+//                texture_rect_t rect;
+//                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
+//                if (tex == NULL)
+//                    return;
+//                lsp_finally { safe_release(tex); };
+//
+//                // Output the text
+//                {
+//                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+//                    if (res < 0)
+//                        return;
+//                    lsp_finally { sBatch.end(); };
+//
+//                    // Draw primitives
+//                    const uint32_t ci   = uint32_t(res);
+//                    const float xs      = x + tr.x_bearing;
+//                    const float ys      = y + tr.y_bearing;
+//                    const float xe      = xs + bitmap->width;
+//                    const float ye      = ys + bitmap->height;
+//
+//                    const uint32_t vi   = sBatch.next_vertex_index();
+//                    gl::vertex_t *v     = sBatch.add_vertices(4);
+//                    if (v == NULL)
+//                        return;
+//
+//                    ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
+//                    ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
+//                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+//                    ADD_TVERTEX(v, ci, xe, ys, rect.se, rect.tb);
+//
+//                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+//                }
+//
+//                // Draw underline if required
+//                if (f.is_underline())
+//                {
+//                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+//                    if (res < 0)
+//                        return;
+//                    lsp_finally { sBatch.end(); };
+//
+//                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
+//                    const float xs      = x + tr.x_bearing;
+//                    const float bottom  = y + width * 2.0f;
+//                    fill_rect(uint32_t(res), xs, bottom - width, xs + tr.x_advance, bottom);
+//                }
+//
+//            #endif /* USE_LIBFREETYPE */
+//            }
+//
+//            void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+//            {
+//                if (text == NULL)
+//                    return;
+//
+//                LSPString tmp;
+//                if (!tmp.set_utf8(text))
+//                    return;
+//
+//                out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
+//            }
+//
+//            void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
+//            {
+//                if (!pSurface->is_drawing())
+//                    return;
+//                if ((f.get_name() == NULL) || (text == NULL))
+//                    return;
+//
+//            #ifdef USE_LIBFREETYPE
+//                // Rasterize text string
+//                ft::FontManager *mgr = pX11Display->font_manager();
+//                if (mgr == NULL)
+//                    return;
+//
+//                ft::text_range_t tr;
+//                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+//                if (bitmap == NULL)
+//                    return;
+//                lsp_finally { ft::free_bitmap(bitmap); };
+//
+//                // Allocate texture
+//                texture_rect_t rect;
+//                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
+//                if (tex == NULL)
+//                    return;
+//                lsp_finally { safe_release(tex); };
+//
+//                // Output the text
+//                float r_w, r_h, fx, fy;
+//                {
+//                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+//                    if (res < 0)
+//                        return;
+//                    lsp_finally { sBatch.end(); };
+//
+//                    // Draw primitives
+//                    r_w                 = tr.x_advance;
+//                    r_h                 = -tr.y_bearing;
+//                    fx                  = truncf(x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
+//                    fy                  = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
+//                    x                   = fx + tr.x_bearing;
+//                    y                   = fy + tr.y_bearing;
+//
+//                    const uint32_t ci   = uint32_t(res);
+//                    const float xe      = x + bitmap->width;
+//                    const float ye      = y + bitmap->height;
+//
+//                    const uint32_t vi   = sBatch.next_vertex_index();
+//                    gl::vertex_t *v     = sBatch.add_vertices(4);
+//                    if (v == NULL)
+//                        return;
+//
+//                    ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
+//                    ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
+//                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+//                    ADD_TVERTEX(v, ci, xe, y, rect.se, rect.tb);
+//
+//                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+//                }
+//
+//                // Draw underline if required
+//                if (f.is_underline())
+//                {
+//                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+//                    if (res < 0)
+//                        return;
+//                    lsp_finally { sBatch.end(); };
+//
+//                    x                   = x + tr.x_bearing;
+//                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
+//                    const float bottom  = fy + width * 2.0f;
+//                    fill_rect(uint32_t(res), x, bottom - width, x + tr.x_advance, bottom);
+//                }
+//
+//            #endif /* USE_LIBFREETYPE */
+//            }
+
+            status_t X11GLSurface::process(const gl::actions::out_text_t & action)
             {
-                if (text == NULL)
-                    return;
-
-                LSPString tmp;
-                if (!tmp.set_utf8(text))
-                    return;
-
-                out_text(f, color, x, y, &tmp, 0, tmp.length());
-            }
-
-            void X11GLSurface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
-            {
-                if (!pSurface->is_drawing())
-                    return;
-                if ((f.get_name() == NULL) || (text == NULL))
-                    return;
+                if (action.font.get_name() == NULL)
+                    return STATUS_OK;
 
             #ifdef USE_LIBFREETYPE
                 // Rasterize text string
                 ft::FontManager *mgr = pX11Display->font_manager();
                 if (mgr == NULL)
-                    return;
+                    return STATUS_OK;
 
                 ft::text_range_t tr;
-                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                dsp::bitmap_t *bitmap   = mgr->render_text(&action.font, &tr, &action.text, 0, action.text.length());
                 if (bitmap == NULL)
-                    return;
+                    return STATUS_OK;
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
                 texture_rect_t rect;
-                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
+                gl::Texture *tex        = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
-                    return;
+                    return STATUS_NO_MEM;
                 lsp_finally { safe_release(tex); };
 
                 // Output the text
                 {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
                     if (res < 0)
-                        return;
+                        return status_t(-res);
                     lsp_finally { sBatch.end(); };
 
                     // Draw primitives
                     const uint32_t ci   = uint32_t(res);
-                    const float xs      = x + tr.x_bearing;
-                    const float ys      = y + tr.y_bearing;
+                    const float xs      = action.x + tr.x_bearing;
+                    const float ys      = action.y + tr.y_bearing;
                     const float xe      = xs + bitmap->width;
                     const float ye      = ys + bitmap->height;
 
                     const uint32_t vi   = sBatch.next_vertex_index();
                     gl::vertex_t *v     = sBatch.add_vertices(4);
                     if (v == NULL)
-                        return;
+                        return STATUS_NO_MEM;
 
                     ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
                     ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
@@ -219,73 +375,62 @@ namespace lsp
                 }
 
                 // Draw underline if required
-                if (f.is_underline())
+                if (action.font.is_underline())
                 {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                     if (res < 0)
-                        return;
+                        return status_t(-res);
                     lsp_finally { sBatch.end(); };
 
-                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
-                    const float xs      = x + tr.x_bearing;
-                    const float bottom  = y + width * 2.0f;
+                    const float width   = lsp_max(1.0f, action.font.get_size() * (1.0f / 12.0f));
+                    const float xs      = action.x + tr.x_bearing;
+                    const float bottom  = action.y + width * 2.0f;
                     fill_rect(uint32_t(res), xs, bottom - width, xs + tr.x_advance, bottom);
                 }
-
             #endif /* USE_LIBFREETYPE */
+
+                return STATUS_OK;
             }
 
-            void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+            status_t X11GLSurface::process(const gl::actions::out_text_relative_t & action)
             {
-                if (text == NULL)
-                    return;
-
-                LSPString tmp;
-                if (!tmp.set_utf8(text))
-                    return;
-
-                out_text_relative(f, color, x, y, dx, dy, &tmp, 0, tmp.length());
-            }
-
-            void X11GLSurface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
-            {
-                if (!pSurface->is_drawing())
-                    return;
-                if ((f.get_name() == NULL) || (text == NULL))
-                    return;
+                if (action.font.get_name() == NULL)
+                    return STATUS_OK;
 
             #ifdef USE_LIBFREETYPE
                 // Rasterize text string
                 ft::FontManager *mgr = pX11Display->font_manager();
                 if (mgr == NULL)
-                    return;
+                    return STATUS_OK;
 
                 ft::text_range_t tr;
-                dsp::bitmap_t *bitmap   = mgr->render_text(&f, &tr, text, first, last);
+                dsp::bitmap_t *bitmap   = mgr->render_text(&action.font, &tr, &action.text, 0, action.text.length());
                 if (bitmap == NULL)
-                    return;
+                    return STATUS_NO_MEM;
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Allocate texture
                 texture_rect_t rect;
                 gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
                 if (tex == NULL)
-                    return;
+                    return STATUS_NO_MEM;
                 lsp_finally { safe_release(tex); };
 
                 // Output the text
                 float r_w, r_h, fx, fy;
+                float x = action.x;
+                float y = action.y;
                 {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, color);
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
                     if (res < 0)
-                        return;
+                        return status_t(-res);
                     lsp_finally { sBatch.end(); };
 
                     // Draw primitives
                     r_w                 = tr.x_advance;
                     r_h                 = -tr.y_bearing;
-                    fx                  = truncf(x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * dx);
-                    fy                  = truncf(y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * dy);
+                    fx                  = truncf(action.x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * action.relative_x);
+                    fy                  = truncf(action.y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * action.relative_y);
                     x                   = fx + tr.x_bearing;
                     y                   = fy + tr.y_bearing;
 
@@ -296,7 +441,7 @@ namespace lsp
                     const uint32_t vi   = sBatch.next_vertex_index();
                     gl::vertex_t *v     = sBatch.add_vertices(4);
                     if (v == NULL)
-                        return;
+                        return STATUS_NO_MEM;
 
                     ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
                     ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
@@ -307,20 +452,22 @@ namespace lsp
                 }
 
                 // Draw underline if required
-                if (f.is_underline())
+                if (action.font.is_underline())
                 {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                     if (res < 0)
-                        return;
+                        return status_t(-res);
                     lsp_finally { sBatch.end(); };
 
                     x                   = x + tr.x_bearing;
-                    const float width   = lsp_max(1.0f, f.get_size() / 12.0f);
+                    const float width   = lsp_max(1.0f, action.font.get_size() * (1.0f / 12.0f));
                     const float bottom  = fy + width * 2.0f;
                     fill_rect(uint32_t(res), x, bottom - width, x + tr.x_advance, bottom);
                 }
 
             #endif /* USE_LIBFREETYPE */
+
+                return STATUS_OK;
             }
 
         } /* namespace x11 */

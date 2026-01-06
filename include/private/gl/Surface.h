@@ -165,7 +165,7 @@ namespace lsp
                     ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::color_t & color);
                     ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
                     ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
-                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, gl::Texture *texture, float alpha);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, gl::Texture *texture, const gl::color_t & color);
                     ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill);
 
                 protected:
@@ -298,6 +298,15 @@ namespace lsp
 
                     virtual ws::point_t set_origin(const ws::point_t & origin) override;
                     virtual ws::point_t set_origin(ssize_t left, ssize_t top) override;
+
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text) override;
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first) override;
+                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first) override;
+                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
             };
 
         } /* namespace gl */

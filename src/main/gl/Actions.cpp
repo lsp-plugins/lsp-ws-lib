@@ -67,12 +67,24 @@ namespace lsp
                 }
             }
 
+            void set_fill(texture_t & fill, SurfaceContext * ctx, float alpha)
+            {
+                fill.surface    = safe_acquire(ctx);
+                fill.blend.r    = 1.0f;
+                fill.blend.g    = 1.0f;
+                fill.blend.b    = 1.0f;
+                fill.blend.a    = alpha;
+            }
+
             void set_fill(fill_t & fill, SurfaceContext * ctx, float alpha)
             {
                 fill.texture.surface    = safe_acquire(ctx);
                 if (fill.texture.surface != NULL)
                 {
-                    fill.texture.alpha      = alpha;
+                    fill.texture.blend.r    = 1.0f;
+                    fill.texture.blend.g    = 1.0f;
+                    fill.texture.blend.b    = 1.0f;
+                    fill.texture.blend.a    = alpha;
                     fill.type               = FILL_TEXTURE;
                 }
             }
@@ -99,7 +111,7 @@ namespace lsp
                     switch (type)
                     {
                         case DRAW_SURFACE:
-                            action->draw_surface.surface    = NULL;
+                            action->draw_surface.fill.surface   = NULL;
                             break;
                         case DRAW_RAW:
                             action->draw_raw.data           = NULL;
@@ -162,7 +174,7 @@ namespace lsp
                     switch (action->type)
                     {
                         case DRAW_SURFACE:
-                            safe_release(action->draw_surface.surface);
+                            safe_release(action->draw_surface.fill.surface);
                             break;
                         case DRAW_RAW:
                             if (action->draw_raw.data != NULL)

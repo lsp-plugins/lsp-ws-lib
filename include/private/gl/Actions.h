@@ -74,7 +74,7 @@ namespace lsp
             typedef struct texture_t
             {
                 SurfaceContext *surface;
-                float           alpha;
+                color_t         blend;
             } texture_t;
 
             enum fill_type_t
@@ -197,13 +197,12 @@ namespace lsp
                 {
                     static constexpr action_type_t type_id = action_type_t::DRAW_SURFACE;
 
-                    SurfaceContext *surface;
+                    texture_t       fill;
                     float           x;
                     float           y;
                     float           scale_x;
                     float           scale_y;
                     float           angle;
-                    float           alpha;
                 } draw_surface_t;
 
                 typedef struct draw_raw_t
@@ -211,6 +210,7 @@ namespace lsp
                     static constexpr action_type_t type_id = action_type_t::DRAW_RAW;
 
                     void           *data;
+                    color_t         blend;
                     uint32_t        width;
                     uint32_t        height;
                     uint32_t        stride;
@@ -218,7 +218,6 @@ namespace lsp
                     float           y;
                     float           scale_x;
                     float           scale_y;
-                    float           alpha;
                 } draw_raw_t;
 
                 typedef struct wire_rect_t
@@ -428,6 +427,7 @@ namespace lsp
             } /* namespace actions */
 
             void set_color(color_t & color, const lsp::Color & c);
+            void set_fill(texture_t & fill, SurfaceContext * ctx, float alpha);
             void set_fill(fill_t & fill, const lsp::Color & c);
             void set_fill(fill_t & fill, const IGradient * g);
             void set_fill(fill_t & fill, SurfaceContext * ctx, float alpha);

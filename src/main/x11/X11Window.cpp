@@ -1046,15 +1046,15 @@ namespace lsp
                 if (realize == NULL)
                     return STATUS_OK;
 
-                if (hWindow != None)
-                {
-                    XWindowAttributes xwa;
-                    ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
-                    sSize.nLeft     = xwa.x;
-                    sSize.nTop      = xwa.y;
-                    sSize.nWidth    = xwa.width;
-                    sSize.nHeight   = xwa.height;
-                }
+//                if (hWindow != None)
+//                {
+//                    XWindowAttributes xwa;
+//                    ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+//                    sSize.nLeft     = xwa.x;
+//                    sSize.nTop      = xwa.y;
+//                    sSize.nWidth    = xwa.width;
+//                    sSize.nHeight   = xwa.height;
+//                }
 
                 *realize    = sSize;
 
@@ -1074,12 +1074,12 @@ namespace lsp
                     return STATUS_BAD_STATE;
                 }
 
-                XWindowAttributes xwa;
-                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
-                sSize.nLeft         = xwa.x;
-                sSize.nTop          = xwa.y;
-                sSize.nWidth        = xwa.width;
-                sSize.nHeight       = xwa.height;
+//                XWindowAttributes xwa;
+//                ::XGetWindowAttributes(pX11Display->x11display(), hWindow, &xwa);
+//                sSize.nLeft         = xwa.x;
+//                sSize.nTop          = xwa.y;
+//                sSize.nWidth        = xwa.width;
+//                sSize.nHeight       = xwa.height;
 
                 int x, y;
                 Window child;

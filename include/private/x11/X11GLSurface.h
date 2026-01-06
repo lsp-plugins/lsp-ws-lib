@@ -27,6 +27,7 @@
 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
 #include <private/x11/X11Display.h>
+#include <private/gl/Actions.h>
 #include <private/gl/Surface.h>
 
 namespace lsp
@@ -65,14 +66,18 @@ namespace lsp
 
                     virtual gl::Surface *create_nested(gl::TextAllocator *text, size_t width, size_t height) override;
 
+                protected:
+                    virtual status_t    process(const gl::actions::out_text_t & action);
+                    virtual status_t    process(const gl::actions::out_text_relative_t & action);
+
                 public: // ws::ISurface implementation
                     virtual bool get_font_parameters(const Font &f, font_parameters_t *fp) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const char *text) override;
                     virtual bool get_text_parameters(const Font &f, text_parameters_t *tp, const LSPString *text, ssize_t first, ssize_t last) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
-                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
-                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
+//                    virtual void out_text(const Font &f, const Color &color, float x, float y, const char *text) override;
+//                    virtual void out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last) override;
+//                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text) override;
+//                    virtual void out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last) override;
             };
 
         } /* namespace x11 */

@@ -1338,13 +1338,13 @@ namespace lsp
 
                 gl::actions::draw_surface_t *cmd = pSurface->append<gl::actions::draw_surface_t>();
 
-                cmd->surface        = safe_acquire(gls->pSurface);
+                set_fill(cmd->fill, gls->pSurface, a);
+
                 cmd->x              = x;
                 cmd->y              = y;
                 cmd->scale_x        = sx;
                 cmd->scale_y        = sy;
                 cmd->angle          = 0.0f;
-                cmd->alpha          = a;
             }
 
             void Surface::draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a)
@@ -1360,13 +1360,12 @@ namespace lsp
 
                 gl::actions::draw_surface_t *cmd = pSurface->append<gl::actions::draw_surface_t>();
 
-                cmd->surface        = safe_acquire(gls->pSurface);
+                set_fill(cmd->fill, gls->pSurface, a);
                 cmd->x              = x;
                 cmd->y              = y;
                 cmd->scale_x        = sx;
                 cmd->scale_y        = sy;
                 cmd->angle          = ra;
-                cmd->alpha          = a;
             }
 
             void Surface::draw_raw(
@@ -1394,6 +1393,10 @@ namespace lsp
                     return;
 
                 cmd->data       = release_ptr(copy);
+                cmd->blend.r    = 1.0f;
+                cmd->blend.g    = 1.0f;
+                cmd->blend.b    = 1.0f;
+                cmd->blend.a    = a;
                 cmd->width      = uint32_t(width);
                 cmd->height     = uint32_t(height);
                 cmd->stride     = uint32_t(stride);
@@ -1401,7 +1404,6 @@ namespace lsp
                 cmd->y          = y;
                 cmd->scale_x    = sx;
                 cmd->scale_y    = sy;
-                cmd->alpha      = a;
             }
 
             status_t Surface::resize(size_t width, size_t height)
@@ -2001,7 +2003,7 @@ namespace lsp
 
                 set_fill(cmd->wire, c);
                 cmd->data   = release_ptr(coords);
-                cmd->width  = 0.0f;
+                cmd->width  = width;
                 cmd->count  = n;
             }
 
@@ -2182,6 +2184,174 @@ namespace lsp
                 --sClipping.count;
             }
 
+            void Surface::out_text(const Font &f, const Color &color, float x, float y, const char *text)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set_utf8(text))
+                    return;
+
+                gl::actions::out_text_t *cmd    = pSurface->append<gl::actions::out_text_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x      = x;
+                cmd->y      = y;
+            }
+
+            void Surface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text))
+                    return;
+
+                gl::actions::out_text_t *cmd    = pSurface->append<gl::actions::out_text_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x      = x;
+                cmd->y      = y;
+            }
+
+            void Surface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text, first))
+                    return;
+
+                gl::actions::out_text_t *cmd    = pSurface->append<gl::actions::out_text_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x      = x;
+                cmd->y      = y;
+            }
+
+            void Surface::out_text(const Font &f, const Color &color, float x, float y, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text, first, last))
+                    return;
+
+                gl::actions::out_text_t *cmd    = pSurface->append<gl::actions::out_text_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x      = x;
+                cmd->y      = y;
+            }
+
+            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const char *text)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set_utf8(text))
+                    return;
+
+                gl::actions::out_text_relative_t *cmd       = pSurface->append<gl::actions::out_text_relative_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x          = x;
+                cmd->y          = y;
+                cmd->relative_x = dx;
+                cmd->relative_y = dy;
+            }
+
+            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text))
+                    return;
+
+                gl::actions::out_text_relative_t *cmd       = pSurface->append<gl::actions::out_text_relative_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x          = x;
+                cmd->y          = y;
+                cmd->relative_x = dx;
+                cmd->relative_y = dy;
+            }
+
+            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text, first))
+                    return;
+
+                gl::actions::out_text_relative_t *cmd       = pSurface->append<gl::actions::out_text_relative_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x          = x;
+                cmd->y          = y;
+                cmd->relative_x = dx;
+                cmd->relative_y = dy;
+            }
+
+            void Surface::out_text_relative(const Font &f, const Color &color, float x, float y, float dx, float dy, const LSPString *text, ssize_t first, ssize_t last)
+            {
+                if ((f.get_name() == NULL) || (text == NULL))
+                    return;
+
+                LSPString tmp_text;
+                if (!tmp_text.set(text, first, last))
+                    return;
+
+                gl::actions::out_text_relative_t *cmd       = pSurface->append<gl::actions::out_text_relative_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_color(cmd->fill, color);
+                cmd->font.set(f);
+                cmd->text.swap(&tmp_text);
+                cmd->x          = x;
+                cmd->y          = y;
+                cmd->relative_x = dx;
+                cmd->relative_y = dy;
+            }
+
             void Surface::render()
             {
                 status_t res;
@@ -2262,8 +2432,8 @@ namespace lsp
             status_t Surface::process(const actions::draw_surface_t & action)
             {
                 // Start batch
-                gl::Texture * const t = action.surface->texture();
-                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, action.alpha);
+                gl::Texture * const t = action.fill.surface->texture();
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, action.fill.blend);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2323,7 +2493,7 @@ namespace lsp
                     return status_t(res);
 
                 // Start batch
-                res                 = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.alpha);
+                res                 = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.blend);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2873,7 +3043,7 @@ namespace lsp
                 return make_command(index, C_RADIAL, clipping);
             }
 
-            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, gl::Texture * const texture, float alpha)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, gl::Texture * const texture, const gl::color_t & color)
             {
                 // Start batch
                 if (texture == NULL)
@@ -2902,10 +3072,10 @@ namespace lsp
 
                 buf     = serialize_clipping(buf, clipping);
 
-                const float a   = 1.0f - alpha;
-                buf[0]  = a;
-                buf[1]  = a;
-                buf[2]  = a;
+                const float a   = 1.0f - color.a;
+                buf[0]  = color.r * a;
+                buf[1]  = color.g * a;
+                buf[2]  = color.b * a;
                 buf[3]  = a;
 
                 buf[4]  = float(texture->width());
@@ -2927,7 +3097,7 @@ namespace lsp
                     case gl::FILL_RADIAL_GRADIENT:
                         return add_batch(program, flags, fill.radial);
                     case gl::FILL_TEXTURE:
-                        return add_batch(program, flags, fill.texture.surface->texture(), fill.texture.alpha);
+                        return add_batch(program, flags, fill.texture.surface->texture(), fill.texture.blend);
                     default:
                         break;
                 }
