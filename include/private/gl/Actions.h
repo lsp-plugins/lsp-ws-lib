@@ -71,6 +71,12 @@ namespace lsp
                 float           r;
             } radial_gradient_t;
 
+            typedef struct texture_t
+            {
+                SurfaceContext *surface;
+                float           alpha;
+            } texture_t;
+
             enum fill_type_t
             {
                 FILL_NONE,
@@ -89,7 +95,7 @@ namespace lsp
                     base_gradient_t     gradient;
                     linear_gradient_t   linear;
                     radial_gradient_t   radial;
-                    SurfaceContext     *surface;
+                    texture_t           texture;
                 };
             } fill_t;
 
@@ -424,6 +430,7 @@ namespace lsp
             void set_color(color_t & color, const lsp::Color & c);
             void set_fill(fill_t & fill, const lsp::Color & c);
             void set_fill(fill_t & fill, const IGradient * g);
+            void set_fill(fill_t & fill, SurfaceContext * ctx, float alpha);
 
         } /* namespace gl */
     } /* namespace ws */

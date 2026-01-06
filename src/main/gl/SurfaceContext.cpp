@@ -34,6 +34,7 @@ namespace lsp
             SurfaceContext::SurfaceContext()
             {
                 atomic_store(&nReferences, 1);
+                pTexture        = NULL;
 
                 bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
                 sSize.width     = 0;
@@ -50,6 +51,7 @@ namespace lsp
 
             SurfaceContext::~SurfaceContext()
             {
+                safe_release(pTexture);
                 clear();
             }
 
@@ -130,6 +132,12 @@ namespace lsp
                 m[13]       = 1.0f;
                 m[14]       = 0.0f;
                 m[15]       = 1.0f;
+            }
+
+            void SurfaceContext::set_texture(gl::Texture *texture)
+            {
+                safe_release(pTexture);
+                pTexture = safe_acquire(texture);
             }
 
         } /* namespace gl */

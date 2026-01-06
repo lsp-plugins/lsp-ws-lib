@@ -85,7 +85,6 @@ namespace lsp
                 pDisplay        = display;
                 pContext        = safe_acquire(ctx);
                 pSurface        = new SurfaceContext();
-                pTexture        = NULL;
                 pText           = new TextAllocator(pContext);
                 nWidth          = width;
                 nHeight         = height;
@@ -111,7 +110,6 @@ namespace lsp
                 pDisplay        = NULL;
                 pContext        = safe_acquire(ctx);
                 pSurface        = new SurfaceContext();
-                pTexture        = NULL;
                 pText           = safe_acquire(text);
                 nWidth          = width;
                 nHeight         = height;
@@ -179,7 +177,6 @@ namespace lsp
                 }
 
                 safe_release(pSurface);
-                safe_release(pTexture);
                 safe_release(pText);
                 safe_release(pContext);
 
@@ -1337,7 +1334,7 @@ namespace lsp
                     return;
 
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pTexture;
+                gl::Texture *t = gls->pSurface->texture();
                 if (t == NULL)
                     return;
 
@@ -1374,7 +1371,7 @@ namespace lsp
                     return;
 
                 gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pTexture;
+                gl::Texture *t = gls->pSurface->texture();
                 if (t == NULL)
                     return;
 
@@ -1576,27 +1573,21 @@ namespace lsp
                 if (bNested)
                 {
                     // Ensure that texture is properly initialized
-                    if (pTexture == NULL)
+                    gl::Texture *texture = safe_acquire(pSurface->texture());
+                    if (texture == NULL)
                     {
-                        pTexture        = new gl::Texture(pContext);
-                        if (pTexture == NULL)
+                        texture = new gl::Texture(pContext);
+                        if (texture == NULL)
                             return;
+                        pSurface->set_texture(texture);
                     }
-//                    else
-//                    {
-//                        res = pTexture->resize(nWidth, nHeight);
-//                        if (res != STATUS_OK)
-//                        {
-//                            safe_release(pTexture);
-//                            return;
-//                        }
-//                    }
+                    lsp_finally { safe_release(texture); };
 
                     // Setup texture for drawing
-                    res = pTexture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
+                    res = texture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
                     if (res != STATUS_OK)
                         return;
-                    lsp_finally { pTexture->end_draw(); };
+                    lsp_finally { texture->end_draw(); };
 
                     vtbl->glViewport(0, 0, nWidth, nHeight);
 
@@ -1779,60 +1770,52 @@ namespace lsp
 
             void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, float left, float top, float width, float height)
             {
+                if (s->type() != ST_OPENGL)
+                    return;
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                if (gls->pSurface->is_drawing())
+                    return;
+
                 // Create texture
                 if (!pSurface->is_drawing())
                     return;
-                if (s->type() != ST_OPENGL)
+
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
 
-                gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pTexture;
-                if (t == NULL)
-                    return;
-
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, alpha);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
-
-                // Draw primitives
-                texcoord_t tex;
-                tex.x       = left;
-                tex.y       = top + height;
-                tex.sx      = 1.0f / width;
-                tex.sy      = -1.0f / height;
-
-                fill_textured_rect(uint32_t(res), tex, mask, radius, left, top, width, height);
+                set_fill(cmd->fill, gls->pSurface, alpha);
+                cmd->rectangle.x        = left;
+                cmd->rectangle.y        = top;
+                cmd->rectangle.width    = width;
+                cmd->rectangle.height   = height;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_rect(ISurface *s, float alpha, size_t mask, float radius, const ws::rectangle_t *r)
             {
+                if (s->type() != ST_OPENGL)
+                    return;
+                gl::Surface *gls = static_cast<gl::Surface *>(s);
+                if (gls->pSurface->is_drawing())
+                    return;
+
                 // Create texture
                 if (!pSurface->is_drawing())
                     return;
-                if (s->type() != ST_OPENGL)
+
+                gl::actions::fill_rect_t * const cmd = pSurface->append<gl::actions::fill_rect_t>();
+                if (cmd == NULL)
                     return;
 
-                gl::Surface *gls = static_cast<gl::Surface *>(s);
-                gl::Texture *t = gls->pTexture;
-                if (t == NULL)
-                    return;
-
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, alpha);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
-
-                // Draw primitives
-                texcoord_t tex;
-                tex.x       = r->nLeft;
-                tex.y       = r->nTop + r->nHeight;
-                tex.sx      = 1.0f / r->nWidth;
-                tex.sy      = -1.0f / r->nHeight;
-
-                fill_textured_rect(uint32_t(res), tex, mask, radius, r->nLeft, r->nTop, r->nWidth, r->nHeight);
+                set_fill(cmd->fill, gls->pSurface, alpha);
+                cmd->rectangle.x        = r->nLeft;
+                cmd->rectangle.y        = r->nTop;
+                cmd->rectangle.width    = r->nWidth;
+                cmd->rectangle.height   = r->nHeight;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(mask);
             }
 
             void Surface::fill_sector(const Color & c, float x, float y, float r, float a1, float a2)
@@ -2351,11 +2334,30 @@ namespace lsp
                 lsp_finally { sBatch.end(); };
 
                 // Draw primitives
-                fill_rect(
-                    uint32_t(res),
-                    action.corners, action.radius,
-                    action.rectangle.x, action.rectangle.y,
-                    action.rectangle.width, action.rectangle.height);
+                if (action.fill.type == FILL_TEXTURE)
+                {
+                    texcoord_t tex;
+                    tex.x       = action.rectangle.x;
+                    tex.y       = action.rectangle.y + action.rectangle.height;
+                    tex.sx      = 1.0f / action.rectangle.width;
+                    tex.sy      = -1.0f / action.rectangle.height;
+
+                    fill_textured_rect(
+                        uint32_t(res),
+                        tex,
+                        action.corners, action.radius,
+                        action.rectangle.x, action.rectangle.y,
+                        action.rectangle.width, action.rectangle.height);
+                }
+                else
+                {
+                    // Draw primitives
+                    fill_rect(
+                        uint32_t(res),
+                        action.corners, action.radius,
+                        action.rectangle.x, action.rectangle.y,
+                        action.rectangle.width, action.rectangle.height);
+                }
 
                 return STATUS_OK;
             }
@@ -2692,6 +2694,9 @@ namespace lsp
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
+                if (pSurface->antialiasing())
+                    flags      |= BATCH_MULTISAMPLE;
+
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
@@ -2720,6 +2725,9 @@ namespace lsp
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
+                if (pSurface->antialiasing())
+                    flags      |= BATCH_MULTISAMPLE;
+
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
@@ -2768,6 +2776,9 @@ namespace lsp
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
+                if (pSurface->antialiasing())
+                    flags      |= BATCH_MULTISAMPLE;
+
                 status_t res = sBatch.begin(
                     gl::batch_header_t {
                         program,
@@ -2817,11 +2828,52 @@ namespace lsp
                 return make_command(index, C_RADIAL, clipping);
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::texture_t & t)
             {
+                // Start batch
+                gl::Texture * const texture     = (t.surface != NULL) ? t.surface->texture() : NULL;
+                if (texture == NULL)
+                    return -STATUS_BAD_ARGUMENTS;
+                const gl::origin_t & origin = pSurface->origin();
                 if (pSurface->antialiasing())
                     flags      |= BATCH_MULTISAMPLE;
 
+                status_t res = sBatch.begin(
+                    gl::batch_header_t {
+                        program,
+                        origin.left,
+                        origin.top,
+                        flags,
+                        texture,
+                    });
+                if (res != STATUS_OK)
+                    return -res;
+
+                // Allocate place for command
+                float *buf = NULL;
+                const gl::clip_state_t & clipping = pSurface->clipping();
+                ssize_t index = sBatch.command(&buf, (sizeof(color_t) + clipping.count * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
+                if (index < 0)
+                    return index;
+
+                buf     = serialize_clipping(buf);
+
+                const float a   = 1.0f - t.alpha;
+                buf[0]  = a;
+                buf[1]  = a;
+                buf[2]  = a;
+                buf[3]  = a;
+
+                buf[4]  = float(texture->width());
+                buf[5]  = float(texture->height());
+                buf[6]  = texture->format();
+                buf[7]  = texture->multisampling();
+
+                return make_command(index, C_TEXTURE);
+            }
+
+            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
+            {
                 switch (fill.type)
                 {
                     case gl::FILL_SOLID_COLOR:
@@ -2830,6 +2882,8 @@ namespace lsp
                         return start_batch(program, flags, fill.linear);
                     case gl::FILL_RADIAL_GRADIENT:
                         return start_batch(program, flags, fill.radial);
+                    case gl::FILL_TEXTURE:
+                        return start_batch(program, flags, fill.texture);
                     default:
                         // TODO
                         break;

@@ -32,6 +32,7 @@
 
 #include <lsp-plug.in/lltl/ddeque.h>
 #include <private/gl/Actions.h>
+#include <private/gl/Texture.h>
 
 namespace lsp
 {
@@ -39,12 +40,13 @@ namespace lsp
     {
         namespace gl
         {
-            class SurfaceContext
+            class LSP_HIDDEN_MODIFIER SurfaceContext
             {
                 private:
                     uatomic_t                           nReferences;        // Number of references
-                    lltl::ddeque<gl::actions::action_t> sCommands;          // Drawing commands
                     ipc::Condition                      sCondition;         // Drawing condition
+                    lltl::ddeque<gl::actions::action_t> sCommands;          // Drawing commands
+                    gl::Texture                        *pTexture;           // Texture
                     gl::surface_size_t                  sSize;              // Surface size
                     gl::origin_t                        sOrigin;            // Drawing origin
                     gl::clip_state_t                    sClipping;          // Clipping state
@@ -125,6 +127,18 @@ namespace lsp
                      * @return drawing matrix
                      */
                     inline const gl::matrix_t & matrix() const          { return sMatrix;       }
+
+                    /**
+                     * Get texture
+                     * @return texture
+                     */
+                    inline      gl::Texture    *texture()               { return pTexture;      }
+
+                    /**
+                     * Set texture
+                     * @param texture texture to set
+                     */
+                    void        set_texture(gl::Texture *texture);
 
                 public:
                     /**

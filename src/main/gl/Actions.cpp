@@ -67,6 +67,16 @@ namespace lsp
                 }
             }
 
+            void set_fill(fill_t & fill, SurfaceContext * ctx, float alpha)
+            {
+                fill.texture.surface    = safe_acquire(ctx);
+                if (fill.texture.surface != NULL)
+                {
+                    fill.texture.alpha      = alpha;
+                    fill.type               = FILL_TEXTURE;
+                }
+            }
+
             namespace actions
             {
                 inline void init_fill(gl::fill_t & fill)
@@ -77,7 +87,7 @@ namespace lsp
                 inline void destroy_fill(gl::fill_t & fill)
                 {
                     if (fill.type == gl::FILL_TEXTURE)
-                        safe_release(fill.surface);
+                        safe_release(fill.texture.surface);
                 }
 
                 action_t *init(action_t *action, action_type_t type)
