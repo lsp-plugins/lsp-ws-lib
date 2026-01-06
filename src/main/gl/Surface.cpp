@@ -2663,6 +2663,7 @@ namespace lsp
 
             status_t Surface::process(const actions::set_origin_t & action)
             {
+                pSurface->origin() = action.origin;
                 return STATUS_OK;
             }
 
