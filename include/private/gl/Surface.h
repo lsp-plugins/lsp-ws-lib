@@ -162,11 +162,11 @@ namespace lsp
                     static inline float    *serialize_clipping(float *dst, const gl::clip_state_t & clipping);
                     static inline float    *serialize_color(float *dst, const gl::color_t & c);
 
-                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::color_t & color);
-                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
-                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
-                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::texture_t & t);
-                    ssize_t                 start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::color_t & color);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, gl::Texture *texture, float alpha);
+                    ssize_t                 add_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill);
 
                 protected:
                     void                render();

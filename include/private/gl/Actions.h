@@ -216,9 +216,9 @@ namespace lsp
                     uint32_t        stride;
                     float           x;
                     float           y;
-                    const float     src_x;
-                    const float     src_y;
-                    const float     alpha;
+                    float           scale_x;
+                    float           scale_y;
+                    float           alpha;
                 } draw_raw_t;
 
                 typedef struct wire_rect_t

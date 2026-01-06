@@ -1412,45 +1412,35 @@ namespace lsp
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)
             {
-                // Create texture
                 if (!pSurface->is_drawing())
                     return;
 
-                // Activate context
-                if (pContext->activate() != STATUS_OK)
+                // Copy contents for drawing
+                const size_t x_bytes            = lsp_max(width * sizeof(uint32_t), stride);
+                const size_t total_bytes        = x_bytes * height;
+                void *copy                      = malloc(total_bytes);
+                if (copy == NULL)
+                    return;
+                lsp_finally {
+                    if (copy != NULL)
+                        free(copy);
+                };
+                memcpy(copy, data, total_bytes);
+
+                // Emit command
+                gl::actions::draw_raw_t *cmd    = pSurface->append<gl::actions::draw_raw_t>();
+                if (cmd == NULL)
                     return;
 
-                gl::Texture *tex = new gl::Texture(pContext);
-                if (tex == NULL)
-                    return;
-                lsp_finally { safe_release(tex); };
-
-                // Initialize texture
-                if (tex->set_image(data, width, height, stride, TEXTURE_PRGBA32) != STATUS_OK)
-                    return;
-
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, a);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
-
-                // Draw primitives
-                const uint32_t ci   = uint32_t(res);
-                const float xe      = x + width * sx;
-                const float ye      = y + height * sy;
-
-                const uint32_t vi   = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(4);
-                if (v == NULL)
-                    return;
-
-                ADD_TVERTEX(v, ci, x, y, 0.0f, 0.0f);
-                ADD_TVERTEX(v, ci, x, ye, 0.0f, 1.0f);
-                ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
-                ADD_TVERTEX(v, ci, xe, y, 1.0f, 0.0f);
-
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                cmd->data       = release_ptr(copy);
+                cmd->width      = uint32_t(width);
+                cmd->height     = uint32_t(height);
+                cmd->stride     = uint32_t(stride);
+                cmd->x          = x;
+                cmd->y          = y;
+                cmd->scale_x    = sx;
+                cmd->scale_y    = sy;
+                cmd->alpha      = a;
             }
 
             status_t Surface::resize(size_t width, size_t height)
@@ -1981,6 +1971,9 @@ namespace lsp
 
             void Surface::fill_poly(const Color & c, const float *x, const float *y, size_t n)
             {
+                if (!pSurface->is_drawing())
+                    return;
+
                 float * coords   = copy_coords(x, y, n);
                 if (coords == NULL)
                     return;
@@ -2002,6 +1995,9 @@ namespace lsp
             void Surface::fill_poly(IGradient *g, const float *x, const float *y, size_t n)
             {
                 if (n < 3)
+                    return;
+
+                if (!pSurface->is_drawing())
                     return;
 
                 float * coords   = copy_coords(x, y, n);
@@ -2027,6 +2023,9 @@ namespace lsp
                 if ((width < 1e-6f) || (n < 2))
                     return;
 
+                if (!pSurface->is_drawing())
+                    return;
+
                 float * coords   = copy_coords(x, y, n);
                 if (coords == NULL)
                     return;
@@ -2048,6 +2047,9 @@ namespace lsp
             void Surface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
                 if (n < 2)
+                    return;
+
+                if (!pSurface->is_drawing())
                     return;
 
                 float * coords   = copy_coords(x, y, n);
@@ -2280,7 +2282,7 @@ namespace lsp
             status_t Surface::process(const actions::clear_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, action.color);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, action.color);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2303,13 +2305,46 @@ namespace lsp
 
             status_t Surface::process(const actions::draw_raw_t & action)
             {
+                gl::Texture *tex = new gl::Texture(pContext);
+                if (tex == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                ssize_t res         = tex->set_image(action.data, action.width, action.height, action.stride, TEXTURE_PRGBA32);
+                if (res != STATUS_OK)
+                    return status_t(res);
+
+                // Start batch
+                res                 = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.alpha);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw primitives
+                const uint32_t ci   = uint32_t(res);
+                const float xe      = action.x + action.width * action.scale_x;
+                const float ye      = action.y + action.height * action.scale_y;
+
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return STATUS_NO_MEM;
+
+                ADD_TVERTEX(v, ci, action.x, action.y, 0.0f, 0.0f);
+                ADD_TVERTEX(v, ci, action.x, ye, 0.0f, 1.0f);
+                ADD_TVERTEX(v, ci, xe, ye, 1.0f, 1.0f);
+                ADD_TVERTEX(v, ci, xe, action.y, 1.0f, 0.0f);
+
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::wire_rect_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2328,7 +2363,7 @@ namespace lsp
             status_t Surface::process(const actions::fill_rect_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2365,7 +2400,7 @@ namespace lsp
             status_t Surface::process(const actions::fill_sector_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2379,7 +2414,7 @@ namespace lsp
             status_t Surface::process(const actions::fill_triangle_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2396,7 +2431,7 @@ namespace lsp
             status_t Surface::process(const actions::fill_circle_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2410,7 +2445,7 @@ namespace lsp
             status_t Surface::process(const actions::wire_arc_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2437,7 +2472,7 @@ namespace lsp
             status_t Surface::process(const actions::line_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2455,7 +2490,7 @@ namespace lsp
             status_t Surface::process(const actions::parametric_line_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2484,7 +2519,7 @@ namespace lsp
             status_t Surface::process(const actions::parametric_bar_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -2534,6 +2569,8 @@ namespace lsp
 
             status_t Surface::process(const actions::draw_poly_t & action)
             {
+                static const gl::color_t empty_color = { 0.0f, 0.0f, 0.0f, 0.0f };
+
                 const float * const x = action.data;
                 const float * const y = &action.data[action.count];
 
@@ -2545,7 +2582,7 @@ namespace lsp
                         // Start first batch on stencil buffer
                         clip_rect_t rect;
                         {
-                            const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
+                            const ssize_t res = add_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, empty_color);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
@@ -2555,7 +2592,7 @@ namespace lsp
 
                         // Start second batch on color buffer with stencil apply
                         {
-                            const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                            const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
@@ -2566,7 +2603,7 @@ namespace lsp
                     else
                     {
                         // Some optimizations
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                        const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                         if (res < 0)
                             return status_t(-res);
                         lsp_finally { sBatch.end(); };
@@ -2584,7 +2621,7 @@ namespace lsp
                         if ((action.wire.type == FILL_SOLID_COLOR) && (action.wire.color.a < k_color))
                         {
                             // Opaque polyline can be drawin without stencil buffer
-                            const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                            const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
@@ -2596,8 +2633,7 @@ namespace lsp
                             // Start first batch on stencil buffer
                             clip_rect_t rect;
                             {
-                                static const gl::color_t empty_color = { 0.0f, 0.0f, 0.0f, 0.0f };
-                                const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, empty_color);
+                                const ssize_t res = add_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, empty_color);
                                 if (res < 0)
                                     return status_t(-res);
                                 lsp_finally{ sBatch.end(); };
@@ -2607,7 +2643,7 @@ namespace lsp
 
                             // Start second batch on color buffer with stencil apply
                             {
-                                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
                                 if (res < 0)
                                     return status_t(-res);
                                 lsp_finally{ sBatch.end(); };
@@ -2619,7 +2655,7 @@ namespace lsp
                     else
                     {
                         // Draw simple line
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                        const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
                         if (res < 0)
                             return status_t(-res);
                         lsp_finally { sBatch.end(); };
@@ -2692,7 +2728,7 @@ namespace lsp
                 return (index << 5) | (size_t(color) << 3) | clipping.count;
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::color_t & color)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, const gl::color_t & color)
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
@@ -2723,7 +2759,7 @@ namespace lsp
                 return make_command(index, C_SOLID, clipping);
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
@@ -2774,7 +2810,7 @@ namespace lsp
                 return make_command(index, C_LINEAR, clipping);
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
             {
                 // Start batch
                 const gl::origin_t & origin = pSurface->origin();
@@ -2830,10 +2866,9 @@ namespace lsp
                 return make_command(index, C_RADIAL, clipping);
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::texture_t & t)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, gl::Texture * const texture, float alpha)
             {
                 // Start batch
-                gl::Texture * const texture     = (t.surface != NULL) ? t.surface->texture() : NULL;
                 if (texture == NULL)
                     return -STATUS_BAD_ARGUMENTS;
                 const gl::origin_t & origin = pSurface->origin();
@@ -2860,7 +2895,7 @@ namespace lsp
 
                 buf     = serialize_clipping(buf, clipping);
 
-                const float a   = 1.0f - t.alpha;
+                const float a   = 1.0f - alpha;
                 buf[0]  = a;
                 buf[1]  = a;
                 buf[2]  = a;
@@ -2874,18 +2909,18 @@ namespace lsp
                 return make_command(index, C_TEXTURE);
             }
 
-            ssize_t Surface::start_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
+            ssize_t Surface::add_batch(gl::program_t program, uint32_t flags, const gl::fill_t & fill)
             {
                 switch (fill.type)
                 {
                     case gl::FILL_SOLID_COLOR:
-                        return start_batch(program, flags, fill.color);
+                        return add_batch(program, flags, fill.color);
                     case gl::FILL_LINEAR_GRADIENT:
-                        return start_batch(program, flags, fill.linear);
+                        return add_batch(program, flags, fill.linear);
                     case gl::FILL_RADIAL_GRADIENT:
-                        return start_batch(program, flags, fill.radial);
+                        return add_batch(program, flags, fill.radial);
                     case gl::FILL_TEXTURE:
-                        return start_batch(program, flags, fill.texture);
+                        return add_batch(program, flags, fill.texture.surface->texture(), fill.texture.alpha);
                     default:
                         break;
                 }
