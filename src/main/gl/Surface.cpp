@@ -2634,25 +2634,27 @@ namespace lsp
 
             status_t Surface::process(const actions::clip_begin_t & action)
             {
-                if (sClipping.count >= gl::clip_state_t::MAX_CLIPS)
+                gl::clip_state_t & clipping = pSurface->clipping();
+                if (clipping.count >= gl::clip_state_t::MAX_CLIPS)
                 {
                     lsp_error("Too many clipping regions specified (%d)", int(gl::clip_state_t::MAX_CLIPS + 1));
                     return STATUS_OVERFLOW;
                 }
 
-                sClipping.clips[sClipping.count++] = action.rect;
+                clipping.clips[clipping.count++] = action.rect;
 
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::clip_end_t & action)
             {
-                if (sClipping.count <= 0)
+                gl::clip_state_t & clipping = pSurface->clipping();
+                if (clipping.count <= 0)
                 {
                     lsp_error("Mismatched number of clip_begin() and clip_end() calls");
                     return STATUS_UNDERFLOW;
                 }
-                --sClipping.count;
+                --clipping.count;
 
                 return STATUS_OK;
             }
@@ -2748,7 +2750,7 @@ namespace lsp
                     return index;
 
                 // Serialize clipping
-                buf     = serialize_clipping(buf);
+                buf     = serialize_clipping(buf, clipping);
 
                 // Serialize gradient
                 const float sa  = 1.0f - g.start.a;
@@ -2799,7 +2801,7 @@ namespace lsp
                     return index;
 
                 // Serialize clipping
-                buf     = serialize_clipping(buf);
+                buf     = serialize_clipping(buf, clipping);
 
                 // Serialize gradient
                 const float sa  = 1.0f - g.start.a;
@@ -2856,7 +2858,7 @@ namespace lsp
                 if (index < 0)
                     return index;
 
-                buf     = serialize_clipping(buf);
+                buf     = serialize_clipping(buf, clipping);
 
                 const float a   = 1.0f - t.alpha;
                 buf[0]  = a;
@@ -2885,7 +2887,6 @@ namespace lsp
                     case gl::FILL_TEXTURE:
                         return start_batch(program, flags, fill.texture);
                     default:
-                        // TODO
                         break;
                 }
 
