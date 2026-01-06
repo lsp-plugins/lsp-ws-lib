@@ -158,6 +158,7 @@ namespace lsp
                     inline void draw_polyline(vertex_t * & vertices, T * & indices, T vi, uint32_t ci, clip_rect_t &rect, const float *x, const float *y, float width, size_t n);
 
                 protected:
+                    static inline float    *copy_coords(const float *x, const float *y, size_t n);
                     static inline ssize_t   make_command(ssize_t index, cmd_color_t color, const gl::clip_state_t & clipping);
                     static inline float    *serialize_clipping(float *dst, const gl::clip_state_t & clipping);
                     static inline float    *serialize_color(float *dst, const gl::color_t & c);
@@ -186,8 +187,7 @@ namespace lsp
                     virtual status_t    process(const actions::out_text_relative_t & action);
                     status_t            process(const actions::line_t & action);
                     status_t            process(const actions::parametric_line_t & action);
-                    status_t            process(const actions::clipped_parametric_line_t & action);
-                    status_t            process(const actions::clipped_parametric_bar_t & action);
+                    status_t            process(const actions::parametric_bar_t & action);
                     status_t            process(const actions::fill_frame_t & action);
                     status_t            process(const actions::draw_poly_t & action);
                     status_t            process(const actions::clip_begin_t & action);

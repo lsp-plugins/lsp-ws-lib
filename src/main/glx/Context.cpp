@@ -570,13 +570,13 @@ namespace lsp
                 prg->nFlags    &= ~PF_FRAGMENT;
 
                 // Add program to list
-                const size_t count  = index + 1 - vPrograms.size();
+                const ssize_t count  = index + 1 - vPrograms.size();
                 if (count > 0)
                 {
                     program_t **ptr     = vPrograms.append_n(count);
                     if (ptr == NULL)
                         return STATUS_NO_MEM;
-                    for (size_t i=0; i<count; ++i)
+                    for (size_t i=0; i<size_t(count); ++i)
                         ptr[i]              = NULL;
                 }
                 if (!vPrograms.set(index, prg))

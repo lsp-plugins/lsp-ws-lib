@@ -1884,62 +1884,64 @@ namespace lsp
 
             void Surface::line(const Color & c, float x0, float y0, float x1, float y1, float width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::line_t * const cmd = pSurface->append<gl::actions::line_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                draw_line(uint32_t(res), x0, y0, x1, y1, width);
+                set_fill(cmd->fill, c);
+                cmd->x[0]   = x0;
+                cmd->x[1]   = x1;
+                cmd->y[0]   = y0;
+                cmd->y[1]   = y1;
+                cmd->width  = width;
             }
 
             void Surface::line(IGradient *g, float x0, float y0, float x1, float y1, float width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
+                gl::actions::line_t * const cmd = pSurface->append<gl::actions::line_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                draw_line(uint32_t(res), x0, y0, x1, y1, width);
+                set_fill(cmd->fill, g);
+                cmd->x[0]   = x0;
+                cmd->x[1]   = x1;
+                cmd->y[0]   = y0;
+                cmd->y[1]   = y1;
+                cmd->width  = width;
             }
 
             void Surface::parametric_line(const Color & color, float a, float b, float c, float width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
-                if (res < 0)
+                gl::actions::parametric_line_t * const cmd = pSurface->append<gl::actions::parametric_line_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw the line
-                if (fabs(a) > fabs(b))
-                    draw_line(uint32_t(res), - c / a, 0.0f, -(c + b*nHeight)/a, nHeight, width);
-                else
-                    draw_line(uint32_t(res), 0.0f, - c / b, nWidth, -(c + a*nWidth)/b, width);
+                set_fill(cmd->fill, color);
+                cmd->rect.left  = 0.0f;
+                cmd->rect.top   = 0.0f;
+                cmd->rect.right = nWidth;
+                cmd->rect.bottom= nHeight;
+                cmd->a = a;
+                cmd->b = b;
+                cmd->c = c;
+                cmd->width = width;
             }
 
             void Surface::parametric_line(const Color &color, float a, float b, float c, float left, float right, float top, float bottom, float width)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, color);
-                if (res < 0)
+                gl::actions::parametric_line_t * const cmd = pSurface->append<gl::actions::parametric_line_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw the line
-                if (fabs(a) > fabs(b))
-                    draw_line(uint32_t(res),
-                        roundf(-(c + b*top)/a), roundf(top),
-                        roundf(-(c + b*bottom)/a), roundf(bottom),
-                        width);
-                else
-                    draw_line(uint32_t(res),
-                        roundf(left), roundf(-(c + a*left)/b),
-                        roundf(right), roundf(-(c + a*right)/b),
-                        width);
+                set_fill(cmd->fill, color);
+                cmd->rect.left  = left;
+                cmd->rect.top   = top;
+                cmd->rect.right = right;
+                cmd->rect.bottom= bottom;
+                cmd->a = a;
+                cmd->b = b;
+                cmd->c = c;
+                cmd->width = width;
             }
 
             void Surface::parametric_bar(
@@ -1947,42 +1949,21 @@ namespace lsp
                 float a1, float b1, float c1, float a2, float b2, float c2,
                 float left, float right, float top, float bottom)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                if (res < 0)
-                    return;
-                lsp_finally { sBatch.end(); };
-
-                // Draw the primitive
-                const uint32_t ci   = uint32_t(res);
-                const uint32_t vi   = sBatch.next_vertex_index();
-                vertex_t *v         = sBatch.add_vertices(4);
-                if (v == NULL)
+                gl::actions::parametric_bar_t * const cmd = pSurface->append<gl::actions::parametric_bar_t>();
+                if (cmd == NULL)
                     return;
 
-                if (fabs(a1) > fabs(b1))
-                {
-                    ADD_VERTEX(v, ci, -(c1 + b1*top)/a1, top);
-                    ADD_VERTEX(v, ci, -(c1 + b1*bottom)/a1, bottom);
-                }
-                else
-                {
-                    ADD_VERTEX(v, ci, left, -(c1 + a1*left)/b1);
-                    ADD_VERTEX(v, ci, right, -(c1 + a1*right)/b1);
-                }
-
-                if (fabs(a2) > fabs(b2))
-                {
-                    ADD_VERTEX(v, ci, -(c2 + b2*bottom)/a2, bottom);
-                    ADD_VERTEX(v, ci, -(c2 + b2*top)/a2, top);
-                }
-                else
-                {
-                    ADD_VERTEX(v, ci, right, -(c2 + a2*right)/b2);
-                    ADD_VERTEX(v, ci, left, -(c2 + a2*left)/b2);
-                }
-
-                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                set_fill(cmd->fill, g);
+                cmd->rect.left  = left;
+                cmd->rect.top   = top;
+                cmd->rect.right = right;
+                cmd->rect.bottom= bottom;
+                cmd->a[0] = a1;
+                cmd->a[1] = a2;
+                cmd->b[0] = b1;
+                cmd->b[1] = b2;
+                cmd->c[0] = c1;
+                cmd->c[1] = c2;
             }
 
             void Surface::wire_arc(const Color &c, float x, float y, float r, float a1, float a2, float width)
@@ -2003,148 +1984,106 @@ namespace lsp
                 cmd->width      = width;
             }
 
+            inline float *Surface::copy_coords(const float *x, const float *y, size_t n)
+            {
+                float *res = static_cast<float *>(malloc(n * 2 * sizeof(float)));
+                if (res == NULL)
+                    return NULL;
+
+                memcpy(res, x, n*sizeof(float));
+                memcpy(&res[n], y, n*sizeof(float));
+
+                return res;
+            }
+
             void Surface::fill_poly(const Color & c, const float *x, const float *y, size_t n)
             {
-                // Some optimizations
-                if (n <= 3)
-                {
-                    if (n == 3)
-                    {
-                        // Start batch
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                        if (res < 0)
-                            return;
-                        lsp_finally { sBatch.end(); };
-
-                        // Draw geometry
-                        fill_triangle(uint32_t(res), x[0], y[0], x[1], y[1], x[2], y[2]);
-                    }
+                float * coords   = copy_coords(x, y, n);
+                if (coords == NULL)
                     return;
-                }
+                lsp_finally {
+                    if (coords != NULL)
+                        free(coords);
+                };
 
-                // Start first batch on stencil buffer
-                clip_rect_t rect;
-                {
-                    const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
-                    if (res < 0)
-                        return;
-                    lsp_finally{ sBatch.end(); };
+                gl::actions::draw_poly_t * const cmd = pSurface->append<gl::actions::draw_poly_t>();
+                if (cmd == NULL)
+                    return;
 
-                    fill_triangle_fan(size_t(res), rect, x, y, n);
-                }
-
-                // Start second batch on color buffer with stencil apply
-                {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, c);
-                    if (res < 0)
-                        return;
-                    lsp_finally{ sBatch.end(); };
-
-                    fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
-                }
+                set_fill(cmd->fill, c);
+                cmd->data   = release_ptr(coords);
+                cmd->width  = 0.0f;
+                cmd->count  = n;
             }
 
             void Surface::fill_poly(IGradient *g, const float *x, const float *y, size_t n)
             {
-                // Some optimizations
-                if (n <= 3)
-                {
-                    if (n == 3)
-                    {
-                        // Start batch
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, g);
-                        if (res < 0)
-                            return;
-                        lsp_finally { sBatch.end(); };
-
-                        // Draw geometry
-                        fill_triangle(uint32_t(res), x[0], y[0], x[1], y[1], x[2], y[2]);
-                    }
+                if (n < 3)
                     return;
-                }
 
-                // Start first batch on stencil buffer
-                clip_rect_t rect;
-                {
-                    const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
-                    if (res < 0)
-                        return;
-                    lsp_finally{ sBatch.end(); };
+                float * coords   = copy_coords(x, y, n);
+                if (coords == NULL)
+                    return;
+                lsp_finally {
+                    if (coords != NULL)
+                        free(coords);
+                };
 
-                    fill_triangle_fan(size_t(res), rect, x, y, n);
-                }
+                gl::actions::draw_poly_t * const cmd = pSurface->append<gl::actions::draw_poly_t>();
+                if (cmd == NULL)
+                    return;
 
-                // Start second batch on color buffer with stencil apply
-                {
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, g);
-                    if (res < 0)
-                        return;
-                    lsp_finally{ sBatch.end(); };
-
-                    fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
-                }
+                set_fill(cmd->fill, g);
+                cmd->data   = release_ptr(coords);
+                cmd->width  = 0.0f;
+                cmd->count  = n;
             }
 
             void Surface::wire_poly(const Color & c, float width, const float *x, const float *y, size_t n)
             {
-                if (width < 1e-6f)
+                if ((width < 1e-6f) || (n < 2))
                     return;
 
-                if (n <= 2)
-                {
-                    if (n == 2)
-                    {
-                        // Start batch
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                        if (res < 0)
-                            return;
-                        lsp_finally { sBatch.end(); };
-
-                        // Draw geometry
-                        draw_line(uint32_t(res), x[0], y[0], x[1], y[1], width);
-                    }
+                float * coords   = copy_coords(x, y, n);
+                if (coords == NULL)
                     return;
-                }
+                lsp_finally {
+                    if (coords != NULL)
+                        free(coords);
+                };
 
-                if (c.alpha() < k_color)
-                {
-                    // Opaque polyline can be drawin without stencil buffer
-                    const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                    if (res < 0)
-                        return;
-                    lsp_finally{ sBatch.end(); };
+                gl::actions::draw_poly_t * const cmd = pSurface->append<gl::actions::draw_poly_t>();
+                if (cmd == NULL)
+                    return;
 
-                    draw_polyline(size_t(res), x, y, width, n);
-                }
-                else
-                {
-                    // Start first batch on stencil buffer
-                    clip_rect_t rect;
-                    {
-                        const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
-                        if (res < 0)
-                            return;
-                        lsp_finally{ sBatch.end(); };
-
-                        draw_polyline(size_t(res), rect, x, y, width, n);
-                    }
-
-                    // Start second batch on color buffer with stencil apply
-                    {
-                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, c);
-                        if (res < 0)
-                            return;
-                        lsp_finally{ sBatch.end(); };
-
-                        fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
-                    }
-                }
+                set_fill(cmd->wire, c);
+                cmd->data   = release_ptr(coords);
+                cmd->width  = 0.0f;
+                cmd->count  = n;
             }
 
             void Surface::draw_poly(const Color &fill, const Color &wire, float width, const float *x, const float *y, size_t n)
             {
-                fill_poly(fill, x, y, n);
-                wire_poly(wire, width, x, y, n);
+                if (n < 2)
+                    return;
+
+                float * coords   = copy_coords(x, y, n);
+                if (coords == NULL)
+                    return;
+                lsp_finally {
+                    if (coords != NULL)
+                        free(coords);
+                };
+
+                gl::actions::draw_poly_t * const cmd = pSurface->append<gl::actions::draw_poly_t>();
+                if (cmd == NULL)
+                    return;
+
+                set_fill(cmd->fill, fill);
+                set_fill(cmd->wire, wire);
+                cmd->data   = release_ptr(coords);
+                cmd->width  = width;
+                cmd->count  = n;
             }
 
             void Surface::fill_circle(const Color & c, float x, float y, float r)
@@ -2330,8 +2269,7 @@ namespace lsp
                     PROC(OUT_TEXT_RELATIVE, out_text_relative);
                     PROC(LINE, line);
                     PROC(PARAMETRIC_LINE, parametric_line);
-                    PROC(CLIPPED_PARAMETRIC_LINE, clipped_parametric_line);
-                    PROC(CLIPPED_PARAMETRIC_BAR, clipped_parametric_bar);
+                    PROC(PARAMETRIC_BAR, parametric_bar);
                     PROC(FILL_FRAME, fill_frame);
                     PROC(DRAW_POLY, draw_poly);
                     PROC(CLIP_BEGIN, clip_begin);
@@ -2496,21 +2434,94 @@ namespace lsp
 
             status_t Surface::process(const actions::line_t & action)
             {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                draw_line(uint32_t(res),
+                    action.x[0], action.y[0],
+                    action.x[1],
+                    action.y[1],
+                    action.width);
+
                 return STATUS_OK;
             }
 
             status_t Surface::process(const actions::parametric_line_t & action)
             {
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw the line
+                if (fabsf(action.a) > fabsf(action.b))
+                {
+                    const float k = -1.0f / action.a;
+                    draw_line(uint32_t(res),
+                        roundf((action.c + action.b*action.rect.top) * k), roundf(action.rect.top),
+                        roundf((action.c + action.b*action.rect.bottom) * k), roundf(action.rect.bottom),
+                        action.width);
+                }
+                else
+                {
+                    const float k = -1.0f / action.b;
+                    draw_line(uint32_t(res),
+                        roundf(action.rect.left), roundf((action.c + action.a*action.rect.left) * k),
+                        roundf(action.rect.right), roundf((action.c + action.a*action.rect.right) * k),
+                        action.width);
+                }
+
                 return STATUS_OK;
             }
 
-            status_t Surface::process(const actions::clipped_parametric_line_t & action)
+            status_t Surface::process(const actions::parametric_bar_t & action)
             {
-                return STATUS_OK;
-            }
+                // Start batch
+                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
 
-            status_t Surface::process(const actions::clipped_parametric_bar_t & action)
-            {
+                // Draw the primitive
+                const uint32_t ci   = uint32_t(res);
+                const uint32_t vi   = sBatch.next_vertex_index();
+                vertex_t *v         = sBatch.add_vertices(4);
+                if (v == NULL)
+                    return STATUS_NO_MEM;
+
+                if (fabsf(action.a[0]) > fabsf(action.b[0]))
+                {
+                    const float k = -1.0f / action.a[0];
+                    ADD_VERTEX(v, ci, (action.c[0] + action.b[0]*action.rect.top)*k, action.rect.top);
+                    ADD_VERTEX(v, ci, (action.c[0] + action.b[0]*action.rect.bottom)*k, action.rect.bottom);
+                }
+                else
+                {
+                    const float k = -1.0f / action.b[0];
+                    ADD_VERTEX(v, ci, action.rect.left, (action.c[0] + action.a[0]*action.rect.left)*k);
+                    ADD_VERTEX(v, ci, action.rect.right, (action.c[0] + action.a[0]*action.rect.right)*k);
+                }
+
+                if (fabsf(action.a[1]) > fabsf(action.b[1]))
+                {
+                    const float k = -1.0f / action.a[1];
+                    ADD_VERTEX(v, ci, (action.c[1] + action.b[1]*action.rect.bottom)*k, action.rect.bottom);
+                    ADD_VERTEX(v, ci, (action.c[1] + action.b[1]*action.rect.top)*k, action.rect.top);
+                }
+                else
+                {
+                    const float k = -1.0f / action.b[1];
+                    ADD_VERTEX(v, ci, action.rect.right, (action.c[1] + action.a[1]*action.rect.right)*k);
+                    ADD_VERTEX(v, ci, action.rect.left, (action.c[1] + action.a[1]*action.rect.left)*k);
+                }
+
+                sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+
                 return STATUS_OK;
             }
 
@@ -2521,6 +2532,101 @@ namespace lsp
 
             status_t Surface::process(const actions::draw_poly_t & action)
             {
+                const float * const x = action.data;
+                const float * const y = &action.data[action.count];
+
+                // Fill poly if needed
+                if ((action.fill.type != FILL_NONE) && (action.count >= 3))
+                {
+                    if (action.count > 3)
+                    {
+                        // Start first batch on stencil buffer
+                        clip_rect_t rect;
+                        {
+                            const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, 0.0f, 0.0f, 0.0f, 0.0f);
+                            if (res < 0)
+                                return status_t(-res);
+                            lsp_finally{ sBatch.end(); };
+
+                            fill_triangle_fan(size_t(res), rect, x, y, action.count);
+                        }
+
+                        // Start second batch on color buffer with stencil apply
+                        {
+                            const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                            if (res < 0)
+                                return status_t(-res);
+                            lsp_finally{ sBatch.end(); };
+
+                            fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
+                        }
+                    }
+                    else
+                    {
+                        // Some optimizations
+                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                        if (res < 0)
+                            return status_t(-res);
+                        lsp_finally { sBatch.end(); };
+
+                        // Draw geometry
+                        fill_triangle(uint32_t(res), x[0], y[0], x[1], y[1], x[2], y[2]);
+                    }
+                }
+
+                // Wire poly if needed
+                if ((action.wire.type != FILL_NONE) && (action.width >= 1e-6f) && (action.count >= 2))
+                {
+                    if (action.count > 2)
+                    {
+                        if ((action.wire.type == FILL_SOLID_COLOR) && (action.wire.color.a < k_color))
+                        {
+                            // Opaque polyline can be drawin without stencil buffer
+                            const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                            if (res < 0)
+                                return status_t(-res);
+                            lsp_finally{ sBatch.end(); };
+
+                            draw_polyline(size_t(res), x, y, action.width, action.count);
+                        }
+                        else
+                        {
+                            // Start first batch on stencil buffer
+                            clip_rect_t rect;
+                            {
+                                static const gl::color_t empty_color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                                const ssize_t res = start_batch(gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, empty_color);
+                                if (res < 0)
+                                    return status_t(-res);
+                                lsp_finally{ sBatch.end(); };
+
+                                draw_polyline(size_t(res), rect, x, y, action.width, action.count);
+                            }
+
+                            // Start second batch on color buffer with stencil apply
+                            {
+                                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                                if (res < 0)
+                                    return status_t(-res);
+                                lsp_finally{ sBatch.end(); };
+
+                                fill_rect(size_t(res), rect.left, rect.top, rect.right, rect.bottom);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Draw simple line
+                        const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                        if (res < 0)
+                            return status_t(-res);
+                        lsp_finally { sBatch.end(); };
+
+                        // Draw geometry
+                        draw_line(uint32_t(res), x[0], y[0], x[1], y[1], action.width);
+                    }
+                }
+
                 return STATUS_OK;
             }
 

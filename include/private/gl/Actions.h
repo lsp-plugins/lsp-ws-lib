@@ -155,8 +155,7 @@ namespace lsp
                     OUT_TEXT_RELATIVE,
                     LINE,
                     PARAMETRIC_LINE,
-                    CLIPPED_PARAMETRIC_LINE,
-                    CLIPPED_PARAMETRIC_BAR,
+                    PARAMETRIC_BAR,
                     FILL_FRAME,
                     DRAW_POLY,
                     CLIP_BEGIN,
@@ -313,6 +312,7 @@ namespace lsp
                     gl::fill_t      fill;
                     float           x[2];
                     float           y[2];
+                    float           width;
                 } line_t;
 
                 typedef struct parametric_line_t
@@ -320,27 +320,16 @@ namespace lsp
                     static constexpr action_type_t type_id = action_type_t::PARAMETRIC_LINE;
 
                     gl::fill_t      fill;
+                    gl::clip_rect_t rect;
                     float           a;
                     float           b;
                     float           c;
                     float           width;
                 } parametric_line_t;
 
-                typedef struct clipped_parametric_line_t
+                typedef struct parametric_bar_t
                 {
-                    static constexpr action_type_t type_id = action_type_t::CLIPPED_PARAMETRIC_LINE;
-
-                    gl::fill_t      fill;
-                    gl::clip_rect_t rect;
-                    float           a;
-                    float           b;
-                    float           c;
-                    float           width;
-                } clipped_parametric_line_t;
-
-                typedef struct clipped_parametric_bar_t
-                {
-                    static constexpr action_type_t type_id = action_type_t::CLIPPED_PARAMETRIC_BAR;
+                    static constexpr action_type_t type_id = action_type_t::PARAMETRIC_BAR;
 
                     gl::fill_t      fill;
                     gl::clip_rect_t rect;
@@ -348,11 +337,11 @@ namespace lsp
                     float           b[2];
                     float           c[2];
 
-                } clipped_parametric_bar_t;
+                } parametric_bar_t;
 
                 typedef struct fill_frame_t
                 {
-                    static constexpr action_type_t type_id = action_type_t::CLIPPED_PARAMETRIC_BAR;
+                    static constexpr action_type_t type_id = action_type_t::FILL_FRAME;
 
                     gl::fill_t      fill;
                     gl::rectangle_t outer_rect;
@@ -367,8 +356,7 @@ namespace lsp
 
                     gl::fill_t      fill;
                     gl::fill_t      wire;
-                    float          *x;
-                    float          *y;
+                    float          *data;
                     float           width;
                     uint32_t        count;
                 } draw_poly_t;
@@ -417,8 +405,7 @@ namespace lsp
                         out_text_relative_t         out_text_relative;
                         line_t                      line;
                         parametric_line_t           parametric_line;
-                        clipped_parametric_line_t   clipped_parametric_line;
-                        clipped_parametric_bar_t    clipped_parametric_bar;
+                        parametric_bar_t            parametric_bar;
                         fill_frame_t                fill_frame;
                         draw_poly_t                 draw_poly;
                         clip_begin_t                clip_begin;

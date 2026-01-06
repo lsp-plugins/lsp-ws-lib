@@ -126,11 +126,8 @@ namespace lsp
                         case PARAMETRIC_LINE:
                             init_fill(action->parametric_line.fill);
                             break;
-                        case CLIPPED_PARAMETRIC_LINE:
-                            init_fill(action->clipped_parametric_line.fill);
-                            break;
-                        case CLIPPED_PARAMETRIC_BAR:
-                            init_fill(action->clipped_parametric_bar.fill);
+                        case PARAMETRIC_BAR:
+                            init_fill(action->parametric_bar.fill);
                             break;
                         case FILL_FRAME:
                             init_fill(action->fill_frame.fill);
@@ -138,6 +135,7 @@ namespace lsp
                         case DRAW_POLY:
                             init_fill(action->draw_poly.fill);
                             init_fill(action->draw_poly.wire);
+                            action->draw_poly.data  = NULL;
                             break;
                         default:
                             break;
@@ -195,11 +193,8 @@ namespace lsp
                         case PARAMETRIC_LINE:
                             destroy_fill(action->parametric_line.fill);
                             break;
-                        case CLIPPED_PARAMETRIC_LINE:
-                            destroy_fill(action->clipped_parametric_line.fill);
-                            break;
-                        case CLIPPED_PARAMETRIC_BAR:
-                            destroy_fill(action->clipped_parametric_bar.fill);
+                        case PARAMETRIC_BAR:
+                            destroy_fill(action->parametric_bar.fill);
                             break;
                         case FILL_FRAME:
                             destroy_fill(action->fill_frame.fill);
@@ -207,6 +202,11 @@ namespace lsp
                         case DRAW_POLY:
                             destroy_fill(action->draw_poly.fill);
                             destroy_fill(action->draw_poly.wire);
+                            if (action->draw_poly.data != NULL)
+                            {
+                                free(action->draw_poly.data);
+                                action->draw_poly.data  = NULL;
+                            }
                             break;
                         default:
                             break;
