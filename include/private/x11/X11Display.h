@@ -368,11 +368,15 @@ namespace lsp
                     status_t                    lock_events(X11Window *wnd, X11Window *lock);
                     status_t                    unlock_events(X11Window *wnd);
 
-                    ft::FontManager            *font_manager();
-
                     bool                        set_input_focus(::Window wnd);
 
                     void                        flush();
+
+                public:
+
+                #ifdef USE_LIBFREETYPE
+                    inline ft::FontManager     *font_manager()      { return &sFontManager;  }
+                #endif /* USE_LIBFREETYPE */
 
                 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                     const char                 *glx_extensions();
@@ -380,6 +384,7 @@ namespace lsp
 
                 public:
                     static const char          *event_name(int xev_code);
+
             };
         } /* namespace x11 */
     } /* namespace ws */

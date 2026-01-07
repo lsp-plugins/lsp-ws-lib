@@ -3904,15 +3904,6 @@ namespace lsp
             #endif /* USE_LIBFREETYPE */
             }
 
-            ft::FontManager *X11Display::font_manager()
-            {
-            #ifdef USE_LIBFREETYPE
-                return &sFontManager;
-            #else
-                return NULL;
-            #endif /* USE_LIBFREETYPE */
-            }
-
             void X11Display::drop_monitors(lltl::darray<MonitorInfo> *list)
             {
                 for (size_t i=0, n=list->size(); i<n; ++i)

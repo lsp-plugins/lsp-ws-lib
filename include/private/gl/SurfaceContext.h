@@ -152,6 +152,16 @@ namespace lsp
                     void        end_draw();
 
                     /**
+                     * Called when renderer starts processing context events
+                     */
+                    void        begin_render();
+
+                    /**
+                     * Called when renderer ends processing context events
+                     */
+                    void        end_render();
+
+                    /**
                      * Clear all currently drawing commands
                      */
                     void        clear();
@@ -178,6 +188,13 @@ namespace lsp
                      * Move to the next command
                      */
                     const gl::actions::action_t *next();
+
+                    /**
+                     * Fetch command to the action
+                     * @param action reference to the action to store action
+                     * @return true if action was extracted
+                     */
+                    bool fetch(gl::actions::action_t & action);
 
                     /**
                      * Add drawing command

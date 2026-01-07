@@ -86,6 +86,14 @@ namespace lsp
                 bIsDrawing     = false;
             }
 
+            void SurfaceContext::begin_render()
+            {
+            }
+
+            void SurfaceContext::end_render()
+            {
+            }
+
             void SurfaceContext::clear()
             {
                 for (lltl::iterator<actions::action_t> it = sCommands.values(); it; ++it)
@@ -98,6 +106,11 @@ namespace lsp
                 actions::destroy(sCommands.front());
                 sCommands.pop_front();
                 return sCommands.first();
+            }
+
+            bool SurfaceContext::fetch(gl::actions::action_t & action)
+            {
+                return sCommands.pop_front(action);
             }
 
             void SurfaceContext::set_size(const gl::surface_size_t & size)
