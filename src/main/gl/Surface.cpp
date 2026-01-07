@@ -2070,17 +2070,21 @@ namespace lsp
                 float fx, float fy, float fw, float fh,
                 float ix, float iy, float iw, float ih)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::fill_frame_t * const cmd = pSurface->append<gl::actions::fill_frame_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_frame(
-                    uint32_t(res), flags, radius,
-                    fx, fy, fw, fh,
-                    ix, iy, iw, ih);
+                set_fill(cmd->fill, c);
+                cmd->outer_rect.x       = fx;
+                cmd->outer_rect.y       = fy;
+                cmd->outer_rect.width   = fw;
+                cmd->outer_rect.height  = fh;
+                cmd->inner_rect.x       = ix;
+                cmd->inner_rect.y       = iy;
+                cmd->inner_rect.width   = iw;
+                cmd->inner_rect.height  = ih;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(flags);
             }
 
             void Surface::fill_frame(
@@ -2088,17 +2092,21 @@ namespace lsp
                 size_t flags, float radius,
                 const ws::rectangle_t *out, const ws::rectangle_t *in)
             {
-                // Start batch
-                const ssize_t res = start_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, c);
-                if (res < 0)
+                gl::actions::fill_frame_t * const cmd = pSurface->append<gl::actions::fill_frame_t>();
+                if (cmd == NULL)
                     return;
-                lsp_finally { sBatch.end(); };
 
-                // Draw geometry
-                fill_frame(
-                    uint32_t(res), flags, radius,
-                    out->nLeft, out->nTop, out->nWidth, out->nHeight,
-                    in->nLeft, in->nTop, in->nWidth, in->nHeight);
+                set_fill(cmd->fill, c);
+                cmd->outer_rect.x       = out->nLeft;
+                cmd->outer_rect.y       = out->nTop;
+                cmd->outer_rect.width   = out->nWidth;
+                cmd->outer_rect.height  = out->nHeight;
+                cmd->inner_rect.x       = in->nLeft;
+                cmd->inner_rect.y       = in->nTop;
+                cmd->inner_rect.width   = in->nWidth;
+                cmd->inner_rect.height  = in->nHeight;
+                cmd->radius             = radius;
+                cmd->corners            = uint32_t(flags);
             }
 
             bool Surface::get_antialiasing()
@@ -2741,6 +2749,54 @@ namespace lsp
 
             status_t Surface::process(const actions::fill_frame_t & action)
             {
+                // Start batch
+                const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                if (res < 0)
+                    return status_t(-res);
+                lsp_finally { sBatch.end(); };
+
+                // Draw geometry
+                const uint32_t ci   = uint32_t(res);
+                const float fx      = action.outer_rect.x;
+                const float fy      = action.outer_rect.y;
+                const float ix      = action.inner_rect.x;
+                const float iy      = action.inner_rect.y;
+                const float r       = action.radius;
+                const float fxe     = fx + action.outer_rect.width;
+                const float fye     = fy + action.outer_rect.height;
+                const float ixe     = ix + action.inner_rect.width;
+                const float iye     = iy + action.inner_rect.height;
+
+                // Simple case
+                if ((ix >= fxe) || (ixe < fx) || (iy >= fye) || (iye < fy))
+                {
+                    fill_rect(ci, fx, fy, fxe, fye);
+                    return STATUS_OK;
+                }
+                else if ((ix <= fx) && (ixe >= fxe) && (iy <= fy) && (iye >= fye))
+                    return STATUS_OK;
+
+                if (fy < iy) // Top rectangle
+                    fill_rect(ci, fx, fy, fxe, iy);
+                if (fye > iye) // Bottom rectangle
+                    fill_rect(ci, fx, iye, fxe, fye);
+
+                const float vt  = lsp_max(fy, iy);
+                const float vb  = lsp_min(fye, iye);
+                if (fx < ix) // Left rectangle
+                    fill_rect(ci, fx, vt, ix, vb);
+                if (fxe > ixe) // Right rectangle
+                    fill_rect(ci, ixe, vt, fxe, vb);
+
+                if (action.corners & SURFMASK_LT_CORNER)
+                    fill_corner(ci, ix + r, iy + r, ix, iy, r, MATH_PI);
+                if (action.corners & SURFMASK_RT_CORNER)
+                    fill_corner(ci, ixe - r, iy + r, ixe, iy, r, MATH_PI_MUL_3D2);
+                if (action.corners & SURFMASK_LB_CORNER)
+                    fill_corner(ci, ix + r, iye - r, ix, iye, r, MATH_PI_MUL_1D2);
+                if (action.corners & SURFMASK_RB_CORNER)
+                    fill_corner(ci, ixe - r, iye - r, ixe, iye, r, 0.0f);
+
                 return STATUS_OK;
             }
 

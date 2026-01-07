@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 7 июл. 2022 г.
@@ -43,12 +43,14 @@ MTEST_BEGIN("ws.display", frames)
         private:
             test_type_t    *pTest;
             ws::IWindow    *pWnd;
+            bool            bAntiAlias;
 
         public:
             inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
                 pTest       = test;
                 pWnd        = wnd;
+                bAntiAlias  = true;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
@@ -65,6 +67,7 @@ MTEST_BEGIN("ws.display", frames)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
+                        s->set_antialiasing(bAntiAlias);
 
                         ws::rectangle_t r1, r2;
                         r1.nWidth       = 104;
@@ -138,6 +141,18 @@ MTEST_BEGIN("ws.display", frames)
                         s->end();
 
                         return STATUS_OK;
+                    }
+
+                    case ws::UIE_MOUSE_CLICK:
+                    {
+                        // Left mouse button toggles anti-aliasing
+                        if (ev->nCode == ws::MCB_LEFT)
+                        {
+                            bAntiAlias = !bAntiAlias;
+                            pTest->printf("Anti-aliasing enabled: %s\n", (bAntiAlias) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        break;
                     }
 
                     case ws::UIE_CLOSE:
