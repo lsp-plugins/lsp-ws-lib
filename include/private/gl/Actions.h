@@ -26,10 +26,11 @@
 
 #ifdef LSP_PLUGINS_USE_OPENGL
 
-#include <lsp-plug.in/ws/Font.h>
-#include <lsp-plug.in/ws/IGradient.h>
+#include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/runtime/Color.h>
 #include <lsp-plug.in/runtime/LSPString.h>
+#include <lsp-plug.in/ws/Font.h>
+#include <lsp-plug.in/ws/IGradient.h>
 
 namespace lsp
 {
@@ -42,7 +43,7 @@ namespace lsp
             // Color
             typedef struct color_t
             {
-                float r, g, b, a;
+                float           r, g, b, a;
             } color_t;
 
             // Gradient
@@ -158,6 +159,7 @@ namespace lsp
                     FILL_CIRCLE,
                     WIRE_ARC,
                     OUT_TEXT,
+                    OUT_TEXT_BITMAP,
                     OUT_TEXT_RELATIVE,
                     LINE,
                     PARAMETRIC_LINE,
@@ -297,6 +299,17 @@ namespace lsp
                     float           y;
                 } out_text_t;
 
+                typedef struct out_text_bitmap_t
+                {
+                    static constexpr action_type_t type_id = action_type_t::OUT_TEXT_BITMAP;
+
+                    gl::color_t     fill;
+                    dsp::bitmap_t  *bitmap;
+                    float           x;
+                    float           y;
+                    gl::rectangle_t underline;
+                } out_text_bitmap_t;
+
                 typedef struct out_text_relative_t
                 {
                     static constexpr action_type_t type_id = action_type_t::OUT_TEXT_RELATIVE;
@@ -407,6 +420,7 @@ namespace lsp
                         fill_circle_t               fill_circle;
                         wire_arc_t                  wire_arc;
                         out_text_t                  out_text;
+                        out_text_bitmap_t           out_text_bitmap;
                         out_text_relative_t         out_text_relative;
                         line_t                      line;
                         parametric_line_t           parametric_line;

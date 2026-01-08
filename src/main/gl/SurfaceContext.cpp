@@ -86,8 +86,9 @@ namespace lsp
                 bIsDrawing     = false;
             }
 
-            void SurfaceContext::begin_render()
+            void SurfaceContext::begin_render(gl::IContext * context)
             {
+                // TODO: activate context for a window
             }
 
             void SurfaceContext::end_render()

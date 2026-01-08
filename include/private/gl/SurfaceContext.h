@@ -154,7 +154,7 @@ namespace lsp
                     /**
                      * Called when renderer starts processing context events
                      */
-                    void        begin_render();
+                    void        begin_render(gl::IContext * context);
 
                     /**
                      * Called when renderer ends processing context events

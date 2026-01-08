@@ -118,7 +118,7 @@ namespace lsp
                     uatomic_t   reference_up();
                     uatomic_t   reference_down();
 
-                protected:
+                public:
                     void        perform_gc();
 
                 public:

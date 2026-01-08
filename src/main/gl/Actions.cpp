@@ -27,6 +27,8 @@
 #include <lsp-plug.in/ws/Font.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 
+#include <private/freetype/bitmap.h>
+
 #include <private/gl/Data.h>
 #include <private/gl/Gradient.h>
 #include <private/gl/SurfaceContext.h>
@@ -138,6 +140,9 @@ namespace lsp
                             new (&action->out_text.font, lsp::inplace_new_tag_t()) ws::Font();
                             new (&action->out_text.text, lsp::inplace_new_tag_t()) LSPString();
                             break;
+                        case OUT_TEXT_BITMAP:
+                            action->out_text_bitmap.bitmap      = NULL;
+                            break;
                         case OUT_TEXT_RELATIVE:
                             new (&action->out_text_relative.font, lsp::inplace_new_tag_t()) ws::Font();
                             new (&action->out_text_relative.text, lsp::inplace_new_tag_t()) LSPString();
@@ -204,6 +209,13 @@ namespace lsp
                         case OUT_TEXT:
                             action->out_text.font.~Font();
                             action->out_text.text.~LSPString();
+                            break;
+                        case OUT_TEXT_BITMAP:
+                            if (action->out_text_bitmap.bitmap != NULL)
+                            {
+                                ft::free_bitmap(action->out_text_bitmap.bitmap);
+                                action->out_text_bitmap.bitmap = NULL;
+                            }
                             break;
                         case OUT_TEXT_RELATIVE:
                             action->out_text_relative.font.~Font();

@@ -30,9 +30,12 @@
 #include <lsp-plug.in/ipc/Condition.h>
 #include <lsp-plug.in/ipc/Thread.h>
 #include <lsp-plug.in/lltl/parray.h>
+
 #include <private/gl/Allocator.h>
 #include <private/gl/Batch.h>
 #include <private/gl/SurfaceContext.h>
+#include <private/gl/Texture.h>
+#include <private/gl/TextAllocator.h>
 
 namespace lsp
 {
@@ -75,6 +78,7 @@ namespace lsp
                     gl::Allocator                   sAllocator;
                     gl::Batch                       sBatch;
                     gl::IContext                   *pGLContext;
+                    gl::TextAllocator              *pTextAllocator;
 
                 protected:
                     static status_t execute(void *arg);
@@ -85,6 +89,7 @@ namespace lsp
                     SurfaceContext         *poll();
 
                 protected:
+                    virtual gl::IContext   *create_context();
                     virtual status_t        setup_gl_context(SurfaceContext * context);
 
                 protected: // Drawing
@@ -96,6 +101,8 @@ namespace lsp
                     static inline void      limit_rect(clip_rect_t & rect, SurfaceContext * context);
 
                     bool                    update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * context);
+
+                    gl::Texture            *make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride);
 
                     ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::color_t & color);
                     ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
@@ -136,6 +143,7 @@ namespace lsp
                     status_t                process(SurfaceContext * context, const actions::fill_circle_t & action);
                     status_t                process(SurfaceContext * context, const actions::wire_arc_t & action);
                     virtual status_t        process(SurfaceContext * context, const actions::out_text_t & action);
+                    virtual status_t        process(SurfaceContext * context, const actions::out_text_bitmap_t & action);
                     virtual status_t        process(SurfaceContext * context, const actions::out_text_relative_t & action);
                     status_t                process(SurfaceContext * context, const actions::line_t & action);
                     status_t                process(SurfaceContext * context, const actions::parametric_line_t & action);

@@ -184,6 +184,7 @@ namespace lsp
                     status_t            process(const actions::fill_circle_t & action);
                     status_t            process(const actions::wire_arc_t & action);
                     virtual status_t    process(const actions::out_text_t & action);
+                    virtual status_t    process(const actions::out_text_bitmap_t & action);
                     virtual status_t    process(const actions::out_text_relative_t & action);
                     status_t            process(const actions::line_t & action);
                     status_t            process(const actions::parametric_line_t & action);

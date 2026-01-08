@@ -76,6 +76,7 @@ namespace lsp
                 sBatch(&sAllocator)
             {
                 pGLContext      = NULL;
+                pTextAllocator  = NULL;
             }
 
             Renderer::~Renderer()
@@ -106,6 +107,10 @@ namespace lsp
 
                 // Wait until thread has terminated
                 sThread.join();
+
+                // Release context and texture allocator
+                safe_release(pTextAllocator);
+                safe_release(pGLContext);
             }
 
             status_t Renderer::execute(void *arg)
@@ -136,10 +141,28 @@ namespace lsp
                 }
             }
 
-            status_t Renderer::setup_gl_context(SurfaceContext * context)
+            gl::IContext *Renderer::create_context()
             {
                 lsp_warn("not implemented");
-                return STATUS_NOT_IMPLEMENTED;
+                return NULL;
+            }
+
+            status_t Renderer::setup_gl_context(SurfaceContext * context)
+            {
+                if (pGLContext == NULL)
+                {
+                    // Create context
+                    pGLContext      = create_context();
+                    if (pGLContext == NULL)
+                        return STATUS_NOT_FOUND;
+
+                    // Create text allocator
+                    pTextAllocator  = new TextAllocator(pGLContext);
+                    if (pTextAllocator == NULL)
+                        return STATUS_NO_MEM;
+                }
+
+                return STATUS_OK;
             }
 
             bool Renderer::update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * context)
@@ -164,14 +187,52 @@ namespace lsp
                 return true;
             }
 
+            gl::Texture *Renderer::make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride)
+            {
+                // Check that texture can be placed to the atlas
+                gl::Texture *tex = NULL;
+                if ((pTextAllocator != NULL) && (width <= TEXT_ATLAS_SIZE) && (height <= TEXT_ATLAS_SIZE))
+                {
+                    ws::rectangle_t wrect;
+
+                    tex = pTextAllocator->allocate(&wrect, data, width, height, stride);
+                    if (tex != NULL)
+                    {
+                        rect->sb        = wrect.nLeft * gl::TEXT_ATLAS_SCALE;
+                        rect->tb        = wrect.nTop * gl::TEXT_ATLAS_SCALE;
+                        rect->se        = (wrect.nLeft + wrect.nWidth) * gl::TEXT_ATLAS_SCALE;
+                        rect->te        = (wrect.nTop + wrect.nHeight) * gl::TEXT_ATLAS_SCALE;
+
+                        return tex;
+                    }
+                }
+
+                // Allocate texture
+                tex = new gl::Texture(pGLContext);
+                if (tex == NULL)
+                    return NULL;
+                lsp_finally { safe_release(tex); };
+
+                // Initialize texture
+                if (tex->set_image(data, width, height, stride, gl::TEXTURE_ALPHA8) != STATUS_OK)
+                    return NULL;
+
+                rect->sb        = 0.0f;
+                rect->tb        = 0.0f;
+                rect->se        = 1.0f;
+                rect->te        = 1.0f;
+
+                return release_ptr(tex);
+            }
+
             status_t Renderer::run()
             {
                 lltl::darray<gl::uniform_t> uniforms;
-                SurfaceContext * context = NULL;
+                SurfaceContext * surface = NULL;
                 status_t res;
 
                 // Do a loop while there are jobs to do
-                while ((context = poll()) != NULL)
+                while ((surface = poll()) != NULL)
                 {
                     // Remove context from the queue and release it on the end of loop
                     lsp_finally
@@ -179,35 +240,37 @@ namespace lsp
                         sLock.lock();
                         sQueue.shift();
                         sLock.unlock();
-                        safe_release(context);
+                        safe_release(surface);
                     };
 
                     // Set up OpenGL context for drawing
-                    res = setup_gl_context(context);
+                    res = setup_gl_context(surface);
                     if (res != STATUS_OK)
                     {
                         lsp_warn("Could not set up OpenGL context: error=%d", int(res));
-                        context->clear();
+                        surface->clear();
                         continue;
                     }
-
                     // Notify context about start of the rendering
-                    context->begin_render();
-                    lsp_finally { context->end_render(); };
+                    surface->begin_render(pGLContext);
+                    lsp_finally {
+                        pGLContext->perform_gc();
+                        surface->end_render();
+                    };
 
                     // Process each action in the list
                     lsp_finally { sBatch.clear(); };
                     res         = STATUS_OK;
-                    for (const gl::actions::action_t * action = context->current(); action != NULL; action = context->next())
+                    for (const gl::actions::action_t * action = surface->current(); action != NULL; action = surface->next())
                     {
-                        if ((res = process(context, *action)) != STATUS_OK)
+                        if ((res = process(surface, *action)) != STATUS_OK)
                             break;
                     }
 
                     // Execute batch
                     if (res == STATUS_OK)
                     {
-                        if (update_uniforms(uniforms, context))
+                        if (update_uniforms(uniforms, surface))
                             sBatch.execute(pGLContext, uniforms.array());
                     }
                 }
@@ -234,6 +297,7 @@ namespace lsp
                     PROC(FILL_CIRCLE, fill_circle);
                     PROC(WIRE_ARC, wire_arc);
                     PROC(OUT_TEXT, out_text);
+                    PROC(OUT_TEXT_BITMAP, out_text_bitmap);
                     PROC(OUT_TEXT_RELATIVE, out_text_relative);
                     PROC(LINE, line);
                     PROC(PARAMETRIC_LINE, parametric_line);
@@ -605,6 +669,60 @@ namespace lsp
 
             status_t Renderer::process(SurfaceContext * context, const actions::out_text_t & action)
             {
+                return STATUS_OK;
+            }
+
+            status_t Renderer::process(SurfaceContext * context, const actions::out_text_bitmap_t & action)
+            {
+                // Allocate texture
+                const dsp::bitmap_t *bitmap = action.bitmap;
+
+                texture_rect_t rect;
+                gl::Texture *tex        = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
+                if (tex == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally { safe_release(tex); };
+
+                // Output the text
+                {
+                    const ssize_t res   = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
+                    if (res < 0)
+                        return status_t(-res);
+                    lsp_finally { sBatch.end(); };
+
+                    // Draw primitives
+                    const uint32_t ci   = uint32_t(res);
+                    const float xs      = action.x;
+                    const float ys      = action.y;
+                    const float xe      = xs + bitmap->width;
+                    const float ye      = ys + bitmap->height;
+
+                    const uint32_t vi   = sBatch.next_vertex_index();
+                    gl::vertex_t *v     = sBatch.add_vertices(4);
+                    if (v == NULL)
+                        return STATUS_NO_MEM;
+
+                    ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
+                    ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ys, rect.se, rect.tb);
+
+                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                }
+
+                // Draw underline if required
+                if ((action.underline.width > 1e-6f) && (action.underline.height > 1e-6f))
+                {
+                    const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                    if (res < 0)
+                        return status_t(-res);
+                    lsp_finally { sBatch.end(); };
+
+                    fill_rect(uint32_t(res),
+                        action.underline.x, action.underline.y,
+                        action.underline.x + action.underline.width, action.underline.y + action.underline.height);
+                }
+
                 return STATUS_OK;
             }
 

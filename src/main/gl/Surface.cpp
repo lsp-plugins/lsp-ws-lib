@@ -2390,6 +2390,7 @@ namespace lsp
                     PROC(FILL_CIRCLE, fill_circle);
                     PROC(WIRE_ARC, wire_arc);
                     PROC(OUT_TEXT, out_text);
+                    PROC(OUT_TEXT_BITMAP, out_text_bitmap);
                     PROC(OUT_TEXT_RELATIVE, out_text_relative);
                     PROC(LINE, line);
                     PROC(PARAMETRIC_LINE, parametric_line);
@@ -2646,6 +2647,60 @@ namespace lsp
 
             status_t Surface::process(const actions::out_text_t & action)
             {
+                return STATUS_OK;
+            }
+
+            status_t Surface::process(const actions::out_text_bitmap_t & action)
+            {
+                // Allocate texture
+                const dsp::bitmap_t *bitmap = action.bitmap;
+
+                texture_rect_t rect;
+                gl::Texture *tex        = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
+                if (tex == NULL)
+                    return STATUS_NO_MEM;
+                lsp_finally { safe_release(tex); };
+
+                // Output the text
+                {
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
+                    if (res < 0)
+                        return status_t(-res);
+                    lsp_finally { sBatch.end(); };
+
+                    // Draw primitives
+                    const uint32_t ci   = uint32_t(res);
+                    const float xs      = action.x;
+                    const float ys      = action.y;
+                    const float xe      = xs + bitmap->width;
+                    const float ye      = ys + bitmap->height;
+
+                    const uint32_t vi   = sBatch.next_vertex_index();
+                    gl::vertex_t *v     = sBatch.add_vertices(4);
+                    if (v == NULL)
+                        return STATUS_NO_MEM;
+
+                    ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
+                    ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
+                    ADD_TVERTEX(v, ci, xe, ys, rect.se, rect.tb);
+
+                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
+                }
+
+                // Draw underline if required
+                if ((action.underline.width > 1e-6f) && (action.underline.height > 1e-6f))
+                {
+                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                    if (res < 0)
+                        return status_t(-res);
+                    lsp_finally { sBatch.end(); };
+
+                    fill_rect(uint32_t(res),
+                        action.underline.x, action.underline.y,
+                        action.underline.x + action.underline.width, action.underline.y + action.underline.height);
+                }
+
                 return STATUS_OK;
             }
 

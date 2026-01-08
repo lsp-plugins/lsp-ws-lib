@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 29 апр. 2023 г.
@@ -19,13 +19,10 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifdef USE_LIBFREETYPE
-
 #include <lsp-plug.in/common/alloc.h>
 #include <lsp-plug.in/common/types.h>
-#include <lsp-plug.in/dsp/dsp.h>
+#include <lsp-plug.in/stdlib/string.h>
 
-#include <private/freetype/types.h>
 #include <private/freetype/bitmap.h>
 
 #ifdef USE_LIBCAIRO
@@ -86,7 +83,5 @@ namespace lsp
         } /* namespace ft */
     } /* namespace ws */
 } /* namespace lsp */
-
-#endif /* USE_LIBFREETYPE */
 
 
