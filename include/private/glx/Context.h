@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 16 янв. 2025 г.
@@ -29,6 +29,7 @@
 #include <lsp-plug.in/lltl/parray.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 
+#include <private/x11/X11Drawable.h>
 #include <private/gl/IContext.h>
 #include <private/glx/vtbl.h>
 
@@ -47,9 +48,10 @@ namespace lsp
                     enum features_t
                     {
                         NO_FEATURES             = 0,
-                        OPENGL_3_3_OR_ABOVE     = 1 << 0,
-                        LAYOUT_SUPPORT          = 1 << 1,
-                        TEXTURE_MULTISAMPLE     = 1 << 2,
+                        FEATURES_INITIALIZED    = 1 << 0,
+                        OPENGL_3_3_OR_ABOVE     = 1 << 1,
+                        LAYOUT_SUPPORT          = 1 << 2,
+                        TEXTURE_MULTISAMPLE     = 1 << 3,
                     };
 
                 private:
@@ -77,9 +79,9 @@ namespace lsp
                 private:
                     ::Display          *pDisplay;
                     ::GLXContext        hContext;
-                    ::Window            hWindow;
+                    x11::X11Drawable   *pDrawable;
                     uint32_t            nFeatures;
-                    uint32_t            nMultisample;
+                    uint32_t            nMaxMultisample;
 
                     lltl::parray<program_t> vPrograms;
 
@@ -93,17 +95,14 @@ namespace lsp
                     bool                check_compile_status(const char *context, GLenum id, compile_status_t type);
                     bool                make_shader(LSPString &dst, const char *text) const;
 
-                protected:
-                    virtual void        cleanup() override;
-
                 public:
-                    explicit Context(::Display *dpy, ::GLXContext ctx, ::Window wnd, glx::vtbl_t *vtbl, uint32_t features, uint32_t multisample);
+                    explicit Context(::Display *dpy, ::GLXContext ctx, glx::vtbl_t *vtbl, uint32_t features, int max_multisample);
                     virtual ~Context() override;
 
+                    virtual void        destroy() override;
+
                 public:
-                    virtual bool        active() const override;
-                    virtual status_t    activate() override;
-                    virtual status_t    deactivate() override;
+                    virtual status_t    activate(ws::IDrawable * drawable) override;
                     virtual status_t    program(size_t *id, gl::program_t program) override;
                     virtual GLint       attribute_location(gl::program_t program, gl::attribute_t attribute) override;
                     virtual uint32_t    multisample() const override;
@@ -114,13 +113,10 @@ namespace lsp
 
             /**
              * Create GLX context
-             * @param dpy display
-             * @param screen screen
-             * @param window associated window
-             * @param extensions list of GLX extensions
+             * @param display_name connection string to the display name
              * @return pointer to created context or NULL
              */
-            gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions);
+            gl::IContext *create_context(const char *display_name);
 
         } /* namespace glx */
     } /* namespace ws */

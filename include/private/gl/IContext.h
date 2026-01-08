@@ -29,6 +29,7 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
 #include <lsp-plug.in/lltl/darray.h>
+#include <lsp-plug.in/ws/IDrawable.h>
 
 #include <private/gl/Allocator.h>
 #include <private/gl/Data.h>
@@ -43,30 +44,6 @@ namespace lsp
         {
             class Texture;
 
-            enum context_param_id_t
-            {
-                END = 0,
-                DISPLAY = 1,
-                SCREEN = 2,
-                WINDOW = 3,
-                DISPLAY_EXTENSIONS = 4,
-            };
-
-            typedef struct context_param_t
-            {
-                context_param_id_t id;
-                union
-                {
-                    void           *ptr;
-                    const char     *text;
-                    bool            flag;
-                    signed int      sint;
-                    unsigned int    uint;
-                    signed long     slong;
-                    unsigned long   ulong;
-                };
-            } context_param_t;
-
             class LSP_HIDDEN_MODIFIER IContext
             {
                 protected:
@@ -78,7 +55,6 @@ namespace lsp
 
                 private:
                     uatomic_t           nReferences;
-                    bool                bValid;
 
                     lltl::darray<GLuint> vFramebuffers;
                     lltl::darray<GLuint> vRenderbuffers;
@@ -94,16 +70,11 @@ namespace lsp
                     uint32_t            nCommandsSize;      // Size of the command texture
                     GLuint              nCommandsProcessor; // Commands processor
 
-                    Allocator           sAllocator;
-
                 protected:
                     const gl::vtbl_t   *pVtbl;
 
                 protected:
-                    static void    remove_identifiers(lltl::darray<GLuint> & ids, lltl::darray<GLuint> & list);
-
-                protected:
-                    virtual void        cleanup();
+                    static void         remove_identifiers(lltl::darray<GLuint> & ids, lltl::darray<GLuint> & list);
 
                 public:
                     IContext(const gl::vtbl_t *vtbl);
@@ -114,30 +85,21 @@ namespace lsp
                     IContext & operator = (const IContext &) = delete;
                     IContext & operator = (IContext &&) = delete;
 
+                    virtual void destroy();
+
                 public:
                     uatomic_t   reference_up();
                     uatomic_t   reference_down();
 
-                public:
+                private:
                     void        perform_gc();
 
                 public:
                     /**
-                     * Get data allocator
-                     * @return data allocator
+                     * Check context is valid
+                     * @return true if context is valid
                      */
-                    inline Allocator      *allocator()  { return &sAllocator; };
-
-                    /**
-                     * Mark OpenGL context as invalid
-                     */
-                    void invalidate();
-
-                    /**
-                     * Check validity of OpenGL context
-                     * @return true of OpenGL context is valid
-                     */
-                    inline bool valid() const           { return bValid; };
+                    inline bool valid() const           { return pVtbl != NULL; };
 
                     /**
                      * Obtain virtual table of OpenGL functions
@@ -221,22 +183,17 @@ namespace lsp
 
                 public:
                     /**
-                     * Check if context is currently active
-                     * @return true if context is currently active
-                     */
-                    virtual bool active() const;
-
-                    /**
                      * Activate context
+                     * @param drawable the drawable object to set up the context
                      * @return status of operation
                      */
-                    virtual status_t activate();
+                    virtual status_t activate(ws::IDrawable * drawable);
 
                     /**
                      * Deactivate context
-                     * @return status of operation
+                     * @param
                      */
-                    virtual status_t deactivate();
+                    virtual void deactivate();
 
                     /**
                      * Swap back and front buffer
@@ -280,13 +237,6 @@ namespace lsp
                      */
                     virtual size_t height() const;
             };
-
-            /**
-             * Create OpenGL context using specified params
-             * @param params specified params
-             * @return pointer to created context or NULL
-             */
-            gl::IContext *create_context(const context_param_t *params);
 
         } /* namespace gl */
     } /* namespace ws */

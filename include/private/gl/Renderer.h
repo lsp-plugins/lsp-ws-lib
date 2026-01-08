@@ -72,25 +72,23 @@ namespace lsp
                     } texcoord_t;
 
                 protected:
-                    ipc::Thread                     sThread;
+                    uatomic_t                       nReferences;
+                    gl::IContext                   *pGLContext;
                     ipc::Condition                  sLock;
+                    ipc::Thread                     sThread;
                     lltl::parray<SurfaceContext>    sQueue;
                     gl::Allocator                   sAllocator;
+                    gl::TextAllocator               sTextAllocator;
                     gl::Batch                       sBatch;
-                    gl::IContext                   *pGLContext;
-                    gl::TextAllocator              *pTextAllocator;
 
                 protected:
                     static status_t execute(void *arg);
 
                 protected:
+                    status_t                setup_context(SurfaceContext *surface);
                     status_t                run();
                     void                    do_destroy();
                     SurfaceContext         *poll();
-
-                protected:
-                    virtual gl::IContext   *create_context();
-                    virtual status_t        setup_gl_context(SurfaceContext * context);
 
                 protected: // Drawing
                     static inline float    *copy_coords(const float *x, const float *y, size_t n);
@@ -98,17 +96,17 @@ namespace lsp
                     static inline float    *serialize_clipping(float *dst, const gl::clip_state_t & clipping);
                     static inline float    *serialize_color(float *dst, const gl::color_t & c);
                     static inline void      extend_rect(clip_rect_t & rect, float x, float y);
-                    static inline void      limit_rect(clip_rect_t & rect, SurfaceContext * context);
+                    static inline void      limit_rect(clip_rect_t & rect, SurfaceContext * surface);
 
-                    bool                    update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * context);
+                    bool                    update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * surface);
 
                     gl::Texture            *make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride);
 
-                    ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::color_t & color);
-                    ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
-                    ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
-                    ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, gl::Texture *texture, const gl::color_t & color);
-                    ssize_t                 start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::fill_t & fill);
+                    ssize_t                 start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::color_t & color);
+                    ssize_t                 start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g);
+                    ssize_t                 start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g);
+                    ssize_t                 start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, gl::Texture *texture, const gl::color_t & color);
+                    ssize_t                 start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::fill_t & fill);
 
                     void                    fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2);
                     void                    fill_triangle_fan(uint32_t ci, clip_rect_t &rect, const float *x, const float *y, size_t n);
@@ -129,34 +127,34 @@ namespace lsp
                     void                    wire_arc(uint32_t ci, float x, float y, float r, float a1, float a2, float width);
 
                 protected: // Event processing
-                    status_t                process(SurfaceContext * context, const actions::action_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::action_t & action);
 
-                    status_t                process(SurfaceContext * context, const actions::init_t & action);
-                    status_t                process(SurfaceContext * context, const actions::clear_t & action);
-                    status_t                process(SurfaceContext * context, const actions::resize_t & action);
-                    status_t                process(SurfaceContext * context, const actions::draw_surface_t & action);
-                    status_t                process(SurfaceContext * context, const actions::draw_raw_t & action);
-                    status_t                process(SurfaceContext * context, const actions::wire_rect_t & action);
-                    status_t                process(SurfaceContext * context, const actions::fill_rect_t & action);
-                    status_t                process(SurfaceContext * context, const actions::fill_sector_t & action);
-                    status_t                process(SurfaceContext * context, const actions::fill_triangle_t & action);
-                    status_t                process(SurfaceContext * context, const actions::fill_circle_t & action);
-                    status_t                process(SurfaceContext * context, const actions::wire_arc_t & action);
-                    virtual status_t        process(SurfaceContext * context, const actions::out_text_t & action);
-                    virtual status_t        process(SurfaceContext * context, const actions::out_text_bitmap_t & action);
-                    virtual status_t        process(SurfaceContext * context, const actions::out_text_relative_t & action);
-                    status_t                process(SurfaceContext * context, const actions::line_t & action);
-                    status_t                process(SurfaceContext * context, const actions::parametric_line_t & action);
-                    status_t                process(SurfaceContext * context, const actions::parametric_bar_t & action);
-                    status_t                process(SurfaceContext * context, const actions::fill_frame_t & action);
-                    status_t                process(SurfaceContext * context, const actions::draw_poly_t & action);
-                    status_t                process(SurfaceContext * context, const actions::clip_begin_t & action);
-                    status_t                process(SurfaceContext * context, const actions::clip_end_t & action);
-                    status_t                process(SurfaceContext * context, const actions::set_antialiasing_t & action);
-                    status_t                process(SurfaceContext * context, const actions::set_origin_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::init_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::clear_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::resize_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::draw_surface_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::draw_raw_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::wire_rect_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::fill_rect_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::fill_sector_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::fill_triangle_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::fill_circle_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::wire_arc_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::out_text_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::out_text_bitmap_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::out_text_relative_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::line_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::parametric_line_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::parametric_bar_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::fill_frame_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::draw_poly_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::clip_begin_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::clip_end_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::set_antialiasing_t & action);
+                    status_t                process(SurfaceContext * surface, const actions::set_origin_t & action);
 
                 public:
-                    explicit Renderer();
+                    explicit Renderer(gl::IContext * gl_context);
                     Renderer(const Renderer &) = delete;
                     Renderer(Renderer &&) = delete;
                     virtual ~Renderer();
@@ -168,7 +166,11 @@ namespace lsp
                     virtual void            destroy();
 
                 public:
-                    status_t                submit(SurfaceContext * context);
+                    uatomic_t               reference_up();
+                    uatomic_t               reference_down();
+
+                public:
+                    status_t                queue_draw(SurfaceContext * surface);
 
             };
         } /* namespace gl */

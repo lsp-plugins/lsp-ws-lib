@@ -70,7 +70,6 @@ namespace lsp
             IContext::IContext(const gl::vtbl_t *vtbl)
             {
                 atomic_store(&nReferences, 1);
-                bValid              = true;
                 pVtbl               = vtbl;
 
                 nCommandsId         = 0;
@@ -157,8 +156,6 @@ namespace lsp
 
             void IContext::perform_gc()
             {
-                sAllocator.perform_gc();
-
                 if (vGcFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vGcFramebuffers);
@@ -179,11 +176,8 @@ namespace lsp
                 }
             }
 
-            void IContext::cleanup()
+            void IContext::destroy()
             {
-                // Cleanup all allocations
-                sAllocator.clear();
-
                 // Flush GC buffers as they are not needed
                 vGcFramebuffers.flush();
                 vGcRenderbuffers.flush();
@@ -193,7 +187,8 @@ namespace lsp
                 if (vFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vFramebuffers);
-                    pVtbl->glDeleteFramebuffers(vFramebuffers.size(), vFramebuffers.first());
+                    if (pVtbl != NULL)
+                        pVtbl->glDeleteFramebuffers(vFramebuffers.size(), vFramebuffers.first());
                     vFramebuffers.flush();
                 }
 
@@ -201,7 +196,8 @@ namespace lsp
                 if (vRenderbuffers.size() > 0)
                 {
                     trace_array("glDeleteRenderbuffers", vRenderbuffers);
-                    pVtbl->glDeleteRenderbuffers(vRenderbuffers.size(), vRenderbuffers.first());
+                    if (pVtbl != NULL)
+                        pVtbl->glDeleteRenderbuffers(vRenderbuffers.size(), vRenderbuffers.first());
                     vRenderbuffers.flush();
                 }
 
@@ -209,41 +205,31 @@ namespace lsp
                 if (vTextures.size() > 0)
                 {
                     trace_array("glDeleteTextures", vTextures);
-                    pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
+                    if (pVtbl != NULL)
+                        pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
                     vTextures.flush();
+                }
+
+                // Destroy virtual table
+                if (pVtbl != NULL)
+                {
+                    free(const_cast<vtbl_t *>(pVtbl));
+                    pVtbl           = NULL;
                 }
             }
 
-            bool IContext::active() const
-            {
-                return false;
-            }
-
-            status_t IContext::activate()
+            status_t IContext::activate(ws::IDrawable * drawable)
             {
                 return STATUS_NOT_IMPLEMENTED;
             }
 
-            status_t IContext::deactivate()
+            void IContext::deactivate()
             {
                 perform_gc();
-                return STATUS_NOT_IMPLEMENTED;
             }
 
             void IContext::swap_buffers(size_t width, size_t height)
             {
-            }
-
-            void IContext::invalidate()
-            {
-                if (activate() == STATUS_OK)
-                {
-                    lsp_finally { deactivate(); };
-                    cleanup();
-                }
-
-                lsp_trace("OpenGL context invalidated ptr=%p", this);
-                bValid          = false;
             }
 
             status_t IContext::program(size_t *id, program_t program)
@@ -273,9 +259,6 @@ namespace lsp
 
             GLuint IContext::alloc_framebuffer()
             {
-                if (activate() != STATUS_OK)
-                    return 0;
-
                 // Allocate framebuffer
                 GLuint id = 0;
                 pVtbl->glGenFramebuffers(1, &id);
@@ -298,9 +281,6 @@ namespace lsp
 
             GLuint IContext::alloc_renderbuffer()
             {
-                if (activate() != STATUS_OK)
-                    return 0;
-
                 // Allocate texture
                 GLuint id = 0;
                 pVtbl->glGenRenderbuffers(1, &id);
@@ -323,9 +303,6 @@ namespace lsp
 
             GLuint IContext::alloc_texture()
             {
-                if (activate() != STATUS_OK)
-                    return 0;
-
                 // Allocate texture
                 GLuint id = 0;
                 pVtbl->glGenTextures(1, &id);
@@ -348,65 +325,17 @@ namespace lsp
 
             void IContext::free_framebuffer(GLuint id)
             {
-                if (bValid)
-                    vGcFramebuffers.add(&id);
+                vGcFramebuffers.add(&id);
             }
 
             void IContext::free_renderbuffer(GLuint id)
             {
-                if (bValid)
-                    vGcRenderbuffers.add(&id);
+                vGcRenderbuffers.add(&id);
             }
 
             void IContext::free_texture(GLuint id)
             {
-                if (bValid)
-                    vGcTextures.add(&id);
-            }
-
-            gl::IContext *create_context(const context_param_t *params)
-            {
-                const context_param_t *display = NULL;
-                const context_param_t *screen = NULL;
-                const context_param_t *window = NULL;
-                const context_param_t *extensions = NULL;
-
-                for (; (params != NULL) && (params->id != gl::END); ++params)
-                {
-                    switch (params->id)
-                    {
-                        case gl::DISPLAY:
-                            display     = params;
-                            break;
-                        case gl::SCREEN:
-                            screen      = params;
-                            break;
-                        case gl::WINDOW:
-                            window      = params;
-                            break;
-                        case gl::DISPLAY_EXTENSIONS:
-                            extensions  = params;
-                            break;
-                        default:
-                            return NULL;
-                    }
-                }
-
-                gl::IContext *result = NULL;
-
-            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                if ((result == NULL) && (display != NULL) && (window != NULL))
-                {
-                    ::Display *dpy = static_cast<::Display *>(display->ptr);
-                    ::Window wnd = window->ulong;
-                    const int scr = (screen != NULL) ? screen->sint : DefaultScreen(dpy);
-                    const char * ext = (extensions != NULL) ? extensions->text : NULL;
-
-                    result = glx::create_context(dpy, scr, wnd, ext);
-                }
-            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
-
-                return result;
+                vGcTextures.add(&id);
             }
 
             status_t IContext::load_command_buffer(const float *buf, size_t size, size_t length)

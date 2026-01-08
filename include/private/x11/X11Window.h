@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ws/IDrawable.h>
 #include <lsp-plug.in/ws/IEventHandler.h>
 #include <lsp-plug.in/ws/IWindow.h>
 

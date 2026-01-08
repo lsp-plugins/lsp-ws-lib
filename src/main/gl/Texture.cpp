@@ -154,11 +154,6 @@ namespace lsp
                 if ((nWidth == width) && (nHeight == height))
                     return STATUS_OK;
 
-                // Activate context
-                status_t res = pContext->activate();
-                if (res != STATUS_OK)
-                    return res;
-
                 // Resize texture
                 const vtbl_t *vtbl = pContext->vtbl();
                 const GLuint tex_format = (enFormat == gl::TEXTURE_ALPHA8) ? GL_RED : GL_BGRA;

@@ -23,6 +23,7 @@
 
 #ifdef LSP_PLUGINS_USE_OPENGL
 
+#include <private/gl/Renderer.h>
 #include <private/gl/SurfaceContext.h>
 
 namespace lsp
@@ -31,9 +32,11 @@ namespace lsp
     {
         namespace gl
         {
-            SurfaceContext::SurfaceContext()
+            SurfaceContext::SurfaceContext(gl::Renderer *renderer, ws::IDrawable *drawable, bool nested)
             {
                 atomic_store(&nReferences, 1);
+                pRenderer       = safe_acquire(renderer);
+                pDrawable       = safe_acquire(drawable);
                 pTexture        = NULL;
 
                 bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
@@ -46,13 +49,40 @@ namespace lsp
                 bzero(&sMatrix, sizeof(sMatrix));
 
                 bIsDrawing      = false;
+                bIsRendering    = false;
                 bAntiAliasing   = true;
+                bNested         = nested;
+            }
+
+            SurfaceContext::SurfaceContext(SurfaceContext * parent)
+            {
+                atomic_store(&nReferences, 1);
+                pRenderer       = safe_acquire(parent->pRenderer);
+                pDrawable       = safe_acquire(parent->pDrawable);
+                pTexture        = NULL;
+
+                bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
+                sSize.width     = 0;
+                sSize.height    = 0;
+                sOrigin.left    = 0;
+                sOrigin.top     = 0;
+                sClipping.count = 0;
+
+                bzero(&sMatrix, sizeof(sMatrix));
+
+                bIsDrawing      = false;
+                bIsRendering    = false;
+                bAntiAliasing   = true;
+                bNested         = true;
             }
 
             SurfaceContext::~SurfaceContext()
             {
+                clear_actions();
+
                 safe_release(pTexture);
-                clear();
+                safe_release(pDrawable);
+                safe_release(pRenderer);
             }
 
             gl::actions::action_t *SurfaceContext::push_action(gl::actions::action_type_t type)
@@ -60,7 +90,7 @@ namespace lsp
                 if (!bIsDrawing)
                     return NULL;
 
-                return actions::init(sCommands.push_back(), type);
+                return actions::init(sActions.push_back(), type);
             }
 
             uatomic_t SurfaceContext::reference_up()
@@ -76,42 +106,65 @@ namespace lsp
                 return result;
             }
 
+            void SurfaceContext::invalidate()
+            {
+                if ((!bNested) && (pDrawable != NULL))
+                    pDrawable->invalidate();
+            }
+
             void SurfaceContext::begin_draw()
             {
                 bIsDrawing     = true;
+                clear_actions();
+
+                // Wait until surface context is being removed from the render queue
+                // Only after that we can perform additional manipulations
+                sCondition.lock();
+                lsp_finally { sCondition.unlock(); };
+                while (bIsRendering)
+                    sCondition.wait();
             }
 
             void SurfaceContext::end_draw()
             {
-                bIsDrawing     = false;
+                if (!bIsDrawing)
+                    return;
+
+                // Submit self to the render queue
+                bIsDrawing      = false;
+                status_t res    = pRenderer->queue_draw(this);
+                if (res != STATUS_OK)
+                    clear_actions();
             }
 
-            void SurfaceContext::begin_render(gl::IContext * context)
+            void SurfaceContext::begin_render()
             {
-                // TODO: activate context for a window
+                sCondition.lock();
+                lsp_finally { sCondition.unlock(); };
+                bIsRendering    = true;
             }
 
             void SurfaceContext::end_render()
             {
+                sCondition.lock();
+                lsp_finally { sCondition.unlock(); };
+
+                bIsRendering    = false;
+                sCondition.notify();
             }
 
-            void SurfaceContext::clear()
+            void SurfaceContext::clear_actions()
             {
-                for (lltl::iterator<actions::action_t> it = sCommands.values(); it; ++it)
+                for (lltl::iterator<actions::action_t> it = sActions.values(); it; ++it)
                     actions::destroy(it.get());
-                sCommands.clear();
+                sActions.clear();
             }
 
-            const gl::actions::action_t *SurfaceContext::next()
+            const gl::actions::action_t *SurfaceContext::next_action()
             {
-                actions::destroy(sCommands.front());
-                sCommands.pop_front();
-                return sCommands.first();
-            }
-
-            bool SurfaceContext::fetch(gl::actions::action_t & action)
-            {
-                return sCommands.pop_front(action);
+                actions::destroy(sActions.front());
+                sActions.pop_front();
+                return sActions.first();
             }
 
             void SurfaceContext::set_size(const gl::surface_size_t & size)

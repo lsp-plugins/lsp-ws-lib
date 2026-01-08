@@ -71,12 +71,14 @@ namespace lsp
             constexpr float k_color = 1.0f / 255.0f;
 
             // ----------------------------------------------------------------------------
-            Renderer::Renderer():
+            Renderer::Renderer(gl::IContext * gl_context):
+                pGLContext(safe_acquire(gl_context)),
                 sThread(execute, this),
+                sTextAllocator(pGLContext),
                 sBatch(&sAllocator)
             {
-                pGLContext      = NULL;
-                pTextAllocator  = NULL;
+                atomic_store(&nReferences, 1);
+                pGLContext      = safe_acquire(gl_context);
             }
 
             Renderer::~Renderer()
@@ -109,8 +111,23 @@ namespace lsp
                 sThread.join();
 
                 // Release context and texture allocator
-                safe_release(pTextAllocator);
                 safe_release(pGLContext);
+            }
+
+            uatomic_t Renderer::reference_up()
+            {
+                return atomic_add(&nReferences, 1) + 1;
+            }
+
+            uatomic_t Renderer::reference_down()
+            {
+                uatomic_t result = atomic_add(&nReferences, -1) - 1;
+                if (result == 0)
+                {
+                    destroy();
+                    delete this;
+                }
+                return result;
             }
 
             status_t Renderer::execute(void *arg)
@@ -141,31 +158,20 @@ namespace lsp
                 }
             }
 
-            gl::IContext *Renderer::create_context()
+            status_t Renderer::queue_draw(SurfaceContext * surface)
             {
-                lsp_warn("not implemented");
-                return NULL;
-            }
+                sLock.lock();
+                lsp_finally { sLock.unlock(); };
 
-            status_t Renderer::setup_gl_context(SurfaceContext * context)
-            {
-                if (pGLContext == NULL)
-                {
-                    // Create context
-                    pGLContext      = create_context();
-                    if (pGLContext == NULL)
-                        return STATUS_NOT_FOUND;
+                if (!sQueue.append(surface))
+                    return STATUS_NO_MEM;
 
-                    // Create text allocator
-                    pTextAllocator  = new TextAllocator(pGLContext);
-                    if (pTextAllocator == NULL)
-                        return STATUS_NO_MEM;
-                }
+                surface->begin_render();
 
                 return STATUS_OK;
             }
 
-            bool Renderer::update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * context)
+            bool Renderer::update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * surface)
             {
                 uniforms.clear();
                 gl::uniform_t * const model = uniforms.add();
@@ -178,7 +184,7 @@ namespace lsp
 
                 model->name     = "u_model";
                 model->type     = gl::UNI_MAT4F;
-                model->f32      = reinterpret_cast<const GLfloat *>(context->matrix().v);
+                model->f32      = reinterpret_cast<const GLfloat *>(surface->matrix().v);
 
                 end->name       = NULL;
                 end->type       = gl::UNI_NONE;
@@ -191,11 +197,11 @@ namespace lsp
             {
                 // Check that texture can be placed to the atlas
                 gl::Texture *tex = NULL;
-                if ((pTextAllocator != NULL) && (width <= TEXT_ATLAS_SIZE) && (height <= TEXT_ATLAS_SIZE))
+                if ((width <= TEXT_ATLAS_SIZE) && (height <= TEXT_ATLAS_SIZE))
                 {
                     ws::rectangle_t wrect;
 
-                    tex = pTextAllocator->allocate(&wrect, data, width, height, stride);
+                    tex = sTextAllocator.allocate(&wrect, data, width, height, stride);
                     if (tex != NULL)
                     {
                         rect->sb        = wrect.nLeft * gl::TEXT_ATLAS_SCALE;
@@ -225,6 +231,16 @@ namespace lsp
                 return release_ptr(tex);
             }
 
+            status_t Renderer::setup_context(SurfaceContext * surface)
+            {
+                // Skip invalid surfaces
+                if (!surface->valid())
+                    return STATUS_SKIP;
+
+                // Activate OpenGL context
+                return pGLContext->activate(surface->drawable());
+            }
+
             status_t Renderer::run()
             {
                 lltl::darray<gl::uniform_t> uniforms;
@@ -239,29 +255,30 @@ namespace lsp
                     {
                         sLock.lock();
                         sQueue.shift();
+                        surface->end_render();
                         sLock.unlock();
+
                         safe_release(surface);
                     };
 
                     // Set up OpenGL context for drawing
-                    res = setup_gl_context(surface);
+                    res = setup_context(surface);
                     if (res != STATUS_OK)
-                    {
-                        lsp_warn("Could not set up OpenGL context: error=%d", int(res));
-                        surface->clear();
                         continue;
-                    }
+
                     // Notify context about start of the rendering
-                    surface->begin_render(pGLContext);
                     lsp_finally {
-                        pGLContext->perform_gc();
-                        surface->end_render();
+                        sBatch.clear();
+                        pGLContext->deactivate();
+                        sAllocator.perform_gc();
+                        sTextAllocator.clear();
                     };
 
                     // Process each action in the list
-                    lsp_finally { sBatch.clear(); };
                     res         = STATUS_OK;
-                    for (const gl::actions::action_t * action = surface->current(); action != NULL; action = surface->next())
+                    for (const gl::actions::action_t * action = surface->current_action();
+                        action != NULL;
+                        action = surface->next_action())
                     {
                         if ((res = process(surface, *action)) != STATUS_OK)
                             break;
@@ -272,16 +289,23 @@ namespace lsp
                     {
                         if (update_uniforms(uniforms, surface))
                             sBatch.execute(pGLContext, uniforms.array());
+
+                        // Swap buffers for non-nested surfaces
+                        if (!surface->is_nested())
+                            pGLContext->swap_buffers(surface->width(), surface->height());
                     }
                 }
+
+                // Destroy context
+                pGLContext->destroy();
 
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const gl::actions::action_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const gl::actions::action_t & action)
             {
                 #define PROC(enum, field) \
-                    case actions::enum: return process(context, action.field);
+                    case actions::enum: return process(surface, action.field);
 
                 switch (action.type)
                 {
@@ -317,39 +341,73 @@ namespace lsp
                 return STATUS_INVALID_VALUE;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::init_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::init_t & action)
             {
-                context->set_size(action.size);
-                context->origin()  = action.origin;
-                context->set_antialiasing(action.antialiasing);
+                surface->set_size(action.size);
+                surface->origin()  = action.origin;
+                surface->set_antialiasing(action.antialiasing);
+
+                // Perform rendering of the collected batch
+                const gl::vtbl_t *vtbl = pGLContext->vtbl();
+
+                if (surface->is_nested())
+                {
+                    // Ensure that texture is properly initialized
+                    gl::Texture *texture = surface->texture();
+                    if (texture == NULL)
+                    {
+                        texture = new gl::Texture(pGLContext);
+                        if (texture == NULL)
+                            return STATUS_NO_MEM;
+                        surface->set_texture(texture);
+                    }
+                    lsp_finally { safe_release(texture); };
+
+                    // Setup texture for drawing
+                    status_t res = texture->begin_draw(action.size.width, action.size.height, gl::TEXTURE_PRGBA32);
+                    if (res != STATUS_OK)
+                        return res;
+                    lsp_finally { texture->end_draw(); };
+
+                    vtbl->glViewport(0, 0, action.size.width, action.size.height);
+                }
+                else
+                {
+                    // Setup viewport
+                    const ssize_t height = pGLContext->height();
+                    vtbl->glViewport(0, height - action.size.height, action.size.width, action.size.height);
+
+                    // Set target drawing buffer
+                    vtbl->glDrawBuffer(GL_BACK);
+                }
 
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::clear_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::clear_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, action.color);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_NO_BLENDING, action.color);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
 
                 // Draw geometry
-                fill_rect(uint32_t(res), 0.0f, 0.0f, context->width(), context->height());
+                fill_rect(uint32_t(res), 0.0f, 0.0f, surface->width(), surface->height());
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::resize_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::resize_t & action)
             {
-                context->set_size(action.size);
+                surface->set_size(action.size);
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::draw_surface_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::draw_surface_t & action)
             {
                 // Start batch
                 gl::Texture * const t = action.fill.surface->texture();
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, action.fill.blend);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, t, action.fill.blend);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -396,7 +454,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::draw_raw_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::draw_raw_t & action)
             {
                 gl::Texture *tex = new gl::Texture(pGLContext);
                 if (tex == NULL)
@@ -409,7 +467,7 @@ namespace lsp
                     return status_t(res);
 
                 // Start batch
-                res                 = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.blend);
+                res                 = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.blend);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -434,10 +492,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::wire_rect_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::wire_rect_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -496,10 +554,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::fill_rect_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::fill_rect_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -605,10 +663,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::fill_sector_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::fill_sector_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -619,10 +677,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::fill_triangle_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::fill_triangle_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -636,10 +694,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::fill_circle_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::fill_circle_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -650,10 +708,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::wire_arc_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::wire_arc_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -667,12 +725,12 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::out_text_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::out_text_t & action)
             {
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::out_text_bitmap_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::out_text_bitmap_t & action)
             {
                 // Allocate texture
                 const dsp::bitmap_t *bitmap = action.bitmap;
@@ -685,7 +743,7 @@ namespace lsp
 
                 // Output the text
                 {
-                    const ssize_t res   = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
+                    const ssize_t res   = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
                     if (res < 0)
                         return status_t(-res);
                     lsp_finally { sBatch.end(); };
@@ -713,7 +771,7 @@ namespace lsp
                 // Draw underline if required
                 if ((action.underline.width > 1e-6f) && (action.underline.height > 1e-6f))
                 {
-                    const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                    const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                     if (res < 0)
                         return status_t(-res);
                     lsp_finally { sBatch.end(); };
@@ -726,15 +784,15 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::out_text_relative_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::out_text_relative_t & action)
             {
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::line_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::line_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -749,10 +807,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::parametric_line_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::parametric_line_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -778,10 +836,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::parametric_bar_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::parametric_bar_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -824,10 +882,10 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::fill_frame_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::fill_frame_t & action)
             {
                 // Start batch
-                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
@@ -877,7 +935,7 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::draw_poly_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::draw_poly_t & action)
             {
                 static const gl::color_t empty_color = { 0.0f, 0.0f, 0.0f, 0.0f };
 
@@ -892,18 +950,18 @@ namespace lsp
                         // Start first batch on stencil buffer
                         clip_rect_t rect;
                         {
-                            const ssize_t res = start_batch(context, gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, empty_color);
+                            const ssize_t res = start_batch(surface, gl::STENCIL, gl::BATCH_STENCIL_OP_XOR | gl::BATCH_CLEAR_STENCIL, empty_color);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
 
                             fill_triangle_fan(size_t(res), rect, x, y, action.count);
-                            limit_rect(rect, context);
+                            limit_rect(rect, surface);
                         }
 
                         // Start second batch on color buffer with stencil apply
                         {
-                            const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                            const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
@@ -914,7 +972,7 @@ namespace lsp
                     else
                     {
                         // Some optimizations
-                        const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
+                        const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
                         if (res < 0)
                             return status_t(-res);
                         lsp_finally { sBatch.end(); };
@@ -932,7 +990,7 @@ namespace lsp
                         if ((action.wire.type == FILL_SOLID_COLOR) && (action.wire.color.a < k_color))
                         {
                             // Opaque polyline can be drawin without stencil buffer
-                            const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                            const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
                             if (res < 0)
                                 return status_t(-res);
                             lsp_finally{ sBatch.end(); };
@@ -944,23 +1002,23 @@ namespace lsp
                             // Start first batch on stencil buffer
                             clip_rect_t rect;
                             {
-                                rect.left       = context->width();
-                                rect.top        = context->height();
+                                rect.left       = surface->width();
+                                rect.top        = surface->height();
                                 rect.right      = 0.0f;
                                 rect.bottom     = 0.0f;
 
-                                const ssize_t res = start_batch(context, gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, empty_color);
+                                const ssize_t res = start_batch(surface, gl::STENCIL, gl::BATCH_STENCIL_OP_OR | gl::BATCH_CLEAR_STENCIL, empty_color);
                                 if (res < 0)
                                     return status_t(-res);
                                 lsp_finally{ sBatch.end(); };
 
                                 wire_polyline(size_t(res), rect, x, y, action.width, action.count);
-                                limit_rect(rect, context);
+                                limit_rect(rect, surface);
                             }
 
                             // Start second batch on color buffer with stencil apply
                             {
-                                const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
                                 if (res < 0)
                                     return status_t(-res);
                                 lsp_finally{ sBatch.end(); };
@@ -972,7 +1030,7 @@ namespace lsp
                     else
                     {
                         // Draw simple line
-                        const ssize_t res = start_batch(context, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
+                        const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.wire);
                         if (res < 0)
                             return status_t(-res);
                         lsp_finally { sBatch.end(); };
@@ -985,9 +1043,9 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::clip_begin_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::clip_begin_t & action)
             {
-                gl::clip_state_t & clipping = context->clipping();
+                gl::clip_state_t & clipping = surface->clipping();
                 if (clipping.count >= gl::clip_state_t::MAX_CLIPS)
                 {
                     lsp_error("Too many clipping regions specified (%d)", int(gl::clip_state_t::MAX_CLIPS + 1));
@@ -999,9 +1057,9 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::clip_end_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::clip_end_t & action)
             {
-                gl::clip_state_t & clipping = context->clipping();
+                gl::clip_state_t & clipping = surface->clipping();
                 if (clipping.count <= 0)
                 {
                     lsp_error("Mismatched number of clip_begin() and clip_end() calls");
@@ -1012,15 +1070,15 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::set_antialiasing_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::set_antialiasing_t & action)
             {
-                context->set_antialiasing(action.enable);
+                surface->set_antialiasing(action.enable);
                 return STATUS_OK;
             }
 
-            status_t Renderer::process(SurfaceContext * context, const actions::set_origin_t & action)
+            status_t Renderer::process(SurfaceContext * surface, const actions::set_origin_t & action)
             {
-                context->origin() = action.origin;
+                surface->origin() = action.origin;
                 return STATUS_OK;
             }
 
@@ -1059,13 +1117,13 @@ namespace lsp
                 rect.bottom         = lsp_max(rect.bottom, y);
             }
 
-            inline void Renderer::limit_rect(clip_rect_t & rect, SurfaceContext * context)
+            inline void Renderer::limit_rect(clip_rect_t & rect, SurfaceContext * surface)
             {
-                const gl::origin_t & origin = context->origin();
+                const gl::origin_t & origin = surface->origin();
                 rect.left           = lsp_max(rect.left, -origin.left);
                 rect.top            = lsp_max(rect.top, -origin.top);
-                rect.right          = lsp_min(rect.right, float(context->width()) - origin.left);
-                rect.bottom         = lsp_min(rect.bottom, float(context->height()) - origin.top);
+                rect.right          = lsp_min(rect.right, float(surface->width()) - origin.left);
+                rect.bottom         = lsp_min(rect.bottom, float(surface->height()) - origin.top);
             }
 
             ssize_t Renderer::make_command(ssize_t index, cmd_color_t color, const gl::clip_state_t & clipping)
@@ -1073,11 +1131,11 @@ namespace lsp
                 return (index << 5) | (size_t(color) << 3) | clipping.count;
             }
 
-            ssize_t Renderer::start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::color_t & color)
+            ssize_t Renderer::start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::color_t & color)
             {
                 // Start batch
-                const gl::origin_t & origin = context->origin();
-                if (context->antialiasing())
+                const gl::origin_t & origin = surface->origin();
+                if (surface->antialiasing())
                     flags      |= BATCH_MULTISAMPLE;
 
                 status_t res = sBatch.begin(
@@ -1093,7 +1151,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                const gl::clip_state_t & clipping = context->clipping();
+                const gl::clip_state_t & clipping = surface->clipping();
                 ssize_t index = sBatch.command(&buf, (sizeof(color_t) + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
@@ -1104,11 +1162,11 @@ namespace lsp
                 return make_command(index, C_SOLID, clipping);
             }
 
-            ssize_t Renderer::start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
+            ssize_t Renderer::start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::linear_gradient_t & g)
             {
                 // Start batch
-                const gl::origin_t & origin = context->origin();
-                if (context->antialiasing())
+                const gl::origin_t & origin = surface->origin();
+                if (surface->antialiasing())
                     flags      |= BATCH_MULTISAMPLE;
 
                 status_t res = sBatch.begin(
@@ -1125,7 +1183,7 @@ namespace lsp
                 // Allocate place for command
                 float *buf = NULL;
                 const size_t szof = 12 * sizeof(float);
-                const gl::clip_state_t & clipping = context->clipping();
+                const gl::clip_state_t & clipping = surface->clipping();
                 ssize_t index = sBatch.command(&buf, (szof + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
@@ -1144,11 +1202,11 @@ namespace lsp
                 return make_command(index, C_LINEAR, clipping);
             }
 
-            ssize_t Renderer::start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
+            ssize_t Renderer::start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::radial_gradient_t & g)
             {
                 // Start batch
-                const gl::origin_t & origin = context->origin();
-                if (context->antialiasing())
+                const gl::origin_t & origin = surface->origin();
+                if (surface->antialiasing())
                     flags      |= BATCH_MULTISAMPLE;
 
                 status_t res = sBatch.begin(
@@ -1165,7 +1223,7 @@ namespace lsp
                 // Allocate place for command
                 float *buf = NULL;
                 const size_t szof = 16 * sizeof(float);
-                const gl::clip_state_t & clipping = context->clipping();
+                const gl::clip_state_t & clipping = surface->clipping();
                 ssize_t index = sBatch.command(&buf, (szof + clipping.count * sizeof(clip_rect_t)) / sizeof(float));
                 if (index < 0)
                     return index;
@@ -1188,13 +1246,13 @@ namespace lsp
                 return make_command(index, C_RADIAL, clipping);
             }
 
-            ssize_t Renderer::start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, gl::Texture * const texture, const gl::color_t & color)
+            ssize_t Renderer::start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, gl::Texture * const texture, const gl::color_t & color)
             {
                 // Start batch
                 if (texture == NULL)
                     return -STATUS_BAD_ARGUMENTS;
-                const gl::origin_t & origin = context->origin();
-                if (context->antialiasing())
+                const gl::origin_t & origin = surface->origin();
+                if (surface->antialiasing())
                     flags      |= BATCH_MULTISAMPLE;
 
                 status_t res = sBatch.begin(
@@ -1210,7 +1268,7 @@ namespace lsp
 
                 // Allocate place for command
                 float *buf = NULL;
-                const gl::clip_state_t & clipping = context->clipping();
+                const gl::clip_state_t & clipping = surface->clipping();
                 ssize_t index = sBatch.command(&buf, (sizeof(color_t) + clipping.count * sizeof(clip_rect_t) + 4 * sizeof(float)) / sizeof(float));
                 if (index < 0)
                     return index;
@@ -1226,18 +1284,18 @@ namespace lsp
                 return make_command(index, C_TEXTURE, clipping);
             }
 
-            ssize_t Renderer::start_batch(SurfaceContext * context, gl::program_t program, uint32_t flags, const gl::fill_t & fill)
+            ssize_t Renderer::start_batch(SurfaceContext * surface, gl::program_t program, uint32_t flags, const gl::fill_t & fill)
             {
                 switch (fill.type)
                 {
                     case gl::FILL_SOLID_COLOR:
-                        return start_batch(context, program, flags, fill.color);
+                        return start_batch(surface, program, flags, fill.color);
                     case gl::FILL_LINEAR_GRADIENT:
-                        return start_batch(context, program, flags, fill.linear);
+                        return start_batch(surface, program, flags, fill.linear);
                     case gl::FILL_RADIAL_GRADIENT:
-                        return start_batch(context, program, flags, fill.radial);
+                        return start_batch(surface, program, flags, fill.radial);
                     case gl::FILL_TEXTURE:
-                        return start_batch(context, program, flags, fill.texture.surface->texture(), fill.texture.blend);
+                        return start_batch(surface, program, flags, fill.texture.surface->texture(), fill.texture.blend);
                     default:
                         break;
                 }

@@ -32,24 +32,8 @@ namespace lsp
     {
         namespace x11
         {
-            #define ADD_TVERTEX(v, v_ci, v_x, v_y, v_s, v_t) \
-                v->x        = v_x; \
-                v->y        = v_y; \
-                v->s        = v_s; \
-                v->t        = v_t; \
-                v->cmd      = v_ci; \
-                ++v;
-
-            #define ADD_VERTEX(v, v_ci, v_x, v_y)  ADD_TVERTEX(v, v_ci, v_x, v_y, 0.0f, 0.0f)
-
-            X11GLSurface::X11GLSurface(X11Display *display, gl::IContext *ctx, size_t width, size_t height):
-                gl::Surface(display, ctx, width, height)
-            {
-                pX11Display = display;
-            }
-
-            X11GLSurface::X11GLSurface(X11Display *display, gl::IContext *ctx, gl::TextAllocator *text, size_t width, size_t height):
-                gl::Surface(ctx, text, width, height)
+            X11GLSurface::X11GLSurface(X11Display *display, gl::SurfaceContext * context):
+                gl::Surface(display, context)
             {
                 pX11Display = display;
             }
@@ -58,9 +42,24 @@ namespace lsp
             {
             }
 
-            gl::Surface *X11GLSurface::create_nested(gl::TextAllocator *text, size_t width, size_t height)
+            ISurface *X11GLSurface::create(size_t width, size_t height)
             {
-                return new X11GLSurface(pX11Display, pContext, text, width, height);
+                if ((pSurface == NULL) || (!pSurface->valid()))
+                    return NULL;
+
+                gl::SurfaceContext *surface = new gl::SurfaceContext(pSurface);
+                if (surface == NULL)
+                    return NULL;
+                lsp_finally { safe_release(surface); };
+
+                X11GLSurface *s = new X11GLSurface(pX11Display, surface);
+                if (s == NULL)
+                    return NULL;
+
+                s->nWidth       = width;
+                s->nHeight      = height;
+
+                return s;
             }
 
             bool X11GLSurface::get_font_parameters(const Font &f, font_parameters_t *fp)
@@ -199,7 +198,7 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Output commaand
-                gl::actions::out_text_bitmap_t * cmd = pSurface->append<gl::actions::out_text_bitmap_t>();
+                gl::actions::out_text_bitmap_t * cmd = pSurface->append_command<gl::actions::out_text_bitmap_t>();
                 if (cmd == NULL)
                     return;
 
@@ -274,7 +273,7 @@ namespace lsp
                 lsp_finally { ft::free_bitmap(bitmap); };
 
                 // Output commaand
-                gl::actions::out_text_bitmap_t * cmd = pSurface->append<gl::actions::out_text_bitmap_t>();
+                gl::actions::out_text_bitmap_t * cmd = pSurface->append_command<gl::actions::out_text_bitmap_t>();
                 if (cmd == NULL)
                     return;
 
@@ -306,153 +305,6 @@ namespace lsp
                     cmd->underline.height   = 0.0f;
                 }
             #endif /* USE_LIBFREETYPE */
-            }
-
-            status_t X11GLSurface::process(const gl::actions::out_text_t & action)
-            {
-                if (action.font.get_name() == NULL)
-                    return STATUS_OK;
-
-            #ifdef USE_LIBFREETYPE
-                // Rasterize text string
-                ft::FontManager *mgr = pX11Display->font_manager();
-                if (mgr == NULL)
-                    return STATUS_OK;
-
-                ft::text_range_t tr;
-                dsp::bitmap_t *bitmap   = mgr->render_text(&action.font, &tr, &action.text, 0, action.text.length());
-                if (bitmap == NULL)
-                    return STATUS_OK;
-                lsp_finally { ft::free_bitmap(bitmap); };
-
-                // Allocate texture
-                texture_rect_t rect;
-                gl::Texture *tex        = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
-                if (tex == NULL)
-                    return STATUS_NO_MEM;
-                lsp_finally { safe_release(tex); };
-
-                // Output the text
-                {
-                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
-                    if (res < 0)
-                        return status_t(-res);
-                    lsp_finally { sBatch.end(); };
-
-                    // Draw primitives
-                    const uint32_t ci   = uint32_t(res);
-                    const float xs      = action.x + tr.x_bearing;
-                    const float ys      = action.y + tr.y_bearing;
-                    const float xe      = xs + bitmap->width;
-                    const float ye      = ys + bitmap->height;
-
-                    const uint32_t vi   = sBatch.next_vertex_index();
-                    gl::vertex_t *v     = sBatch.add_vertices(4);
-                    if (v == NULL)
-                        return STATUS_NO_MEM;
-
-                    ADD_TVERTEX(v, ci, xs, ys, rect.sb, rect.tb);
-                    ADD_TVERTEX(v, ci, xs, ye, rect.sb, rect.te);
-                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
-                    ADD_TVERTEX(v, ci, xe, ys, rect.se, rect.tb);
-
-                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
-                }
-
-                // Draw underline if required
-                if (action.font.is_underline())
-                {
-                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
-                    if (res < 0)
-                        return status_t(-res);
-                    lsp_finally { sBatch.end(); };
-
-                    const float width   = lsp_max(1.0f, action.font.get_size() * (1.0f / 12.0f));
-                    const float xs      = action.x + tr.x_bearing;
-                    const float bottom  = action.y + width * 2.0f;
-                    fill_rect(uint32_t(res), xs, bottom - width, xs + tr.x_advance, bottom);
-                }
-            #endif /* USE_LIBFREETYPE */
-
-                return STATUS_OK;
-            }
-
-            status_t X11GLSurface::process(const gl::actions::out_text_relative_t & action)
-            {
-                if (action.font.get_name() == NULL)
-                    return STATUS_OK;
-
-            #ifdef USE_LIBFREETYPE
-                // Rasterize text string
-                ft::FontManager *mgr = pX11Display->font_manager();
-                if (mgr == NULL)
-                    return STATUS_OK;
-
-                ft::text_range_t tr;
-                dsp::bitmap_t *bitmap   = mgr->render_text(&action.font, &tr, &action.text, 0, action.text.length());
-                if (bitmap == NULL)
-                    return STATUS_NO_MEM;
-                lsp_finally { ft::free_bitmap(bitmap); };
-
-                // Allocate texture
-                texture_rect_t rect;
-                gl::Texture *tex = make_text(&rect, bitmap->data, bitmap->width, bitmap->height, bitmap->stride);
-                if (tex == NULL)
-                    return STATUS_NO_MEM;
-                lsp_finally { safe_release(tex); };
-
-                // Output the text
-                float r_w, r_h, fx, fy;
-                float x = action.x;
-                float y = action.y;
-                {
-                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, tex, action.fill);
-                    if (res < 0)
-                        return status_t(-res);
-                    lsp_finally { sBatch.end(); };
-
-                    // Draw primitives
-                    r_w                 = tr.x_advance;
-                    r_h                 = -tr.y_bearing;
-                    fx                  = truncf(action.x - float(tr.x_bearing) - r_w * 0.5f + (r_w + 4.0f) * 0.5f * action.relative_x);
-                    fy                  = truncf(action.y + r_h * 0.5f - (r_h + 4.0f) * 0.5f * action.relative_y);
-                    x                   = fx + tr.x_bearing;
-                    y                   = fy + tr.y_bearing;
-
-                    const uint32_t ci   = uint32_t(res);
-                    const float xe      = x + bitmap->width;
-                    const float ye      = y + bitmap->height;
-
-                    const uint32_t vi   = sBatch.next_vertex_index();
-                    gl::vertex_t *v     = sBatch.add_vertices(4);
-                    if (v == NULL)
-                        return STATUS_NO_MEM;
-
-                    ADD_TVERTEX(v, ci, x, y, rect.sb, rect.tb);
-                    ADD_TVERTEX(v, ci, x, ye, rect.sb, rect.te);
-                    ADD_TVERTEX(v, ci, xe, ye, rect.se, rect.te);
-                    ADD_TVERTEX(v, ci, xe, y, rect.se, rect.tb);
-
-                    sBatch.hrectangle(vi, vi + 1, vi + 2, vi + 3);
-                }
-
-                // Draw underline if required
-                if (action.font.is_underline())
-                {
-                    const ssize_t res = add_batch(gl::GEOMETRY, gl::BATCH_WRITE_COLOR, action.fill);
-                    if (res < 0)
-                        return status_t(-res);
-                    lsp_finally { sBatch.end(); };
-
-                    x                   = x + tr.x_bearing;
-                    const float width   = lsp_max(1.0f, action.font.get_size() * (1.0f / 12.0f));
-                    const float bottom  = fy + width * 2.0f;
-                    fill_rect(uint32_t(res), x, bottom - width, x + tr.x_advance, bottom);
-                }
-
-            #endif /* USE_LIBFREETYPE */
-
-                return STATUS_OK;
             }
 
         } /* namespace x11 */

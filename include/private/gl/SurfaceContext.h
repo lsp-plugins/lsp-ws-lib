@@ -29,8 +29,8 @@
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/ipc/Condition.h>
-
 #include <lsp-plug.in/lltl/ddeque.h>
+
 #include <private/gl/Actions.h>
 #include <private/gl/Texture.h>
 
@@ -40,22 +40,29 @@ namespace lsp
     {
         namespace gl
         {
+            class Renderer;
+
             class LSP_HIDDEN_MODIFIER SurfaceContext
             {
                 private:
                     uatomic_t                           nReferences;        // Number of references
                     ipc::Condition                      sCondition;         // Drawing condition
-                    lltl::ddeque<gl::actions::action_t> sCommands;          // Drawing commands
+                    lltl::ddeque<gl::actions::action_t> sActions;          // Drawing commands
+                    gl::Renderer                       *pRenderer;          // Renderer
+                    ws::IDrawable                      *pDrawable;          // Handle of drawable
                     gl::Texture                        *pTexture;           // Texture
                     gl::surface_size_t                  sSize;              // Surface size
                     gl::origin_t                        sOrigin;            // Drawing origin
                     gl::clip_state_t                    sClipping;          // Clipping state
                     gl::matrix_t                        sMatrix;            // Matrix
                     bool                                bIsDrawing;         // Context is currently in drawing state
+                    bool                                bIsRendering;       // Surface context is in the render queue
                     bool                                bAntiAliasing;      // Anti-aliasing state
+                    bool                                bNested;            // Nested flag
 
                 public:
-                    SurfaceContext();
+                    SurfaceContext(gl::Renderer * renderer, ws::IDrawable *drawable, bool nested);
+                    SurfaceContext(SurfaceContext * parent);
                     SurfaceContext(const SurfaceContext &) = delete;
                     SurfaceContext(SurfaceContext &&) = delete;
                     ~SurfaceContext();
@@ -65,12 +72,18 @@ namespace lsp
 
                 protected:
                     gl::actions::action_t  *push_action(gl::actions::action_type_t type);
+                    void                    clear_actions();
 
                 public:
                     uatomic_t   reference_up();
                     uatomic_t   reference_down();
 
                 public:
+                    /**
+                     * Get drawable descriptor
+                     */
+                    ws::IDrawable              *drawable()              { return pDrawable;     }
+
                     /**
                      * Get drawing origin
                      * @return drawing origin
@@ -140,7 +153,24 @@ namespace lsp
                      */
                     void        set_texture(gl::Texture *texture);
 
+                    /**
+                     * Check that surface is valid
+                     * @return true if surface is valid
+                     */
+                    inline bool valid() const                           { return (pDrawable != NULL) && (pDrawable->valid()); }
+
+                    /**
+                     * Check that context is nested
+                     * @return true if context is nested
+                     */
+                    inline bool is_nested() const                       { return bNested; }
+
                 public:
+                    /**
+                     * Invalidate surface state
+                     */
+                    void        invalidate();
+
                     /**
                      * Begin drawing on the context
                      */
@@ -152,49 +182,37 @@ namespace lsp
                     void        end_draw();
 
                     /**
-                     * Called when renderer starts processing context events
+                     * Notify the surface context being put to render queue
                      */
-                    void        begin_render(gl::IContext * context);
+                    void        begin_render();
 
                     /**
-                     * Called when renderer ends processing context events
+                     * Notify the surface context being removed from render queue
                      */
                     void        end_render();
-
-                    /**
-                     * Clear all currently drawing commands
-                     */
-                    void        clear();
 
                     /**
                      * Get number of commands in the queue
                      * @return number of commands in the queue
                      */
-                    inline size_t count() const
+                    inline size_t action_count() const
                     {
-                        return sCommands.size();
+                        return sActions.size();
                     }
 
                     /**
                      * Get current action
                      * @return current action
                      */
-                    inline const gl::actions::action_t *current() const
+                    inline const gl::actions::action_t *current_action() const
                     {
-                        return sCommands.first();
+                        return sActions.first();
                     }
 
                     /**
                      * Move to the next command
                      */
-                    const gl::actions::action_t *next();
-
-                    /**
-                     * Fetch command to the action
-                     * @param action reference to the action to store action
-                     * @return true if action was extracted
-                     */
-                    bool fetch(gl::actions::action_t & action);
+                    const gl::actions::action_t *next_action();
 
                     /**
                      * Add drawing command
@@ -202,7 +220,7 @@ namespace lsp
                      * @return pointer to newly allocated drawing command
                      */
                     template <typename T>
-                    inline T *append()
+                    inline T *append_command()
                     {
                         gl::actions::action_t *result = push_action(T::type_id);
                         return (result != NULL) ? reinterpret_cast<T *>(result->data) : NULL;

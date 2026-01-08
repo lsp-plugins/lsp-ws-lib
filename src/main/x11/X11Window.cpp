@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -32,6 +32,7 @@
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
 #include <private/x11/X11Display.h>
+#include <private/x11/X11Drawable.h>
 #include <private/x11/X11CairoSurface.h>
 #include <private/x11/X11GLSurface.h>
 
@@ -110,45 +111,52 @@ namespace lsp
                 return true;
             }
 
-            static ISurface *create_surface(X11Display *dpy, int screen, Window window, Visual *visual, size_t width, size_t height)
+        #ifdef LSP_PLUGINS_USE_OPENGL_GLX
+            static ISurface *create_glx_surface(X11Display *dpy, Window window, size_t width, size_t height)
             {
-                ISurface *result = NULL;
+                X11Drawable *drawable = new X11Drawable(window);
+                if (drawable == NULL)
+                    return NULL;
+                lsp_finally { gl::safe_release(drawable); };
+
+                gl::Renderer * renderer = dpy->create_glx_renderer();
+                if (renderer == NULL)
+                    return NULL;
+                lsp_finally { gl::safe_release(renderer); };
+
+                gl::SurfaceContext * context = new gl::SurfaceContext(renderer, drawable, false);
+                if (context == NULL)
+                    return NULL;
+                lsp_finally { gl::safe_release(context); };
+
+                return new X11GLSurface(dpy, context);
+            }
+        #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+
+            static ISurface *create_surface(X11Display *dpy, Window window, Visual *visual, size_t width, size_t height)
+            {
+                ISurface *result;
 
             #ifdef LSP_PLUGINS_USE_OPENGL_GLX
                 if (check_env_option_enabled("LSP_WS_LIB_GLXSURFACE"))
                 {
-                    gl::context_param_t cp[5];
-                    cp[0].id        = gl::DISPLAY;
-                    cp[0].ptr       = dpy->x11display();
-                    cp[1].id        = gl::SCREEN;
-                    cp[1].sint      = screen;
-                    cp[2].id        = gl::WINDOW;
-                    cp[2].ulong     = window;
-                    cp[3].id        = gl::DISPLAY_EXTENSIONS;
-                    cp[3].text      = dpy->glx_extensions();
-                    cp[4].id        = gl::END;
-
-                    gl::IContext *ctx   = gl::create_context(cp);
-                    lsp_finally { safe_release(ctx); };
-                    if (ctx != NULL)
+                    result = create_glx_surface(dpy, window, width, height);
+                    if (result != NULL)
                     {
-                        result = new X11GLSurface(dpy, ctx, width, height);
-                        if (result == NULL)
-                            ctx->invalidate();
-                        else
-                            lsp_trace("Using X11GLSurface ptr=%p", result);
+                        lsp_trace("Using X11GLSurface ptr=%p", result);
+                        return result;
                     }
                 }
             #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
-                if (result == NULL)
+                result = new X11CairoSurface(dpy, window, visual, width, height);
+                if (result != NULL)
                 {
-                    result = new X11CairoSurface(dpy, window, visual, width, height);
-                    if (result != NULL)
-                        lsp_trace("Using X11CairoSurface ptr=%p", result);
+                    lsp_trace("Using X11CairoSurface ptr=%p", result);
+                    return result;
                 }
 
-                return result;
+                return NULL;
             }
 
             X11Window::X11Window(X11Display *core, size_t screen, ::Window wnd, IEventHandler *handler, bool wrapper): IWindow(core, handler)
@@ -635,9 +643,7 @@ namespace lsp
                         // Create surface
                         Display *dpy    = pX11Display->x11display();
                         ::Visual *v     = (pVisualInfo != NULL) ? pVisualInfo->visual : DefaultVisual(dpy, screen());
-                        pSurface        = create_surface(
-                            static_cast<X11Display *>(pDisplay), int(screen()), hWindow, v,
-                            sSize.nWidth, sSize.nHeight);
+                        pSurface        = create_surface(static_cast<X11Display *>(pDisplay), hWindow, v, sSize.nWidth, sSize.nHeight);
 
                         // Need to take focus?
                         if (pX11Display->pFocusWindow == this)
