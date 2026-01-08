@@ -78,7 +78,6 @@ namespace lsp
                 sBatch(&sAllocator)
             {
                 atomic_store(&nReferences, 1);
-                pGLContext      = safe_acquire(gl_context);
             }
 
             Renderer::~Renderer()
@@ -88,6 +87,10 @@ namespace lsp
 
             status_t Renderer::init()
             {
+                status_t res = sBatch.init();
+                if (res != STATUS_OK)
+                    return res;
+
                 return sThread.start();
             }
 
@@ -166,7 +169,9 @@ namespace lsp
                 if (!sQueue.append(surface))
                     return STATUS_NO_MEM;
 
+                surface->reference_up();
                 surface->begin_render();
+                sLock.notify();
 
                 return STATUS_OK;
             }

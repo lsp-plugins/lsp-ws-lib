@@ -4015,36 +4015,30 @@ namespace lsp
             gl::Renderer *X11Display::create_glx_renderer()
             {
                 // Do we already have GLX renderer?
-                gl::Renderer * renderer = gl::safe_acquire(pRenderer);
+                gl::Renderer *renderer = gl::safe_acquire(pRenderer);
                 if (renderer != NULL)
                     return renderer;
 
                 // Create GLX context
-                gl::IContext * ctx = glx::create_context(NULL);
+                gl::IContext *ctx   = glx::create_context(NULL);
                 if (ctx == NULL)
                     return NULL;
-                lsp_finally {
-                    if (ctx != NULL)
-                    {
-                        ctx->destroy();
-                        delete ctx;
-                    }
-                };
+                lsp_finally { gl::safe_release(ctx); };
 
                 // Create renderer that uses GLX context
-                renderer        = new gl::Renderer(ctx);
+                renderer            = new gl::Renderer(ctx);
                 if (renderer == NULL)
                     return NULL;
-                lsp_finally { safe_release(renderer); };
+                lsp_finally { gl::safe_release(renderer); };
 
                 // Initialize renderer
-                status_t res    = renderer->init();
+                status_t res        = renderer->init();
                 if (res != STATUS_OK)
                     return NULL;
 
                 // Remember renderer and return it
-                pRenderer       = release_ptr(renderer);
-                return safe_acquire(pRenderer);
+                pRenderer           = release_ptr(renderer);
+                return gl::safe_acquire(pRenderer);
             }
         #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 

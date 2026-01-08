@@ -283,8 +283,6 @@ namespace lsp
                     ::XCloseDisplay(pDisplay);
                     pDisplay        = NULL;
                 }
-
-                // Delete
             }
 
             status_t Context::activate(ws::IDrawable * drawable)
@@ -693,13 +691,13 @@ namespace lsp
                     None
                 };
 
-                uint32_t features = Context::NO_FEATURES;
+                const glx_context_version_t *version = NULL;
                 int max_multisampling = 0;
                 for (size_t direct=0; (ctx == NULL) && (direct < 2); ++direct)
                 {
                     for (size_t i=0; (ctx == NULL) && (i < sizeof(glx_context_versions) / sizeof(glx_context_version_t)); ++i)
                     {
-                        const glx_context_version_t *version = &glx_context_versions[i];
+                        version                 = &glx_context_versions[i];
                         glx_context_attribs[1]  = version->major;
                         glx_context_attribs[3]  = version->minor;
 
@@ -725,7 +723,7 @@ namespace lsp
 
                 // Wrap the created context with context wrapper
                 glXGetFBConfigAttrib(dpy, fb_config, GLX_SAMPLES, &max_multisampling);
-                glx::Context *glx_ctx = new glx::Context(dpy, ctx, vtbl, features, max_multisampling);
+                glx::Context *glx_ctx = new glx::Context(dpy, ctx, vtbl, version->features, max_multisampling);
                 if (glx_ctx == NULL)
                 {
                     lsp_trace("Could not allocate glx::Context");

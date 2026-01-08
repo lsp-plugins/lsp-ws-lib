@@ -112,10 +112,10 @@ namespace lsp
                     pDrawable->invalidate();
             }
 
-            void SurfaceContext::begin_draw()
+            bool SurfaceContext::begin_draw()
             {
-                bIsDrawing     = true;
-                clear_actions();
+                if (bIsDrawing)
+                    return false;
 
                 // Wait until surface context is being removed from the render queue
                 // Only after that we can perform additional manipulations
@@ -123,6 +123,12 @@ namespace lsp
                 lsp_finally { sCondition.unlock(); };
                 while (bIsRendering)
                     sCondition.wait();
+
+                // Clear actions
+                bIsDrawing     = true;
+                clear_actions();
+
+                return true;
             }
 
             void SurfaceContext::end_draw()
@@ -146,6 +152,10 @@ namespace lsp
 
             void SurfaceContext::end_render()
             {
+                // Clear actions first
+                clear_actions();
+
+                // Now we are ready to reset rendering state and unlock surface context
                 sCondition.lock();
                 lsp_finally { sCondition.unlock(); };
 

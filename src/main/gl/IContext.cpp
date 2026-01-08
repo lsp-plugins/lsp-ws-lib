@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 16 янв. 2025 г.
@@ -187,8 +187,7 @@ namespace lsp
                 if (vFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vFramebuffers);
-                    if (pVtbl != NULL)
-                        pVtbl->glDeleteFramebuffers(vFramebuffers.size(), vFramebuffers.first());
+                    pVtbl->glDeleteFramebuffers(vFramebuffers.size(), vFramebuffers.first());
                     vFramebuffers.flush();
                 }
 
@@ -196,8 +195,7 @@ namespace lsp
                 if (vRenderbuffers.size() > 0)
                 {
                     trace_array("glDeleteRenderbuffers", vRenderbuffers);
-                    if (pVtbl != NULL)
-                        pVtbl->glDeleteRenderbuffers(vRenderbuffers.size(), vRenderbuffers.first());
+                    pVtbl->glDeleteRenderbuffers(vRenderbuffers.size(), vRenderbuffers.first());
                     vRenderbuffers.flush();
                 }
 
@@ -205,16 +203,8 @@ namespace lsp
                 if (vTextures.size() > 0)
                 {
                     trace_array("glDeleteTextures", vTextures);
-                    if (pVtbl != NULL)
-                        pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
+                    pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
                     vTextures.flush();
-                }
-
-                // Destroy virtual table
-                if (pVtbl != NULL)
-                {
-                    free(const_cast<vtbl_t *>(pVtbl));
-                    pVtbl           = NULL;
                 }
             }
 

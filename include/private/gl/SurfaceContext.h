@@ -173,8 +173,9 @@ namespace lsp
 
                     /**
                      * Begin drawing on the context
+                     * @return true if state has changed to drawing
                      */
-                    void        begin_draw();
+                    bool        begin_draw();
 
                     /**
                      * End drawing on the context

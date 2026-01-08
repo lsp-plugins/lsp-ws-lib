@@ -236,7 +236,8 @@ namespace lsp
 
             void Surface::begin()
             {
-                pSurface->begin_draw();
+                if (!pSurface->begin_draw())
+                    return;
 
                 // Emit initialization command
                 gl::actions::init_t * const cmd = pSurface->append_command<gl::actions::init_t>();
@@ -271,8 +272,6 @@ namespace lsp
 
             void Surface::end()
             {
-                if (!pSurface->is_drawing())
-                    return;
                 pSurface->end_draw();
 
 //                // Update drawing status
