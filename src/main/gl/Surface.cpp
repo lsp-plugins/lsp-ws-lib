@@ -249,103 +249,11 @@ namespace lsp
             #ifdef LSP_DEBUG
                 sClipping.count = 0;
             #endif /* LSP_DEBUG */
-
-//                if (pContext == NULL)
-//                    return;
-//
-//                // Force end() call
-//                end();
-//
-//                // Activate GLX context
-//                if (bNested)
-//                    pSurface->begin_draw();
-//                else
-//                {
-//                    if (pContext->activate() == STATUS_OK)
-//                        pSurface->begin_draw();
-//                    OPENGL_OUTPUT_STATS(false);
-//                }
             }
 
             void Surface::end()
             {
                 pSurface->end_draw();
-
-//                // Update drawing status
-//                status_t res;
-
-
-//                lsp_finally
-//                {
-//                    sBatch.clear();
-//                    pSurface->end_draw();
-//                };
-//
-//                // Perform rendering
-//                render();
-//
-//                // Update uniforms
-//                if (!update_uniforms())
-//                    return;
-//
-//                #ifdef LSP_DEBUG
-//                    if (sClipping.count > 0)
-//                        lsp_error("Mismatching number of clip_begin() and clip_end() calls");
-//                #endif /* LSP_DEBUG */
-//
-//                // Activate OpenGL context for drawing
-//                if (pContext->activate() != STATUS_OK)
-//                    return;
-//                lsp_finally {
-//                    if (!bNested)
-//                    {
-//                        pText->clear();
-//                        pContext->deactivate();
-//                    }
-//                };
-//
-//                // Perform rendering of the collected batch
-//                const gl::vtbl_t *vtbl = pContext->vtbl();
-//
-//                if (bNested)
-//                {
-//                    // Ensure that texture is properly initialized
-//                    gl::Texture *texture = safe_acquire(pSurface->texture());
-//                    if (texture == NULL)
-//                    {
-//                        texture = new gl::Texture(pContext);
-//                        if (texture == NULL)
-//                            return;
-//                        pSurface->set_texture(texture);
-//                    }
-//                    lsp_finally { safe_release(texture); };
-//
-//                    // Setup texture for drawing
-//                    res = texture->begin_draw(nWidth, nHeight, gl::TEXTURE_PRGBA32);
-//                    if (res != STATUS_OK)
-//                        return;
-//                    lsp_finally { texture->end_draw(); };
-//
-//                    vtbl->glViewport(0, 0, nWidth, nHeight);
-//
-//                    // Prepare and execute batch
-//                    sBatch.execute(pContext, vUniforms.array());
-//                }
-//                else
-//                {
-//                    // Setup viewport
-//                    const ssize_t height = pContext->height();
-//                    vtbl->glViewport(0, height - nHeight, nWidth, nHeight);
-//
-//                    // Set drawing buffer and viewport
-//                    vtbl->glDrawBuffer(GL_BACK);
-//
-//                    // Prepare and execute batch
-//                    sBatch.execute(pContext, vUniforms.array());
-//
-//                    // Instead of swapping buffers we copy back buffer to front buffer to prevent the back buffer image
-//                    pContext->swap_buffers(nWidth, nHeight);
-//                }
             }
 
             void Surface::clear_rgb(uint32_t rgb)

@@ -80,6 +80,8 @@ namespace lsp
                     gl::Allocator                   sAllocator;
                     gl::TextAllocator               sTextAllocator;
                     gl::Batch                       sBatch;
+                    gl::rectangle_t                 sViewport;
+                    lltl::darray<gl::uniform_t>     vUniforms;
 
                 protected:
                     static status_t execute(void *arg);
@@ -89,6 +91,7 @@ namespace lsp
                     status_t                run();
                     void                    do_destroy();
                     SurfaceContext         *poll();
+                    status_t                render_batch(SurfaceContext *surface);
 
                 protected: // Drawing
                     static inline float    *copy_coords(const float *x, const float *y, size_t n);
@@ -98,7 +101,7 @@ namespace lsp
                     static inline void      extend_rect(clip_rect_t & rect, float x, float y);
                     static inline void      limit_rect(clip_rect_t & rect, SurfaceContext * surface);
 
-                    bool                    update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * surface);
+                    bool                    update_uniforms(SurfaceContext * surface);
 
                     gl::Texture            *make_text(texture_rect_t *rect, const void *data, size_t width, size_t height, size_t stride);
 

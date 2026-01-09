@@ -301,7 +301,7 @@ namespace lsp
                     return STATUS_OK;
 
                 gl::safe_release(pDrawable);
-                if (!::glXMakeCurrent(pDisplay, window, hContext))
+                if (!::glXMakeContextCurrent(pDisplay, window, window, hContext))
                     return STATUS_UNKNOWN_ERR;
 
                 pDrawable   = gl::safe_acquire(x11drawable);

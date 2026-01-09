@@ -78,6 +78,12 @@ namespace lsp
                 sBatch(&sAllocator)
             {
                 atomic_store(&nReferences, 1);
+
+                sViewport.x         = 0;
+                sViewport.y         = 0;
+                sViewport.width     = 0;
+                sViewport.height    = 0;
+
             }
 
             Renderer::~Renderer()
@@ -155,7 +161,15 @@ namespace lsp
                         return NULL;
 
                     if (!sQueue.is_empty())
-                        return safe_acquire(sQueue.first());
+                    {
+                        SurfaceContext * surface = safe_acquire(sQueue.first());
+                        sViewport.x         = 0;
+                        sViewport.y         = 0;
+                        sViewport.width     = surface->width();
+                        sViewport.height    = surface->height();
+
+                        return surface;
+                    }
 
                     sLock.wait();
                 }
@@ -176,14 +190,14 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            bool Renderer::update_uniforms(lltl::darray<gl::uniform_t> & uniforms, SurfaceContext * surface)
+            bool Renderer::update_uniforms(SurfaceContext * surface)
             {
-                uniforms.clear();
-                gl::uniform_t * const model = uniforms.add();
+                vUniforms.clear();
+                gl::uniform_t * const model = vUniforms.add();
                 if (model == NULL)
                     return false;
 
-                gl::uniform_t * const end   = uniforms.add();
+                gl::uniform_t * const end   = vUniforms.add();
                 if (end == NULL)
                     return false;
 
@@ -248,7 +262,6 @@ namespace lsp
 
             status_t Renderer::run()
             {
-                lltl::darray<gl::uniform_t> uniforms;
                 SurfaceContext * surface = NULL;
                 status_t res;
 
@@ -291,20 +304,72 @@ namespace lsp
 
                     // Execute batch
                     if (res == STATUS_OK)
-                    {
-                        if (update_uniforms(uniforms, surface))
-                            sBatch.execute(pGLContext, uniforms.array());
+                        res = render_batch(surface);
 
-                        // Swap buffers for non-nested surfaces
-                        if ((surface->valid()) && (!surface->is_nested()))
-                            pGLContext->swap_buffers(surface->width(), surface->height());
-                    }
-                    else
+                    if (res != STATUS_OK)
                         lsp_trace("Render failed with error code=%d", int(res));
                 }
 
                 // Destroy context
                 pGLContext->destroy();
+
+                return STATUS_OK;
+            }
+
+            status_t Renderer::render_batch(SurfaceContext *surface)
+            {
+                if (!update_uniforms(surface))
+                    return STATUS_NO_MEM;
+
+                // Perform rendering of the collected batch
+                const gl::vtbl_t *vtbl = pGLContext->vtbl();
+
+                if (surface->is_nested())
+                {
+                    // Ensure that texture is properly initialized
+                    gl::Texture *texture = surface->texture();
+                    if (texture == NULL)
+                    {
+                        texture = new gl::Texture(pGLContext);
+                        if (texture == NULL)
+                            return STATUS_NO_MEM;
+                        surface->set_texture(texture);
+                    }
+                    lsp_finally { safe_release(texture); };
+
+                    // Setup texture for drawing
+                    status_t res = texture->begin_draw(sViewport.width, sViewport.height, gl::TEXTURE_PRGBA32);
+                    if (res != STATUS_OK)
+                        return res;
+                    lsp_finally { texture->end_draw(); };
+
+                    vtbl->glViewport(
+                        sViewport.x, sViewport.y,
+                        sViewport.width, sViewport.height);
+
+                    sBatch.execute(pGLContext, vUniforms.array());
+                }
+                else
+                {
+                    // Setup viewport
+                    vtbl->glViewport(
+                        sViewport.x, sViewport.y,
+                        sViewport.width, sViewport.height);
+
+                    // Set target drawing buffer
+                    vtbl->glDrawBuffer(GL_BACK);
+
+                    if (!surface->valid())
+                        return STATUS_CANCELLED;
+                    status_t res = sBatch.execute(pGLContext, vUniforms.array());
+                    if (res != STATUS_OK)
+                        return res;
+
+                    // Swap buffers for non-nested surfaces
+                    if (!surface->valid())
+                        return STATUS_CANCELLED;
+                    pGLContext->swap_buffers(sViewport.width, sViewport.height);
+                }
 
                 return STATUS_OK;
             }
@@ -354,38 +419,21 @@ namespace lsp
                 surface->origin()  = action.origin;
                 surface->set_antialiasing(action.antialiasing);
 
-                // Perform rendering of the collected batch
-                const gl::vtbl_t *vtbl = pGLContext->vtbl();
-
                 if (surface->is_nested())
                 {
-                    // Ensure that texture is properly initialized
-                    gl::Texture *texture = surface->texture();
-                    if (texture == NULL)
-                    {
-                        texture = new gl::Texture(pGLContext);
-                        if (texture == NULL)
-                            return STATUS_NO_MEM;
-                        surface->set_texture(texture);
-                    }
-                    lsp_finally { safe_release(texture); };
-
-                    // Setup texture for drawing
-                    status_t res = texture->begin_draw(action.size.width, action.size.height, gl::TEXTURE_PRGBA32);
-                    if (res != STATUS_OK)
-                        return res;
-                    lsp_finally { texture->end_draw(); };
-
-                    vtbl->glViewport(0, 0, action.size.width, action.size.height);
+                    sViewport.x         = 0;
+                    sViewport.y         = 0;
+                    sViewport.width     = action.size.width;
+                    sViewport.height    = action.size.height;
                 }
                 else
                 {
-                    // Setup viewport
                     const ssize_t height = pGLContext->height();
-                    vtbl->glViewport(0, height - action.size.height, action.size.width, action.size.height);
 
-                    // Set target drawing buffer
-                    vtbl->glDrawBuffer(GL_BACK);
+                    sViewport.x         = 0;
+                    sViewport.y         = height - action.size.height;
+                    sViewport.width     = action.size.width;
+                    sViewport.height    = action.size.height;
                 }
 
                 return STATUS_OK;
@@ -506,7 +554,6 @@ namespace lsp
                 if (res < 0)
                     return status_t(-res);
                 lsp_finally { sBatch.end(); };
-
 
                 // Draw primitives
                 const uint32_t ci   = uint32_t(res);

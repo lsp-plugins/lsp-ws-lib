@@ -120,7 +120,7 @@ MTEST_BEGIN("ws.display", surface)
         };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
-        MTEST_ASSERT(wnd->set_caption("Test rectangles") == STATUS_OK);
+        MTEST_ASSERT(wnd->set_caption("Test surface") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
         MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
