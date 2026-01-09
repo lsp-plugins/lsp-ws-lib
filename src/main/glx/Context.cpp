@@ -166,7 +166,7 @@ namespace lsp
                 return NULL;
             }
 
-            static int create_context_error_handler(Display *dpy, XErrorEvent *ev)
+            static int stub_context_error_handler(Display *dpy, XErrorEvent *ev)
             {
                 return 0;
             }
@@ -345,7 +345,10 @@ namespace lsp
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
                 pVtbl->glFlush();
 
-                // Enable this if you need to run something like RENDERDOC
+                // Swap buffers using GLX context
+                XErrorHandler old = ::XSetErrorHandler(stub_context_error_handler);
+                lsp_finally { ::XSetErrorHandler(old); };
+
                 ::glXSwapBuffers(pDisplay, pDrawable->x11window());
             }
 
@@ -701,7 +704,7 @@ namespace lsp
                         glx_context_attribs[1]  = version->major;
                         glx_context_attribs[3]  = version->minor;
 
-                        XErrorHandler old = ::XSetErrorHandler(create_context_error_handler);
+                        XErrorHandler old = ::XSetErrorHandler(stub_context_error_handler);
                         lsp_finally { ::XSetErrorHandler(old); };
 
                         ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, (direct == 0) ? GL_TRUE : GL_FALSE, glx_context_attribs);

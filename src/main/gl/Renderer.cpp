@@ -296,9 +296,11 @@ namespace lsp
                             sBatch.execute(pGLContext, uniforms.array());
 
                         // Swap buffers for non-nested surfaces
-                        if (!surface->is_nested())
+                        if ((surface->valid()) && (!surface->is_nested()))
                             pGLContext->swap_buffers(surface->width(), surface->height());
                     }
+                    else
+                        lsp_trace("Render failed with error code=%d", int(res));
                 }
 
                 // Destroy context

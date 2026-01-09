@@ -59,18 +59,18 @@ namespace lsp
             static const GLint rgba24x24[]    = { GLX_RGBA, GLX_RED_SIZE, 8, GLX_GREEN_SIZE, 8, GLX_BLUE_SIZE, 8, GLX_ALPHA_SIZE, 8, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
             static const GLint rgba16x24[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
             static const GLint rgba15x24[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 5, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
-            static const GLint rgba16[]       = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
-            static const GLint rgba15[]       = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 5, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
-            static const GLint rgbax32[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 32, GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 8, None };
-            static const GLint rgbax24[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 8, None };
-            static const GLint rgbax16[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 16, GLX_DOUBLEBUFFER, GLX_STENCIL_SIZE, 8, None };
+            static const GLint rgba16x16[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 6, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
+            static const GLint rgba15x16[]    = { GLX_RGBA, GLX_RED_SIZE, 5, GLX_GREEN_SIZE, 5, GLX_BLUE_SIZE, 5, GLX_DEPTH_SIZE, 16, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax32[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 32, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax24[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
+            static const GLint rgbax16[]      = { GLX_RGBA, GLX_DEPTH_SIZE, 16, GLX_STENCIL_SIZE, 8, GLX_DOUBLEBUFFER, None };
             static const GLint rgba[]         = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
 
             static const GLint * const glx_visuals[] =
             {
                 rgba24x32, rgba24x24,
-                rgba16x24, rgba16,
-                rgba15x24, rgba15,
+                rgba16x24, rgba16x16,
+                rgba15x24, rgba15x16,
                 rgbax32, rgbax24, rgbax16, rgba,
                 NULL
             };
@@ -124,7 +124,7 @@ namespace lsp
                     return NULL;
                 lsp_finally { gl::safe_release(renderer); };
 
-                gl::SurfaceContext * context = new gl::SurfaceContext(renderer, drawable, false);
+                gl::SurfaceContext * context = new gl::SurfaceContext(renderer, drawable, width, height);
                 if (context == NULL)
                     return NULL;
                 lsp_finally { gl::safe_release(context); };
@@ -658,6 +658,7 @@ namespace lsp
                             break;
 
                         // Drop previously existed drawing surface
+                        lsp_trace("UIE_HIDE received");
                         drop_surface();
                         break;
                     }

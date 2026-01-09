@@ -32,7 +32,7 @@ namespace lsp
     {
         namespace gl
         {
-            SurfaceContext::SurfaceContext(gl::Renderer *renderer, ws::IDrawable *drawable, bool nested)
+            SurfaceContext::SurfaceContext(gl::Renderer *renderer, ws::IDrawable *drawable, size_t width, size_t height)
             {
                 atomic_store(&nReferences, 1);
                 pRenderer       = safe_acquire(renderer);
@@ -40,21 +40,21 @@ namespace lsp
                 pTexture        = NULL;
 
                 bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
-                sSize.width     = 0;
-                sSize.height    = 0;
+                sSize.width     = width;
+                sSize.height    = height;
                 sOrigin.left    = 0;
                 sOrigin.top     = 0;
                 sClipping.count = 0;
 
-                bzero(&sMatrix, sizeof(sMatrix));
+                sync_matrix();
 
                 bIsDrawing      = false;
                 bIsRendering    = false;
                 bAntiAliasing   = true;
-                bNested         = nested;
+                bNested         = false;
             }
 
-            SurfaceContext::SurfaceContext(SurfaceContext * parent)
+            SurfaceContext::SurfaceContext(SurfaceContext * parent, size_t width, size_t height)
             {
                 atomic_store(&nReferences, 1);
                 pRenderer       = safe_acquire(parent->pRenderer);
@@ -62,13 +62,13 @@ namespace lsp
                 pTexture        = NULL;
 
                 bzero(sClipping.clips, sizeof(gl::clip_rect_t) * gl::clip_state_t::MAX_CLIPS);
-                sSize.width     = 0;
-                sSize.height    = 0;
+                sSize.width     = width;
+                sSize.height    = height;
                 sOrigin.left    = 0;
                 sOrigin.top     = 0;
                 sClipping.count = 0;
 
-                bzero(&sMatrix, sizeof(sMatrix));
+                sync_matrix();
 
                 bIsDrawing      = false;
                 bIsRendering    = false;
@@ -184,11 +184,15 @@ namespace lsp
                     return;
 
                 sSize       = size;
-                float *m    = sMatrix.v;
+                sync_matrix();
+            }
 
+            void SurfaceContext::sync_matrix()
+            {
                 // Set-up drawing matrix
-                const float dx = 2.0f / float(size.width);
-                const float dy = 2.0f / float(size.height);
+                float * const m     = sMatrix.v;
+                const float dx      = 2.0f / float(sSize.width);
+                const float dy      = 2.0f / float(sSize.height);
 
                 m[0]        = dx;
                 m[1]        = 0.0f;

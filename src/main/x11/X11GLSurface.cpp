@@ -47,7 +47,7 @@ namespace lsp
                 if ((pSurface == NULL) || (!pSurface->valid()))
                     return NULL;
 
-                gl::SurfaceContext *surface = new gl::SurfaceContext(pSurface);
+                gl::SurfaceContext *surface = new gl::SurfaceContext(pSurface, width, height);
                 if (surface == NULL)
                     return NULL;
                 lsp_finally { safe_release(surface); };
@@ -55,9 +55,6 @@ namespace lsp
                 X11GLSurface *s = new X11GLSurface(pX11Display, surface);
                 if (s == NULL)
                     return NULL;
-
-                s->nWidth       = width;
-                s->nHeight      = height;
 
                 return s;
             }

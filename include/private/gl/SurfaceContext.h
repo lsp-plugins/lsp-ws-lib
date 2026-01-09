@@ -61,8 +61,8 @@ namespace lsp
                     bool                                bNested;            // Nested flag
 
                 public:
-                    SurfaceContext(gl::Renderer * renderer, ws::IDrawable *drawable, bool nested);
-                    SurfaceContext(SurfaceContext * parent);
+                    SurfaceContext(gl::Renderer * renderer, ws::IDrawable *drawable, size_t width, size_t height);
+                    SurfaceContext(SurfaceContext * parent, size_t width, size_t height);
                     SurfaceContext(const SurfaceContext &) = delete;
                     SurfaceContext(SurfaceContext &&) = delete;
                     ~SurfaceContext();
@@ -73,6 +73,7 @@ namespace lsp
                 protected:
                     gl::actions::action_t  *push_action(gl::actions::action_type_t type);
                     void                    clear_actions();
+                    void                    sync_matrix();
 
                 public:
                     uatomic_t   reference_up();
