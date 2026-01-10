@@ -54,7 +54,6 @@ namespace lsp
                     gl::surface_size_t                  sSize;              // Surface size
                     gl::origin_t                        sOrigin;            // Drawing origin
                     gl::clip_state_t                    sClipping;          // Clipping state
-                    gl::matrix_t                        sMatrix;            // Matrix
                     bool                                bIsDrawing;         // Context is currently in drawing state
                     bool                                bIsRendering;       // Surface context is in the render queue
                     bool                                bAntiAliasing;      // Anti-aliasing state
@@ -73,7 +72,6 @@ namespace lsp
                 protected:
                     gl::actions::action_t  *push_action(gl::actions::action_type_t type);
                     void                    clear_actions();
-                    void                    sync_matrix();
 
                 public:
                     uatomic_t   reference_up();
@@ -137,16 +135,10 @@ namespace lsp
                     void                        set_size(const gl::surface_size_t & size);
 
                     /**
-                     * Get drawing matrix
-                     * @return drawing matrix
-                     */
-                    inline const gl::matrix_t & matrix() const          { return sMatrix;       }
-
-                    /**
                      * Get texture
                      * @return texture
                      */
-                    inline      gl::Texture    *texture()               { return pTexture;      }
+                    inline      gl::Texture    *texture()               { return safe_acquire(pTexture);    }
 
                     /**
                      * Set texture

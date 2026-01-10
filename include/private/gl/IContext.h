@@ -28,6 +28,7 @@
 
 #include <lsp-plug.in/common/atomic.h>
 #include <lsp-plug.in/common/status.h>
+#include <lsp-plug.in/ipc/Mutex.h>
 #include <lsp-plug.in/lltl/darray.h>
 #include <lsp-plug.in/ws/IDrawable.h>
 
@@ -55,6 +56,7 @@ namespace lsp
 
                 private:
                     uatomic_t           nReferences;
+                    ipc::Mutex          sTexMutex;          // Texture mutex for allocation/deallocation
 
                     lltl::darray<GLuint> vFramebuffers;
                     lltl::darray<GLuint> vRenderbuffers;

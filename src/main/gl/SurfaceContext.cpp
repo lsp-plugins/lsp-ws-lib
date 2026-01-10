@@ -46,8 +46,6 @@ namespace lsp
                 sOrigin.top     = 0;
                 sClipping.count = 0;
 
-                sync_matrix();
-
                 bIsDrawing      = false;
                 bIsRendering    = false;
                 bAntiAliasing   = true;
@@ -67,8 +65,6 @@ namespace lsp
                 sOrigin.left    = 0;
                 sOrigin.top     = 0;
                 sClipping.count = 0;
-
-                sync_matrix();
 
                 bIsDrawing      = false;
                 bIsRendering    = false;
@@ -184,35 +180,6 @@ namespace lsp
                     return;
 
                 sSize       = size;
-                sync_matrix();
-            }
-
-            void SurfaceContext::sync_matrix()
-            {
-                // Set-up drawing matrix
-                float * const m     = sMatrix.v;
-                const float dx      = 2.0f / float(sSize.width);
-                const float dy      = 2.0f / float(sSize.height);
-
-                m[0]        = dx;
-                m[1]        = 0.0f;
-                m[2]        = 0.0f;
-                m[3]        = 0.0f;
-
-                m[4]        = 0.0f;
-                m[5]        = -dy;
-                m[6]        = 0.0f;
-                m[7]        = 0.0f;
-
-                m[8]        = 0.0f;
-                m[9]        = 0.0f;
-                m[10]       = 1.0f;
-                m[11]       = 0.0f;
-
-                m[12]       = -1.0f;
-                m[13]       = 1.0f;
-                m[14]       = 0.0f;
-                m[15]       = 1.0f;
             }
 
             void SurfaceContext::set_texture(gl::Texture *texture)

@@ -84,6 +84,7 @@ namespace lsp
                 sViewport.width     = 0;
                 sViewport.height    = 0;
 
+                bzero(&sMatrix, sizeof(gl::matrix_t));
             }
 
             Renderer::~Renderer()
@@ -203,7 +204,7 @@ namespace lsp
 
                 model->name     = "u_model";
                 model->type     = gl::UNI_MAT4F;
-                model->f32      = reinterpret_cast<const GLfloat *>(surface->matrix().v);
+                model->f32      = reinterpret_cast<const GLfloat *>(&sMatrix.v);
 
                 end->name       = NULL;
                 end->type       = gl::UNI_NONE;
@@ -435,6 +436,31 @@ namespace lsp
                     sViewport.width     = action.size.width;
                     sViewport.height    = action.size.height;
                 }
+
+                // Set-up drawing matrix
+                float * const m     = sMatrix.v;
+                const float dx      = 2.0f / float(action.size.width);
+                const float dy      = 2.0f / float(action.size.height);
+
+                m[0]                = dx;
+                m[1]                = 0.0f;
+                m[2]                = 0.0f;
+                m[3]                = 0.0f;
+
+                m[4]                = 0.0f;
+                m[5]                = -dy;
+                m[6]                = 0.0f;
+                m[7]                = 0.0f;
+
+                m[8]                = 0.0f;
+                m[9]                = 0.0f;
+                m[10]               = 1.0f;
+                m[11]               = 0.0f;
+
+                m[12]               = -1.0f;
+                m[13]               = 1.0f;
+                m[14]               = 0.0f;
+                m[15]               = 1.0f;
 
                 return STATUS_OK;
             }

@@ -156,34 +156,40 @@ namespace lsp
 
             void IContext::perform_gc()
             {
+                // Free deallocated framebuffers
                 if (vGcFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vGcFramebuffers);
                     pVtbl->glDeleteFramebuffers(vGcFramebuffers.size(), vGcFramebuffers.first());
                     remove_identifiers(vFramebuffers, vGcFramebuffers);
                 }
+
+                // Free deallocated render buffers
                 if (vGcRenderbuffers.size() > 0)
                 {
                     trace_array("glDeleteRenderbuffers", vGcRenderbuffers);
                     pVtbl->glDeleteRenderbuffers(vGcRenderbuffers.size(), vGcRenderbuffers.first());
                     remove_identifiers(vRenderbuffers, vGcRenderbuffers);
                 }
-                if (vGcTextures.size() > 0)
+                
+                // Free deallocated textures
                 {
-                    trace_array("glDeleteTextures", vGcTextures);
-                    pVtbl->glDeleteTextures(vGcTextures.size(), vGcTextures.first());
-                    remove_identifiers(vTextures, vGcTextures);
+                    sTexMutex.lock();
+                    lsp_finally { sTexMutex.unlock(); };
+
+                    if (vGcTextures.size() > 0)
+                    {
+                        trace_array("glDeleteTextures", textures);
+                        pVtbl->glDeleteTextures(vGcTextures.size(), vGcTextures.first());
+                        remove_identifiers(vTextures, vGcTextures);
+                    }
                 }
             }
 
             void IContext::destroy()
             {
-                // Flush GC buffers as they are not needed
-                vGcFramebuffers.flush();
-                vGcRenderbuffers.flush();
-                vGcTextures.flush();
-
                 // Free all framebuffers
+                vGcFramebuffers.flush();
                 if (vFramebuffers.size() > 0)
                 {
                     trace_array("glDeleteFramebuffers", vFramebuffers);
@@ -192,6 +198,7 @@ namespace lsp
                 }
 
                 // Free all renderbuffers
+                vGcRenderbuffers.flush();
                 if (vRenderbuffers.size() > 0)
                 {
                     trace_array("glDeleteRenderbuffers", vRenderbuffers);
@@ -200,11 +207,17 @@ namespace lsp
                 }
 
                 // Free all textures
-                if (vTextures.size() > 0)
                 {
-                    trace_array("glDeleteTextures", vTextures);
-                    pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
-                    vTextures.flush();
+                    sTexMutex.lock();
+                    lsp_finally { sTexMutex.unlock(); };
+
+                    vGcTextures.flush();
+                    if (vTextures.size() > 0)
+                    {
+                        trace_array("glDeleteTextures", vTextures);
+                        pVtbl->glDeleteTextures(vTextures.size(), vTextures.first());
+                        vTextures.flush();
+                    }
                 }
             }
 
@@ -300,12 +313,17 @@ namespace lsp
                     return id;
 
                 // Register texture identifier
-                GLuint *dst_id  = vTextures.add();
-                if (dst_id != NULL)
                 {
-                    trace_alloc("glGenTextures", id);
-                    *dst_id         = id;
-                    return id;
+                    sTexMutex.lock();
+                    lsp_finally { sTexMutex.unlock(); };
+
+                    GLuint *dst_id  = vTextures.add();
+                    if (dst_id != NULL)
+                    {
+                        trace_alloc("glGenTextures", id);
+                        *dst_id         = id;
+                        return id;
+                    }
                 }
 
                 // Deallocate texture on error
@@ -325,6 +343,9 @@ namespace lsp
 
             void IContext::free_texture(GLuint id)
             {
+                sTexMutex.lock();
+                lsp_finally { sTexMutex.unlock(); };
+
                 vGcTextures.add(&id);
             }
 
