@@ -79,10 +79,10 @@ namespace lsp
             {
                 atomic_store(&nReferences, 1);
 
-                sViewport.x         = 0;
-                sViewport.y         = 0;
-                sViewport.width     = 0;
-                sViewport.height    = 0;
+                sViewport.nLeft     = 0;
+                sViewport.nTop      = 0;
+                sViewport.nWidth    = 0;
+                sViewport.nHeight   = 0;
 
                 bzero(&sMatrix, sizeof(gl::matrix_t));
             }
@@ -164,10 +164,10 @@ namespace lsp
                     SurfaceContext * surface = sQueue.shift(); // Already acquired by queue
                     if (surface != NULL)
                     {
-                        sViewport.x         = 0;
-                        sViewport.y         = 0;
-                        sViewport.width     = surface->width();
-                        sViewport.height    = surface->height();
+                        sViewport.nLeft     = 0;
+                        sViewport.nTop      = 0;
+                        sViewport.nWidth    = surface->width();
+                        sViewport.nHeight   = surface->height();
 
                         return surface;
                     }
@@ -348,14 +348,14 @@ namespace lsp
                     }
 
                     // Setup texture for drawing
-                    status_t res = texture->begin_draw(sViewport.width, sViewport.height, gl::TEXTURE_PRGBA32);
+                    status_t res = texture->begin_draw(sViewport.nWidth, sViewport.nHeight, gl::TEXTURE_PRGBA32);
                     if (res != STATUS_OK)
                         return res;
                     lsp_finally { texture->end_draw(); };
 
                     vtbl->glViewport(
-                        sViewport.x, sViewport.y,
-                        sViewport.width, sViewport.height);
+                        sViewport.nLeft, sViewport.nTop,
+                        sViewport.nWidth, sViewport.nHeight);
 
                     sBatch.execute(pGLContext, vUniforms.array());
                 }
@@ -363,8 +363,8 @@ namespace lsp
                 {
                     // Setup viewport
                     vtbl->glViewport(
-                        sViewport.x, sViewport.y,
-                        sViewport.width, sViewport.height);
+                        sViewport.nLeft, sViewport.nTop,
+                        sViewport.nWidth, sViewport.nHeight);
 
                     // Set target drawing buffer
                     vtbl->glDrawBuffer(GL_BACK);
@@ -378,7 +378,7 @@ namespace lsp
                     // Swap buffers for non-nested surfaces
                     if (!surface->valid())
                         return STATUS_CANCELLED;
-                    pGLContext->swap_buffers(sViewport.width, sViewport.height);
+                    pGLContext->swap_buffers(sViewport.nWidth, sViewport.nHeight);
                 }
 
                 return STATUS_OK;
@@ -431,19 +431,19 @@ namespace lsp
 
                 if (surface->is_nested())
                 {
-                    sViewport.x         = 0;
-                    sViewport.y         = 0;
-                    sViewport.width     = action.size.width;
-                    sViewport.height    = action.size.height;
+                    sViewport.nLeft     = 0;
+                    sViewport.nTop      = 0;
+                    sViewport.nWidth    = action.size.width;
+                    sViewport.nHeight   = action.size.height;
                 }
                 else
                 {
                     const ssize_t height = pGLContext->height();
 
-                    sViewport.x         = 0;
-                    sViewport.y         = height - action.size.height;
-                    sViewport.width     = action.size.width;
-                    sViewport.height    = action.size.height;
+                    sViewport.nLeft     = 0;
+                    sViewport.nTop      = height - action.size.height;
+                    sViewport.nWidth    = action.size.width;
+                    sViewport.nHeight   = action.size.height;
                 }
 
                 // Set-up drawing matrix

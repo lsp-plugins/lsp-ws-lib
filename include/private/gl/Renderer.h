@@ -80,7 +80,7 @@ namespace lsp
                     gl::Allocator                   sAllocator;
                     gl::TextAllocator               sTextAllocator;
                     gl::Batch                       sBatch;
-                    gl::rectangle_t                 sViewport;
+                    ws::rectangle_t                 sViewport;
                     gl::matrix_t                    sMatrix;
                     lltl::darray<gl::uniform_t>     vUniforms;
 
