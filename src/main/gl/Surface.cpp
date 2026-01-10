@@ -251,6 +251,11 @@ namespace lsp
             #endif /* LSP_DEBUG */
             }
 
+            bool Surface::ready() const
+            {
+                return !pSurface->is_rendering();
+            }
+
             void Surface::end()
             {
                 pSurface->end_draw();

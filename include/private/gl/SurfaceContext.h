@@ -54,8 +54,8 @@ namespace lsp
                     gl::surface_size_t                  sSize;              // Surface size
                     gl::origin_t                        sOrigin;            // Drawing origin
                     gl::clip_state_t                    sClipping;          // Clipping state
+                    mutable uatomic_t                   nIsRendering;       // Surface context is in the render queue
                     bool                                bIsDrawing;         // Context is currently in drawing state
-                    bool                                bIsRendering;       // Surface context is in the render queue
                     bool                                bAntiAliasing;      // Anti-aliasing state
                     bool                                bNested;            // Nested flag
 
@@ -100,6 +100,12 @@ namespace lsp
                      * @return true if context is active
                      */
                     inline bool                 is_drawing() const      { return bIsDrawing;    }
+
+                    /**
+                     * Check that surface context is in rendering state
+                     * @return
+                     */
+                    inline bool                 is_rendering() const    { return atomic_load(&nIsRendering) != 0;   }
 
                     /**
                      * Check anti-aliasing is enabled

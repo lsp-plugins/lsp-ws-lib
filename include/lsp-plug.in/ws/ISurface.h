@@ -152,6 +152,11 @@ namespace lsp
                 virtual void end();
 
                 /**
+                 * Check that surface is ready for drawing.
+                 */
+                virtual bool ready() const;
+
+                /**
                  * Check that surface is valid
                  * @return true if surface is valid
                  */

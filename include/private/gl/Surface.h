@@ -96,6 +96,7 @@ namespace lsp
                         float x, float y, float sx, float sy, float a) override;
 
                     virtual void begin() override;
+                    virtual bool ready() const override;
                     virtual void end() override;
 
                     virtual void clear(const Color &color) override;

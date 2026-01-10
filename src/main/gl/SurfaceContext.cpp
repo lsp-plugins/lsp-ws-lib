@@ -50,8 +50,8 @@ namespace lsp
                 sOrigin.top     = 0;
                 sClipping.count = 0;
 
+                atomic_store(&nIsRendering, 0);
                 bIsDrawing      = false;
-                bIsRendering    = false;
                 bAntiAliasing   = true;
                 bNested         = false;
             }
@@ -72,8 +72,8 @@ namespace lsp
                 sOrigin.top     = 0;
                 sClipping.count = 0;
 
+                atomic_store(&nIsRendering, 0);
                 bIsDrawing      = false;
-                bIsRendering    = false;
                 bAntiAliasing   = true;
                 bNested         = true;
             }
@@ -125,7 +125,7 @@ namespace lsp
                 // Only after that we can perform additional manipulations
                 sCondition.lock();
                 lsp_finally { sCondition.unlock(); };
-                while (bIsRendering)
+                while (atomic_load(&nIsRendering) != 0)
                     sCondition.wait();
 
                 // Clear actions
@@ -151,7 +151,7 @@ namespace lsp
             {
                 sCondition.lock();
                 lsp_finally { sCondition.unlock(); };
-                bIsRendering    = true;
+                atomic_add(&nIsRendering, 1);
             }
 
             void SurfaceContext::end_render()
@@ -163,7 +163,7 @@ namespace lsp
                 sCondition.lock();
                 lsp_finally { sCondition.unlock(); };
 
-                bIsRendering    = false;
+                atomic_add(&nIsRendering, -1);
                 sCondition.notify();
             }
 
