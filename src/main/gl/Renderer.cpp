@@ -508,7 +508,7 @@ namespace lsp
                 if (v == NULL)
                     return STATUS_NO_MEM;
 
-                if (fabsf(action.angle < 1e-6f))
+                if (fabsf(action.angle) < 1e-6f)
                 {
                     const uint32_t ci   = uint32_t(res);
                     const float xe      = action.x + t->width() * action.scale_x;
