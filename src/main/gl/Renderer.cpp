@@ -161,9 +161,9 @@ namespace lsp
                     if (sThread.cancelled())
                         return NULL;
 
-                    if (!sQueue.is_empty())
+                    SurfaceContext * surface = sQueue.shift(); // Already acquired by queue
+                    if (surface != NULL)
                     {
-                        SurfaceContext * surface = safe_acquire(sQueue.first());
                         sViewport.x         = 0;
                         sViewport.y         = 0;
                         sViewport.width     = surface->width();
@@ -273,7 +273,6 @@ namespace lsp
                     lsp_finally
                     {
                         sLock.lock();
-                        sQueue.shift();
                         surface->end_render();
                         sLock.unlock();
 
@@ -309,6 +308,17 @@ namespace lsp
 
                     if (res != STATUS_OK)
                         lsp_trace("Render failed with error code=%d", int(res));
+                }
+
+                // Flush queue
+                {
+                    sLock.lock();
+                    lsp_finally { sLock.unlock(); };
+
+                    for (lltl::iterator<SurfaceContext> it = sQueue.values(); it; ++it)
+                        it->reference_down();
+
+                    sQueue.flush();
                 }
 
                 // Destroy context

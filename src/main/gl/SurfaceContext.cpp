@@ -34,6 +34,8 @@ namespace lsp
         {
             SurfaceContext::SurfaceContext(gl::Renderer *renderer, ws::IDrawable *drawable, size_t width, size_t height)
             {
+//                lsp_trace("this=%p", this);
+
                 atomic_store(&nReferences, 1);
                 pRenderer       = safe_acquire(renderer);
                 pDrawable       = safe_acquire(drawable);
@@ -54,6 +56,8 @@ namespace lsp
 
             SurfaceContext::SurfaceContext(SurfaceContext * parent, size_t width, size_t height)
             {
+//                lsp_trace("this=%p", this);
+
                 atomic_store(&nReferences, 1);
                 pRenderer       = safe_acquire(parent->pRenderer);
                 pDrawable       = safe_acquire(parent->pDrawable);
@@ -74,6 +78,8 @@ namespace lsp
 
             SurfaceContext::~SurfaceContext()
             {
+//                lsp_trace("this=%p", this);
+
                 clear_actions();
 
                 safe_release(pTexture);
