@@ -337,12 +337,12 @@ namespace lsp
                 if (pDrawable == NULL)
                     return;
 
-                pVtbl->glReadBuffer(GL_BACK);
-                pVtbl->glDrawBuffer(GL_FRONT);
-                pVtbl->glBlitFramebuffer(
-                    0, 0, width, height,
-                    0, 0, width, height,
-                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+//                pVtbl->glReadBuffer(GL_BACK);
+//                pVtbl->glDrawBuffer(GL_FRONT);
+//                pVtbl->glBlitFramebuffer(
+//                    0, 0, width, height,
+//                    0, 0, width, height,
+//                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
                 pVtbl->glFlush();
 
                 // Swap buffers using GLX context
