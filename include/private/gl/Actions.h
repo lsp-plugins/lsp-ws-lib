@@ -431,7 +431,7 @@ namespace lsp
                         clip_end_t                  clip_end;
                         set_antialiasing_t          set_antialiasing;
                         set_origin_t                set_origin;
-                        uint8_t                     data[];
+                        uint8_t                     data[4];
                     };
                 } action_t;
 
