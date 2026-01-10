@@ -346,7 +346,6 @@ namespace lsp
                             return STATUS_NO_MEM;
                         surface->set_texture(texture);
                     }
-                    lsp_finally { safe_release(texture); };
 
                     // Setup texture for drawing
                     status_t res = texture->begin_draw(sViewport.width, sViewport.height, gl::TEXTURE_PRGBA32);

@@ -138,7 +138,7 @@ namespace lsp
                      * Get texture
                      * @return texture
                      */
-                    inline      gl::Texture    *texture()               { return safe_acquire(pTexture);    }
+                    inline      gl::Texture    *texture()               { return pTexture;      }
 
                     /**
                      * Set texture
