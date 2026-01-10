@@ -32,8 +32,12 @@ namespace lsp
     {
         namespace gl
         {
+//            static uatomic_t nTextureCount = 0;
+
             Texture::Texture(gl::IContext *ctx)
             {
+//                lsp_trace("this=%p, count=%d", this, int(atomic_add(&nTextureCount, 1) + 1));
+
                 pContext            = safe_acquire(ctx);
                 atomic_store(&nReferences, 1);
                 nTextureId          = GL_NONE;
@@ -50,8 +54,7 @@ namespace lsp
 
             Texture::~Texture()
             {
-                if (nTextureId != 0)
-                    lsp_trace("this=%p, id=%d", this, int(nTextureId));
+//                lsp_trace("this=%p, count=%d, id=%d", this, int(atomic_add(&nTextureCount, -1) - 1), int(nTextureId));
                 reset();
             }
 
@@ -64,10 +67,7 @@ namespace lsp
             {
                 uatomic_t result = atomic_add(&nReferences, -1) - 1;
                 if (result == 0)
-                {
-                    reset();
                     delete this;
-                }
                 return result;
             }
 
@@ -153,11 +153,6 @@ namespace lsp
                     return STATUS_OK;
                 if ((nWidth == width) && (nHeight == height))
                     return STATUS_OK;
-
-                // Activate context
-                status_t res = pContext->activate();
-                if (res != STATUS_OK)
-                    return res;
 
                 // Resize texture
                 const vtbl_t *vtbl = pContext->vtbl();

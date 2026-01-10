@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 10 окт. 2016 г.
@@ -53,7 +53,7 @@
 #endif /* USE_LIBCAIRO */
 
 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-    #include <GL/glx.h>
+    #include <private/glx/Context.h>
 #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
 #define X11IOBUF_SIZE               0x100000
@@ -154,11 +154,10 @@ namespace lsp
                 nWhiteColor     = 0;
                 nIOBufSize      = X11IOBUF_SIZE;
                 pIOBuf          = NULL;
-                hFtLibrary      = NULL;
 
-            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                sGLXExtensions  = NULL;
-            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+            #ifdef LSP_PLUGINS_USE_OPENGL
+                pRenderer       = NULL;
+            #endif /* LSP_PLUGINS_USE_OPENGL */
 
                 for (size_t i=0; i<_CBUF_TOTAL; ++i)
                     pCbOwner[i]     = NULL;
@@ -435,21 +434,17 @@ namespace lsp
                 // Deallocate previously allocated fonts
             #ifdef USE_LIBFREETYPE
                 sFontManager.clear();
+                sFontManager.destroy();
             #endif /* USE_LIBFREETYPE */
-            #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                if (sGLXExtensions != NULL)
-                {
-                    free(sGLXExtensions);
-                    sGLXExtensions  = NULL;
-                }
-            #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
-                // Remove FT library
-                if (hFtLibrary != NULL)
+            #ifdef LSP_PLUGINS_USE_OPENGL
+                if (pRenderer != NULL)
                 {
-                    FT_Done_FreeType(hFtLibrary);
-                    hFtLibrary      = NULL;
+                    pRenderer->destroy();
+                    delete pRenderer;
+                    pRenderer   = NULL;
                 }
+            #endif /* LSP_PLUGINS_USE_OPENGL */
 
                 // Destroy estimation surface
                 if (pEstimation != NULL)
@@ -467,6 +462,7 @@ namespace lsp
                     lsp_finally { sTasksLock.unlock(); };
                     do_destroy();
                 }
+
                 IDisplay::destroy();
             }
 
@@ -3838,22 +3834,6 @@ namespace lsp
                 return sTranslateReq.bSuccess;
             }
 
-            status_t X11Display::init_freetype_library()
-            {
-                if (hFtLibrary != NULL)
-                    return STATUS_OK;
-
-                // Initialize FreeType handle
-                FT_Error status = FT_Init_FreeType (& hFtLibrary);
-                if (status != 0)
-                {
-                    lsp_error("Error %d opening library.\n", int(status));
-                    return STATUS_UNKNOWN_ERR;
-                }
-
-                return STATUS_OK;
-            }
-
             status_t X11Display::add_font(const char *name, io::IInStream *is)
             {
                 if ((name == NULL) || (is == NULL))
@@ -3901,15 +3881,6 @@ namespace lsp
             {
             #ifdef USE_LIBFREETYPE
                 sFontManager.clear();
-            #endif /* USE_LIBFREETYPE */
-            }
-
-            ft::FontManager *X11Display::font_manager()
-            {
-            #ifdef USE_LIBFREETYPE
-                return &sFontManager;
-            #else
-                return NULL;
             #endif /* USE_LIBFREETYPE */
             }
 
@@ -4041,16 +4012,33 @@ namespace lsp
             }
 
         #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-            const char *X11Display::glx_extensions()
+            gl::Renderer *X11Display::create_glx_renderer()
             {
-                if (sGLXExtensions == NULL)
-                {
-                    const char *extensions = ::glXQueryExtensionsString(pDisplay, DefaultScreen(pDisplay));
-                    if (extensions != NULL)
-                        sGLXExtensions = strdup(extensions);
-                }
+                // Do we already have GLX renderer?
+                gl::Renderer *renderer = gl::safe_acquire(pRenderer);
+                if (renderer != NULL)
+                    return renderer;
 
-                return sGLXExtensions;
+                // Create GLX context
+                gl::IContext *ctx   = glx::create_context(NULL);
+                if (ctx == NULL)
+                    return NULL;
+                lsp_finally { gl::safe_release(ctx); };
+
+                // Create renderer that uses GLX context
+                renderer            = new gl::Renderer(ctx);
+                if (renderer == NULL)
+                    return NULL;
+                lsp_finally { gl::safe_release(renderer); };
+
+                // Initialize renderer
+                status_t res        = renderer->init();
+                if (res != STATUS_OK)
+                    return NULL;
+
+                // Remember renderer and return it
+                pRenderer           = release_ptr(renderer);
+                return gl::safe_acquire(pRenderer);
             }
         #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 

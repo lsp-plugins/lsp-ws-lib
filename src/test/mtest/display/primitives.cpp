@@ -31,12 +31,16 @@ MTEST_BEGIN("ws.display", primitives)
         private:
             test_type_t    *pTest;
             ws::IWindow    *pWnd;
+            bool            bAntiAlias;
+            bool            bTest;
 
         public:
             inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
                 pTest       = test;
                 pWnd        = wnd;
+                bAntiAlias  = true;
+                bTest       = false;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
@@ -53,130 +57,175 @@ MTEST_BEGIN("ws.display", primitives)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
+                        s->set_antialiasing(bAntiAlias);
 
-                        ssize_t y = 8;
-
-                        // Method 1: Filled solid sectors
-                        c.set_rgb24(0xff0000);
-                        for (size_t i=0; i<16; ++i)
+                        if (bTest)
                         {
-                            c.alpha(i * 0.0625f);
-                            s->fill_sector(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f);
-                        }
-                        y += 40;
-
-                        // Method 2: Filled solid sectors with reverse angle
-                        c.set_rgb24(0xff0000);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            c.alpha(i * 0.0625f);
-                            s->fill_sector(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f);
-                        }
-                        y += 40;
-
-                        // Method 3: Filled solid triangles
-                        c.set_rgb24(0x00ff00);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            c.alpha(i * 0.0625f);
-                            float a  = M_PI * i / 8.0f;
-                            float x0 = 16 * cosf(a), y0 = 16 * sinf(a);
-                            float x1 = 16 * cosf(a + M_PI * 2.0f / 3.0f), y1 = 16 * sinf(a + M_PI * 2.0f / 3.0f);
-                            float x2 = 16 * cosf(a + M_PI * 4.0f / 3.0f), y2 = 16 * sinf(a + M_PI * 4.0f / 3.0f);
+                            c.set_rgb24(0x00ff00);
                             s->fill_triangle(c,
-                                x0 + 24.0f + 40*i, y0 + y + 16,
-                                x1 + 24.0f + 40*i, y1 + y + 16,
-                                x2 + 24.0f + 40*i, y2 + y + 16);
+                                50.0f, 50.0f,
+                                50.0f, 150.0f,
+                                200.0f, 50.0f);
+
+                            s->fill_triangle(c,
+                                400.0f, 50.0f,
+                                250.0f, 50.0f,
+                                400.0f, 150.0f);
+
+                            s->fill_triangle(c,
+                                200.0f, 300.0f,
+                                50.0f, 200.0f,
+                                50.0f, 300.0f);
+
+                            s->fill_triangle(c,
+                                250.0f, 300.0f,
+                                400.0f, 300.0f,
+                                400.0f, 200.0f);
                         }
-                        y += 40;
-
-                        // Method 4: Filled gradient triangles
-                        c.set_rgb24(0x00ff00);
-                        for (size_t i=0; i<16; ++i)
+                        else
                         {
-                            ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
-                            if (g == NULL)
-                                continue;
-                            lsp_finally { delete g; };
-                            c.set_rgb24(0x0000ff);
-                            c.alpha(i * 0.0625f);
-                            g->set_start(c);
-                            c.set_rgb24(0xffff00);
-                            c.alpha(i * 0.0625f);
-                            g->set_stop(c);
+                            ssize_t y = 8;
 
-                            float a  = M_PI * i / 8.0f + M_PI / 2.0f;
-                            float x0 = 16 * cosf(a), y0 = 16 * sinf(a);
-                            float x1 = 16 * cosf(a + M_PI * 2.0f / 3.0f), y1 = 16 * sinf(a + M_PI * 2.0f / 3.0f);
-                            float x2 = 16 * cosf(a + M_PI * 4.0f / 3.0f), y2 = 16 * sinf(a + M_PI * 4.0f / 3.0f);
-                            s->fill_triangle(g,
-                                x0 + 24.0f + 40*i, y0 + y + 16,
-                                x1 + 24.0f + 40*i, y1 + y + 16,
-                                x2 + 24.0f + 40*i, y2 + y + 16);
-                        }
-                        y += 40;
+                            // Method 1: Filled solid sectors
+                            c.set_rgb24(0xff0000);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                c.alpha(i * 0.0625f);
+                                s->fill_sector(
+                                    c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f);
+                            }
+                            y += 40;
 
-                        // Method 5: Filled solid circles
-                        c.set_rgb24(0xffffff);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            float r = 12 + 4 * cosf(M_PI * i / 8.0f);
-                            c.alpha(i * 0.0625f);
-                            s->fill_circle(c, 24.0f + 40 * i, y + 16, r);
-                        }
-                        y += 40;
+                            // Method 2: Filled solid sectors with reverse angle
+                            c.set_rgb24(0xff0000);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                c.alpha(i * 0.0625f);
+                                s->fill_sector(
+                                    c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f);
+                            }
+                            y += 40;
 
-                        // Method 6: Filled gradient circles
-                        c.set_rgb24(0xff00ff);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            ws::IGradient *g = s->radial_gradient(8 + 40*i + 16, y + 16, 8 + 40*i + 16, y + 16, 20);
-                            if (g == NULL)
-                                continue;
-                            lsp_finally { delete g; };
+                            // Method 3: Filled solid triangles
+                            c.set_rgb24(0x00ff00);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                c.alpha(i * 0.0625f);
+                                float a  = M_PI * i / 8.0f;
+                                float x0 = 16 * cosf(a), y0 = 16 * sinf(a);
+                                float x1 = 16 * cosf(a + M_PI * 2.0f / 3.0f), y1 = 16 * sinf(a + M_PI * 2.0f / 3.0f);
+                                float x2 = 16 * cosf(a + M_PI * 4.0f / 3.0f), y2 = 16 * sinf(a + M_PI * 4.0f / 3.0f);
+                                s->fill_triangle(c,
+                                    x0 + 24.0f + 40*i, y0 + y + 16,
+                                    x1 + 24.0f + 40*i, y1 + y + 16,
+                                    x2 + 24.0f + 40*i, y2 + y + 16);
+                            }
+                            y += 40;
+
+                            // Method 4: Filled gradient triangles
+                            c.set_rgb24(0x00ff00);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                ws::IGradient *g = s->linear_gradient(8 + 40*i, y, 8 + 40*(i+1), y + 40);
+                                if (g == NULL)
+                                    continue;
+                                lsp_finally { delete g; };
+                                c.set_rgb24(0x0000ff);
+                                c.alpha(i * 0.0625f);
+                                g->set_start(c);
+                                c.set_rgb24(0xffff00);
+                                c.alpha(i * 0.0625f);
+                                g->set_stop(c);
+
+                                float a  = M_PI * i / 8.0f + M_PI / 2.0f;
+                                float x0 = 16 * cosf(a), y0 = 16 * sinf(a);
+                                float x1 = 16 * cosf(a + M_PI * 2.0f / 3.0f), y1 = 16 * sinf(a + M_PI * 2.0f / 3.0f);
+                                float x2 = 16 * cosf(a + M_PI * 4.0f / 3.0f), y2 = 16 * sinf(a + M_PI * 4.0f / 3.0f);
+                                s->fill_triangle(g,
+                                    x0 + 24.0f + 40*i, y0 + y + 16,
+                                    x1 + 24.0f + 40*i, y1 + y + 16,
+                                    x2 + 24.0f + 40*i, y2 + y + 16);
+                            }
+                            y += 40;
+
+                            // Method 5: Filled solid circles
+                            c.set_rgb24(0xffffff);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                float r = 12 + 4 * cosf(M_PI * i / 8.0f);
+                                c.alpha(i * 0.0625f);
+                                s->fill_circle(c, 24.0f + 40 * i, y + 16, r);
+                            }
+                            y += 40;
+
+                            // Method 6: Filled gradient circles
                             c.set_rgb24(0xff00ff);
-                            c.alpha(i * 0.0625f);
-                            g->set_start(c);
-                            c.set_rgb24(0x00ffff);
-                            c.alpha(i * 0.0625f);
-                            g->set_stop(c);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                ws::IGradient *g = s->radial_gradient(8 + 40*i + 16, y + 16, 8 + 40*i + 16, y + 16, 20);
+                                if (g == NULL)
+                                    continue;
+                                lsp_finally { delete g; };
+                                c.set_rgb24(0xff00ff);
+                                c.alpha(i * 0.0625f);
+                                g->set_start(c);
+                                c.set_rgb24(0x00ffff);
+                                c.alpha(i * 0.0625f);
+                                g->set_stop(c);
 
-                            float r = 12 + 4 * sinf(M_PI * i / 8.0f);
-                            s->fill_circle(g, 24.0f + 40 * i, y + 16, r);
+                                float r = 12 + 4 * sinf(M_PI * i / 8.0f);
+                                s->fill_circle(g, 24.0f + 40 * i, y + 16, r);
+                            }
+                            y += 40;
+
+                            // Method 7: Wired arcs
+                            c.set_rgb24(0xff0000);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                c.set_rgb24(0x000000);
+                                c.alpha(i * 0.0625f);
+
+                                float w = 1 + (i >> 2);
+                                s->wire_arc(
+                                    c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f, w);
+                            }
+                            y += 40;
+
+                            // Method 8: Wired arcs with reverse angle
+                            c.set_rgb24(0xff0000);
+                            for (size_t i=0; i<16; ++i)
+                            {
+                                c.set_rgb24(0x000000);
+                                c.alpha(i * 0.0625f);
+
+                                float w = 1 + (i >> 2);
+                                s->wire_arc(
+                                    c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f, w);
+                            }
+                            y += 40;
                         }
-                        y += 40;
-
-                        // Method 7: Wired arcs
-                        c.set_rgb24(0xff0000);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            c.set_rgb24(0x000000);
-                            c.alpha(i * 0.0625f);
-
-                            float w = 1 + (i >> 2);
-                            s->wire_arc(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / 16.0f, (i + 1) * M_PI / 6.0f, w);
-                        }
-                        y += 40;
-
-                        // Method 8: Wired arcs with reverse angle
-                        c.set_rgb24(0xff0000);
-                        for (size_t i=0; i<16; ++i)
-                        {
-                            c.set_rgb24(0x000000);
-                            c.alpha(i * 0.0625f);
-
-                            float w = 1 + (i >> 2);
-                            s->wire_arc(
-                                c, 8 + 40*i, y + 16, 16, i * M_PI / -16.0f, (i + 1) * M_PI / -6.0f, w);
-                        }
-                        y += 40;
 
                         s->end();
 
                         return STATUS_OK;
+                    }
+
+                    case ws::UIE_MOUSE_CLICK:
+                    {
+                        // Left mouse button toggles anti-aliasing
+                        if (ev->nCode == ws::MCB_LEFT)
+                        {
+                            bAntiAlias = !bAntiAlias;
+                            pTest->printf("Anti-aliasing enabled: %s\n", (bAntiAlias) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        else if (ev->nCode == ws::MCB_RIGHT)
+                        {
+                            bTest = !bTest;
+                            pTest->printf("Test enabled: %s\n", (bTest) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        break;
                     }
 
                     case ws::UIE_CLOSE:

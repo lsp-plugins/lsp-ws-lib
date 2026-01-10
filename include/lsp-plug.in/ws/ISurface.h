@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 25 окт. 2016 г.
@@ -152,6 +152,11 @@ namespace lsp
                 virtual void end();
 
                 /**
+                 * Check that surface is ready for drawing.
+                 */
+                virtual bool ready() const;
+
+                /**
                  * Check that surface is valid
                  * @return true if surface is valid
                  */
@@ -174,24 +179,12 @@ namespace lsp
                  * @param s surface to draw
                  * @param x offset from left
                  * @param y offset from top
-                 * @param sx surface scale x                 * @param sy surface scale y
+                 * @param sx surface scale x
+                 * @param sy surface scale y
                  * @param ra rotation angle in radians
                  * @param a alpha
                  */
                 virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a);
-
-                /** Draw clipped surface
-                 *
-                 * @param s surface to draw
-                 * @param x position to draw at
-                 * @param y position to draw at
-                 * @param sx source surface starting position
-                 * @param sy source surface starting position
-                 * @param sw source surface width
-                 * @param sh source surface height
-                 * @param a alpha
-                 */
-                virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a);
 
                 /** Draw surface from BGRA32 memory chunk where alpha is premultiplied.
                  * That means that alpha of 0xff defines fully opaque color and 0x00

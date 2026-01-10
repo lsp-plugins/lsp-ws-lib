@@ -387,10 +387,15 @@ namespace lsp
 
                     // Blending function
                     if (flags & BATCH_NO_BLENDING)
+                    {
                         vtbl->glBlendFunc(GL_ONE, GL_ZERO);
+                        vtbl->glDisable(GL_BLEND);
+                    }
                     else
+                    {
                         vtbl->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-                    vtbl->glEnable(GL_BLEND);
+                        vtbl->glEnable(GL_BLEND);
+                    }
 
                     // Configure color buffer
                     const GLboolean color_mask  = (flags & BATCH_WRITE_COLOR) ? GL_TRUE : GL_FALSE;

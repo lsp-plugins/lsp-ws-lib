@@ -131,8 +131,6 @@ MTEST_BEGIN("ws.display", rtext)
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
-
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }
 
