@@ -1107,7 +1107,7 @@ namespace lsp
 
                             // Start second batch on color buffer with stencil apply
                             {
-                                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.fill);
+                                const ssize_t res = start_batch(surface, gl::GEOMETRY, gl::BATCH_WRITE_COLOR | gl::BATCH_STENCIL_OP_APPLY, action.wire);
                                 if (res < 0)
                                     return status_t(-res);
                                 lsp_finally{ sBatch.end(); };
@@ -1389,7 +1389,7 @@ namespace lsp
                         break;
                 }
 
-                return STATUS_INVALID_VALUE;
+                return -STATUS_INVALID_VALUE;
             }
 
             void Renderer::fill_triangle(uint32_t ci, float x0, float y0, float x1, float y1, float x2, float y2)
