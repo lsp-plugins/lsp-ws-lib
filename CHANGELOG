@@ -6,6 +6,7 @@
 * Moved OpenGL rendering mechanism to a separate thread.
 * Changed the meaning of window constraints from strict constraints to
   window manager hints.
+* Added test for drawing raster icons.
 * Improvements related to window rendering for X11.
 
 === 1.0.31 ===

@@ -44,6 +44,7 @@ namespace lsp
         namespace gl
         {
             constexpr float k_color = 1.0f / 255.0f;
+            constexpr float k_alpha_color = 254.0f / 255.0f;
             
             Surface::Surface(IDisplay *display, SurfaceContext * context):
                 ISurface(context->width(), context->height(), ST_OPENGL),
@@ -180,6 +181,9 @@ namespace lsp
                 float x, float y, float sx, float sy, float a)
             {
                 if (!pSurface->is_drawing())
+                    return;
+
+                if ((fabsf(width*sx) <= 1e-3) || (fabsf(height*sy) <= 1e-3) || (a >= k_alpha_color))
                     return;
 
                 // Copy contents for drawing
