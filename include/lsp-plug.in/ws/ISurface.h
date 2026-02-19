@@ -157,6 +157,11 @@ namespace lsp
                 virtual bool ready() const;
 
                 /**
+                 * Wait until all asynchronous drawing will be completed with this surface.
+                 */
+                virtual void wait();
+
+                /**
                  * Check that surface is valid
                  * @return true if surface is valid
                  */

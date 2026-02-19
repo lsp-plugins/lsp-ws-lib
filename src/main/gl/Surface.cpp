@@ -260,6 +260,11 @@ namespace lsp
                 return !pSurface->is_rendering();
             }
 
+            void Surface::wait()
+            {
+                return pSurface->wait();
+            }
+
             void Surface::end()
             {
                 pSurface->end_draw();

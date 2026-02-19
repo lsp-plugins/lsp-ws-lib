@@ -97,6 +97,7 @@ namespace lsp
 
                     virtual void begin() override;
                     virtual bool ready() const override;
+                    virtual void wait() override;
                     virtual void end() override;
 
                     virtual void clear(const Color &color) override;

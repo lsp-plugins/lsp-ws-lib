@@ -123,16 +123,21 @@ namespace lsp
 
                 // Wait until surface context is being removed from the render queue
                 // Only after that we can perform additional manipulations
-                sCondition.lock();
-                lsp_finally { sCondition.unlock(); };
-                while (atomic_load(&nIsRendering) != 0)
-                    sCondition.wait();
+                wait();
 
                 // Clear actions
                 bIsDrawing     = true;
                 clear_actions();
 
                 return true;
+            }
+
+            void SurfaceContext::wait()
+            {
+                sCondition.lock();
+                lsp_finally { sCondition.unlock(); };
+                while (atomic_load(&nIsRendering) != 0)
+                    sCondition.wait();
             }
 
             void SurfaceContext::end_draw()

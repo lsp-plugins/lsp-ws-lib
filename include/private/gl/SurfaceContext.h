@@ -177,6 +177,11 @@ namespace lsp
                     bool        begin_draw();
 
                     /**
+                     * Wait until all drawing operations are completed
+                     */
+                    void        wait();
+
+                    /**
                      * End drawing on the context
                      */
                     void        end_draw();

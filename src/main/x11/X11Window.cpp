@@ -1126,7 +1126,11 @@ namespace lsp
                 }
 
                 if (pSurface != NULL)
+                {
+                    // Wait until no drawing operations will be performed with the window
+                    pSurface->wait();
                     ::XUnmapWindow(dpy, hWindow);
+                }
 
                 pX11Display->flush();
                 return STATUS_OK;

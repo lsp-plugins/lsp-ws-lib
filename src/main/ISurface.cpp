@@ -199,6 +199,10 @@ namespace lsp
             return true;
         }
 
+        void ISurface::wait()
+        {
+        }
+
         bool ISurface::valid() const
         {
             return true;
