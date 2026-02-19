@@ -1279,6 +1279,13 @@ namespace lsp
                 if (!verify_size_constraints(c))
                     return STATUS_INVALID_VALUE;
 
+                // Check that constraints have changed
+                if ((sConstraints.nMinWidth == c->nMinWidth) &&
+                    (sConstraints.nMinHeight == c->nMinHeight) &&
+                    (sConstraints.nMaxWidth == c->nMaxWidth) &&
+                    (sConstraints.nMaxHeight == c->nMaxHeight))
+                    return STATUS_OK;
+
                 sConstraints    = *c;
 //                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
