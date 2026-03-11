@@ -2,6 +2,9 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.33 ===
+
+
 === 1.0.32 ===
 * Moved OpenGL rendering mechanism to a separate thread.
 * Changed the meaning of window constraints from strict constraints to
