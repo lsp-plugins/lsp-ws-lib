@@ -32,37 +32,15 @@ namespace lsp
     {
         namespace gl
         {
-            Gradient::Gradient(const linear_t & params)
+            Gradient::Gradient(const gl::linear_gradient_t & params)
             {
                 sLinear     = params;
-
-                sStart.r    = 0.0f;
-                sStart.g    = 0.0f;
-                sStart.b    = 0.0f;
-                sStart.a    = 1.0f;
-
-                sEnd.r      = 1.0f;
-                sEnd.g      = 1.0f;
-                sEnd.b      = 1.0f;
-                sEnd.a      = 0.0f;
-
                 bLinear     = true;
             }
 
-            Gradient::Gradient(const radial_t & params)
+            Gradient::Gradient(const gl::radial_gradient_t & params)
             {
                 sRadial     = params;
-
-                sStart.r    = 0.0f;
-                sStart.g    = 0.0f;
-                sStart.b    = 0.0f;
-                sStart.a    = 1.0f;
-
-                sEnd.r      = 1.0f;
-                sEnd.g      = 1.0f;
-                sEnd.b      = 1.0f;
-                sEnd.a      = 0.0f;
-
                 bLinear     = false;
             }
 
@@ -72,18 +50,20 @@ namespace lsp
 
             void Gradient::set_start(float r, float g, float b, float a)
             {
-                sStart.r    = r;
-                sStart.g    = g;
-                sStart.b    = b;
-                sStart.a    = a;
+                gl::color_t & start = sBase.start;
+                start.r     = r;
+                start.g     = g;
+                start.b     = b;
+                start.a     = a;
             }
 
             void Gradient::set_stop(float r, float g, float b, float a)
             {
-                sEnd.r      = r;
-                sEnd.g      = g;
-                sEnd.b      = b;
-                sEnd.a      = a;
+                gl::color_t & end   = sBase.end;
+                end.r       = r;
+                end.g       = g;
+                end.b       = b;
+                end.a       = a;
             }
 
             size_t Gradient::serial_size() const
@@ -93,17 +73,20 @@ namespace lsp
 
             float *Gradient::serialize(float *buf) const
             {
-                const float sa  = 1.0f - sStart.a;
-                const float ea  = 1.0f - sEnd.a;
+                const gl::color_t & start = sBase.start;
+                const gl::color_t & end   = sBase.end;
 
-                buf[0]  = sStart.r * sa;
-                buf[1]  = sStart.g * sa;
-                buf[2]  = sStart.b * sa;
+                const float sa  = 1.0f - start.a;
+                const float ea  = 1.0f - end.a;
+
+                buf[0]  = start.r * sa;
+                buf[1]  = start.g * sa;
+                buf[2]  = start.b * sa;
                 buf[3]  = sa;
 
-                buf[4]  = sEnd.r * ea;
-                buf[5]  = sEnd.g * ea;
-                buf[6]  = sEnd.b * ea;
+                buf[4]  = end.r * ea;
+                buf[5]  = end.g * ea;
+                buf[6]  = end.b * ea;
                 buf[7]  = ea;
 
                 if (bLinear)
@@ -129,11 +112,6 @@ namespace lsp
 
                     return &buf[16];
                 }
-            }
-
-            bool Gradient::linear() const
-            {
-                return bLinear;
             }
 
         } /* namespace gl */

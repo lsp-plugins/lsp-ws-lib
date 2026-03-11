@@ -343,6 +343,15 @@ namespace lsp
                         MINMAXINFO *info        = reinterpret_cast<MINMAXINFO *>(lParam);
 
                         size_limit_t sl         = sConstraints;
+                        status_t res            = get_actual_size_constraints(&sl);
+                        if (res != STATUS_OK)
+                        {
+                            sl.nMinWidth            = sSize.nWidth;
+                            sl.nMinHeight           = sSize.nHeight;
+                            sl.nMaxWidth            = sSize.nWidth;
+                            sl.nMaxHeight           = sSize.nHeight;
+                        }
+
                         if (has_border())
                         {
                             // Get extra padding
@@ -440,7 +449,6 @@ namespace lsp
                     case WM_PAINT:
                     {
                         PAINTSTRUCT ps;
-                        BeginPaint(hWindow, &ps);
 
                         ue.nType                = UIE_REDRAW;
                         ue.nLeft                = ps.rcPaint.left;
@@ -449,11 +457,16 @@ namespace lsp
                         ue.nHeight              = ps.rcPaint.bottom - ps.rcPaint.top;
 
                         // Render and re-render if the surface is invalid
+                        BeginPaint(hWindow, &ps);
                         handle_event(&ue);
-                        if (!pSurface->valid())
-                            handle_event(&ue);
-
                         EndPaint(hWindow, &ps);
+
+                        if (!pSurface->valid())
+                        {
+                            BeginPaint(hWindow, &ps);
+                            handle_event(&ue);
+                            EndPaint(hWindow, &ps);
+                        }
 
                         return 0;
                     }
@@ -1177,72 +1190,17 @@ namespace lsp
                 return (text->set_utf16(tmp, length)) ? STATUS_OK : STATUS_NO_MEM;
             }
 
-            status_t WinWindow::move(ssize_t left, ssize_t top)
-            {
-                rectangle_t rect = sSize;
-                rect.nLeft      = left;
-                rect.nTop       = top;
-
-                return set_geometry(&rect);
-            }
-
-            status_t WinWindow::resize(ssize_t width, ssize_t height)
-            {
-                rectangle_t rect = sSize;
-                rect.nWidth     = width;
-                rect.nHeight    = height;
-
-                return set_geometry(&rect);
-            }
-
-            void WinWindow::apply_constraints(rectangle_t *dst, const rectangle_t *req)
-            {
-                *dst    = *req;
-
-                if ((sConstraints.nMaxWidth >= 0) && (dst->nWidth > sConstraints.nMaxWidth))
-                    dst->nWidth         = sConstraints.nMaxWidth;
-                if ((sConstraints.nMaxHeight >= 0) && (dst->nHeight > sConstraints.nMaxHeight))
-                    dst->nHeight        = sConstraints.nMaxHeight;
-                if ((sConstraints.nMinWidth >= 0) && (dst->nWidth < sConstraints.nMinWidth))
-                    dst->nWidth         = sConstraints.nMinWidth;
-                if ((sConstraints.nMinHeight >= 0) && (dst->nHeight < sConstraints.nMinHeight))
-                    dst->nHeight        = sConstraints.nMinHeight;
-            }
-
-            status_t WinWindow::set_geomety_impl()
-            {
-                // These system metrics affect the actual client size of the window
-                const bool border       = has_border();
-                ssize_t hborder         = (border) ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
-                ssize_t vborder         = (border) ? GetSystemMetrics(SM_CYSIZEFRAME) : 0;
-                ssize_t vcaption        = (border) ? GetSystemMetrics(SM_CYCAPTION) : 0;
-
-                BOOL res = MoveWindow(
-                    hWindow,                                // hWnd
-                    sSize.nLeft,                            // X
-                    sSize.nTop,                             // Y
-                    sSize.nWidth + hborder * 2,             // nWidth
-                    sSize.nHeight + vcaption + vborder * 2, // nHeight
-                    TRUE);                                  // bRepaint
-
-                if (res)
-                    return STATUS_OK;
-
-                lsp_error("Error moving window to l=%d, t=%d, w=%d, h=%d: error=%ld",
-                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight), long(GetLastError()));
-                return STATUS_UNKNOWN_ERR;
-            }
-
             status_t WinWindow::set_geometry(const rectangle_t *realize)
             {
                 if (hWindow == NULL)
                     return STATUS_BAD_STATE;
 
                 rectangle_t old = sSize;
-                apply_constraints(&sSize, realize);
 
-//                lsp_trace("constrained: l=%d, t=%d, w=%d, h=%d",
-//                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                sSize.nLeft     = realize->nLeft;
+                sSize.nTop      = realize->nTop;
+                sSize.nWidth    = lsp_max(realize->nWidth, 1);
+                sSize.nHeight   = lsp_max(realize->nHeight, 1);
 
                 if ((old.nLeft == sSize.nLeft) &&
                     (old.nTop == sSize.nTop) &&
@@ -1250,7 +1208,27 @@ namespace lsp
                     (old.nHeight == sSize.nHeight))
                     return STATUS_OK;
 
-                return set_geomety_impl();
+                // These system metrics affect the actual client size of the window
+                const bool border       = has_border();
+                ssize_t hborder         = (border) ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
+                ssize_t vborder         = (border) ? GetSystemMetrics(SM_CYSIZEFRAME) : 0;
+                ssize_t vcaption        = (border) ? GetSystemMetrics(SM_CYCAPTION) : 0;
+
+                BOOL res = MoveWindow(
+                    hWindow,                                    // hWnd
+                    realize->nLeft,                             // X
+                    realize->nTop,                              // Y
+                    realize->nWidth + hborder * 2,              // nWidth
+                    realize->nHeight + vcaption + vborder * 2,  // nHeight
+                    TRUE);                                      // bRepaint
+
+                if (res)
+                    return STATUS_OK;
+
+                lsp_error("Error moving window to l=%d, t=%d, w=%d, h=%d: error=%ld",
+                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight), long(GetLastError()));
+
+                return STATUS_UNKNOWN_ERR;
             }
 
             status_t WinWindow::set_border_style(border_style_t style)
@@ -1423,18 +1401,43 @@ namespace lsp
 
             status_t WinWindow::set_size_constraints(const size_limit_t *c)
             {
-                sConstraints    = *c;
-                if (sConstraints.nMinWidth == 0)
-                    sConstraints.nMinWidth  = 1;
-                if (sConstraints.nMinHeight == 0)
-                    sConstraints.nMinHeight = 1;
+                if (!verify_size_constraints(c))
+                    return STATUS_INVALID_VALUE;
 
-                return set_geometry(&sSize);
+                sConstraints    = *c;
+
+                return STATUS_OK;
             }
 
             status_t WinWindow::get_size_constraints(size_limit_t *c)
             {
                 *c = sConstraints;
+                return STATUS_OK;
+            }
+
+            status_t WinWindow::get_actual_size_constraints(size_limit_t *c)
+            {
+                const ssize_t width     = lsp_max(sSize.nWidth, 1);
+                const ssize_t height    = lsp_max(sSize.nHeight, 1);
+
+                if (nActions & WA_RESIZE)
+                {
+                    c->nMinWidth    = (sConstraints.nMinWidth >= 0) ? lsp_min(sConstraints.nMinWidth, width) : -1;
+                    c->nMinHeight   = (sConstraints.nMinHeight >= 0) ? lsp_min(sConstraints.nMinHeight, height) : -1;
+                    c->nMaxWidth    = (sConstraints.nMaxWidth >= 0) ? lsp_max(sConstraints.nMaxWidth, width) : -1;
+                    c->nMaxHeight   = (sConstraints.nMaxHeight >= 0) ? lsp_max(sConstraints.nMaxHeight, height) : -1;
+                }
+                else
+                {
+                    c->nMinWidth    = width;
+                    c->nMinHeight   = height;
+                    c->nMaxWidth    = width;
+                    c->nMaxHeight   = height;
+                }
+
+                c->nPreWidth    = sSize.nWidth;
+                c->nPreHeight   = sSize.nHeight;
+
                 return STATUS_OK;
             }
 

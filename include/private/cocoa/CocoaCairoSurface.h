@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
- *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2026 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 12 June 2025
@@ -108,8 +108,8 @@ namespace lsp
                     //explicit CocoaCairoSurface(CocoaDisplay *pDisplay, cairo_surface_t *surface, size_t width, size_t height);
 
                     /** Create image surface
-                     * @param dpy display
-                     * @param wnd window
+                     * @param pDisplay display
+                     * @param view view
                      * @param width surface width
                      * @param height surface height
                      */
@@ -154,7 +154,6 @@ namespace lsp
                     // Drawing methods
                     virtual void draw(ISurface *s, float x, float y, float sx, float sy, float a) override;
                     virtual void draw_rotate(ISurface *s, float x, float y, float sx, float sy, float ra, float a) override;
-                    virtual void draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a) override;
                     virtual void draw_raw(
                         const void *data, size_t width, size_t height, size_t stride,
                         float x, float y, float sx, float sy, float a) override;

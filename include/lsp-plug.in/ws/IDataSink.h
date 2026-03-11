@@ -45,7 +45,6 @@ namespace lsp
             public:
                 /**
                  * Create data sink with specified MIME type
-                 * @param mime MIME type of the data sink
                  */
                 explicit IDataSink();
 

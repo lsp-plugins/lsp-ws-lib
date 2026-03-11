@@ -36,15 +36,17 @@
 #include <time.h>
 #include <X11/Xlib.h>
 
-// Cairo headers
-#ifdef USE_LIBCAIRO
-    #include <cairo/cairo.h>
-#endif /* USE_LIBCAIRO */
-
 #include <private/gl/defs.h>
 #include <private/x11/X11Atoms.h>
 #include <private/x11/X11Window.h>
-#include <private/freetype/FontManager.h>
+
+#ifdef USE_LIBFREETYPE
+    #include <private/freetype/FontManager.h>
+#endif /* USE_LIBFREETYPE */
+
+#ifdef LSP_PLUGINS_USE_OPENGL
+    #include <private/gl/Renderer.h>
+#endif /* LSP_PLUGINS_USE_OPENGL */
 
 namespace lsp
 {
@@ -207,14 +209,13 @@ namespace lsp
                     Cursor                      vCursors[__MP_COUNT];
                     size_t                      nIOBufSize;
                     uint8_t                    *pIOBuf;
-                    FT_Library                  hFtLibrary;
                     IDataSource                *pCbOwner[_CBUF_TOTAL];
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;
                 #endif /* USE_LIBFREETYPE */
-                #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                    char                       *sGLXExtensions;
-                #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
+                #ifdef LSP_PLUGINS_USE_OPENGL
+                    gl::Renderer               *pRenderer;
+                #endif /* LSP_PLUGINS_USE_OPENGL */
 
                     lltl::darray<x11_screen_t>  vScreens;
                     lltl::parray<X11Window>     vWindows;
@@ -283,8 +284,6 @@ namespace lsp
 
                     dnd_recv_t     *current_drag_task();
                     void            complete_async_tasks();
-
-                    status_t        init_freetype_library();
 
                     status_t        read_window_state(window_state_t *state, Window wnd);
 
@@ -368,18 +367,23 @@ namespace lsp
                     status_t                    lock_events(X11Window *wnd, X11Window *lock);
                     status_t                    unlock_events(X11Window *wnd);
 
-                    ft::FontManager            *font_manager();
-
                     bool                        set_input_focus(::Window wnd);
 
                     void                        flush();
 
+                public:
+
+                #ifdef USE_LIBFREETYPE
+                    inline ft::FontManager     *font_manager()      { return &sFontManager;  }
+                #endif /* USE_LIBFREETYPE */
+
                 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
-                    const char                 *glx_extensions();
+                    gl::Renderer               *create_glx_renderer();
                 #endif /* LSP_PLUGINS_USE_OPENGL_GLX */
 
                 public:
                     static const char          *event_name(int xev_code);
+
             };
         } /* namespace x11 */
     } /* namespace ws */

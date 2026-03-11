@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2020 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2020 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
- * Created on: 2 мая 2020 г.
+ * Created on: 27 Dec 2025
  *
  * lsp-ws-lib is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,19 +19,31 @@
  * along with lsp-ws-lib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef LSP_PLUG_IN_WS_VERSION_H_
-#define LSP_PLUG_IN_WS_VERSION_H_
+#ifndef PRIVATE_COCOA_DEFS_H_
+#define PRIVATE_COCOA_DEFS_H_
 
-#define LSP_WS_LIB_MAJOR            1
-#define LSP_WS_LIB_MINOR            0
-#define LSP_WS_LIB_MICRO            32
+#include <private/cocoa/fwd_defs.h>
 
-#if defined(LSP_WS_LIB_PUBLISHER)
-    #define LSP_WS_LIB_PUBLIC               LSP_EXPORT_MODIFIER
-#elif defined(LSP_WS_LIB_BUILTIN) || defined(LSP_IDE_DEBUG)
-    #define LSP_WS_LIB_PUBLIC
-#else
-    #define LSP_WS_LIB_PUBLIC               LSP_IMPORT_MODIFIER
-#endif
+#import <Cocoa/Cocoa.h>
 
-#endif /* LSP_PLUG_IN_WS_VERSION_H_ */
+namespace lsp
+{
+    namespace ws
+    {
+        namespace cocoa
+        {
+            struct nsevent_t
+            {
+                NSEvent * const event;
+            };
+        
+            struct nswindow_t
+            {
+                NSWindow * const window;
+            };
+        
+        } /* namespace cocoa */
+    } /* namespace ws */
+} /* namespace lsp */
+
+#endif /* PRIVATE_COCOA_DEFS_H_ */

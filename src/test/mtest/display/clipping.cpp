@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 7 июл. 2022 г.
@@ -31,12 +31,14 @@ MTEST_BEGIN("ws.display", clipping)
         private:
             test_type_t    *pTest;
             ws::IWindow    *pWnd;
+            bool            bAntiAlias;
 
         public:
             inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
                 pTest       = test;
                 pWnd        = wnd;
+                bAntiAlias  = true;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
@@ -53,6 +55,7 @@ MTEST_BEGIN("ws.display", clipping)
                         // Perform drawing
                         s->begin();
                         s->clear(c);
+                        s->set_antialiasing(bAntiAlias);
 
                         s->clip_begin(32, 32, pWnd->width() - 64, pWnd->height() - 64);
                         c.green(0.75f);
@@ -118,6 +121,18 @@ MTEST_BEGIN("ws.display", clipping)
                         return STATUS_OK;
                     }
 
+                    case ws::UIE_MOUSE_CLICK:
+                    {
+                        // Left mouse button toggles anti-aliasing
+                        if (ev->nCode == ws::MCB_LEFT)
+                        {
+                            bAntiAlias = !bAntiAlias;
+                            pTest->printf("Anti-aliasing enabled: %s\n", (bAntiAlias) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        break;
+                    }
+
                     case ws::UIE_CLOSE:
                     {
                         pWnd->hide();
@@ -148,6 +163,7 @@ MTEST_BEGIN("ws.display", clipping)
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test clipping") == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
 
@@ -155,7 +171,6 @@ MTEST_BEGIN("ws.display", clipping)
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

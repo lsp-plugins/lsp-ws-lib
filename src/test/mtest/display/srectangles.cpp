@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 апр. 2025 г.
@@ -30,12 +30,14 @@ MTEST_BEGIN("ws.display", srectangles)
         private:
             test_type_t    *pTest;
             ws::IWindow    *pWnd;
+            bool            bAntiAlias;
 
         public:
             inline Handler(test_type_t *test, ws::IWindow *wnd)
             {
                 pTest       = test;
                 pWnd        = wnd;
+                bAntiAlias  = true;
             }
 
             virtual status_t handle_event(const ws::event_t *ev)
@@ -80,6 +82,7 @@ MTEST_BEGIN("ws.display", srectangles)
                             Color c(0.0f, 0.5f, 0.75f);
 
                             s->clear(c);
+                            s->set_antialiasing(bAntiAlias);
 
                             s->draw(src, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
 
@@ -102,6 +105,18 @@ MTEST_BEGIN("ws.display", srectangles)
                         s->end();
 
                         return STATUS_OK;
+                    }
+
+                    case ws::UIE_MOUSE_CLICK:
+                    {
+                        // Left mouse button toggles anti-aliasing
+                        if (ev->nCode == ws::MCB_LEFT)
+                        {
+                            bAntiAlias = !bAntiAlias;
+                            pTest->printf("Anti-aliasing enabled: %s\n", (bAntiAlias) ? "true" : "false");
+                            pWnd->invalidate();
+                        }
+                        break;
                     }
 
                     case ws::UIE_CLOSE:
@@ -135,13 +150,13 @@ MTEST_BEGIN("ws.display", srectangles)
         MTEST_ASSERT(wnd->init() == STATUS_OK);
         MTEST_ASSERT(wnd->set_caption("Test surface rectangles") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

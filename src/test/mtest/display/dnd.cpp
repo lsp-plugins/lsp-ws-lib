@@ -104,7 +104,7 @@ MTEST_BEGIN("ws.display", dnd)
             {
                 wssize_t written = sOS.write(buf, count);
                 if (written < 0)
-                    return -written;
+                    return status_t(-written);
                 return (written == wssize_t(count)) ? STATUS_OK : STATUS_UNKNOWN_ERR;
             }
 

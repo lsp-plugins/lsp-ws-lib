@@ -81,7 +81,6 @@ MTEST_BEGIN("ws.display", surface)
                             s->draw(x, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f);
                             s->draw(x, 320.0f, 0.0f, 1.0f, 1.0f, 0.0f);
                             s->draw(x, 320.0f, 100.0f, 1.0f, 1.0f, 0.5f);
-                            s->draw_clipped(x, 480.0f, 0.0f, 16, 10, 128, 80, 0.0f);
                             s->draw_rotate(x, 320, 240, 1.0f, 1.0f, M_PI * 0.5f, 0.5f);
                             s->draw_rotate(x, 160, 240, 1.0f, 1.0f, M_PI / 6.0f, 0.5f);
                             s->draw(x, 320, 200, 1.5f, 1.5f, 0.0f);
@@ -121,15 +120,15 @@ MTEST_BEGIN("ws.display", surface)
         };
 
         MTEST_ASSERT(wnd->init() == STATUS_OK);
-        MTEST_ASSERT(wnd->set_caption("Test rectangles") == STATUS_OK);
+        MTEST_ASSERT(wnd->set_caption("Test surface") == STATUS_OK);
         MTEST_ASSERT(wnd->set_window_actions(ws::WA_MOVE | ws::WA_CLOSE) == STATUS_OK);
+        MTEST_ASSERT(wnd->resize(640, 400) == STATUS_OK);
         MTEST_ASSERT(wnd->set_size_constraints(640, 400, 640, 400) == STATUS_OK);
 
         Handler h(this, wnd);
         wnd->set_handler(&h);
 
         MTEST_ASSERT(wnd->show() == STATUS_OK);
-        MTEST_ASSERT(!wnd->has_parent());
 
         MTEST_ASSERT(dpy->main() == STATUS_OK);
     }

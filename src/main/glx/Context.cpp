@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 16 янв. 2025 г.
@@ -23,13 +23,15 @@
 
 #ifdef LSP_PLUGINS_USE_OPENGL_GLX
 
-#include <private/glx/Context.h>
 #include <lsp-plug.in/common/debug.h>
 #include <lsp-plug.in/runtime/LSPString.h>
 #include <lsp-plug.in/stdlib/string.h>
 
+#include <private/gl/Data.h>
+#include <private/glx/Context.h>
 #include <private/glx/shaders.h>
 #include <private/glx/vtbl.h>
+#include <private/x11/X11Drawable.h>
 
 namespace lsp
 {
@@ -164,6 +166,41 @@ namespace lsp
                 return NULL;
             }
 
+            static int stub_context_error_handler(Display *dpy, XErrorEvent *ev)
+            {
+                return 0;
+            }
+
+            static uint32_t test_features(const char *str)
+            {
+                uint32_t features   = Context::NO_FEATURES;
+                if (check_gl_extension(str, "GL_ARB_texture_multisample"))
+                    features               |= Context::TEXTURE_MULTISAMPLE;
+
+                return features;
+            }
+
+            static uint32_t detect_features(const glx::vtbl_t *vtbl)
+            {
+                uint32_t features   = Context::NO_FEATURES;
+
+                const char *extensions = reinterpret_cast<const char *>(vtbl->glGetString(GL_EXTENSIONS));
+                lsp_gl_trace("OpenGL extensions: %s", extensions);
+                features               |= test_features(extensions);
+
+                GLint num_extensions = 0;
+                vtbl->glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
+                for (GLint i = 0; i<num_extensions; ++i)
+                {
+                    extensions              = reinterpret_cast<const char *>(vtbl->glGetStringi(GL_EXTENSIONS, i));
+                    features               |= test_features(extensions);
+
+                    lsp_gl_trace("%s", extensions);
+                }
+
+                return features;
+            }
+
             void Context::destroy(program_t *prg)
             {
                 if (prg == NULL)
@@ -190,17 +227,17 @@ namespace lsp
 
             uint32_t Context::multisample() const
             {
-                return nMultisample;
+                return ((nFeatures & (FEATURES_INITIALIZED | TEXTURE_MULTISAMPLE)) == (FEATURES_INITIALIZED | TEXTURE_MULTISAMPLE)) ? nMaxMultisample : 0;
             }
 
-            Context::Context(::Display *dpy, ::GLXContext ctx, ::Window window, vtbl_t *vtbl, uint32_t features, uint32_t multisample)
+            Context::Context(::Display *dpy, ::GLXContext ctx, vtbl_t *vtbl, uint32_t features, int max_multisample)
                 : IContext(vtbl)
             {
                 pDisplay        = dpy;
                 hContext        = ctx;
-                hWindow         = window;
-                nFeatures       = features;
-                nMultisample    = multisample;
+                pDrawable       = NULL;
+                nFeatures       = features & ~FEATURES_INITIALIZED;
+                nMaxMultisample = lsp_max(max_multisample, 0);
 
                 lsp_gl_trace("Created GLX context ptr=%p", this);
             }
@@ -208,67 +245,73 @@ namespace lsp
             Context::~Context()
             {
                 if (hContext != NULL)
-                    lsp_error("Non-NULL context, need invalidate() call before destroying context");
+                    lsp_error("Non-NULL context, need to explicitly call destroy() before destructing context");
+                if (pDrawable != NULL)
+                    lsp_error("Non-NULL drawable, need to explicitly call destroy() before destructing context");
 
                 lsp_gl_trace("Destroyed GLX context ptr=%p", this);
             }
 
-            void Context::cleanup()
+            void Context::destroy()
             {
-                IContext::cleanup();
-
-                if (hContext == NULL)
-                    return;
-
-                // Destroy shaders and programs
-                for (size_t i=0, n=vPrograms.size(); i<n; ++i)
-                    destroy(vPrograms.uget(i));
-                vPrograms.flush();
-
-                // Destroy context
-                ::glXMakeCurrent(pDisplay, None, NULL);
-                ::glXDestroyContext(pDisplay, hContext);
-                lsp_gl_trace("glXDestroyContext(%p)", hContext);
-                hContext        = NULL;
-                pDisplay        = NULL;
-                hWindow         = None;
-            }
-
-            bool Context::active() const
-            {
-                if (!valid())
-                    return false;
-
-                GLXContext ctx = ::glXGetCurrentContext();
-                return ctx == hContext;
-            }
-
-            status_t Context::activate()
-            {
-                if (hContext == NULL)
-                    return STATUS_BAD_STATE;
-
-                if (::glXGetCurrentContext() != hContext)
+                // Ensure that context is active
+                if (pDrawable != NULL)
                 {
-                    if (!::glXMakeCurrent(pDisplay, hWindow, hContext))
-                        return STATUS_UNKNOWN_ERR;
+                    // Call parent class for destroy
+                    IContext::destroy();
 
-                    perform_gc();
+                    // Destroy shaders and programs
+                    for (size_t i=0, n=vPrograms.size(); i<n; ++i)
+                        destroy(vPrograms.uget(i));
+                    vPrograms.flush();
                 }
 
-                return STATUS_OK;
+                // Release drawable
+                gl::safe_release(pDrawable);
+
+                // Destroy display and GLX context
+                if (pDisplay != NULL)
+                {
+                    if (hContext != NULL)
+                    {
+                        lsp_gl_trace("glXDestroyContext(%p)", hContext);
+                        ::glXDestroyContext(pDisplay, hContext);
+                        hContext        = NULL;
+                    }
+
+                    lsp_gl_trace("XCloseDisplay(%p)", pDisplay);
+                    ::XCloseDisplay(pDisplay);
+                    pDisplay        = NULL;
+                }
             }
 
-            status_t Context::deactivate()
+            status_t Context::activate(ws::IDrawable * drawable)
             {
                 if (hContext == NULL)
-                    return STATUS_OK;
-
-                if (::glXGetCurrentContext() != hContext)
                     return STATUS_BAD_STATE;
 
-                perform_gc();
-                ::glXMakeCurrent(pDisplay, None, NULL);
+                // Check if we need to re-bind context
+                x11::X11Drawable * x11drawable = static_cast<x11::X11Drawable *>(drawable);
+                const ::Window window = x11drawable->x11window();
+                if (window == None)
+                    return STATUS_INVALID_UID;
+
+                // Update context binding if Drawable has changed
+                if (pDrawable == x11drawable)
+                    return STATUS_OK;
+
+                gl::safe_release(pDrawable);
+                if (!::glXMakeContextCurrent(pDisplay, window, window, hContext))
+                    return STATUS_UNKNOWN_ERR;
+
+                pDrawable   = gl::safe_acquire(x11drawable);
+
+                // Check if we need to detect features
+                if (!(nFeatures & FEATURES_INITIALIZED))
+                {
+                    const glx::vtbl_t *vtbl = static_cast<const glx::vtbl_t *>(pVtbl);
+                    nFeatures              |= detect_features(vtbl) | FEATURES_INITIALIZED;
+                }
 
                 return STATUS_OK;
             }
@@ -276,29 +319,37 @@ namespace lsp
             size_t Context::width() const
             {
                 unsigned int width = 0;
-                ::glXQueryDrawable(pDisplay, hWindow, GLX_WIDTH, &width);
+                if (pDrawable != NULL)
+                    ::glXQueryDrawable(pDisplay, pDrawable->x11window(), GLX_WIDTH, &width);
                 return width;
             }
 
             size_t Context::height() const
             {
                 unsigned int height = 0;
-                ::glXQueryDrawable(pDisplay, hWindow, GLX_HEIGHT, &height);
+                if (pDrawable != NULL)
+                    ::glXQueryDrawable(pDisplay, pDrawable->x11window(), GLX_HEIGHT, &height);
                 return height;
             }
 
             void Context::swap_buffers(size_t width, size_t height)
             {
-                pVtbl->glReadBuffer(GL_BACK);
-                pVtbl->glDrawBuffer(GL_FRONT);
-                pVtbl->glBlitFramebuffer(
-                    0, 0, width, height,
-                    0, 0, width, height,
-                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
+                if (pDrawable == NULL)
+                    return;
+
+//                pVtbl->glReadBuffer(GL_BACK);
+//                pVtbl->glDrawBuffer(GL_FRONT);
+//                pVtbl->glBlitFramebuffer(
+//                    0, 0, width, height,
+//                    0, 0, width, height,
+//                    GL_COLOR_BUFFER_BIT, GL_NEAREST);
                 pVtbl->glFlush();
 
-                // Enable this if you need to run something like RENDERDOC
-                ::glXSwapBuffers(pDisplay, hWindow);
+                // Swap buffers using GLX context
+                XErrorHandler old = ::XSetErrorHandler(stub_context_error_handler);
+                lsp_finally { ::XSetErrorHandler(old); };
+
+                ::glXSwapBuffers(pDisplay, pDrawable->x11window());
             }
 
             const char *Context::vertex_shader(gl::program_t program_id)
@@ -459,9 +510,6 @@ namespace lsp
 
             status_t Context::program(size_t *id, gl::program_t program)
             {
-                if (!active())
-                    return STATUS_BAD_STATE;
-
                 // Check that program has successfully been compiled
                 const size_t index = size_t(program);
                 program_t *prog = vPrograms.get(index);
@@ -570,13 +618,13 @@ namespace lsp
                 prg->nFlags    &= ~PF_FRAGMENT;
 
                 // Add program to list
-                const size_t count  = index + 1 - vPrograms.size();
+                const ssize_t count  = index + 1 - vPrograms.size();
                 if (count > 0)
                 {
                     program_t **ptr     = vPrograms.append_n(count);
                     if (ptr == NULL)
                         return STATUS_NO_MEM;
-                    for (size_t i=0; i<count; ++i)
+                    for (size_t i=0; i<size_t(count); ++i)
                         ptr[i]              = NULL;
                 }
                 if (!vPrograms.set(index, prg))
@@ -588,44 +636,26 @@ namespace lsp
                 return STATUS_OK;
             }
 
-            static int create_context_error_handler(Display *dpy, XErrorEvent *ev)
+            gl::IContext *create_context(const char *display_name)
             {
-                return 0;
-            }
+                // Init threads
+                ::XInitThreads();
 
-            static uint32_t test_features(const char *str)
-            {
-                uint32_t features   = Context::NO_FEATURES;
-                if (check_gl_extension(str, "GL_ARB_texture_multisample"))
-                    features               |= Context::TEXTURE_MULTISAMPLE;
-
-                return features;
-            }
-
-            static uint32_t detect_features(glx::vtbl_t *vtbl)
-            {
-                uint32_t features   = Context::NO_FEATURES;
-
-                const char *extensions = reinterpret_cast<const char *>(vtbl->glGetString(GL_EXTENSIONS));
-                lsp_gl_trace("OpenGL extensions: %s", extensions);
-                features               |= test_features(extensions);
-
-                GLint num_extensions = 0;
-                vtbl->glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
-                for (GLint i = 0; i<num_extensions; ++i)
+                // Open display
+                ::Display *dpy = ::XOpenDisplay(display_name);
+                if (dpy == NULL)
                 {
-                    extensions              = reinterpret_cast<const char *>(vtbl->glGetStringi(GL_EXTENSIONS, i));
-                    features               |= test_features(extensions);
-
-                    lsp_gl_trace("%s", extensions);
+                    lsp_warn("Could not connect to display '%s'", (display_name != NULL) ? display_name : "");
+                    return NULL;
                 }
+                lsp_finally {
+                    if (dpy != NULL)
+                        ::XCloseDisplay(dpy);
+                };
 
-                return features;
-            }
-
-            gl::IContext *create_context(Display *dpy, int screen, Window window, const char *extensions)
-            {
                 // Query extensions
+                const int screen = DefaultScreen(dpy);
+                const char * const extensions = glXQueryExtensionsString(dpy, screen);
                 lsp_trace("GLX extensions: %s", extensions);
                 if (!check_gl_extension(extensions, "GLX_ARB_create_context"))
                     lsp_warn("GLX_ARB_create_context not supported");
@@ -664,35 +694,20 @@ namespace lsp
                     None
                 };
 
-                uint32_t features       = Context::NO_FEATURES;
-                for (size_t i=0; i < sizeof(glx_context_versions) / sizeof(glx_context_version_t); ++i)
+                const glx_context_version_t *version = NULL;
+                int max_multisampling = 0;
+                for (size_t direct=0; (ctx == NULL) && (direct < 2); ++direct)
                 {
-                    const glx_context_version_t *version = &glx_context_versions[i];
-                    glx_context_attribs[1]  = version->major;
-                    glx_context_attribs[3]  = version->minor;
-
+                    for (size_t i=0; (ctx == NULL) && (i < sizeof(glx_context_versions) / sizeof(glx_context_version_t)); ++i)
                     {
-                        XErrorHandler old = ::XSetErrorHandler(create_context_error_handler);
-                        lsp_finally {
-                            ::XSetErrorHandler(old);
-                        };
+                        version                 = &glx_context_versions[i];
+                        glx_context_attribs[1]  = version->major;
+                        glx_context_attribs[3]  = version->minor;
 
-                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_TRUE, glx_context_attribs);
-                        if (ctx == NULL)
-                            ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, GL_FALSE, glx_context_attribs);
-                    }
+                        XErrorHandler old = ::XSetErrorHandler(stub_context_error_handler);
+                        lsp_finally { ::XSetErrorHandler(old); };
 
-                    if (ctx != NULL)
-                    {
-                        // Query extensions
-                        if (!::glXMakeCurrent(dpy, window, ctx))
-                            return NULL;
-                        features       |= detect_features(vtbl);
-                        ::glXMakeCurrent(dpy, None, NULL);
-
-                        features       |= version->features;
-
-                        break;
+                        ctx = vtbl->glXCreateContextAttribsARB(dpy, fb_config, 0, (direct == 0) ? GL_TRUE : GL_FALSE, glx_context_attribs);
                     }
                 }
 
@@ -710,11 +725,8 @@ namespace lsp
                 lsp_gl_trace("glXCreateContext(%p)", ctx);
 
                 // Wrap the created context with context wrapper
-                int max_multisampling = 0;
-                if (features & Context::TEXTURE_MULTISAMPLE)
-                    glXGetFBConfigAttrib(dpy, fb_config, GLX_SAMPLES, &max_multisampling);
-
-                glx::Context *glx_ctx = new glx::Context(dpy, ctx, window, vtbl, features, max_multisampling);
+                glXGetFBConfigAttrib(dpy, fb_config, GLX_SAMPLES, &max_multisampling);
+                glx::Context *glx_ctx = new glx::Context(dpy, ctx, vtbl, version->features, max_multisampling);
                 if (glx_ctx == NULL)
                 {
                     lsp_trace("Could not allocate glx::Context");
@@ -724,6 +736,7 @@ namespace lsp
                 // Release tracked pointers
                 ctx             = NULL;
                 vtbl            = NULL;
+                dpy             = NULL;
 
                 return glx_ctx;
             }

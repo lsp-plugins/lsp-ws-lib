@@ -66,7 +66,6 @@ namespace lsp
                  * Fetcher may be performed in asynchronous mode
                  *
                  * @param mime requested MIME type
-                 * @param fetch pointer to store pointer to the fetching interface
                  * @return status of operation
                  */
                 virtual io::IInStream   *open(const char *mime);

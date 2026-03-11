@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
- *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
+ *           (C) 2026 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 12 June 2025
@@ -66,7 +66,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -82,7 +82,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -99,7 +99,7 @@ namespace lsp
                 pCR             = NULL;
                 pFO             = NULL;
                 pRoot           = NULL;
-                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                pSurface        = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 fOriginX        = 0.0f;
                 fOriginY        = 0.0f;
 
@@ -210,10 +210,9 @@ namespace lsp
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
                 if ((nType == ST_IMAGE) || (nType == ST_XLIB))
-                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
                 else if (nType == ST_SIMILAR)
-                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-//                    s  = ::cairo_surface_create_similar(pSurface, CAIRO_CONTENT_COLOR_ALPHA, width, height);
+                    s  = ::cairo_image_surface_create(CAIRO_FORMAT_ARGB32, int(width), int(height));
 
                 if (s == NULL)
                     return STATUS_NO_MEM;
@@ -316,30 +315,6 @@ namespace lsp
                 ::cairo_restore(pCR);
             }
 
-            void CocoaCairoSurface::draw_clipped(ISurface *s, float x, float y, float sx, float sy, float sw, float sh, float a)
-            {
-                surface_type_t type = s->type();
-                if ((type != ST_XLIB) && (type != ST_IMAGE) && (type != ST_SIMILAR))
-                    return;
-                if (pCR == NULL)
-                    return;
-                CocoaCairoSurface *cs = static_cast<CocoaCairoSurface *>(s);
-                if (cs->pSurface == NULL)
-                    return;
-
-                // Draw one surface on another
-                ::cairo_save(pCR);
-                lsp_finally { ::cairo_restore(pCR); };
-
-                ::cairo_rectangle(pCR, x, y, sw, sh);
-                ::cairo_clip(pCR);
-                ::cairo_set_source_surface(pCR, cs->pSurface, x - sx, y - sy);
-                if (a > 0.0f)
-                    ::cairo_paint_with_alpha(pCR, 1.0f - a);
-                else
-                    ::cairo_paint(pCR);
-            }
-
             void CocoaCairoSurface::draw_raw(
                 const void *data, size_t width, size_t height, size_t stride,
                 float x, float y, float sx, float sy, float a)
@@ -350,7 +325,7 @@ namespace lsp
                 cairo_surface_t *cs = cairo_image_surface_create_for_data(
                     static_cast<unsigned char *>(const_cast<void *>(data)),
                     CAIRO_FORMAT_ARGB32,
-                    width, height, stride);
+                    int(width), int(height), int(stride));
                 if (cs == NULL)
                     return;
                 lsp_finally { cairo_surface_destroy(cs); };

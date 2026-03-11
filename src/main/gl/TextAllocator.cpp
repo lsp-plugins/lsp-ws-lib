@@ -34,7 +34,7 @@ namespace lsp
 
             TextAllocator::TextAllocator(gl::IContext *ctx)
             {
-                pContext        = safe_acquire(ctx);
+                pContext        = ctx;
                 nReferences     = 1;
                 pTexture        = NULL;
                 nTop            = 0;
@@ -45,7 +45,6 @@ namespace lsp
                 clear();
 
                 safe_release(pTexture);
-                safe_release(pContext);
             }
 
             uatomic_t TextAllocator::reference_up()
@@ -165,8 +164,6 @@ namespace lsp
             gl::Texture *TextAllocator::allocate(ws::rectangle_t *rect, const void *data, size_t width, size_t height, size_t stride)
             {
                 row_t *row;
-
-                pContext->activate();
 
                 // Try to find matching row and allocate space there
                 size_t index    = first_row_id(height);

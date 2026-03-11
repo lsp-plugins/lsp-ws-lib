@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 29 апр. 2023 г.
@@ -22,12 +22,8 @@
 #ifndef PRIVATE_FREETYPE_BITMAP_H_
 #define PRIVATE_FREETYPE_BITMAP_H_
 
-#ifdef USE_LIBFREETYPE
-
 #include <lsp-plug.in/common/types.h>
 #include <lsp-plug.in/dsp/dsp.h>
-
-#include <private/freetype/types.h>
 
 namespace lsp
 {
@@ -58,8 +54,5 @@ namespace lsp
         } /* namespace ft */
     } /* namespace ws */
 } /* namespace lsp */
-
-#endif /* USE_LIBFREETYPE */
-
 
 #endif /* PRIVATE_FREETYPE_BITMAP_H_ */
