@@ -1488,7 +1488,7 @@ namespace lsp
                 unsigned long count = 0, left = 0;
                 Atom ret;
                 int fmt;
-                unsigned char* data;
+                unsigned char* data = NULL;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
@@ -1507,20 +1507,20 @@ namespace lsp
                     &data       /* prop_return */
                 );
 
+                lsp_finally {
+                    if (data != NULL)
+                        ::XFree(data);
+                };
                 if (result != Success)
                     return STATUS_UNKNOWN_ERR;
 
                 if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
                 {
-                    XFree(data);
                     text[0] = '\0';
                     return STATUS_OK;
                 }
                 else if (count >= len)
-                {
-                    XFree(data);
                     return STATUS_TOO_BIG;
-                }
 
                 memcpy(text, data, count);
                 text[count] = '\0';
@@ -1537,7 +1537,7 @@ namespace lsp
                 unsigned long count = 0, left = 0;
                 Atom ret;
                 int fmt;
-                unsigned char* data;
+                unsigned char* data = NULL;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
@@ -1556,12 +1556,12 @@ namespace lsp
                     &data       /* prop_return */
                 );
 
+                lsp_finally {
+                    if (data != NULL)
+                        ::XFree(data);
+                };
                 if (result != Success)
                     return STATUS_UNKNOWN_ERR;
-                lsp_finally{
-                    if (data != NULL)
-                        XFree(data);
-                };
 
                 if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
                 {

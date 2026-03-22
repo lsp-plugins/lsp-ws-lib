@@ -697,9 +697,12 @@ namespace lsp
                     {
                         XPropertyEvent *sc          = &ev->xproperty;
                         #ifdef LSP_TRACE
-                        char *name                  = ::XGetAtomName(pDisplay, sc->atom);
+                        char * const name           = ::XGetAtomName(pDisplay, sc->atom);
+                        lsp_finally {
+                            if (name != NULL)
+                                ::XFree(name);
+                        };
 //                        lsp_trace("XPropertyEvent for window 0x%lx, property %ld (%s), state=%d", long(sc->window), long(sc->atom), name, int(sc->state));
-                        ::XFree(name);
                         #endif
                         return handle_property_notify(sc);
                     }
@@ -716,18 +719,28 @@ namespace lsp
                     {
                         XSelectionRequestEvent *sr   = &ev->xselectionrequest;
                         #ifdef LSP_TRACE
-                        char *asel = XGetAtomName(pDisplay, sr->selection);
-                        char *atar = XGetAtomName(pDisplay, sr->target);
-                        char *aprop = XGetAtomName(pDisplay, sr->property);
+                        char * const asel = XGetAtomName(pDisplay, sr->selection);
+                        lsp_finally {
+                            if (asel != NULL)
+                                ::XFree(asel);
+                        };
+                        char *const atar = XGetAtomName(pDisplay, sr->target);
+                        lsp_finally {
+                            if (atar!= NULL)
+                                ::XFree(atar);
+                        };
+                        char *const aprop = XGetAtomName(pDisplay, sr->property);
+                        lsp_finally {
+                            if (aprop != NULL)
+                                ::XFree(aprop);
+                        };
+
                         lsp_trace("SelectionRequest requestor = 0x%x, selection=%d (%s), target=%d (%s), property=%d (%s), time=%ld",
-                                     int(sr->requestor),
-                                     int(sr->selection), asel,
-                                     int(sr->target), atar,
-                                     int(sr->property), aprop,
-                                     long(sr->time));
-                        ::XFree(asel);
-                        ::XFree(atar);
-                        ::XFree(aprop);
+                            int(sr->requestor),
+                            int(sr->selection), asel,
+                            int(sr->target), atar,
+                            int(sr->property), aprop,
+                            long(sr->time));
                         #endif
                         handle_selection_request(sr);
                         return true;
@@ -740,11 +753,13 @@ namespace lsp
                             return true;
 
                         #ifdef LSP_TRACE
-                        char *aname = ::XGetAtomName(pDisplay, se->property);
+                        char * const aname = ::XGetAtomName(pDisplay, se->property);
+                        lsp_finally {
+                            if (aname != NULL)
+                                ::XFree(aname);
+                        };
                         lsp_trace("SelectionNotify for window=0x%lx, selection=%ld, property=%ld (%s)",
                                 long(se->requestor), long(se->selection), long(se->property), aname);
-                        if (aname != NULL)
-                            ::XFree(aname);
                         #endif
                         handle_selection_notify(se);
 
@@ -761,18 +776,23 @@ namespace lsp
             {
                 int p_fmt = 0;
                 unsigned long p_nitems = 0, p_size = 0, p_offset = 0;
-                unsigned char *p_data = NULL;
-                uint8_t *ptr        = NULL;
-                size_t capacity     = 0;
+                unsigned char *p_data;
+                uint8_t *ptr            = NULL;
+                size_t capacity         = 0;
 
                 while (true)
                 {
                     // Get window property
+                    p_data = NULL;
                     ::XGetWindowProperty(
                         pDisplay, wnd, property,
                         p_offset / 4, nIOBufSize / 4, False, ptype,
                         type, &p_fmt, &p_nitems, &p_size, &p_data
                     );
+                    lsp_finally {
+                        if (p_data != NULL)
+                            XFree(p_data);
+                    };
 
                     // Compress data if format is 32
                     if ((p_fmt == 32) && (sizeof(long) != 4))
@@ -780,11 +800,7 @@ namespace lsp
 
                     // No more data?
                     if ((p_nitems <= 0) || (p_data == NULL))
-                    {
-                        if (p_data != NULL)
-                            ::XFree(p_data);
                         break;
-                    }
 
                     // Append data to the memory buffer
                     size_t multiplier   = p_fmt / 8;
@@ -792,14 +808,12 @@ namespace lsp
                     uint8_t *nptr       = reinterpret_cast<uint8_t *>(::realloc(ptr, ncap));
                     if (nptr == NULL)
                     {
-                        ::XFree(p_data);
                         if (ptr != NULL)
                             ::free(ptr);
 
                         return STATUS_NO_MEM;
                     }
                     ::memcpy(&nptr[capacity], p_data, p_nitems * multiplier);
-                    ::XFree(p_data);
                     p_offset           += p_nitems;
 
                     // Update buffer pointer and capacity
@@ -827,7 +841,7 @@ namespace lsp
                     // Get atom name
                     if (list[i] == None)
                         continue;
-                    char *a_name = ::XGetAtomName(pDisplay, list[i]);
+                    char * const a_name = ::XGetAtomName(pDisplay, list[i]);
                     if (a_name == NULL)
                         continue;
                     lsp_finally { ::XFree(a_name); };
@@ -1507,7 +1521,12 @@ namespace lsp
                 }
                 else
                 {
-                    char *mime  = ::XGetAtomName(pDisplay, ev->target);
+                    char * const mime  = ::XGetAtomName(pDisplay, ev->target);
+                    lsp_finally {
+                        if (mime != NULL)
+                            ::XFree(mime);
+                    };
+
                     lsp_trace("Requested MIME type is 0x%lx (%s)", long(ev->target), mime);
 
                     if (mime != NULL)
@@ -1572,8 +1591,6 @@ namespace lsp
                         }
                         else
                             res = STATUS_UNSUPPORTED_FORMAT;
-
-                        ::XFree(mime);
                     }
                     else
                         res = STATUS_UNSUPPORTED_FORMAT;
@@ -1731,18 +1748,24 @@ namespace lsp
                             else
                             {
                                 #ifdef LSP_TRACE
-                                char *name = ::XGetAtomName(pDisplay, ce->data.l[0]);
+                                char * const name = ::XGetAtomName(pDisplay, ce->data.l[0]);
+                                lsp_finally {
+                                    if (name != NULL)
+                                        XFree(name);
+                                };
                                 lsp_trace("received client WM_PROTOCOLS message with argument %s", name);
-                                ::XFree(name);
                                 #endif /* LSP_TRACE */
                             }
                         }
                         else if (ev->xclient.message_type != nWakeupMessage)
                         {
                             #ifdef LSP_TRACE
-                            char *a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
+                            char * const a_name = ::XGetAtomName(pDisplay, ev->xclient.message_type);
                             lsp_trace("received client message of type %s", a_name);
-                            ::XFree(a_name);
+                            lsp_finally {
+                                if (a_name != NULL)
+                                    XFree(a_name);
+                            };
                             #endif
                         }
                         break;
@@ -1831,9 +1854,12 @@ namespace lsp
                 {
                     XPropertyEvent *pe = &ev->xproperty;
                     #ifdef LSP_TRACE
-                    char *name = ::XGetAtomName(pDisplay, pe->atom);
+                    char * const name = ::XGetAtomName(pDisplay, pe->atom);
+                    lsp_finally {
+                        if (name != NULL)
+                            XFree(name);
+                    };
                     lsp_trace("Received PropertyNotifyEvent: property=%s, state=%lx", name, (long)pe->state);
-                    ::XFree(name);
                     #endif
                 }
                 #endif
@@ -2149,6 +2175,10 @@ namespace lsp
                 Window *children = NULL;
                 unsigned int nchildren = 0;
                 ::XQueryTree(pDisplay, task->hTarget, &root, &parent, &children, &nchildren);
+                lsp_finally {
+                    if (children != NULL)
+                        ::XFree(children);
+                };
 
                 // Determine the target window to send data
                 #ifdef LSP_TRACE
@@ -2168,10 +2198,6 @@ namespace lsp
                     }
                 }
                 #endif
-
-                // Release children
-                if (children != NULL)
-                    ::XFree(children);
 
                 // Find child window that supports XDnD protocol
                 int cx = -1, cy = -1;
@@ -2480,13 +2506,16 @@ namespace lsp
                     uint32_t *atoms = reinterpret_cast<uint32_t *>(data);
                     for (size_t i=0; i<bytes; i += sizeof(uint32_t), ++atoms)
                     {
-                        char *a_name = ::XGetAtomName(pDisplay, *atoms);
+                        char * const a_name = ::XGetAtomName(pDisplay, *atoms);
                         if (a_name == NULL)
                             continue;
+                        lsp_finally {
+                            if (a_name != NULL)
+                                ::XFree(a_name);
+                        };
 
                         // Add atom name to list
                         char *xctype = ::strdup(a_name);
-                        ::XFree(a_name);
                         if (xctype == NULL)
                         {
                             drop_mime_types(&vDndMimeTypes);
@@ -2507,13 +2536,13 @@ namespace lsp
                     {
                         if (ev->data.l[i] == None)
                             continue;
-                        char *a_name = ::XGetAtomName(pDisplay, ev->data.l[i]);
+                        char * const a_name = ::XGetAtomName(pDisplay, ev->data.l[i]);
                         if (a_name == NULL)
                             continue;
+                        lsp_finally { ::XFree(a_name); };
 
                         // Add atom name to list
                         char *xctype = ::strdup(a_name);
-                        ::XFree(a_name);
                         if (xctype == NULL)
                         {
                             drop_mime_types(&vDndMimeTypes);
@@ -2667,10 +2696,13 @@ namespace lsp
 
                 #ifdef LSP_TRACE
                 char *a_name = ::XGetAtomName(pDisplay, ev->data.l[4]);
-                lsp_trace("Received XdndPosition: wnd=0x%lx, flags=0x%lx, x=%d, y=%d, timestamp=%ld action=%ld (%s)",
-                        ev->data.l[0], ev->data.l[1], x, y, ev->data.l[3], ev->data.l[4], a_name
-                        );
-                ::XFree(a_name);
+                lsp_finally {
+                    if (a_name != NULL)
+                        ::XFree(a_name);
+                };
+                lsp_trace(
+                    "Received XdndPosition: wnd=0x%lx, flags=0x%lx, x=%d, y=%d, timestamp=%ld action=%ld (%s)",
+                    ev->data.l[0], ev->data.l[1], x, y, ev->data.l[3], ev->data.l[4], a_name);
                 #endif
 
                 // Find target window
@@ -3946,11 +3978,11 @@ namespace lsp
                         MonitorInfo *di          = &items[i];
 
                         // Save the name of monitor
-                        char *a_name    = ::XGetAtomName(pDisplay, si->name);
+                        char * const a_name    = ::XGetAtomName(pDisplay, si->name);
                         if (a_name != NULL)
                         {
+                            lsp_finally { ::XFree(a_name); };
                             di->name.set_utf8(a_name);
-                            XFree(a_name);
                         }
 
                         // Other flags
