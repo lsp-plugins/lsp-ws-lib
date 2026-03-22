@@ -950,7 +950,7 @@ namespace lsp
 //                lsp_trace("left=%d, top=%d", int(left), int(top));
                 if (hParent <= 0)
                 {
-//                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
+                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
                     ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                     pX11Display->flush();
                 }
@@ -982,7 +982,7 @@ namespace lsp
                 }
 
                 // Resize the window
-//                lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
+                lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
                 ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                 pX11Display->flush();
 
@@ -1042,7 +1042,7 @@ namespace lsp
                 }
                 else if (position_changed)
                 {
-//                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
+                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
                     ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
                     pX11Display->flush();
                 }
