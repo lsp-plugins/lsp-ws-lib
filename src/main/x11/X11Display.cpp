@@ -1675,6 +1675,7 @@ namespace lsp
 
                     case ConfigureNotify:
                         ue->nType       = UIE_RESIZE;
+                        ue->nTime       = system::get_time_millis();
                         ue->nLeft       = ev->xconfigure.x;
                         ue->nTop        = ev->xconfigure.y;
                         ue->nWidth      = ev->xconfigure.width;

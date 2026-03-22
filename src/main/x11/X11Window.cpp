@@ -517,8 +517,8 @@ namespace lsp
                     ws::event_t ev;
                     init_event(&ev);
 
-                    ev.nTime    = system::get_time_millis();
                     ev.nType    = UIE_RESIZE;
+                    ev.nTime    = system::get_time_millis();
                     ev.nLeft    = curr->nLeft;
                     ev.nTop     = curr->nTop;
                     ev.nWidth   = curr->nWidth;
