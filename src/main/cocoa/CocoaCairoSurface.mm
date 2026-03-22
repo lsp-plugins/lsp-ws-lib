@@ -183,7 +183,7 @@ namespace lsp
                 }
                 if ((pRoot != NULL) && (root))
                 {
-                    cairo_surface_destroy(pSurface);
+                    cairo_surface_destroy(pRoot);
                     pRoot           = NULL;
                 }
             }
@@ -204,9 +204,6 @@ namespace lsp
 
             status_t CocoaCairoSurface::resize(size_t width, size_t height)
             {
-                if (pCR != NULL)
-                    return STATUS_BAD_STATE;
-
                 // Create new surface and cairo
                 cairo_surface_t *s  = NULL;
                 if ((nType == ST_IMAGE) || (nType == ST_XLIB))
@@ -365,12 +362,16 @@ namespace lsp
                 end();
 
                 // Create cairo objects
-                pCR             = ::cairo_create(pSurface);
                 if (pCR == NULL)
-                    return;
-                pFO             = ::cairo_font_options_create();
+                {
+                    if ((pCR = ::cairo_create(pSurface)) == NULL)
+                        return;
+                }
                 if (pFO == NULL)
-                    return;
+                {
+                    if ((pFO = ::cairo_font_options_create()) == NULL)
+                        return;
+                }
 
                 // Initialize settings
                 ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_FAST);
@@ -397,17 +398,6 @@ namespace lsp
                 if (nNumClips > 0)
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
-
-                if (pFO != NULL)
-                {
-                    cairo_font_options_destroy(pFO);
-                    pFO             = NULL;
-                }
-                if (pCR != NULL)
-                {
-                    cairo_destroy(pCR);
-                    pCR             = NULL;
-                }
 
                 //lsp_trace("Before autoreleasepool: %p", pCocoaView);
                 @autoreleasepool {
@@ -437,7 +427,7 @@ namespace lsp
                     if (cr == NULL)
                         return;
                     lsp_finally {
-                        cairo_destroy(pCR);
+                        cairo_destroy(cr);
                     };
 
                     ::cairo_set_source_surface(cr, pSurface, 0, 0);

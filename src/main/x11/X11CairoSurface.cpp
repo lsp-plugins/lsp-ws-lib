@@ -152,7 +152,7 @@ namespace lsp
                 }
                 if ((pRoot != NULL) && (root))
                 {
-                    cairo_surface_destroy(pSurface);
+                    cairo_surface_destroy(pRoot);
                     pRoot           = NULL;
                 }
             }
@@ -169,9 +169,6 @@ namespace lsp
 
             status_t X11CairoSurface::resize(size_t width, size_t height)
             {
-                if (pCR != NULL)
-                    return STATUS_BAD_STATE;
-
                 if (pRoot != NULL)
                     ::cairo_xlib_surface_set_size(pRoot, width, height);
 
@@ -306,12 +303,16 @@ namespace lsp
                 end();
 
                 // Create cairo objects
-                pCR             = ::cairo_create(pSurface);
                 if (pCR == NULL)
-                    return;
-                pFO             = ::cairo_font_options_create();
+                {
+                    if ((pCR = ::cairo_create(pSurface)) == NULL)
+                        return;
+                }
                 if (pFO == NULL)
-                    return;
+                {
+                    if ((pFO = ::cairo_font_options_create()) == NULL)
+                        return;
+                }
 
                 // Initialize settings
                 ::cairo_set_antialias(pCR, CAIRO_ANTIALIAS_FAST);
@@ -333,17 +334,6 @@ namespace lsp
                     lsp_error("Mismatching number of clip_begin() and clip_end() calls");
             #endif /* LSP_DEBUG */
 
-                if (pFO != NULL)
-                {
-                    cairo_font_options_destroy(pFO);
-                    pFO             = NULL;
-                }
-                if (pCR != NULL)
-                {
-                    cairo_destroy(pCR);
-                    pCR             = NULL;
-                }
-
                 ::cairo_surface_flush(pSurface);
 
                 // Copy back surface to front surface if it is present
@@ -353,7 +343,7 @@ namespace lsp
                     if (cr == NULL)
                         return;
                     lsp_finally {
-                        cairo_destroy(pCR);
+                        cairo_destroy(cr);
                     };
 
                     ::cairo_set_source_surface(cr, pSurface, 0, 0);
