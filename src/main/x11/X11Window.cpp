@@ -1023,19 +1023,19 @@ namespace lsp
 
                 // Resize/move window
                 const bool size_changed = (old.nWidth != sSize.nWidth) || (old.nHeight != sSize.nHeight);
-                const bool position_changed = (hParent > 0) && ((old.nLeft != sSize.nLeft) || (old.nTop != sSize.nTop));
+                const bool position_changed = (hParent == None) && ((old.nLeft != sSize.nLeft) || (old.nTop != sSize.nTop));
 
                 if (size_changed)
                 {
                     if (position_changed)
                     {
-//                        lsp_trace("XMoveResizeWindow(%d, %d, %d, %d)", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                        lsp_trace("XMoveResizeWindow(%d, %d, %d, %d)", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
                         ::XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
                         pX11Display->flush();
                     }
                     else
                     {
-//                        lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
+                        lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
                         ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                         pX11Display->flush();
                     }
