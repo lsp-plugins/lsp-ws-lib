@@ -517,8 +517,8 @@ namespace lsp
                     ws::event_t ev;
                     init_event(&ev);
 
-                    ev.nTime    = system::get_time_millis();
                     ev.nType    = UIE_RESIZE;
+                    ev.nTime    = system::get_time_millis();
                     ev.nLeft    = curr->nLeft;
                     ev.nTop     = curr->nTop;
                     ev.nWidth   = curr->nWidth;
@@ -937,6 +937,9 @@ namespace lsp
                 sSize.nLeft     = left;
                 sSize.nTop      = top;
 
+                if ((sSize.nLeft == old_size.nLeft) && (sSize.nTop == old_size.nTop))
+                    return STATUS_OK;
+
                 status_t result = update_window_hints();
                 if (result != STATUS_OK)
                 {
@@ -945,14 +948,11 @@ namespace lsp
                 }
 
 //                lsp_trace("left=%d, top=%d", int(left), int(top));
-                if ((sSize.nLeft != old_size.nLeft) || (sSize.nTop != old_size.nTop))
+                if (hParent <= 0)
                 {
-                    if (hParent <= 0)
-                    {
-//                        lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
-                        ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
-                        pX11Display->flush();
-                    }
+                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
+                    ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
+                    pX11Display->flush();
                 }
 
                 return STATUS_OK;
@@ -970,6 +970,9 @@ namespace lsp
                 sSize.nWidth        = lsp_max(width, 1);
                 sSize.nHeight       = lsp_max(height, 1);
 
+                if ((sSize.nWidth == old.nWidth) && (sSize.nHeight == old.nHeight))
+                    return STATUS_OK;
+
                 // Update constraints
                 status_t res = update_window_hints();
                 if (res != STATUS_OK)
@@ -979,12 +982,9 @@ namespace lsp
                 }
 
                 // Resize the window
-                if ((sSize.nWidth != old.nWidth) || (sSize.nHeight != old.nHeight))
-                {
-//                    lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
-                    ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
-                    pX11Display->flush();
-                }
+                lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
+                ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
+                pX11Display->flush();
 
                 return STATUS_OK;
             }
@@ -999,10 +999,10 @@ namespace lsp
 
                 rectangle_t old = sSize;
 
-                sSize.nLeft = realize->nLeft;
-                sSize.nTop = realize->nTop;
-                sSize.nWidth = lsp_max(realize->nWidth, 1);
-                sSize.nHeight= lsp_max(realize->nHeight, 1);
+                sSize.nLeft     = realize->nLeft;
+                sSize.nTop      = realize->nTop;
+                sSize.nWidth    = lsp_max(realize->nWidth, 1);
+                sSize.nHeight   = lsp_max(realize->nHeight, 1);
 
 //                lsp_trace("change geometry (%d, %d, %d, %d) ->  (%d, %d, %d, %d)",
 //                    int(old.nLeft), int(old.nTop), int(old.nWidth), int(old.nHeight),
@@ -1022,27 +1022,29 @@ namespace lsp
                 }
 
                 // Resize/move window
-                if (hParent > 0)
+                const bool size_changed = (old.nWidth != sSize.nWidth) || (old.nHeight != sSize.nHeight);
+                const bool position_changed = (hParent == None) && ((old.nLeft != sSize.nLeft) || (old.nTop != sSize.nTop));
+
+                if (size_changed)
                 {
-                    if ((old.nWidth != sSize.nWidth) ||
-                        (old.nHeight != sSize.nHeight))
+                    if (position_changed)
                     {
-//                        lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
+                        lsp_trace("XMoveResizeWindow(%d, %d, %d, %d)", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
+                        ::XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
+                        pX11Display->flush();
+                    }
+                    else
+                    {
+                        lsp_trace("XResizeWindow(%d, %d)", int(sSize.nWidth), int(sSize.nHeight));
                         ::XResizeWindow(pX11Display->x11display(), hWindow, sSize.nWidth, sSize.nHeight);
                         pX11Display->flush();
                     }
                 }
-                else
+                else if (position_changed)
                 {
-                    if ((old.nLeft != sSize.nLeft) ||
-                        (old.nTop != sSize.nTop) ||
-                        (old.nWidth != sSize.nWidth) ||
-                        (old.nHeight != sSize.nHeight))
-                    {
-//                        lsp_trace("XMoveResizeWindow(%d, %d, %d, %d)", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
-                        ::XMoveResizeWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop, sSize.nWidth, sSize.nHeight);
-                        pX11Display->flush();
-                    }
+                    lsp_trace("XMoveWindow(%d, %d)", int(sSize.nLeft), int(sSize.nTop));
+                    ::XMoveWindow(pX11Display->x11display(), hWindow, sSize.nLeft, sSize.nTop);
+                    pX11Display->flush();
                 }
 
                 return STATUS_OK;
@@ -1486,7 +1488,7 @@ namespace lsp
                 unsigned long count = 0, left = 0;
                 Atom ret;
                 int fmt;
-                unsigned char* data;
+                unsigned char* data = NULL;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
@@ -1505,20 +1507,20 @@ namespace lsp
                     &data       /* prop_return */
                 );
 
+                lsp_finally {
+                    if (data != NULL)
+                        ::XFree(data);
+                };
                 if (result != Success)
                     return STATUS_UNKNOWN_ERR;
 
                 if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
                 {
-                    XFree(data);
                     text[0] = '\0';
                     return STATUS_OK;
                 }
                 else if (count >= len)
-                {
-                    XFree(data);
                     return STATUS_TOO_BIG;
-                }
 
                 memcpy(text, data, count);
                 text[count] = '\0';
@@ -1535,7 +1537,7 @@ namespace lsp
                 unsigned long count = 0, left = 0;
                 Atom ret;
                 int fmt;
-                unsigned char* data;
+                unsigned char* data = NULL;
 
                 const x11_atoms_t &a = pX11Display->atoms();
 
@@ -1554,12 +1556,12 @@ namespace lsp
                     &data       /* prop_return */
                 );
 
+                lsp_finally {
+                    if (data != NULL)
+                        ::XFree(data);
+                };
                 if (result != Success)
                     return STATUS_UNKNOWN_ERR;
-                lsp_finally{
-                    if (data != NULL)
-                        XFree(data);
-                };
 
                 if ((ret != a.X11_UTF8_STRING) || (count <= 0) || (data == NULL))
                 {
