@@ -4,6 +4,7 @@
 
 === 1.0.33 ===
 * Fixed several memory leaks in Cairo surfaces.
+* Updated module versions in dependencies.
 
 === 1.0.32 ===
 * Moved OpenGL rendering mechanism to a separate thread.
