@@ -314,6 +314,7 @@ namespace lsp
                     virtual IWindow            *wrap_window(void *handle) override;
 
                     virtual status_t            main() override;
+                    virtual status_t            enter_main_loop() override;
                     virtual status_t            main_iteration() override;
                     virtual void                quit_main() override;
                     virtual status_t            wait_events(wssize_t millis) override;

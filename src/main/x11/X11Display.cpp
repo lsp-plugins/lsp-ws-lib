@@ -468,6 +468,9 @@ namespace lsp
 
             status_t X11Display::main()
             {
+                // Reset the exit state
+                bExit               = false;
+
                 // Make a pause
                 struct pollfd x11_poll;
                 system::time_t ts;
@@ -476,6 +479,12 @@ namespace lsp
                 lsp_trace("x11fd = %d(int)", x11_fd);
                 XSync(pDisplay, false);
 
+                // Handle pending X11 events
+                status_t res        = enter_main_loop();
+                if (res != STATUS_OK)
+                    return res;
+
+                // Do main loop
                 while (!bExit)
                 {
                     // Get current time
@@ -502,9 +511,9 @@ namespace lsp
                     else if ((wtime <= 0) || ((poll_res > 0) && (x11_poll.events > 0)))
                     {
                         // Do iteration
-                        status_t result = do_main_iteration(xts);
-                        if (result != STATUS_OK)
-                            return result;
+                        res = do_main_iteration(xts);
+                        if (res != STATUS_OK)
+                            return res;
                     }
                 }
 
@@ -618,15 +627,29 @@ namespace lsp
                 XFlush(pDisplay);
             }
 
+            status_t X11Display::enter_main_loop()
+            {
+                XEvent event;
+                int pending     = ::XPending(pDisplay);
+
+                // Process pending x11 events
+                for (int i=0; i<pending; i++)
+                {
+                    if (XNextEvent(pDisplay, &event) != Success)
+                    {
+                        lsp_error("Failed to fetch next event");
+                        return STATUS_UNKNOWN_ERR;
+                    }
+
+                    handle_event(&event);
+                }
+
+                return STATUS_OK;
+            }
+
             status_t X11Display::main_iteration()
             {
-                // Get current time to determine if need perform a rendering
-                system::time_t ts;
-                system::get_time(&ts);
-                timestamp_t xts = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
-
-                // Do iteration
-                return do_main_iteration(xts);
+                return do_main_iteration(system::get_time_millis());
             }
 
             void X11Display::compress_long_data(void *data, size_t nitems)

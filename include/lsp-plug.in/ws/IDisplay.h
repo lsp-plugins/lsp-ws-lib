@@ -161,6 +161,14 @@ namespace lsp
                 virtual status_t    main();
 
                 /**
+                 * This method can be called when entering main loop to process all
+                 * pending events before doing main logic.
+                 *
+                 * @return status of operation.
+                 */
+                virtual status_t    enter_main_loop();
+
+                /**
                  * Perform a single iteration for the main loop.
                  *
                  * @return status of iteration completion.

@@ -3,7 +3,8 @@
 *******************************************************************************
 
 === 1.0.34 ===
-
+* Added enter_main_loop() method for IDisplay for properly handling of multiple
+  IDisplay::main() method calls.
 
 === 1.0.33 ===
 * Fixed several memory leaks in Cairo surfaces.
