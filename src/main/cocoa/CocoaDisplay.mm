@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
@@ -94,18 +94,27 @@ namespace lsp
 
             status_t CocoaDisplay::main()
             {
+                // Initialize the main loop
+                bExit = false;
+                status_t res = process_pending_events();
+                if (res != STATUS_OK)
+                    return res;
+                
+                // Do the main loop
                 while (!bExit)
                 {
-                    timestamp_t ts = system::get_time_millis();
-
                     // Do one main iteration
-                    status_t result = do_main_iteration(ts);
+                    const timestamp_t ts = system::get_time_millis();
+                    if ((res = do_main_iteration(ts)) != STATUS_OK)
+                        return res;
                     
-                    if (result != STATUS_OK)
-                        return result;
+                    // Wait for a while to not to raise CPU load
+                    if ((res = wait_events(idle_interval())) != STATUS_OK)
+                        return res;
                 }
                 
-                return STATUS_OK;
+                // Process all currently pending events
+                return process_pending_events();
             }
 
             void CocoaDisplay::get_enviroment_frame_sizes()
@@ -154,15 +163,10 @@ namespace lsp
                     if (standaloneApp)
                     {
                         NSEvent *event;
-                        while (
-                            (
-                                event = [NSApp  nextEventMatchingMask:NSEventMaskAny
+                        while ((event = [NSApp  nextEventMatchingMask:NSEventMaskAny
                                                 untilDate:[NSDate distantPast]
                                                 inMode:NSDefaultRunLoopMode
-                                                dequeue:YES] 
-
-                            )
-                        )
+                                                dequeue:YES]))
                         {
                             [NSApp sendEvent:event];
                             [NSApp updateWindows];
@@ -170,7 +174,6 @@ namespace lsp
                     }
 
                     // Handle internal tasks
-                    lsp_trace("process_pending_tasks");
                     status_t result = process_pending_tasks(ts);
 
                 #ifdef USE_LIBFREETYPE
@@ -308,16 +311,62 @@ namespace lsp
                 // If your architecture supports redirection or grabs, simulate it here
                 target->handle_event(&ue);
             }
+        
+            status_t CocoaDisplay::process_pending_events()
+            {
+                @autoreleasepool {
+                    if (standaloneApp)
+                    {
+                        NSEvent *event;
+                        while ((event = [NSApp  nextEventMatchingMask:NSEventMaskAny
+                                                untilDate:[NSDate distantPast]
+                                                inMode:NSDefaultRunLoopMode
+                                                dequeue:YES]))
+                        {
+                            [NSApp sendEvent:event];
+                            [NSApp updateWindows];
+                        }
+                    }
+                }
+
+                return STATUS_OK;
+            }
 
             status_t CocoaDisplay::main_iteration()
             {
-                timestamp_t ts = system::get_time_millis();
-                return do_main_iteration(ts);
+                return do_main_iteration(system::get_time_millis());
             }
 
             void CocoaDisplay::quit_main()
             {
                 bExit = true;
+            }
+            
+            status_t CocoaDisplay::wait_events(wssize_t millis)
+            {
+                if (millis <= 0)
+                    return STATUS_OK;
+
+                const int wtime = compute_poll_delay(system::get_time_millis() + millis, idle_interval());
+                if (wtime <= 0)
+                    return STATUS_OK;
+                
+                if (!standaloneApp) {
+                    ipc::Thread::sleep(wtime);
+                    return STATUS_OK;
+                }
+                
+                // TODO: is there any reliable way to sleep until new message in the event queue occurs?
+                @autoreleasepool {
+                    const NSEvent * event = [NSApp  nextEventMatchingMask:NSEventMaskAny
+                                                    untilDate:[NSDate distantPast]
+                                                    inMode:NSDefaultRunLoopMode
+                                                    dequeue:NO];
+                    if (!event)
+                        ipc::Thread::sleep(wtime);
+                }
+                
+                return STATUS_OK;
             }
 
             IWindow *CocoaDisplay::create_window()

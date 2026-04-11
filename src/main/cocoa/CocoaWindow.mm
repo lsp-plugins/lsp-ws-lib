@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *           (C) 2025 Marvin Edeler <marvin.edeler@gmail.com>
  *
  * This file is part of lsp-ws-lib
@@ -125,6 +125,7 @@ namespace lsp
                     view.display = pCocoaDisplay;
                     pCocoaView = view;
                     [pCocoaWindow setContentView:pCocoaView];
+                    [pCocoaWindow setReleasedWhenClosed:NO];
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
                     [pCocoaView registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
                     [pCocoaWindow makeFirstResponder:pCocoaView];
@@ -327,8 +328,11 @@ namespace lsp
                 if (pCocoaDisplay != NULL)  
                     pCocoaDisplay->vWindows.qpremove(this);
                 
-                if (!bWrapper && pCocoaWindow != NULL)
+                if (!bWrapper && pCocoaWindow != NULL) {
                     [pCocoaWindow close];
+                    [pCocoaWindow release];
+                    pCocoaWindow = NULL;
+                }
                 
                 pCocoaDisplay = NULL;
                 IWindow::destroy();
@@ -760,35 +764,7 @@ namespace lsp
 
             status_t CocoaWindow::show()
             {
-                lsp_trace("Show window this=%p, window=%p, position={l=%d, t=%d, w=%d, h=%d} \n",
-                    this, "pCocoaWindow",
-                    int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
-
-                if (pCocoaWindow == nil)
-                    return STATUS_BAD_STATE;
-
-                commit_border_style(enBorderStyle, nActions);
-                transientParent = nil;
-
-                if (bWrapper && pCocoaView && pCocoaWindow) {
-                    NSRect contentRect = [[pCocoaWindow contentView] bounds];
-                    [pCocoaView updateFrame:contentRect];
-
-                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-                    if (pSurface != nullptr) {
-                        pSurface->resize(contentRect.size.width, contentRect.size.height);
-                    } 
-                } 
-
-                [pCocoaWindow makeKeyAndOrderFront:nil];
-
-                // Simulate missing show event
-                event_t ue;
-                init_event(&ue);
-                ue.nType       = UIE_SHOW;
-                handle_event(&ue);
-
-                return STATUS_OK;
+                return show(nullptr);
             }
 
             status_t CocoaWindow::show(IWindow *over)
@@ -802,27 +778,50 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 transientParent = nil;
+                commit_border_style(enBorderStyle, nActions);
 
-                if (over != nullptr)
-                {
-                    NSView *view = (__bridge NSView *)(over->handle());
-                    transientParent = [view window];
-                    [pCocoaWindow setLevel:NSFloatingWindowLevel];
-                    [pCocoaWindow setParentWindow:transientParent];
-                }
+                if (bWrapper && pCocoaView && pCocoaWindow) {
+                    NSRect contentRect = [[pCocoaWindow contentView] bounds];
+                    [pCocoaView updateFrame:contentRect];
 
+                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+                    if (pSurface != nullptr) {
+                        pSurface->resize(contentRect.size.width, contentRect.size.height);
+                    } 
+                } 
+                
                 if (!has_parent())
                 {
-                    place_above(transientParent);
+                    if (over != nullptr)
+                    {
+                        NSView *view = (__bridge NSView *)(over->handle());
+                        transientParent = [view window];
+                        [pCocoaWindow setLevel:NSFloatingWindowLevel];
+                        [pCocoaWindow setParentWindow:transientParent];
+                    }
+                    if (transientParent)
+                        place_above(transientParent);
                 }
 
+                //[pCocoaWindow orderFrontRegardless];
                 [pCocoaWindow makeKeyAndOrderFront:nil];
+                const bool visible = [pCocoaWindow isVisible];
+                lsp_trace("Window is now visible: %s", (visible) ? "true" : "false");
+//                NSApplication * const application = [NSApplication sharedApplication];
+//                if (application) {
+//                    lsp_trace("Activate application");
+//                    [application activate];
+//                }
 
                 // Simulate missing show event
+                lsp_trace("Emitting UIE_SHOW event");
                 event_t ue;
                 init_event(&ue);
                 ue.nType       = UIE_SHOW;
                 handle_event(&ue);
+                
+                // Invalidate window contents for redraw
+                invalidate();
 
                 return STATUS_OK;
             }
@@ -838,9 +837,18 @@ namespace lsp
             status_t CocoaWindow::hide()
             {
                 bVisible        = false;
-                if(pCocoaWindow != NULL) {
+                if (pCocoaWindow != NULL) {
                     [pCocoaWindow orderOut:nil];
+                    const bool visible = [pCocoaWindow isVisible];
+                    lsp_trace("Window is now visible: %s", (visible) ? "true" : "false");
                 }
+                
+                // Simulate missing hide event
+                lsp_trace("Emitting UIE_HIDE event");
+                event_t ue;
+                init_event(&ue);
+                ue.nType       = UIE_HIDE;
+                handle_event(&ue);
 
                 return STATUS_OK;
             }

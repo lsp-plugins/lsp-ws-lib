@@ -92,7 +92,7 @@ MTEST_BEGIN("ws.display", window)
                         pTest->printf("Current window state is: %d\n", int(ev->nCode));
                         break;
                     }
-
+                    
                     default:
                         return IEventHandler::handle_event(ev);
                 }

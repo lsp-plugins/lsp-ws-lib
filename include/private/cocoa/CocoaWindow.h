@@ -52,7 +52,6 @@ namespace lsp
             {
                 private:
                     friend class CocoaDisplay;
-                    NSApplication       *pCocoaApplication;
                     NSWindow            *pCocoaWindow;
                     CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View

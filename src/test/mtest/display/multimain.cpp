@@ -83,7 +83,19 @@ MTEST_BEGIN("ws.display", multimain)
                             pTest->printf("Pointer location: local=(%d, %d), screen=(%d, %d, %d)\n",
                                 int(ev->nLeft), int(ev->nTop), int(left), int(top), int(screen));
                         return STATUS_OK;
-                    };
+                    }
+                    
+                    case ws::UIE_SHOW:
+                    {
+                        pTest->printf("Received UIE_SHOW event\n");
+                        break;
+                    }
+
+                    case ws::UIE_HIDE:
+                    {
+                        pTest->printf("Received UIE_HIDE event\n");
+                        break;
+                    }
 
                     case ws::UIE_CLOSE:
                     {
@@ -140,12 +152,14 @@ MTEST_BEGIN("ws.display", multimain)
         wnd->set_handler(&h);
 
         // Do the first launch
+        printf("Starting first main loop...\n");
         h.color().set_rgb(0.0f, 0.75f, 0.0f);
         MTEST_ASSERT(wnd->show() == STATUS_OK);
         MTEST_ASSERT(dpy->main() == STATUS_OK);
         MTEST_ASSERT(dpy->process_pending_events() == STATUS_OK);
 
         // Do the second launch
+        printf("Starting second main loop...\n");
         h.color().set_rgb(1.0f, 1.0f, 0.0f);
         MTEST_ASSERT(wnd->show() == STATUS_OK);
         MTEST_ASSERT(dpy->main() == STATUS_OK);
