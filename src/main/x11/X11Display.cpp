@@ -473,14 +473,13 @@ namespace lsp
 
                 // Make a pause
                 struct pollfd x11_poll;
-                system::time_t ts;
 
                 int x11_fd          = ConnectionNumber(pDisplay);
                 lsp_trace("x11fd = %d(int)", x11_fd);
                 XSync(pDisplay, false);
 
                 // Handle pending X11 events
-                status_t res        = enter_main_loop();
+                status_t res        = process_pending_events();
                 if (res != STATUS_OK)
                     return res;
 
@@ -488,8 +487,7 @@ namespace lsp
                 while (!bExit)
                 {
                     // Get current time
-                    system::get_time(&ts);
-                    timestamp_t xts     = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                    const timestamp_t xts   = system::get_time_millis();
 
                     // Compute how many milliseconds to wait for the event
                     int wtime           = (::XPending(pDisplay) > 0) ? 0 : compute_poll_delay(xts, idle_interval());
@@ -517,6 +515,9 @@ namespace lsp
                     }
                 }
 
+                // Synchronize with X11 server
+                XSync(pDisplay, False);
+
                 return STATUS_OK;
             }
 
@@ -525,13 +526,10 @@ namespace lsp
                 if (bExit)
                     return STATUS_OK;
 
-                system::time_t ts;
                 struct pollfd x11_poll;
 
                 // Get current time
-                system::get_time(&ts);
-
-                timestamp_t xts         = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                timestamp_t xts         = system::get_time_millis();
                 timestamp_t deadline    = xts + millis;
                 int x11_fd              = ConnectionNumber(pDisplay);
 
@@ -561,8 +559,7 @@ namespace lsp
                         break;
 
                     // Get current time
-                    system::get_time(&ts);
-                    xts         = (timestamp_t(ts.seconds) * 1000) + (ts.nanos / 1000000);
+                    xts                 = system::get_time_millis();
                 } while (!bExit);
 
                 return STATUS_OK;
@@ -616,7 +613,6 @@ namespace lsp
             {
                 if (pDisplay == NULL)
                     return;
-                XFlush(pDisplay);
                 XSync(pDisplay, False);
             }
 
@@ -627,7 +623,7 @@ namespace lsp
                 XFlush(pDisplay);
             }
 
-            status_t X11Display::enter_main_loop()
+            status_t X11Display::process_pending_events()
             {
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
