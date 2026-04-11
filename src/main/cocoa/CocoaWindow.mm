@@ -805,13 +805,6 @@ namespace lsp
 
                 //[pCocoaWindow orderFrontRegardless];
                 [pCocoaWindow makeKeyAndOrderFront:nil];
-                const bool visible = [pCocoaWindow isVisible];
-                lsp_trace("Window is now visible: %s", (visible) ? "true" : "false");
-//                NSApplication * const application = [NSApplication sharedApplication];
-//                if (application) {
-//                    lsp_trace("Activate application");
-//                    [application activate];
-//                }
 
                 // Simulate missing show event
                 lsp_trace("Emitting UIE_SHOW event");
@@ -839,8 +832,6 @@ namespace lsp
                 bVisible        = false;
                 if (pCocoaWindow != NULL) {
                     [pCocoaWindow orderOut:nil];
-                    const bool visible = [pCocoaWindow isVisible];
-                    lsp_trace("Window is now visible: %s", (visible) ? "true" : "false");
                 }
                 
                 // Simulate missing hide event
