@@ -378,6 +378,14 @@ namespace lsp
 
             status_t WinDisplay::main()
             {
+                bExit = false;
+
+                // Cleanup pending messages if there are
+                status_t res = process_pending_events();
+                if (res != STATUS_OK)
+                    return res;
+
+                // Do main loop
                 while (!bExit)
                 {
                     // Get current time
@@ -393,11 +401,11 @@ namespace lsp
                             sPendingMessage.message     = WM_NULL;
 
                             UINT_PTR timerId    = SetTimer(NULL, 0, wtime, NULL);
-                            BOOL res            = GetMessageW(&sPendingMessage, NULL, 0, 0);
+                            const BOOL ok       = GetMessageW(&sPendingMessage, NULL, 0, 0);
                             KillTimer(NULL, timerId);
 
                             // Received WM_QUIT message?
-                            if (!res)
+                            if (!ok)
                             {
                                 bExit = true;
                                 break;
@@ -405,11 +413,12 @@ namespace lsp
                         }
                     }
 
-                    // Do main iteration
-                    status_t result = do_main_iteration(xts);
-                    if (result != STATUS_OK)
-                        return result;
+                    // Perform main iteration
+                    if ((res = do_main_iteration(xts)) != STATUS_OK)
+                        return res;
                 }
+
+                // There is no need of explicit sync with the display for WinAPI
 
                 return STATUS_OK;
             }
@@ -442,13 +451,31 @@ namespace lsp
                 return res;
             }
 
+            status_t WinDisplay::process_pending_events()
+            {
+                // Process all pending messages.
+                do
+                {
+                    if (sPendingMessage.message == WM_QUIT)
+                    {
+                        bExit = true;
+                        return STATUS_OK;
+                    }
+                    else if (sPendingMessage.message != WM_NULL)
+                    {
+                        TranslateMessage(&sPendingMessage);
+                        DispatchMessageW(&sPendingMessage);
+                        sPendingMessage.message     = WM_NULL;
+                    }
+                } while (PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE));
+
+                return STATUS_OK;
+            }
+
             status_t WinDisplay::main_iteration()
             {
-                // Get current time to determine if need perform a rendering
-                timestamp_t xts = system::get_time_millis();
-
                 // Do iteration
-                return do_main_iteration(xts);
+                return do_main_iteration(system::get_time_millis());
             }
 
             void WinDisplay::quit_main()
