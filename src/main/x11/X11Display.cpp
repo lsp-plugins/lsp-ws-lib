@@ -476,7 +476,6 @@ namespace lsp
 
                 int x11_fd          = ConnectionNumber(pDisplay);
                 lsp_trace("x11fd = %d(int)", x11_fd);
-                XSync(pDisplay, false);
 
                 // Handle pending X11 events
                 status_t res        = process_pending_events();
@@ -625,10 +624,16 @@ namespace lsp
 
             status_t X11Display::process_pending_events()
             {
+                if (pDisplay == NULL)
+                    return STATUS_BAD_STATE;
+
+                // Perform sync with X11 server
+                XSync(pDisplay, false);
+
+                // Process pending x11 events
                 XEvent event;
                 int pending     = ::XPending(pDisplay);
 
-                // Process pending x11 events
                 for (int i=0; i<pending; i++)
                 {
                     if (XNextEvent(pDisplay, &event) != Success)
