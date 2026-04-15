@@ -5,6 +5,7 @@
 === 1.0.34 ===
 * Added process_pending_events() method for IDisplay for properly handling of multiple
   IDisplay::main() method calls.
+* Updated build scripts.
 
 === 1.0.33 ===
 * Fixed several memory leaks in Cairo surfaces.
