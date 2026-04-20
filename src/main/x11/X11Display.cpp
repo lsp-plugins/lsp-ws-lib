@@ -628,7 +628,7 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 // Perform sync with X11 server
-                XSync(pDisplay, false);
+                XSync(pDisplay, False);
 
                 // Process pending x11 events
                 XEvent event;
@@ -1732,6 +1732,10 @@ namespace lsp
                         break;
                     case UnmapNotify:
                         ue->nType       = UIE_HIDE;
+                        break;
+
+                    case DestroyNotify:
+                        lsp_trace("destroy_notify window=%lx", (long)ev->xdestroywindow.window);
                         break;
 
                     case EnterNotify:
