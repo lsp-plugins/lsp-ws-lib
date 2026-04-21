@@ -453,7 +453,7 @@ namespace lsp
 
             status_t WinDisplay::process_pending_events()
             {
-                // Process all pending messages.
+/*                // Process all pending messages.
                 do
                 {
                     if (sPendingMessage.message == WM_QUIT)
@@ -468,7 +468,7 @@ namespace lsp
                         sPendingMessage.message     = WM_NULL;
                     }
                 } while (PeekMessageW(&sPendingMessage, NULL, 0, 0, PM_REMOVE));
-
+*/
                 return STATUS_OK;
             }
 
