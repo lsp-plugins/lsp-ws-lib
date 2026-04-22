@@ -24,6 +24,15 @@ It provides:
   * ws::IGradient to manage gradients.
   * ws::ISurface to use drawing surfaces.
 
+## Supported platforms
+
+The build and correct unit test execution has been confirmed for following platforms:
+* FreeBSD
+* GNU/Linux
+* MacOS (ARM-based)
+* Windows 32-bit
+* Windows 64-bit
+
 Requirements
 ======
 
