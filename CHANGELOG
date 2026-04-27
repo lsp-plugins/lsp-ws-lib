@@ -11,6 +11,7 @@
 * Updated build scripts.
 
 === 1.0.33 ===
+* Fixed endless vertical flip on MacOS (contributed by Hoshino Lina).
 * Fixed several memory leaks in Cairo surfaces.
 * Updated module versions in dependencies.
 
