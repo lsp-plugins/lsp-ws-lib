@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.34 ===
+* Fixed endless vertical flip on MacOS (contributed by Hoshino Lina).
 * Updated build system: ASAN, CROSS_COMPILE, DEBUG, DEVEL, PROFILE, STRICT,
   TEST, TRACE makefile flags replaced with 'asan', 'crosscompile', 'debug',
   'devel', 'profile', 'strict', 'test' and 'trace' FEATURE flags.
@@ -11,7 +12,6 @@
 * Updated build scripts.
 
 === 1.0.33 ===
-* Fixed endless vertical flip on MacOS (contributed by Hoshino Lina).
 * Fixed several memory leaks in Cairo surfaces.
 * Updated module versions in dependencies.
 
