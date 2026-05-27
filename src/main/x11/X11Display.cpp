@@ -2930,7 +2930,7 @@ namespace lsp
                             task->enState       = DND_RECV_SIMPLE;
 
                             ::XConvertSelection(pDisplay, task->hSelection,
-                                    task->hType, prop_id, task->hTarget, CurrentTime);
+                                task->hType, prop_id, task->hTarget, ev->data.l[2]);
                             ::XFlush(pDisplay);
 
                             return STATUS_OK;
