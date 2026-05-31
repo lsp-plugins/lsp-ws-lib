@@ -241,6 +241,11 @@ namespace lsp
                 if ((error = FT_Init_FreeType(&hLibrary)) != FT_Err_Ok)
                     return STATUS_UNKNOWN_ERR;
 
+                FT_Int major = 0, minor = 0, patch = 0;
+                FT_Library_Version(hLibrary, &major, &minor, &patch);
+
+                lsp_trace("Using FreeType version %d.%d.%d", int(major), int(minor), int(patch));
+
                 return STATUS_OK;
             }
 
