@@ -118,7 +118,7 @@ namespace lsp
                         if (count < 0)
                             continue;
 
-                        status_t res = sLibrary.open(&tmp);
+                        status_t res = sLibrary.open(&tmp, true);
                         if (res != STATUS_OK)
                             continue;
                         bool close = true;
