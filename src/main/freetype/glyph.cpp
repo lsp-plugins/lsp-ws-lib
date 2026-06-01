@@ -1,7 +1,6 @@
 /*
-
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 8 апр. 2023 г.
@@ -30,12 +29,6 @@
 #include <private/freetype/bitmap.h>
 #include <private/freetype/glyph.h>
 #include <private/freetype/face.h>
-
-#include <ft2build.h>
-#include FT_BITMAP_H
-#include FT_FREETYPE_H
-#include FT_GLYPH_H
-#include FT_OUTLINE_H
 
 namespace lsp
 {
@@ -118,28 +111,28 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_regular_glyph(face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
+            glyph_t *render_regular_glyph(library_t & ft, face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
                 // Load glyph
                 size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
+                if (ft.load_glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
                     return NULL;
 
                 // Render glyph
                 FT_GlyphSlot glyph  = face->ft_face->glyph;
                 FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
-                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
+                if (ft.render_glyph(glyph, render_mode) != FT_Err_Ok)
                     return NULL;
 
                 return make_glyph_data(face, glyph, ch);
             }
 
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_bold_glyph(FT_Library library, face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
+            glyph_t *render_bold_glyph(library_t & ft, face_t *face, FT_UInt glyph_index, lsp_wchar_t ch)
             {
                 // Load glyph
                 size_t load_flags   = (face->flags & FID_ANTIALIAS) ? FT_LOAD_DEFAULT : FT_LOAD_MONOCHROME;
-                if (FT_Load_Glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
+                if (ft.load_glyph(face->ft_face, glyph_index, load_flags) != FT_Err_Ok)
                     return NULL;
 
                 // Get the glyph
@@ -147,16 +140,16 @@ namespace lsp
                 const bool is_outline = glyph->format == FT_GLYPH_FORMAT_OUTLINE;
                 size_t embolden     = size_t(lsp_max(face->h_size, face->v_size)) >> 5;
                 if (is_outline)
-                    FT_Outline_Embolden(&glyph->outline, embolden);
+                    ft.outline_embolden(&glyph->outline, embolden);
 
                 // Render glyph
-                FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
-                if (FT_Render_Glyph(glyph, render_mode ) != FT_Err_Ok)
+                const FT_Render_Mode render_mode  = (face->flags & FID_ANTIALIAS) ? FT_RENDER_MODE_NORMAL : FT_RENDER_MODE_MONO;
+                if (ft.render_glyph(glyph, render_mode) != FT_Err_Ok)
                     return NULL;
 
                 if (!is_outline)
                 {
-                    if (FT_Bitmap_Embolden(library, &glyph->bitmap, embolden >> 1, 0) != FT_Err_Ok)
+                    if (ft.bitmap_embolden(&glyph->bitmap, embolden >> 1, 0) != FT_Err_Ok)
                         return NULL;
                 }
 
@@ -164,16 +157,16 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_glyph(FT_Library library, face_t *face, lsp_wchar_t ch)
+            glyph_t *render_glyph(library_t & ft, face_t *face, lsp_wchar_t ch)
             {
                 // Obtain the glyph index
-                FT_UInt glyph_index = FT_Get_Char_Index(face->ft_face, ch);
+                const FT_UInt glyph_index = ft.get_char_index(face->ft_face, ch);
 
                 // Render the glyph
                 if ((face->flags & FID_BOLD) && (!(face->ft_face->style_flags & FT_STYLE_FLAG_BOLD)))
-                    return render_bold_glyph(library, face, glyph_index, ch);
+                    return render_bold_glyph(ft, face, glyph_index, ch);
 
-                return render_regular_glyph(face, glyph_index, ch);
+                return render_regular_glyph(ft, face, glyph_index, ch);
             }
 
             LSP_HIDDEN_MODIFIER

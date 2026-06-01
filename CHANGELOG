@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.34 ===
+* Forcing use of system FreeType library if host provides custom one.
 * Fixed Drag & Drop issue under X11 (contributed by Justin Frankel).
 * Fixed endless vertical flip on MacOS (contributed by Hoshino Lina).
 * Updated build system: ASAN, CROSS_COMPILE, DEBUG, DEVEL, PROFILE, STRICT,
