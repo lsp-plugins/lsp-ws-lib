@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -70,6 +70,8 @@ namespace lsp
                     if (strcasecmp(family, reinterpret_cast<const char *>(face)) == 0)
                         return i;
                 }
+
+                return -1;
             }
 
             typedef struct font_info_t
@@ -215,8 +217,6 @@ namespace lsp
 
             FontManager::FontManager()
             {
-                hLibrary        = NULL;
-
                 nCacheSize      = 0;
                 nMinCacheSize   = default_min_font_cache_size;
                 nMaxCacheSize   = default_max_font_cache_size;
@@ -234,16 +234,15 @@ namespace lsp
 
             status_t FontManager::init()
             {
-                if (hLibrary != NULL)
+                if (sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
-                FT_Error error;
-                if ((error = FT_Init_FreeType(&hLibrary)) != FT_Err_Ok)
-                    return STATUS_UNKNOWN_ERR;
+                status_t res = sLibrary.init();
+                if (res != STATUS_OK)
+                    return res;
 
                 FT_Int major = 0, minor = 0, patch = 0;
-                FT_Library_Version(hLibrary, &major, &minor, &patch);
-
+                sLibrary.version(&major, &minor, &patch);
                 lsp_trace("Using FreeType version %d.%d.%d", int(major), int(minor), int(patch));
 
                 return STATUS_OK;
@@ -251,7 +250,7 @@ namespace lsp
 
             void FontManager::destroy()
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return;
 
                 // Output cache statistics
@@ -267,8 +266,7 @@ namespace lsp
                 clear();
                 clear_cache_stats();
 
-                FT_Done_FreeType(hLibrary);
-                hLibrary    = NULL;
+                sLibrary.destroy();
             }
 
             void FontManager::dereference(face_t *face)
@@ -276,7 +274,7 @@ namespace lsp
                 if (face == NULL)
                     return;
                 if ((--face->references) <= 0)
-                    destroy_face(face);
+                    destroy_face(sLibrary, face);
             }
 
             bool FontManager::add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face)
@@ -299,7 +297,7 @@ namespace lsp
 
             status_t FontManager::add(const char *name, const char *path)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 io::InFileStream ifs;
@@ -312,7 +310,7 @@ namespace lsp
 
             status_t FontManager::add(const char *name, const io::Path *path)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 io::InFileStream ifs;
@@ -325,7 +323,7 @@ namespace lsp
 
             status_t FontManager::add(const char *name, const LSPString *path)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 io::InFileStream ifs;
@@ -338,16 +336,16 @@ namespace lsp
 
             status_t FontManager::add(const char *name, io::IInStream *is)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 status_t res;
                 lltl::parray<face_t> faces;
 
                 // Load font faces
-                if ((res = load_face(&faces, hLibrary, is)) != STATUS_OK)
+                if ((res = load_face(&faces, sLibrary, is)) != STATUS_OK)
                     return res;
-                lsp_finally { destroy_faces(&faces); };
+                lsp_finally { destroy_faces(sLibrary, &faces); };
 
                 // Make list of faces
                 lltl::darray<font_entry_t> entries;
@@ -403,7 +401,7 @@ namespace lsp
 
             status_t FontManager::add_alias(const char *name, const char *alias)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 // Check that alias does not exists
@@ -480,7 +478,7 @@ namespace lsp
 
             status_t FontManager::remove(const char *name)
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 // Step 1: Find alias and remove it
@@ -532,7 +530,7 @@ namespace lsp
 
             status_t FontManager::clear()
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return STATUS_BAD_STATE;
 
                 // Invalidate all faces
@@ -580,7 +578,7 @@ namespace lsp
 
             void FontManager::gc()
             {
-                if (hLibrary == NULL)
+                if (!sLibrary.initialized())
                     return;
                 if (nCacheSize <= nMaxCacheSize)
                     return;
@@ -619,7 +617,7 @@ namespace lsp
                 ++nGlyphMisses;
 
                 // There was no glyph present, create new glyph
-                glyph           = render_glyph(hLibrary, face, ch);
+                glyph           = render_glyph(sLibrary, face, ch);
                 if (glyph == NULL)
                     return NULL;
 
@@ -829,7 +827,7 @@ namespace lsp
                 }
 
                 // Synthesize new face
-                if ((face = clone_face(face)) == NULL)
+                if ((face = clone_face(sLibrary, face)) == NULL)
                     return NULL;
                 ++face->references;
                 lsp_finally { dereference(face); };
@@ -859,7 +857,7 @@ namespace lsp
                 if (face == NULL)
                     return false;
 
-                if (activate_face(face) != STATUS_OK)
+                if (activate_face(sLibrary, face) != STATUS_OK)
                     return false;
 
                 if (fp != NULL)
@@ -901,7 +899,7 @@ namespace lsp
                 if (tp == NULL)
                     return true;
 
-                if (activate_face(face) != STATUS_OK)
+                if (activate_face(sLibrary, face) != STATUS_OK)
                     return false;
 
                 // Estimate the text parameters
@@ -950,7 +948,7 @@ namespace lsp
                 face_t *face        = select_font_face(f);
                 if (face == NULL)
                     return NULL;
-                if (activate_face(face) != STATUS_OK)
+                if (activate_face(sLibrary, face) != STATUS_OK)
                     return NULL;
 
                 // Estimate the text parameters

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -32,6 +32,7 @@
 #include FT_FREETYPE_H
 
 #include <private/freetype/face_id.h>
+#include <private/freetype/library.h>
 #include <private/freetype/types.h>
 #include <private/freetype/GlyphCache.h>
 
@@ -72,40 +73,41 @@ namespace lsp
              * @return status of operation
              */
             LSP_HIDDEN_MODIFIER
-            status_t    load_face(lltl::parray<face_t> *faces, FT_Library ft, io::IInStream *is);
+            status_t    load_face(lltl::parray<face_t> *faces, library_t & ft, io::IInStream *is);
 
             /**
              * Create font face
-             * @param ft_face freetype font face to use as a reference
-             * @param flags font face flags
+             * @param ft the FreeType library handle
+             * @param src face to clone
              * @return pointer to font face
              */
             LSP_HIDDEN_MODIFIER
-            face_t     *clone_face(face_t *src);
+            face_t     *clone_face(library_t & ft, face_t *src);
 
             /**
              * Destroy the font face
+             * @param ft the FreeType library handle
              * @param face the font face to destroy
              */
             LSP_HIDDEN_MODIFIER
-            void        destroy_face(face_t *face);
+            void        destroy_face(library_t & ft, face_t *face);
 
             /**
              * Destroy the list of font faces
-             * @param face the font face to destroy
+             * @param ft the FreeType library handle
+             * @param faces the list of font faces to destroy
              */
             LSP_HIDDEN_MODIFIER
-            void        destroy_faces(lltl::parray<face_t> *faces);
+            void        destroy_faces(library_t & ft, lltl::parray<face_t> *faces);
 
             /**
              * Start text processing using the selected face
+             * @param ft the FreeType library handle
              * @param face face object
-             * @param size the font size of the face
-             * @param id_flags the flags to set while selecting the font face
              * @return status of operation
              */
             LSP_HIDDEN_MODIFIER
-            status_t    activate_face(face_t *face);
+            status_t    activate_face(library_t & ft, face_t *face);
 
         } /* namespace ft */
     } /* namespace ws */

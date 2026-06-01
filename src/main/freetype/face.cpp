@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -78,7 +78,7 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            status_t load_face(lltl::parray<face_t> *faces, FT_Library ft, io::IInStream *is)
+            status_t load_face(lltl::parray<face_t> *faces, library_t & ft, io::IInStream *is)
             {
                 // Create the font data
                 font_t *data        = create_font_data(is);
@@ -103,16 +103,16 @@ namespace lsp
                     args.num_params     = 0;
                     args.params         = NULL;
 
-                    if ((error = FT_Open_Face( ft, &args, -1, &ft_face )) != FT_Err_Ok)
+                    if ((error = ft.open_face(&args, -1, &ft_face)) != FT_Err_Ok)
                         return STATUS_UNKNOWN_ERR;
-                    lsp_finally { FT_Done_Face(ft_face ); };
+                    lsp_finally { ft.done_face(ft_face); };
 
                     num_faces       = ft_face->num_faces;
                 }
 
                 // Load each face
                 lltl::parray<face_t> list;
-                lsp_finally { destroy_faces(&list); };
+                lsp_finally { destroy_faces(ft, &list); };
 
                 for (ssize_t i=0; i<num_faces; ++i)
                 {
@@ -125,18 +125,15 @@ namespace lsp
                     args.num_params     = 0;
                     args.params         = NULL;
 
-                    if ((error = FT_Open_Face( ft, &args, i, &ft_face )) != FT_Err_Ok)
+                    if ((error = ft.open_face(&args, i, &ft_face)) != FT_Err_Ok)
                         return STATUS_UNKNOWN_ERR;
-                    lsp_finally {
-                        if (ft_face != NULL)
-                            FT_Done_Face( ft_face );
-                    };
+                    lsp_finally { ft.done_face(ft_face); };
 
                     // Allocate the font face object
                     face_t *face    = reinterpret_cast<face_t *>(malloc(sizeof(face_t)));
                     if (face == NULL)
                         return STATUS_NO_MEM;
-                    lsp_finally { destroy_face(face); };
+                    lsp_finally { destroy_face(ft, face); };
 
                     // Initialize font face object
                     face->references    = 0;
@@ -172,18 +169,18 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            face_t *clone_face(face_t *src)
+            face_t *clone_face(library_t & ft, face_t *src)
             {
                 FT_Error error;
 
                 // Reference the freetype face
                 if (src == NULL)
                     return NULL;
-                if ((error = FT_Reference_Face(src->ft_face)) != FT_Err_Ok)
+                if ((error = ft.reference_face(src->ft_face)) != FT_Err_Ok)
                     return NULL;
                 lsp_finally {
                     if (src != NULL)
-                        FT_Done_Face(src->ft_face);
+                        ft.done_face(src->ft_face);
                 };
 
                 // Allocate the font face object
@@ -214,15 +211,15 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            void destroy_faces(lltl::parray<face_t> *faces)
+            void destroy_faces(library_t & ft, lltl::parray<face_t> *faces)
             {
                 for (size_t i=0, n=faces->size(); i<n; ++i)
-                    destroy_face(faces->uget(i));
+                    destroy_face(ft, faces->uget(i));
                 faces->flush();
             }
 
             LSP_HIDDEN_MODIFIER
-            void destroy_face(face_t *face)
+            void destroy_face(library_t & ft, face_t *face)
             {
                 if (face == NULL)
                     return;
@@ -230,7 +227,7 @@ namespace lsp
                 // Remove freetype face reference
                 if (face->ft_face != NULL)
                 {
-                    FT_Done_Face(face->ft_face);
+                    ft.done_face(face->ft_face);
                     face->ft_face   = NULL;
                 }
 
@@ -256,7 +253,7 @@ namespace lsp
             }
 
             LSP_HIDDEN_MODIFIER
-            status_t activate_face(face_t *face)
+            status_t activate_face(library_t & ft, face_t *face)
             {
                 FT_Error error;
                 FT_Face ft_face     = face->ft_face;
@@ -266,7 +263,7 @@ namespace lsp
                     return STATUS_UNKNOWN_ERR;
 
                 // Set transformation matrix
-                FT_Set_Transform(ft_face, &face->matrix, NULL);
+                ft.set_transform(ft_face, &face->matrix, NULL);
 
                 // Update the font metrics for the face
                 face->height        = ft_face->size->metrics.height;
