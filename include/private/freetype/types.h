@@ -28,9 +28,6 @@
 #include <lsp-plug.in/dsp/dsp.h>
 #include <lsp-plug.in/lltl/phashset.h>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 namespace lsp
 {
     namespace ws

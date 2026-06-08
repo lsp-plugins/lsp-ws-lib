@@ -32,6 +32,9 @@
 #include <private/freetype/glyph.h>
 #include <private/freetype/types.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <fontconfig/fontconfig.h>
 
 namespace lsp
