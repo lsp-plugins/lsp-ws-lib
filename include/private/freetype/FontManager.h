@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 23 апр. 2023 г.
@@ -33,6 +33,7 @@
 #include <private/freetype/face.h>
 #include <private/freetype/face_id.h>
 #include <private/freetype/glyph.h>
+#include <private/freetype/library.h>
 #include <private/freetype/GlyphCache.h>
 #include <private/freetype/LRUCache.h>
 
@@ -55,7 +56,7 @@ namespace lsp
                     } font_entry_t;
 
                 private:
-                    FT_Library                          hLibrary;
+                    library_t                           sLibrary;
                     lltl::darray<font_entry_t>          vFaces;
                     lltl::pphash<face_id_t, face_t>     vFontCache;
                     lltl::pphash<char, char>            vAliases;
@@ -74,14 +75,19 @@ namespace lsp
                     void                    invalidate_faces(const char *name);
                     void                    invalidate_face(face_t *face);
                     static bool             add_font_face(lltl::darray<font_entry_t> *entries, const char *name, face_t *face);
-                    static void             dereference(face_t *face);
+                    void                    dereference(face_t *face);
                     face_t                 *select_font_face(const Font *f);
                     face_t                 *find_face(const face_id_t *id);
                     face_t                 *lookup_face(const face_id_t *id);
 
                 public:
                     FontManager();
+                    FontManager(const FontManager &) = delete;
+                    FontManager(FontManager &&) = delete;
                     ~FontManager();
+
+                    FontManager & operator = (const FontManager &) = delete;
+                    FontManager & operator = (FontManager &&) = delete;
 
                     status_t                init();
                     void                    destroy();

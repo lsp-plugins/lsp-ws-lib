@@ -300,7 +300,7 @@ namespace lsp
                     Window wnd = 0;
                     Window parent_wnd = hParent;
 
-                    if (parent_wnd > 0)
+                    if (parent_wnd != None)
                     {
                         XWindowAttributes atts;
                         XGetWindowAttributes(dpy, hParent, &atts);
@@ -405,7 +405,7 @@ namespace lsp
                         ColormapChangeMask |
                         OwnerGrabButtonMask
                     );
-                    if (hParent > 0)
+                    if (hParent != None)
                     {
                         ::XSelectInput(dpy, hParent,
                             PropertyChangeMask |
@@ -459,10 +459,10 @@ namespace lsp
                         pX11Display->remove_window(this);
 
                     // Destroy window
-                    if (hWindow > 0)
+                    if (hWindow != None)
                     {
                         XDestroyWindow(pX11Display->x11display(), hWindow);
-                        hWindow = 0;
+                        hWindow = None;
                     }
                     pX11Display->sync();
                 }
@@ -633,6 +633,7 @@ namespace lsp
                 {
                     case UIE_SHOW:
                     {
+                        lsp_trace("UIE_SHOW received");
                         bVisible        = true;
                         if (bWrapper)
                             break;
@@ -1134,7 +1135,7 @@ namespace lsp
                     ::XUnmapWindow(dpy, hWindow);
                 }
 
-                pX11Display->flush();
+                pX11Display->sync();
                 return STATUS_OK;
             }
 
@@ -1173,9 +1174,15 @@ namespace lsp
             status_t X11Window::show(IWindow *over)
             {
                 if (hWindow == 0)
+                {
+                    lsp_trace("hWindow == NULL");
                     return STATUS_BAD_STATE;
+                }
                 if (pSurface != NULL)
+                {
+                    lsp_trace("pSurface != NULL");
                     return STATUS_OK;
+                }
 
                 ::Window transient_for = None;
                 Display *dpy = pX11Display->x11display();
@@ -1190,9 +1197,15 @@ namespace lsp
                 }
                 hTransientFor   = transient_for;
 
-//                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
-                ::XSetTransientForHint(dpy, hWindow, transient_for);
-                ::XMapRaised(dpy, hWindow);
+                lsp_trace("Showing window %lx as transient for %lx", hWindow, transient_for);
+                if (transient_for != None)
+                    ::XSetTransientForHint(dpy, hWindow, transient_for);
+
+                if (hParent != None)
+                    ::XMapRaised(dpy, hWindow);
+                else
+                    ::XMapWindow(dpy, hWindow);
+
                 if (hTransientFor != None)
                 {
                     XWindowChanges cw;
@@ -1234,7 +1247,7 @@ namespace lsp
                 }
 
                 // Bring window to top
-                if (enState != WS_MINIMIZED)
+                if ((hParent != None) && (enState != WS_MINIMIZED))
                 {
                     XEvent ev;
                     ev.xclient.type = ClientMessage;
@@ -1773,11 +1786,6 @@ namespace lsp
                     hWindow, &root, &parent,
                     &children, &num_children);
 
-                if ((parent != root) && (parent != None))
-                {
-                    lsp_trace("debug");
-                }
-
                 return ((parent != root) && (parent != None)) ? reinterpret_cast<void *>(parent) : NULL;
             }
 
@@ -1786,16 +1794,31 @@ namespace lsp
                 if (hWindow == None)
                     return STATUS_BAD_STATE;
 
-                Window parent_wnd = (parent != NULL) ?
-                    reinterpret_cast<Window>(parent) :
-                    pX11Display->x11root();
+                Display * const dpy = pX11Display->x11display();
+                Window const parent_wnd = (parent != NULL) ? reinterpret_cast<Window>(parent) : None;
 
-                XReparentWindow(
-                    pX11Display->x11display(),
+                if ((hParent != parent_wnd) && (hParent != None))
+                    ::XSelectInput(dpy, hParent, 0);
+
+                ::XReparentWindow(
+                    dpy,
                     hWindow,
-                    parent_wnd,
+                    (parent_wnd != None) ? parent_wnd : pX11Display->x11root(),
                     sSize.nLeft,
                     sSize.nTop);
+
+                lsp_trace("XReparentWindow wnd=0x%lx, parent=0x%lx, left=%d, top=%d",
+                    (long)hWindow, (long)parent_wnd, int(sSize.nLeft), int(sSize.nTop));
+
+                if ((hParent != parent_wnd) && (parent_wnd != None))
+                {
+                    ::XSelectInput(dpy, parent_wnd,
+                        PropertyChangeMask |
+                        StructureNotifyMask
+                    );
+                }
+
+                hParent = parent_wnd;
 
                 return STATUS_OK;
             }

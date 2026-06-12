@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2025 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2025 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 1 июл. 2022 г.
@@ -189,6 +189,7 @@ namespace lsp
                 public:
                     // Main loop management
                     virtual status_t            main() override;
+                    virtual status_t            process_pending_events() override;
                     virtual status_t            main_iteration() override;
                     virtual void                quit_main() override;
                     virtual status_t            wait_events(wssize_t millis) override;

@@ -2,6 +2,18 @@
 * RECENT CHANGES
 *******************************************************************************
 
+=== 1.0.34 ===
+* Forcing use of system FreeType library if host provides custom one.
+* Fixed Drag & Drop issue under X11 (contributed by Justin Frankel).
+* Fixed endless vertical flip on MacOS (contributed by Hoshino Lina).
+* Updated build system: ASAN, CROSS_COMPILE, DEBUG, DEVEL, PROFILE, STRICT,
+  TEST, TRACE makefile flags replaced with 'asan', 'crosscompile', 'debug',
+  'devel', 'profile', 'strict', 'test' and 'trace' FEATURE flags.
+* Added process_pending_events() method for IDisplay for properly handling of multiple
+  IDisplay::main() method calls.
+* Updated build scripts.
+* Updated module versions in dependencies.
+
 === 1.0.33 ===
 * Fixed several memory leaks in Cairo surfaces.
 * Updated module versions in dependencies.

@@ -161,6 +161,14 @@ namespace lsp
                 virtual status_t    main();
 
                 /**
+                 * This method can be called after leaving the manual main loop to process
+                 * all pending events.
+                 *
+                 * @return status of operation.
+                 */
+                virtual status_t    process_pending_events();
+
+                /**
                  * Perform a single iteration for the main loop.
                  *
                  * @return status of iteration completion.

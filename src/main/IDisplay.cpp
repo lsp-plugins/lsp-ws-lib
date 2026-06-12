@@ -717,6 +717,11 @@ namespace lsp
             return STATUS_OK;
         }
 
+        status_t IDisplay::process_pending_events()
+        {
+            return STATUS_OK;
+        }
+
         status_t IDisplay::main_iteration()
         {
             return STATUS_SUCCESS;

@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2023 Linux Studio Plugins Project <https://lsp-plug.in/>
- *           (C) 2023 Vladimir Sadovnikov <sadko4u@gmail.com>
+ * Copyright (C) 2026 Linux Studio Plugins Project <https://lsp-plug.in/>
+ *           (C) 2026 Vladimir Sadovnikov <sadko4u@gmail.com>
  *
  * This file is part of lsp-ws-lib
  * Created on: 8 апр. 2023 г.
@@ -25,6 +25,7 @@
 #ifdef USE_LIBFREETYPE
 
 #include <private/freetype/types.h>
+#include <private/freetype/library.h>
 
 namespace lsp
 {
@@ -73,12 +74,13 @@ namespace lsp
 
             /**
              * Use the font face to load glyph and render it
+             * @param ft freetype library
              * @param face the font face to load the glyph
              * @param ch UTF-32 codepoint of the glyph
              * @return pointer to allocated glyph or NULL if no memory is available
              */
             LSP_HIDDEN_MODIFIER
-            glyph_t *render_glyph(FT_Library library, face_t *face, lsp_wchar_t ch);
+            glyph_t *render_glyph(library_t & ft, face_t *face, lsp_wchar_t ch);
 
             /**
              * Free the glyph and data associated with it
