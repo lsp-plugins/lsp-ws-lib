@@ -94,6 +94,8 @@
     self = [super initWithFrame:frameRect];
     if (self)
     {
+        [self setWantsLayer:YES];
+        self.layer.backgroundColor = [[NSColor blackColor] CGColor];
         //lsp_trace("Register event for view: %p", self);
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
         [center addObserverForName:@"ForceExpose"
@@ -240,6 +242,16 @@
         return YES;
     }
     return NO;
+}
+
+- (BOOL)acceptsFirstResponder
+{
+    return YES;
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event
+{
+    return YES;
 }
 
 - (void)updateTrackingAreas
