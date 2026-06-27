@@ -183,6 +183,8 @@
 // Updates the view
 - (void)triggerRedraw
 {
+    if (self.display != NULL)
+        self.display->main_iteration();
     if (self->_needsRedrawing)
         [self setNeedsDisplay:YES];
 }
