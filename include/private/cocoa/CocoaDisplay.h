@@ -61,6 +61,7 @@ namespace lsp
                     lltl::parray<CocoaWindow>   sTargets;                   // Targets for event delivery
                     lltl::parray<CocoaWindow>   vWindows;                   // All registered windows
                     size_t                      lastMouseButton;
+                    CocoaWindow                *pDragTarget;     // window that received mouseDown until matching mouseUp
                 
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;

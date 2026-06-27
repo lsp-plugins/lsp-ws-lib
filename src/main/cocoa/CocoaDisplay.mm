@@ -55,6 +55,8 @@ namespace lsp
             CocoaDisplay::CocoaDisplay(): IDisplay()
             {
                bExit                   = false;
+               lastMouseButton         = 0;
+               pDragTarget             = NULL;
             }
 
             CocoaDisplay::~CocoaDisplay()
@@ -207,12 +209,53 @@ namespace lsp
                     return;
 
                 NSEventType type = [nsevent type];
+
+                // During an in-progress drag, route mouse events to the window that received
+                // the matching mouseDown — even if the cursor leaves the view's bounds.
+                const bool isDragMove = (type == NSEventTypeLeftMouseDragged) ||
+                                        (type == NSEventTypeRightMouseDragged) ||
+                                        (type == NSEventTypeOtherMouseDragged) ||
+                                        (type == NSEventTypeMouseMoved);
+                const bool isMouseUp  = (type == NSEventTypeLeftMouseUp) ||
+                                        (type == NSEventTypeRightMouseUp) ||
+                                        (type == NSEventTypeOtherMouseUp);
+
+                CocoaWindow *target = NULL;
+                if ((isDragMove || isMouseUp) && pDragTarget != NULL)
+                    target = pDragTarget;
+
                 const nswindow_t nsWindow = nswindow_t { [nsevent window] };
-                CocoaWindow *target = find_window(nsWindow);
+                if (!target)
+                    target = find_window(nsWindow);
+
+                // Embedded case: the NSEvent's window is the host's (e.g. Ableton's), not ours.
+                // Locate our CocoaWindow by walking up from the hit-test view to a known pCocoaView.
+                if (!target)
+                {
+                    NSView *root = [nsWindow.window contentView];
+                    NSPoint p = [nsevent locationInWindow];
+                    NSView *hit = [root hitTest:p];
+                    for (size_t i = 0, n = vWindows.size(); i < n && !target; ++i)
+                    {
+                        CocoaWindow *w = vWindows.uget(i);
+                        if (!w || !w->pCocoaView)
+                            continue;
+                        NSView *v = hit;
+                        while (v != nil)
+                        {
+                            if (v == w->pCocoaView)
+                            {
+                                target = w;
+                                break;
+                            }
+                            v = [v superview];
+                        }
+                    }
+                }
 
                 if (!target)
                     return;
-                
+
                 event_t ue = {};
                 init_event(&ue);
                 ue.nTime = timestamp_t([nsevent timestamp] * 1000);
@@ -222,9 +265,31 @@ namespace lsp
                 unichar keysym = 0;
 
                 NSPoint locInWindow = [nsevent locationInWindow];
-                NSView *targetView = [[nsWindow.window contentView] hitTest:locInWindow];
-                NSPoint locInView = [targetView convertPoint:locInWindow fromView:nil];
-                NSRect cFrame = [targetView frame];
+                // Resolve event coordinates against the target view directly so they stay valid
+                // when the cursor leaves the view (during a drag).
+                NSView *coordView = target->pCocoaView;
+                NSPoint locInView;
+                NSRect cFrame;
+                if (coordView != nil && [coordView window] != nil)
+                {
+                    if ([coordView window] != nsWindow.window)
+                    {
+                        NSPoint scr = [nsWindow.window convertPointToScreen:locInWindow];
+                        NSPoint inHostWnd = [[coordView window] convertPointFromScreen:scr];
+                        locInView = [coordView convertPoint:inHostWnd fromView:nil];
+                    }
+                    else
+                    {
+                        locInView = [coordView convertPoint:locInWindow fromView:nil];
+                    }
+                    cFrame = [coordView frame];
+                }
+                else
+                {
+                    NSView *hitView = [[nsWindow.window contentView] hitTest:locInWindow];
+                    locInView = [hitView convertPoint:locInWindow fromView:nil];
+                    cFrame = [hitView frame];
+                }
 
                 ue.nLeft = locInView.x;
                 ue.nTop = cFrame.size.height - locInView.y;
@@ -238,6 +303,7 @@ namespace lsp
                         ue.nType = UIE_MOUSE_DOWN;
                         ue.nCode = decode_mcb(nsevent);
                         lastMouseButton = decode_modifier(nsevent);
+                        pDragTarget = target;
                         //ue.nState = decode_modifier(nsevent);
                         break;
 
@@ -249,6 +315,7 @@ namespace lsp
                         ue.nState = decode_modifier(nsevent);
                         ue.nState = lastMouseButton;
                         lastMouseButton = decode_modifier(nsevent);
+                        pDragTarget = NULL;
                         break;
 
                     case NSEventTypeMouseMoved:
