@@ -68,8 +68,10 @@ namespace lsp
                 enState                 = WS_NORMAL;
 
                 bWrapper                = wrapper;
+                pCocoaParentView        = NULL;
 
                 if (bWrapper) {
+                    pCocoaParentView = view;
                     pCocoaWindow = [view window];
                 }
 
@@ -118,6 +120,7 @@ namespace lsp
                                                 defer:NO];
 
                     pCocoaWindow = window;
+                    [pCocoaWindow setBackgroundColor:[NSColor blackColor]];
                     [pCocoaWindow setIsVisible:NO];
 
                     // Create a cocoa view and set it to window
@@ -137,8 +140,9 @@ namespace lsp
                 }
                 else
                 {
-                    CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[[pCocoaWindow contentView] bounds]];
-                    [[pCocoaWindow contentView] addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
+                    NSView *host = (pCocoaParentView != NULL) ? pCocoaParentView : [pCocoaWindow contentView];
+                    CocoaCairoView *wrapperView = [[CocoaCairoView alloc] initWithFrame:[host bounds]];
+                    [host addSubview:wrapperView positioned:NSWindowAbove relativeTo:nil];
                     wrapperView.display = pCocoaDisplay;
                     pCocoaView = wrapperView;
                     [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
@@ -364,7 +368,41 @@ namespace lsp
                     return STATUS_BAD_STATE;
 
                 bInvalidate = true;
-                
+
+                return STATUS_OK;
+            }
+
+            status_t CocoaWindow::set_parent(void *parent)
+            {
+                NSView *hostView = (__bridge NSView *)parent;
+                if (pCocoaView == nil)
+                    return STATUS_BAD_STATE;
+
+                if (hostView != nil)
+                {
+                    if (pCocoaWindow != nil)
+                        [pCocoaWindow orderOut:nil];
+
+                    if ([pCocoaView superview] != hostView)
+                    {
+                        [pCocoaView retain];
+                        [pCocoaView removeFromSuperview];
+                        [pCocoaView setFrame:[hostView bounds]];
+                        [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
+                        [hostView addSubview:pCocoaView positioned:NSWindowAbove relativeTo:nil];
+                        [[hostView window] makeFirstResponder:pCocoaView];
+                        [pCocoaView release];
+                    }
+                    pCocoaParentView = hostView;
+                }
+                else if (pCocoaParentView != nil)
+                {
+                    [pCocoaView removeFromSuperview];
+                    if (pCocoaWindow != nil)
+                        [pCocoaWindow setContentView:pCocoaView];
+                    pCocoaParentView = nil;
+                }
+
                 return STATUS_OK;
             }
 
@@ -804,7 +842,8 @@ namespace lsp
                 }
 
                 //[pCocoaWindow orderFrontRegardless];
-                [pCocoaWindow makeKeyAndOrderFront:nil];
+                if (pCocoaParentView == nil)
+                    [pCocoaWindow makeKeyAndOrderFront:nil];
 
                 // Simulate missing show event
                 lsp_trace("Emitting UIE_SHOW event");
@@ -874,6 +913,23 @@ namespace lsp
             {
                 if (realize == nullptr)
                     return STATUS_BAD_ARGUMENTS;
+
+                if (pCocoaParentView != nil)
+                {
+                    NSWindow *hostWnd = [pCocoaParentView window];
+                    if (hostWnd == nil)
+                        return STATUS_BAD_STATE;
+                    NSRect b = [pCocoaParentView convertRect:[pCocoaParentView bounds] toView:nil];
+                    NSRect s = [hostWnd convertRectToScreen:b];
+                    ssize_t screenW = 0, screenH = 0;
+                    pCocoaDisplay->screen_size(0, &screenW, &screenH);
+                    realize->nLeft   = static_cast<ssize_t>(s.origin.x);
+                    realize->nTop    = static_cast<ssize_t>(screenH - s.origin.y - s.size.height);
+                    realize->nWidth  = static_cast<ssize_t>(s.size.width);
+                    realize->nHeight = static_cast<ssize_t>(s.size.height);
+                    return STATUS_OK;
+                }
+
                 if (pCocoaWindow == nil)
                     return STATUS_BAD_STATE;
 
@@ -1057,11 +1113,33 @@ namespace lsp
 
             ssize_t CocoaWindow::left()
             {
+                if (pCocoaParentView != nil)
+                {
+                    NSWindow *hostWnd = [pCocoaParentView window];
+                    if (hostWnd != nil)
+                    {
+                        NSRect b = [pCocoaParentView convertRect:[pCocoaParentView bounds] toView:nil];
+                        NSRect s = [hostWnd convertRectToScreen:b];
+                        return static_cast<ssize_t>(s.origin.x);
+                    }
+                }
                 return sSize.nLeft;
             }
 
             ssize_t CocoaWindow::top()
             {
+                if (pCocoaParentView != nil)
+                {
+                    NSWindow *hostWnd = [pCocoaParentView window];
+                    if (hostWnd != nil)
+                    {
+                        NSRect b = [pCocoaParentView convertRect:[pCocoaParentView bounds] toView:nil];
+                        NSRect s = [hostWnd convertRectToScreen:b];
+                        ssize_t screenH = 0, screenW = 0;
+                        pCocoaDisplay->screen_size(0, &screenW, &screenH);
+                        return static_cast<ssize_t>(screenH - s.origin.y - s.size.height);
+                    }
+                }
                 return sSize.nTop;
             }
 
