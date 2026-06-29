@@ -956,8 +956,29 @@ namespace lsp
             }
 
             void *CocoaWindow::handle()
-            {   
+            {
                 return (__bridge void*)pCocoaView;
+            }
+
+            status_t CocoaWindow::grab_events(grab_t group)
+            {
+                if (pCocoaDisplay == NULL)
+                    return STATUS_BAD_STATE;
+                return pCocoaDisplay->grab_events(this, group);
+            }
+
+            status_t CocoaWindow::ungrab_events()
+            {
+                if (pCocoaDisplay == NULL)
+                    return STATUS_BAD_STATE;
+                return pCocoaDisplay->ungrab_events(this);
+            }
+
+            bool CocoaWindow::is_grabbing_events() const
+            {
+                if (pCocoaDisplay == NULL)
+                    return false;
+                return pCocoaDisplay->is_grabbing_events(this);
             }
 
             //TODO: we need to map all events, and handle create_surface

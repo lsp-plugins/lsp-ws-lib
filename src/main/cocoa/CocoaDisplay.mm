@@ -57,6 +57,7 @@ namespace lsp
                bExit                   = false;
                lastMouseButton         = 0;
                pDragTarget             = NULL;
+               pGrabMonitor            = NULL;
             }
 
             CocoaDisplay::~CocoaDisplay()
@@ -486,7 +487,7 @@ namespace lsp
             CocoaWindow *CocoaDisplay::find_window(const nswindow_t & wnd)
             {
                 const NSWindow * const nswnd = wnd.window;
-                
+
                 size_t n = vWindows.size();
 
                 for (size_t i = 0; i < n; ++i)
@@ -501,9 +502,187 @@ namespace lsp
                 return NULL;
             }
 
+            CocoaWindow *CocoaDisplay::find_topmost_grab_window()
+            {
+                // Highest priority group with at least one window wins.
+                for (ssize_t g = __GRAB_TOTAL - 1; g >= 0; --g)
+                {
+                    lltl::parray<CocoaWindow> &arr = vGrab[g];
+                    const size_t n = arr.size();
+                    if (n == 0)
+                        continue;
+                    // Most recently added in this group is the topmost popup
+                    // (matches widget framework expectations on Linux/Win).
+                    return arr.uget(n - 1);
+                }
+                return NULL;
+            }
+
+            static bool point_inside_window(NSPoint screenPt, CocoaWindow *wnd)
+            {
+                if (wnd == NULL)
+                    return false;
+                NSWindow *nsWin = wnd->get_window_handler();
+                if (nsWin == nil)
+                    return false;
+                NSRect f = [nsWin frame];
+                return NSPointInRect(screenPt, f);
+            }
+
+            bool CocoaDisplay::dispatch_grabbed_event(void *eventPtr)
+            {
+                NSEvent *event = (NSEvent *) eventPtr;
+                CocoaWindow *target = find_topmost_grab_window();
+                if (target == NULL)
+                    return false;
+
+                // Compute screen coords of the click.
+                NSPoint screenPt;
+                if ([event window] != nil)
+                    screenPt = [[event window] convertPointToScreen:[event locationInWindow]];
+                else
+                    screenPt = [event locationInWindow];
+
+                // If the click landed inside any grabbing popup, do nothing
+                // here — AppKit delivers the event to that popup's NSWindow
+                // via the normal route.
+                for (ssize_t g = __GRAB_TOTAL - 1; g >= 0; --g)
+                {
+                    lltl::parray<CocoaWindow> &arr = vGrab[g];
+                    for (size_t i = 0, n = arr.size(); i < n; ++i)
+                    {
+                        if (point_inside_window(screenPt, arr.uget(i)))
+                            return false;
+                    }
+                }
+
+                // Click is outside every grabbing popup. Synthesize a
+                // UIE_MOUSE_DOWN at popup-local coords (which will be outside
+                // the popup's view bounds) and deliver it directly to the
+                // topmost popup so the widget framework's outside-click logic
+                // (e.g. Menu::hide()) fires.
+                NSWindow *tgtWin = target->get_window_handler();
+                NSRect tgtFrame = (tgtWin != nil) ? [tgtWin frame] : NSMakeRect(0,0,0,0);
+                NSPoint local = NSMakePoint(screenPt.x - tgtFrame.origin.x,
+                                            screenPt.y - tgtFrame.origin.y);
+
+                event_t ue;
+                init_event(&ue);
+                ue.nLeft  = ssize_t(local.x);
+                // Convert from Cocoa bottom-origin to top-origin.
+                ue.nTop   = ssize_t(tgtFrame.size.height - local.y);
+                ue.nTime  = timestamp_t([event timestamp] * 1000);
+
+                NSEventType etype = [event type];
+                switch (etype)
+                {
+                    case NSEventTypeLeftMouseDown:
+                    case NSEventTypeRightMouseDown:
+                    case NSEventTypeOtherMouseDown:
+                        ue.nType = UIE_MOUSE_DOWN;
+                        ue.nCode = decode_mcb(event);
+                        break;
+                    case NSEventTypeLeftMouseUp:
+                    case NSEventTypeRightMouseUp:
+                    case NSEventTypeOtherMouseUp:
+                        ue.nType = UIE_MOUSE_UP;
+                        ue.nCode = decode_mcb(event);
+                        break;
+                    default:
+                        return false;
+                }
+
+                target->handle_event(&ue);
+                // Do not consume — the host (DAW) chrome (e.g. window close
+                // button) still needs to receive the original click.
+                return false;
+            }
+
+            void CocoaDisplay::install_grab_monitor()
+            {
+                if (pGrabMonitor != NULL)
+                    return;
+
+                CocoaDisplay *self = this;
+                NSEventMask mask = NSEventMaskLeftMouseDown
+                                 | NSEventMaskRightMouseDown
+                                 | NSEventMaskOtherMouseDown;
+                id token = [NSEvent addLocalMonitorForEventsMatchingMask:mask
+                                    handler:^NSEvent *(NSEvent *evt)
+                                    {
+                                        if (self->dispatch_grabbed_event(evt))
+                                            return nil; // consumed
+                                        return evt;
+                                    }];
+                pGrabMonitor = (void *) [token retain];
+            }
+
+            void CocoaDisplay::uninstall_grab_monitor()
+            {
+                if (pGrabMonitor == NULL)
+                    return;
+                id token = (id) pGrabMonitor;
+                [NSEvent removeMonitor:token];
+                [token release];
+                pGrabMonitor = NULL;
+            }
+
+            status_t CocoaDisplay::grab_events(CocoaWindow *wnd, grab_t group)
+            {
+                if (wnd == NULL || group >= __GRAB_TOTAL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                // Reject duplicate grab for the same window in any group.
+                size_t total = 0;
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                {
+                    if (vGrab[i].index_of(wnd) >= 0)
+                        return STATUS_DUPLICATED;
+                    total += vGrab[i].size();
+                }
+
+                if (!vGrab[group].add(wnd))
+                    return STATUS_NO_MEM;
+
+                if (total == 0)
+                    install_grab_monitor();
+                return STATUS_OK;
+            }
+
+            status_t CocoaDisplay::ungrab_events(CocoaWindow *wnd)
+            {
+                bool found = false;
+                size_t remaining = 0;
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                {
+                    if (vGrab[i].premove(wnd))
+                        found = true;
+                    remaining += vGrab[i].size();
+                }
+                if (!found)
+                    return STATUS_NO_GRAB;
+                if (remaining == 0)
+                    uninstall_grab_monitor();
+                return STATUS_OK;
+            }
+
+            bool CocoaDisplay::is_grabbing_events(const CocoaWindow *wnd) const
+            {
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                    if (vGrab[i].index_of(const_cast<CocoaWindow *>(wnd)) >= 0)
+                        return true;
+                return false;
+            }
+
 
             void CocoaDisplay::destroy()
             {
+                // Tear down any installed grab monitor so it cannot fire into
+                // freed state if grabs were active at shutdown.
+                uninstall_grab_monitor();
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                    vGrab[i].clear();
+
                 // Stop any redraw timers and clear back-pointers on views of
                 // windows that the framework didn't explicitly destroy() (most
                 // commonly popups whose CocoaWindow stays alive until the

@@ -151,6 +151,10 @@ namespace lsp
                     virtual void       *handle() override;
                     NSWindow           *get_window_handler();
 
+                    virtual status_t    grab_events(grab_t group) override;
+                    virtual status_t    ungrab_events() override;
+                    virtual bool        is_grabbing_events() const override;
+
             };
         } /* namespace cocoa */
     } /* namespace ws */
