@@ -34,6 +34,47 @@
 #include <cairo.h>
 #include <cairo-quartz.h>
 
+// Forward-target for the redraw NSTimer. NSTimer retains its target, which
+// produces a retain cycle with CocoaCairoView (view -> timer -> view) so the
+// view's -dealloc never runs and stopRedrawLoop is never called. When the
+// hosting CocoaDisplay/window is torn down before the timer is invalidated
+// (e.g. a still-open popup CocoaWindow whose CocoaWindow::destroy() is not
+// invoked by the framework), the next timer tick dereferences a dangling
+// CocoaDisplay* and crashes in -[CocoaCairoView triggerRedraw].
+//
+// The proxy holds the view as a raw, non-retaining pointer. -invalidate is
+// called from the view's -dealloc to clear the back-pointer before the view
+// is freed; the proxy itself outlives the view long enough for the run loop
+// to release the timer.
+@interface LSPRedrawTimerProxy : NSObject {
+    CocoaCairoView *_view;
+}
+- (instancetype)initWithView:(CocoaCairoView *)view;
+- (void)invalidate;
+- (void)tick:(NSTimer *)timer;
+@end
+
+@implementation LSPRedrawTimerProxy
+- (instancetype)initWithView:(CocoaCairoView *)view
+{
+    self = [super init];
+    if (self)
+        _view = view;
+    return self;
+}
+- (void)invalidate
+{
+    _view = nil;
+}
+- (void)tick:(NSTimer *)timer
+{
+    // _view is a raw pointer; safe because -invalidate is called from the
+    // view's -dealloc, which can only run once the timer no longer retains it.
+    if (_view != nil)
+        [_view triggerRedraw];
+}
+@end
+
 @implementation CocoaCairoView
 
 // We need an overloaded objective c - NSView Class for Rendering, drawRect is triggered on create/update
@@ -146,9 +187,13 @@
 {
     if (self->_redrawTimer == nil)
     {
+        // Route the timer through a tiny proxy whose -tick: forwards to this
+        // view via a raw pointer. This avoids the NSTimer/view retain cycle —
+        // see LSPRedrawTimerProxy comment at the top of this file.
+        self->_redrawTimerProxy = [[LSPRedrawTimerProxy alloc] initWithView:self];
         self->_redrawTimer = [NSTimer   scheduledTimerWithTimeInterval:(1.0/60.0)
-                                        target:self
-                                        selector:@selector(triggerRedraw)
+                                        target:self->_redrawTimerProxy
+                                        selector:@selector(tick:)
                                         userInfo:nil
                                         repeats:YES];
     }
@@ -159,10 +204,15 @@
 {
     if (self->_redrawTimer != nil)
     {
-        [self->_redrawTimer invalidate]; 
+        [self->_redrawTimer invalidate];
         self->_redrawTimer = nil;
     }
-
+    if (self->_redrawTimerProxy != nil)
+    {
+        [self->_redrawTimerProxy invalidate];
+        [self->_redrawTimerProxy release];
+        self->_redrawTimerProxy = nil;
+    }
 }
 
 // Destructor

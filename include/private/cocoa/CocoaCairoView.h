@@ -31,10 +31,13 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface CocoaCairoView : NSView 
+@class LSPRedrawTimerProxy;
+
+@interface CocoaCairoView : NSView
 
     @property (assign) cairo_surface_t *imageSurface;
     @property (strong) NSTimer *redrawTimer;
+    @property (strong) LSPRedrawTimerProxy *redrawTimerProxy;
     @property (strong) NSCursor *nextCursor;
     @property (assign) bool needsRedrawing;
     @property (nonatomic, assign) lsp::ws::cocoa::CocoaDisplay *display;
