@@ -504,6 +504,21 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
+                // Stop any redraw timers and clear back-pointers on views of
+                // windows that the framework didn't explicitly destroy() (most
+                // commonly popups whose CocoaWindow stays alive until the
+                // hosting plug-in releases its widget tree). Otherwise their
+                // NSTimer keeps firing after this CocoaDisplay is freed and
+                // segfaults with a dangling display pointer.
+                for (size_t i = 0, n = vWindows.size(); i < n; ++i)
+                {
+                    CocoaWindow * const wnd = vWindows.uget(i);
+                    if (wnd == NULL || wnd->pCocoaView == nil)
+                        continue;
+                    [wnd->pCocoaView stopRedrawLoop];
+                    [wnd->pCocoaView setDisplay:NULL];
+                }
+
                 // Destroy font manager
             #ifdef USE_LIBFREETYPE
                 sFontManager.destroy();

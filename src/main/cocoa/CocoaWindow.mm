@@ -311,9 +311,17 @@ namespace lsp
                     [windowObserverTokens removeAllObjects];
                 }
 
-                if ([pCocoaView superview])
+                if (pCocoaView != nil)
                 {
-                    [pCocoaView removeFromSuperview];
+                    // Stop the redraw timer and clear the display back-pointer
+                    // synchronously here so no tick can race with display tear-
+                    // down, instead of waiting for the view's -dealloc (which
+                    // may be deferred by the host's autorelease pool).
+                    [pCocoaView stopRedrawLoop];
+                    [pCocoaView setDisplay:NULL];
+
+                    if ([pCocoaView superview])
+                        [pCocoaView removeFromSuperview];
                     [pCocoaView release];
                     pCocoaView = NULL;
                 }
