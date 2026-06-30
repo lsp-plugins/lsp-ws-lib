@@ -311,17 +311,9 @@ namespace lsp
                     [windowObserverTokens removeAllObjects];
                 }
 
-                if (pCocoaView != nil)
+                if ([pCocoaView superview])
                 {
-                    // Stop the redraw timer and clear the display back-pointer
-                    // synchronously here so no tick can race with display tear-
-                    // down, instead of waiting for the view's -dealloc (which
-                    // may be deferred by the host's autorelease pool).
-                    [pCocoaView stopRedrawLoop];
-                    [pCocoaView setDisplay:NULL];
-
-                    if ([pCocoaView superview])
-                        [pCocoaView removeFromSuperview];
+                    [pCocoaView removeFromSuperview];
                     [pCocoaView release];
                     pCocoaView = NULL;
                 }
@@ -1002,8 +994,6 @@ namespace lsp
 
                         drop_surface();
                         pSurface = create_surface(pCocoaDisplay, pCocoaView, sSize.nWidth, sSize.nHeight);
-
-                        [pCocoaView startRedrawLoop];
                         break;
                     }
 
@@ -1012,7 +1002,6 @@ namespace lsp
                         bVisible = false;
                         //if (bWrapper) break;
 
-                        [pCocoaView stopRedrawLoop];
                         drop_surface();
                         break;
                     }

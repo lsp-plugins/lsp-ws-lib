@@ -62,6 +62,8 @@ namespace lsp
                     lltl::parray<CocoaWindow>   vWindows;                   // All registered windows
                     lltl::parray<CocoaWindow>   vGrab[__GRAB_TOTAL];        // Windows currently grabbing events, per group
                     void                       *pGrabMonitor;               // NSEvent local monitor token (id), nil when no grabs
+                    void                       *pIterationTimer;            // NSTimer * driving do_main_iteration in hosted mode
+                    void                       *pIterationTimerProxy;       // LSPDisplayTimerProxy * (target proxy with raw back-pointer)
                     size_t                      lastMouseButton;
                     CocoaWindow                *pDragTarget;     // window that received mouseDown until matching mouseUp
                 
@@ -81,6 +83,11 @@ namespace lsp
                     // includable from C++ translation units.
                     bool                        dispatch_grabbed_event(void *event);
                     CocoaWindow                *find_topmost_grab_window();
+
+                public:
+                    // Called from the NSRunLoop-scheduled 60 Hz iteration timer.
+                    // Public so the Objective-C proxy can invoke it.
+                    void                        tick_redraw();
                 
                 public:
                     // Main loop management

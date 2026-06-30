@@ -44,7 +44,42 @@
 
 #include <private/cocoa/CocoaDisplay.h>
 #include <private/cocoa/CocoaWindow.h>
+#include <private/cocoa/CocoaCairoView.h>
 #include <private/cocoa/defs.h>
+
+// Forward-target for the 60 Hz redraw NSTimer that drives
+// CocoaDisplay::do_main_iteration in hosted mode. Same shape as
+// LSPRedrawTimerProxy in CocoaCairoView.mm: NSTimer retains its target,
+// so we keep the back-pointer raw and let the C++ destroy() clear it
+// before the display is freed. Block-based NSTimer was rejected because
+// the captured block could outlive the C++ destroy() call when the run
+// loop released the timer asynchronously.
+@interface LSPDisplayTimerProxy : NSObject {
+    lsp::ws::cocoa::CocoaDisplay *_display;
+}
+- (instancetype)initWithDisplay:(lsp::ws::cocoa::CocoaDisplay *)display;
+- (void)invalidate;
+- (void)tick:(NSTimer *)timer;
+@end
+
+@implementation LSPDisplayTimerProxy
+- (instancetype)initWithDisplay:(lsp::ws::cocoa::CocoaDisplay *)display
+{
+    self = [super init];
+    if (self)
+        _display = display;
+    return self;
+}
+- (void)invalidate
+{
+    _display = NULL;
+}
+- (void)tick:(NSTimer *)timer
+{
+    if (_display != NULL)
+        _display->tick_redraw();
+}
+@end
 
 namespace lsp
 {
@@ -58,6 +93,8 @@ namespace lsp
                lastMouseButton         = 0;
                pDragTarget             = NULL;
                pGrabMonitor            = NULL;
+               pIterationTimer         = NULL;
+               pIterationTimerProxy    = NULL;
             }
 
             CocoaDisplay::~CocoaDisplay()
@@ -92,7 +129,39 @@ namespace lsp
                 if (pEstimation == NULL)
                     return STATUS_NO_MEM;
 
+                // In hosted mode (plugin) NSApp is owned by the host. Install
+                // a single 60 Hz NSTimer into the host's NSRunLoop that drives
+                // do_main_iteration() for every registered window.
+                // In standalone mode CocoaDisplay::main() runs its own loop, so
+                // no timer is needed.
+                if (!standaloneApp)
+                {
+                    LSPDisplayTimerProxy *proxy = [[LSPDisplayTimerProxy alloc] initWithDisplay:this];
+                    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+                                              target:proxy
+                                              selector:@selector(tick:)
+                                              userInfo:nil
+                                              repeats:YES];
+                    pIterationTimer      = (void *) timer;   // owned by run loop
+                    pIterationTimerProxy = (void *) proxy;   // owned by us
+                }
+
                 return IDisplay::init(argc, argv);
+            }
+
+            void CocoaDisplay::tick_redraw()
+            {
+                @autoreleasepool {
+                    do_main_iteration(system::get_time_millis());
+                    for (size_t i = 0, n = vWindows.size(); i < n; ++i)
+                    {
+                        CocoaWindow * const wnd = vWindows.uget(i);
+                        if (wnd == NULL || wnd->pCocoaView == nil)
+                            continue;
+                        if (wnd->pCocoaView.needsRedrawing)
+                            [wnd->pCocoaView setNeedsDisplay:YES];
+                    }
+                }
             }
 
             status_t CocoaDisplay::main()
@@ -677,26 +746,26 @@ namespace lsp
 
             void CocoaDisplay::destroy()
             {
+                // Stop the display-wide iteration timer first so no tick can
+                // fire into a half-destroyed display.
+                if (pIterationTimer != NULL)
+                {
+                    [(NSTimer *) pIterationTimer invalidate];
+                    pIterationTimer = NULL;
+                }
+                if (pIterationTimerProxy != NULL)
+                {
+                    LSPDisplayTimerProxy *proxy = (LSPDisplayTimerProxy *) pIterationTimerProxy;
+                    [proxy invalidate];
+                    [proxy release];
+                    pIterationTimerProxy = NULL;
+                }
+
                 // Tear down any installed grab monitor so it cannot fire into
                 // freed state if grabs were active at shutdown.
                 uninstall_grab_monitor();
                 for (size_t i = 0; i < __GRAB_TOTAL; ++i)
                     vGrab[i].clear();
-
-                // Stop any redraw timers and clear back-pointers on views of
-                // windows that the framework didn't explicitly destroy() (most
-                // commonly popups whose CocoaWindow stays alive until the
-                // hosting plug-in releases its widget tree). Otherwise their
-                // NSTimer keeps firing after this CocoaDisplay is freed and
-                // segfaults with a dangling display pointer.
-                for (size_t i = 0, n = vWindows.size(); i < n; ++i)
-                {
-                    CocoaWindow * const wnd = vWindows.uget(i);
-                    if (wnd == NULL || wnd->pCocoaView == nil)
-                        continue;
-                    [wnd->pCocoaView stopRedrawLoop];
-                    [wnd->pCocoaView setDisplay:NULL];
-                }
 
                 // Destroy font manager
             #ifdef USE_LIBFREETYPE
