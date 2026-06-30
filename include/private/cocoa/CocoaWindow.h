@@ -53,6 +53,7 @@ namespace lsp
                 private:
                     friend class CocoaDisplay;
                     NSWindow            *pCocoaWindow;
+                    NSView              *pCocoaParentView;              // Host's NSView slot when bWrapper=true
                     CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
@@ -134,6 +135,7 @@ namespace lsp
 
                     virtual status_t    handle_event(const event_t *ev) override;
                     virtual ISurface   *get_surface() override;
+                    virtual status_t    set_parent(void *parent) override;
 
                     virtual status_t    invalidate() override;
 
@@ -148,6 +150,10 @@ namespace lsp
 
                     virtual void       *handle() override;
                     NSWindow           *get_window_handler();
+
+                    virtual status_t    grab_events(grab_t group) override;
+                    virtual status_t    ungrab_events() override;
+                    virtual bool        is_grabbing_events() const override;
 
             };
         } /* namespace cocoa */

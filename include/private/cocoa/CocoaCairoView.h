@@ -31,21 +31,17 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface CocoaCairoView : NSView 
+@interface CocoaCairoView : NSView
 
     @property (assign) cairo_surface_t *imageSurface;
-    @property (strong) NSTimer *redrawTimer;
     @property (strong) NSCursor *nextCursor;
     @property (assign) bool needsRedrawing;
     @property (nonatomic, assign) lsp::ws::cocoa::CocoaDisplay *display;
     @property (assign) NSTrackingArea *trackingArea;
 
     - (CGImageRef)renderCairoImage;
-    - (void)triggerRedraw;
     - (void)setCursor:(NSCursor *)cursor;
     - (void)setImage:(cairo_surface_t *)image;
-    - (void)startRedrawLoop;
-    - (void)stopRedrawLoop;
     - (void)updateFrame:(NSRect)frameRect;
 @end
 

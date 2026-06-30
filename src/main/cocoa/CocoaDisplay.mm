@@ -44,7 +44,42 @@
 
 #include <private/cocoa/CocoaDisplay.h>
 #include <private/cocoa/CocoaWindow.h>
+#include <private/cocoa/CocoaCairoView.h>
 #include <private/cocoa/defs.h>
+
+// Forward-target for the 60 Hz redraw NSTimer that drives
+// CocoaDisplay::do_main_iteration in hosted mode. Same shape as
+// LSPRedrawTimerProxy in CocoaCairoView.mm: NSTimer retains its target,
+// so we keep the back-pointer raw and let the C++ destroy() clear it
+// before the display is freed. Block-based NSTimer was rejected because
+// the captured block could outlive the C++ destroy() call when the run
+// loop released the timer asynchronously.
+@interface LSPDisplayTimerProxy : NSObject {
+    lsp::ws::cocoa::CocoaDisplay *_display;
+}
+- (instancetype)initWithDisplay:(lsp::ws::cocoa::CocoaDisplay *)display;
+- (void)invalidate;
+- (void)tick:(NSTimer *)timer;
+@end
+
+@implementation LSPDisplayTimerProxy
+- (instancetype)initWithDisplay:(lsp::ws::cocoa::CocoaDisplay *)display
+{
+    self = [super init];
+    if (self)
+        _display = display;
+    return self;
+}
+- (void)invalidate
+{
+    _display = NULL;
+}
+- (void)tick:(NSTimer *)timer
+{
+    if (_display != NULL)
+        _display->tick_redraw();
+}
+@end
 
 namespace lsp
 {
@@ -55,6 +90,11 @@ namespace lsp
             CocoaDisplay::CocoaDisplay(): IDisplay()
             {
                bExit                   = false;
+               lastMouseButton         = 0;
+               pDragTarget             = NULL;
+               pGrabMonitor            = NULL;
+               pIterationTimer         = NULL;
+               pIterationTimerProxy    = NULL;
             }
 
             CocoaDisplay::~CocoaDisplay()
@@ -89,7 +129,39 @@ namespace lsp
                 if (pEstimation == NULL)
                     return STATUS_NO_MEM;
 
+                // In hosted mode (plugin) NSApp is owned by the host. Install
+                // a single 60 Hz NSTimer into the host's NSRunLoop that drives
+                // do_main_iteration() for every registered window.
+                // In standalone mode CocoaDisplay::main() runs its own loop, so
+                // no timer is needed.
+                if (!standaloneApp)
+                {
+                    LSPDisplayTimerProxy *proxy = [[LSPDisplayTimerProxy alloc] initWithDisplay:this];
+                    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+                                              target:proxy
+                                              selector:@selector(tick:)
+                                              userInfo:nil
+                                              repeats:YES];
+                    pIterationTimer      = (void *) timer;   // owned by run loop
+                    pIterationTimerProxy = (void *) proxy;   // owned by us
+                }
+
                 return IDisplay::init(argc, argv);
+            }
+
+            void CocoaDisplay::tick_redraw()
+            {
+                @autoreleasepool {
+                    do_main_iteration(system::get_time_millis());
+                    for (size_t i = 0, n = vWindows.size(); i < n; ++i)
+                    {
+                        CocoaWindow * const wnd = vWindows.uget(i);
+                        if (wnd == NULL || wnd->pCocoaView == nil)
+                            continue;
+                        if (wnd->pCocoaView.needsRedrawing)
+                            [wnd->pCocoaView setNeedsDisplay:YES];
+                    }
+                }
             }
 
             status_t CocoaDisplay::main()
@@ -207,12 +279,53 @@ namespace lsp
                     return;
 
                 NSEventType type = [nsevent type];
+
+                // During an in-progress drag, route mouse events to the window that received
+                // the matching mouseDown — even if the cursor leaves the view's bounds.
+                const bool isDragMove = (type == NSEventTypeLeftMouseDragged) ||
+                                        (type == NSEventTypeRightMouseDragged) ||
+                                        (type == NSEventTypeOtherMouseDragged) ||
+                                        (type == NSEventTypeMouseMoved);
+                const bool isMouseUp  = (type == NSEventTypeLeftMouseUp) ||
+                                        (type == NSEventTypeRightMouseUp) ||
+                                        (type == NSEventTypeOtherMouseUp);
+
+                CocoaWindow *target = NULL;
+                if ((isDragMove || isMouseUp) && pDragTarget != NULL)
+                    target = pDragTarget;
+
                 const nswindow_t nsWindow = nswindow_t { [nsevent window] };
-                CocoaWindow *target = find_window(nsWindow);
+                if (!target)
+                    target = find_window(nsWindow);
+
+                // Embedded case: the NSEvent's window is the host's (e.g. Ableton's), not ours.
+                // Locate our CocoaWindow by walking up from the hit-test view to a known pCocoaView.
+                if (!target)
+                {
+                    NSView *root = [nsWindow.window contentView];
+                    NSPoint p = [nsevent locationInWindow];
+                    NSView *hit = [root hitTest:p];
+                    for (size_t i = 0, n = vWindows.size(); i < n && !target; ++i)
+                    {
+                        CocoaWindow *w = vWindows.uget(i);
+                        if (!w || !w->pCocoaView)
+                            continue;
+                        NSView *v = hit;
+                        while (v != nil)
+                        {
+                            if (v == w->pCocoaView)
+                            {
+                                target = w;
+                                break;
+                            }
+                            v = [v superview];
+                        }
+                    }
+                }
 
                 if (!target)
                     return;
-                
+
                 event_t ue = {};
                 init_event(&ue);
                 ue.nTime = timestamp_t([nsevent timestamp] * 1000);
@@ -222,9 +335,31 @@ namespace lsp
                 unichar keysym = 0;
 
                 NSPoint locInWindow = [nsevent locationInWindow];
-                NSView *targetView = [[nsWindow.window contentView] hitTest:locInWindow];
-                NSPoint locInView = [targetView convertPoint:locInWindow fromView:nil];
-                NSRect cFrame = [targetView frame];
+                // Resolve event coordinates against the target view directly so they stay valid
+                // when the cursor leaves the view (during a drag).
+                NSView *coordView = target->pCocoaView;
+                NSPoint locInView;
+                NSRect cFrame;
+                if (coordView != nil && [coordView window] != nil)
+                {
+                    if ([coordView window] != nsWindow.window)
+                    {
+                        NSPoint scr = [nsWindow.window convertPointToScreen:locInWindow];
+                        NSPoint inHostWnd = [[coordView window] convertPointFromScreen:scr];
+                        locInView = [coordView convertPoint:inHostWnd fromView:nil];
+                    }
+                    else
+                    {
+                        locInView = [coordView convertPoint:locInWindow fromView:nil];
+                    }
+                    cFrame = [coordView frame];
+                }
+                else
+                {
+                    NSView *hitView = [[nsWindow.window contentView] hitTest:locInWindow];
+                    locInView = [hitView convertPoint:locInWindow fromView:nil];
+                    cFrame = [hitView frame];
+                }
 
                 ue.nLeft = locInView.x;
                 ue.nTop = cFrame.size.height - locInView.y;
@@ -238,6 +373,7 @@ namespace lsp
                         ue.nType = UIE_MOUSE_DOWN;
                         ue.nCode = decode_mcb(nsevent);
                         lastMouseButton = decode_modifier(nsevent);
+                        pDragTarget = target;
                         //ue.nState = decode_modifier(nsevent);
                         break;
 
@@ -249,6 +385,7 @@ namespace lsp
                         ue.nState = decode_modifier(nsevent);
                         ue.nState = lastMouseButton;
                         lastMouseButton = decode_modifier(nsevent);
+                        pDragTarget = NULL;
                         break;
 
                     case NSEventTypeMouseMoved:
@@ -419,7 +556,7 @@ namespace lsp
             CocoaWindow *CocoaDisplay::find_window(const nswindow_t & wnd)
             {
                 const NSWindow * const nswnd = wnd.window;
-                
+
                 size_t n = vWindows.size();
 
                 for (size_t i = 0; i < n; ++i)
@@ -434,9 +571,202 @@ namespace lsp
                 return NULL;
             }
 
+            CocoaWindow *CocoaDisplay::find_topmost_grab_window()
+            {
+                // Highest priority group with at least one window wins.
+                for (ssize_t g = __GRAB_TOTAL - 1; g >= 0; --g)
+                {
+                    lltl::parray<CocoaWindow> &arr = vGrab[g];
+                    const size_t n = arr.size();
+                    if (n == 0)
+                        continue;
+                    // Most recently added in this group is the topmost popup
+                    // (matches widget framework expectations on Linux/Win).
+                    return arr.uget(n - 1);
+                }
+                return NULL;
+            }
+
+            static bool point_inside_window(NSPoint screenPt, CocoaWindow *wnd)
+            {
+                if (wnd == NULL)
+                    return false;
+                NSWindow *nsWin = wnd->get_window_handler();
+                if (nsWin == nil)
+                    return false;
+                NSRect f = [nsWin frame];
+                return NSPointInRect(screenPt, f);
+            }
+
+            bool CocoaDisplay::dispatch_grabbed_event(void *eventPtr)
+            {
+                NSEvent *event = (NSEvent *) eventPtr;
+                CocoaWindow *target = find_topmost_grab_window();
+                if (target == NULL)
+                    return false;
+
+                // Compute screen coords of the click.
+                NSPoint screenPt;
+                if ([event window] != nil)
+                    screenPt = [[event window] convertPointToScreen:[event locationInWindow]];
+                else
+                    screenPt = [event locationInWindow];
+
+                // If the click landed inside any grabbing popup, do nothing
+                // here — AppKit delivers the event to that popup's NSWindow
+                // via the normal route.
+                for (ssize_t g = __GRAB_TOTAL - 1; g >= 0; --g)
+                {
+                    lltl::parray<CocoaWindow> &arr = vGrab[g];
+                    for (size_t i = 0, n = arr.size(); i < n; ++i)
+                    {
+                        if (point_inside_window(screenPt, arr.uget(i)))
+                            return false;
+                    }
+                }
+
+                // Click is outside every grabbing popup. Synthesize a
+                // UIE_MOUSE_DOWN at popup-local coords (which will be outside
+                // the popup's view bounds) and deliver it directly to the
+                // topmost popup so the widget framework's outside-click logic
+                // (e.g. Menu::hide()) fires.
+                NSWindow *tgtWin = target->get_window_handler();
+                NSRect tgtFrame = (tgtWin != nil) ? [tgtWin frame] : NSMakeRect(0,0,0,0);
+                NSPoint local = NSMakePoint(screenPt.x - tgtFrame.origin.x,
+                                            screenPt.y - tgtFrame.origin.y);
+
+                event_t ue;
+                init_event(&ue);
+                ue.nLeft  = ssize_t(local.x);
+                // Convert from Cocoa bottom-origin to top-origin.
+                ue.nTop   = ssize_t(tgtFrame.size.height - local.y);
+                ue.nTime  = timestamp_t([event timestamp] * 1000);
+
+                NSEventType etype = [event type];
+                switch (etype)
+                {
+                    case NSEventTypeLeftMouseDown:
+                    case NSEventTypeRightMouseDown:
+                    case NSEventTypeOtherMouseDown:
+                        ue.nType = UIE_MOUSE_DOWN;
+                        ue.nCode = decode_mcb(event);
+                        break;
+                    case NSEventTypeLeftMouseUp:
+                    case NSEventTypeRightMouseUp:
+                    case NSEventTypeOtherMouseUp:
+                        ue.nType = UIE_MOUSE_UP;
+                        ue.nCode = decode_mcb(event);
+                        break;
+                    default:
+                        return false;
+                }
+
+                target->handle_event(&ue);
+                // Do not consume — the host (DAW) chrome (e.g. window close
+                // button) still needs to receive the original click.
+                return false;
+            }
+
+            void CocoaDisplay::install_grab_monitor()
+            {
+                if (pGrabMonitor != NULL)
+                    return;
+
+                CocoaDisplay *self = this;
+                NSEventMask mask = NSEventMaskLeftMouseDown
+                                 | NSEventMaskRightMouseDown
+                                 | NSEventMaskOtherMouseDown;
+                id token = [NSEvent addLocalMonitorForEventsMatchingMask:mask
+                                    handler:^NSEvent *(NSEvent *evt)
+                                    {
+                                        if (self->dispatch_grabbed_event(evt))
+                                            return nil; // consumed
+                                        return evt;
+                                    }];
+                pGrabMonitor = (void *) [token retain];
+            }
+
+            void CocoaDisplay::uninstall_grab_monitor()
+            {
+                if (pGrabMonitor == NULL)
+                    return;
+                id token = (id) pGrabMonitor;
+                [NSEvent removeMonitor:token];
+                [token release];
+                pGrabMonitor = NULL;
+            }
+
+            status_t CocoaDisplay::grab_events(CocoaWindow *wnd, grab_t group)
+            {
+                if (wnd == NULL || group >= __GRAB_TOTAL)
+                    return STATUS_BAD_ARGUMENTS;
+
+                // Reject duplicate grab for the same window in any group.
+                size_t total = 0;
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                {
+                    if (vGrab[i].index_of(wnd) >= 0)
+                        return STATUS_DUPLICATED;
+                    total += vGrab[i].size();
+                }
+
+                if (!vGrab[group].add(wnd))
+                    return STATUS_NO_MEM;
+
+                if (total == 0)
+                    install_grab_monitor();
+                return STATUS_OK;
+            }
+
+            status_t CocoaDisplay::ungrab_events(CocoaWindow *wnd)
+            {
+                bool found = false;
+                size_t remaining = 0;
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                {
+                    if (vGrab[i].premove(wnd))
+                        found = true;
+                    remaining += vGrab[i].size();
+                }
+                if (!found)
+                    return STATUS_NO_GRAB;
+                if (remaining == 0)
+                    uninstall_grab_monitor();
+                return STATUS_OK;
+            }
+
+            bool CocoaDisplay::is_grabbing_events(const CocoaWindow *wnd) const
+            {
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                    if (vGrab[i].index_of(const_cast<CocoaWindow *>(wnd)) >= 0)
+                        return true;
+                return false;
+            }
+
 
             void CocoaDisplay::destroy()
             {
+                // Stop the display-wide iteration timer first so no tick can
+                // fire into a half-destroyed display.
+                if (pIterationTimer != NULL)
+                {
+                    [(NSTimer *) pIterationTimer invalidate];
+                    pIterationTimer = NULL;
+                }
+                if (pIterationTimerProxy != NULL)
+                {
+                    LSPDisplayTimerProxy *proxy = (LSPDisplayTimerProxy *) pIterationTimerProxy;
+                    [proxy invalidate];
+                    [proxy release];
+                    pIterationTimerProxy = NULL;
+                }
+
+                // Tear down any installed grab monitor so it cannot fire into
+                // freed state if grabs were active at shutdown.
+                uninstall_grab_monitor();
+                for (size_t i = 0; i < __GRAB_TOTAL; ++i)
+                    vGrab[i].clear();
+
                 // Destroy font manager
             #ifdef USE_LIBFREETYPE
                 sFontManager.destroy();

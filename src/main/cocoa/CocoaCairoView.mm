@@ -94,6 +94,8 @@
     self = [super initWithFrame:frameRect];
     if (self)
     {
+        [self setWantsLayer:YES];
+        self.layer.backgroundColor = [[NSColor blackColor] CGColor];
         //lsp_trace("Register event for view: %p", self);
         NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
         [center addObserverForName:@"ForceExpose"
@@ -139,34 +141,9 @@
     return image;
 }
 
-// Starts the redraw loop
-- (void)startRedrawLoop
-{
-    if (self->_redrawTimer == nil)
-    {
-        self->_redrawTimer = [NSTimer   scheduledTimerWithTimeInterval:(1.0/60.0)
-                                        target:self
-                                        selector:@selector(triggerRedraw)
-                                        userInfo:nil
-                                        repeats:YES];
-    }
-}
-
-// Stops the redraw loop
-- (void)stopRedrawLoop
-{
-    if (self->_redrawTimer != nil)
-    {
-        [self->_redrawTimer invalidate]; 
-        self->_redrawTimer = nil;
-    }
-
-}
-
 // Destructor
 - (void)dealloc
 {
-    [self stopRedrawLoop];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 
     if (self.trackingArea)
@@ -176,13 +153,6 @@
     }
     self.display = nullptr;
     [super dealloc];
-}
-
-// Updates the view
-- (void)triggerRedraw
-{
-    if (self->_needsRedrawing)
-        [self setNeedsDisplay:YES];
 }
 
 // Sets the cairo image
@@ -240,6 +210,16 @@
         return YES;
     }
     return NO;
+}
+
+- (BOOL)acceptsFirstResponder
+{
+    return YES;
+}
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event
+{
+    return YES;
 }
 
 - (void)updateTrackingAreas
