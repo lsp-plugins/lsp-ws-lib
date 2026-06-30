@@ -3,7 +3,15 @@
 *******************************************************************************
 
 === 1.0.35 ===
-
+* Significant improvements of the MacOS implementation (contributed by
+  lltwist @ github.com).
+* Moved redraw timer from CocoaCairoView to CocoaDisplay (contributed by
+  lltwist @ github.com).
+* Added proper implementation of mouse grabbing by the library. Now pop-up
+  windows catch mouse events outside of the pop-up window (contributed by
+  lltwist @ github.com).
+* Fixed window embedding for different plugin hosts (contributed by
+  lltwist @ github.com).
 
 === 1.0.34 ===
 * Forcing use of system FreeType library if host provides custom one.
