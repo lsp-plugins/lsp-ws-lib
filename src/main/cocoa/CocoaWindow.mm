@@ -109,7 +109,10 @@ namespace lsp
                 {
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());    
+                    // Content rect only — initWithContentRect derives the frame from
+                    // the style mask. Inflating the height by the title height here
+                    // made the content taller than requested by exactly the title bar.
+                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth, sSize.nHeight);
 
                     // Create a window
                     NSWindow *window = [[NSWindow alloc]
@@ -874,7 +877,13 @@ namespace lsp
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
 
-                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
+                // sSize positions the CONTENT (client area) in top-origin screen
+                // coordinates; frameRectForContentRect adds whatever chrome the window
+                // style actually has. Do NOT add the display's global title-height
+                // fudge here: for borderless windows (menus, combo popups) there is no
+                // chrome to compensate, and the fudge made every popup appear one
+                // title-bar height ABOVE the requested point.
+                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth, sSize.nHeight);
                 NSRect frameRect = [window frameRectForContentRect:contentRect];
 
                 [window setFrame:frameRect display:YES animate:NO];
@@ -1053,8 +1062,12 @@ namespace lsp
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
 
+                // Content occupies the bottom part of the frame (title chrome, if
+                // any, sits above it), so the content's top-origin Y is simply
+                // screenH - (frame bottom + content height). Mirrors set_geometry(),
+                // which positions the content rect without a title-height fudge.
                 realize->nLeft   = static_cast<ssize_t>(frame.origin.x);
-                realize->nTop    = static_cast<ssize_t>(screenHeight - frame.origin.y - cFrame.size.height + pCocoaDisplay->get_window_title_height() /*frame.origin.y*/);
+                realize->nTop    = static_cast<ssize_t>(screenHeight - frame.origin.y - cFrame.size.height);
                 realize->nWidth  = static_cast<ssize_t>(cFrame.size.width);
                 realize->nHeight = static_cast<ssize_t>(cFrame.size.height);
 
