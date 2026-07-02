@@ -57,8 +57,9 @@ namespace lsp
                     CocoaCairoView      *pCocoaView;                    // The View of the window
                     NSCursor            *pCocoaCursor;                  // The Cursor of the View
                     NSWindow            *transientParent;
-                    NSMutableArray      *windowObserverTokens; 
-                    NSMutableArray      *viewObserverTokens; 
+                    NSMutableArray      *windowObserverTokens;
+                    NSMutableArray      *viewObserverTokens;
+                    id                   pParentFrameToken;              // Frame-change observer on the host slot view (bWrapper)
                 
                 protected:
                     typedef struct btn_event_t
