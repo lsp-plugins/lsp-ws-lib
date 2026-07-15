@@ -944,30 +944,11 @@ namespace lsp
                 ue.nType       = UIE_SHOW;
                 handle_event(&ue);
 
-                // Embedded mode: assert OUR size to the host. The window is fixed-size
-                // (canResize() is false on macOS): its size is the widget layout at the
-                // current UI scaling, so at open the host must be brought to it — not
-                // the other way around. Emitting UIE_RESIZE with the current size makes
-                // the tk window fire SLOT_RESIZE, which the VST3 wrapper turns into
-                // IPlugFrame::resizeView(); the host then resizes its slot and the
-                // frame observer installed in set_parent() confirms the geometry. This
-                // also purges any stale FX-window size the host remembered from a
-                // previous session. Must happen AFTER UIE_SHOW: only then is the tk
-                // window mapped and processing UIE_RESIZE.
-                if (((bWrapper) || (pCocoaParentView != nil)) &&
-                    (sSize.nWidth >= 2) && (sSize.nHeight >= 2))
-                {
-                    lsp_trace("show: asserting size %dx%d to the host",
-                        int(sSize.nWidth), int(sSize.nHeight));
-                    event_t re;
-                    init_event(&re);
-                    re.nType   = UIE_RESIZE;
-                    re.nLeft   = 0;
-                    re.nTop    = 0;
-                    re.nWidth  = sSize.nWidth;
-                    re.nHeight = sSize.nHeight;
-                    handle_event(&re);
-                }
+                // Embedded mode needs no size handshake here: the host prepares the
+                // wrapping window from getSize() before attaching, host-initiated
+                // resizes arrive via IPlugView::onSize() -> set_geometry(), and the
+                // slot-view frame observer installed in set_parent() catches hosts
+                // that resize the slot without calling onSize().
 
                 // Invalidate window contents for redraw
                 invalidate();
