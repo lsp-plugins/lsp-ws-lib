@@ -34,6 +34,7 @@
 @interface CocoaCairoView : NSView
 
     @property (assign) cairo_surface_t *imageSurface;
+    @property (assign) CGImageRef lastImage;    // Last rendered frame, redrawn when no fresh surface is available (live resize)
     @property (strong) NSCursor *nextCursor;
     @property (assign) bool needsRedrawing;
     @property (nonatomic, assign) lsp::ws::cocoa::CocoaDisplay *display;
