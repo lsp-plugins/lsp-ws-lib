@@ -435,6 +435,21 @@ namespace lsp
                                         r.nTop    = sSize.nTop;
                                         r.nWidth  = b.size.width;
                                         r.nHeight = b.size.height;
+                                        // Some hosts (REAPER) shrink the slot below the
+                                        // widget layout's minimum without consulting
+                                        // checkSizeConstraint. Clamp to the constraints
+                                        // the toolkit registered via set_size_constraints
+                                        // so widgets keep their minimum layout; the host
+                                        // window then simply clips the view, like any
+                                        // fixed-minimum plug-in.
+                                        if (sConstraints.nMinWidth > 0)
+                                            r.nWidth  = lsp_max(r.nWidth,  sConstraints.nMinWidth);
+                                        if (sConstraints.nMinHeight > 0)
+                                            r.nHeight = lsp_max(r.nHeight, sConstraints.nMinHeight);
+                                        if (sConstraints.nMaxWidth > 0)
+                                            r.nWidth  = lsp_min(r.nWidth,  sConstraints.nMaxWidth);
+                                        if (sConstraints.nMaxHeight > 0)
+                                            r.nHeight = lsp_min(r.nHeight, sConstraints.nMaxHeight);
                                         set_geometry(&r);
                                     }];
                     pParentFrameToken = [token retain];
