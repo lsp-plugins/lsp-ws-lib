@@ -3,6 +3,9 @@
 *******************************************************************************
 
 === 1.0.35 ===
+* Usage of system FreeType library for hosts that provide it's own built-in
+  FreeType library now is turned off by default and can be turned on by
+  setting the LSP_WS_FORCE_SYSTEM_FREETYPE=on environment variable.
 * Significant improvements of the MacOS implementation (contributed by
   lltwist @ github.com).
 * Moved redraw timer from CocoaCairoView to CocoaDisplay (contributed by
