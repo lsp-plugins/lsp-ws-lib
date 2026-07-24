@@ -15,6 +15,7 @@
   lltwist @ github.com).
 * Fixed window embedding for different plugin hosts (contributed by
   lltwist @ github.com).
+* Updated build scripts.
 
 === 1.0.34 ===
 * Forcing use of system FreeType library if host provides custom one.
