@@ -1819,6 +1819,7 @@ namespace lsp
                 }
 
                 hParent = parent_wnd;
+                pX11Display->sync();
 
                 return STATUS_OK;
             }
