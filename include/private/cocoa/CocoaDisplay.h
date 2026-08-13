@@ -60,7 +60,12 @@ namespace lsp
                     volatile timestamp_t        nLastIdleCall;              // The time of last idle call
                     lltl::parray<CocoaWindow>   sTargets;                   // Targets for event delivery
                     lltl::parray<CocoaWindow>   vWindows;                   // All registered windows
+                    lltl::parray<CocoaWindow>   vGrab[__GRAB_TOTAL];        // Windows currently grabbing events, per group
+                    void                       *pGrabMonitor;               // NSEvent local monitor token (id), nil when no grabs
+                    void                       *pIterationTimer;            // NSTimer * driving do_main_iteration in hosted mode
+                    void                       *pIterationTimerProxy;       // LSPDisplayTimerProxy * (target proxy with raw back-pointer)
                     size_t                      lastMouseButton;
+                    CocoaWindow                *pDragTarget;     // window that received mouseDown until matching mouseUp
                 
                 #ifdef USE_LIBFREETYPE
                     ft::FontManager             sFontManager;
@@ -72,6 +77,17 @@ namespace lsp
                     void                        get_enviroment_frame_sizes();
                     status_t                    do_main_iteration(timestamp_t ts);
                     CocoaWindow                *find_window(const nswindow_t & wnd);
+                    void                        install_grab_monitor();
+                    void                        uninstall_grab_monitor();
+                    // event is an NSEvent*; void* keeps the header
+                    // includable from C++ translation units.
+                    bool                        dispatch_grabbed_event(void *event);
+                    CocoaWindow                *find_topmost_grab_window();
+
+                public:
+                    // Called from the NSRunLoop-scheduled 60 Hz iteration timer.
+                    // Public so the Objective-C proxy can invoke it.
+                    void                        tick_redraw();
                 
                 public:
                     // Main loop management
@@ -91,6 +107,11 @@ namespace lsp
                     virtual IWindow            *create_window() override;
                     virtual IWindow            *create_window(size_t screen) override;
                     virtual IWindow            *create_window(void *handle) override;
+
+                    // Grab management (used by popup widgets to close on outside-click)
+                    status_t                    grab_events(CocoaWindow *wnd, grab_t group);
+                    status_t                    ungrab_events(CocoaWindow *wnd);
+                    bool                        is_grabbing_events(const CocoaWindow *wnd) const;
 
                     // Monitor management
                     virtual const MonitorInfo  *enum_monitors(size_t *count) override;

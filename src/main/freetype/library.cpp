@@ -35,6 +35,23 @@ namespace lsp
 
             static constexpr const char * LIBRARY_NAME = "libfreetype" FILE_LIBRARY_EXT_S;
 
+            static bool check_env_option_enabled(const char *name)
+            {
+                LSPString var;
+                status_t res = system::get_env_var(name, &var);
+                if (res != STATUS_OK)
+                    return true;
+
+                if (var.equals_ascii_nocase("no") ||
+                    var.equals_ascii_nocase("n") ||
+                    var.equals_ascii_nocase("disabled") ||
+                    var.equals_ascii_nocase("off") ||
+                    var.equals_ascii_nocase("0"))
+                    return false;
+
+                return true;
+            }
+
             static const char * const paths[] =
             {
             #if defined(ARCH_64BIT)
@@ -95,6 +112,12 @@ namespace lsp
                     return STATUS_OK;
 
                 init_functions();
+
+                // Custom FreeType library may clash with built-in host's FreeType library,
+                // so we keep the option of loading of system FreeType library on user's
+                // own risk.
+                if (!check_env_option_enabled("LSP_WS_FORCE_SYSTEM_FREETYPE"))
+                    return STATUS_OK;
 
                 // Try to load FreeType library
                 FT_Error error = FT_Err_Ok;
