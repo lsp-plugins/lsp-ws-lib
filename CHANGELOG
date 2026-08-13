@@ -16,6 +16,7 @@
 * Fixed window embedding for different plugin hosts (contributed by
   lltwist @ github.com).
 * Updated build scripts.
+* Updated module versions in dependencies.
 
 === 1.0.34 ===
 * Forcing use of system FreeType library if host provides custom one.
