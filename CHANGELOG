@@ -3,7 +3,7 @@
 *******************************************************************************
 
 === 1.0.36 ===
-
+* Updated build scripts.
 
 === 1.0.35 ===
 * Usage of system FreeType library for hosts that provide it's own built-in
