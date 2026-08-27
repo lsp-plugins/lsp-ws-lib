@@ -113,12 +113,6 @@ namespace lsp
 
                 init_functions();
 
-                // Custom FreeType library may clash with built-in host's FreeType library,
-                // so we keep the option of loading of system FreeType library on user's
-                // own risk.
-                if (!check_env_option_enabled("LSP_WS_FORCE_SYSTEM_FREETYPE"))
-                    return STATUS_OK;
-
                 // Try to load FreeType library
                 FT_Error error = FT_Err_Ok;
                 FT_Int major = 0, minor = 0, patch = 0;
@@ -129,6 +123,15 @@ namespace lsp
                     if (library != NULL)
                         pDone_FreeType(library);
                 };
+
+                // Custom FreeType library may clash with built-in host's FreeType library,
+                // so we keep the option of loading of system FreeType library on user's
+                // own risk.
+                if (!check_env_option_enabled("LSP_WS_FORCE_SYSTEM_FREETYPE"))
+                {
+                    hLibrary            = release_ptr(library);
+                    return STATUS_OK;
+                }
 
                 if ((error != FT_Err_Ok) || (library == NULL) ||
                     ((major <= 2) && (minor < 11)))
