@@ -63,11 +63,27 @@
 
         CGContextRestoreGState(context);
 
-        CGImageRelease(image);
+        // Keep the frame: during a live host resize AppKit redraws the view on
+        // every frame change, usually before the widget framework has produced
+        // a surface for the new size — without a cached frame the view flashes
+        // its background (black) until the next redraw tick.
+        if (self->_lastImage != NULL)
+            CGImageRelease(self->_lastImage);
+        self->_lastImage = image;
 
         cairo_surface_destroy(self->_imageSurface);
         self->_imageSurface = NULL;
-    } 
+    }
+    else if (self->_lastImage != NULL)
+    {
+        // No fresh frame yet — stretch the previous one over the current bounds
+        CGContextRef context = [[NSGraphicsContext currentContext] CGContext];
+        CGContextSaveGState(context);
+        CGContextTranslateCTM(context, 0, self.bounds.size.height);
+        CGContextScaleCTM(context, 1, -1);
+        CGContextDrawImage(context, CGRectMake(0, 0, self.bounds.size.width, self.bounds.size.height), self->_lastImage);
+        CGContextRestoreGState(context);
+    }
     
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center postNotificationName:@"RedrawRequest"
@@ -145,6 +161,12 @@
 - (void)dealloc
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+
+    if (self->_lastImage != NULL)
+    {
+        CGImageRelease(self->_lastImage);
+        self->_lastImage = NULL;
+    }
 
     if (self.trackingArea)
     {

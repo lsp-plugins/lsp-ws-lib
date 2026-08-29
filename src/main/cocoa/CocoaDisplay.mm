@@ -137,11 +137,16 @@ namespace lsp
                 if (!standaloneApp)
                 {
                     LSPDisplayTimerProxy *proxy = [[LSPDisplayTimerProxy alloc] initWithDisplay:this];
-                    NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:(1.0/60.0)
+                    NSTimer *timer = [NSTimer timerWithTimeInterval:(1.0/60.0)
                                               target:proxy
                                               selector:@selector(tick:)
                                               userInfo:nil
                                               repeats:YES];
+                    // NSRunLoopCommonModes, not the default mode: during a live window
+                    // resize (or menu tracking) the run loop switches to an event
+                    // tracking mode where default-mode timers do not fire — the UI
+                    // would stop redrawing for the whole duration of the drag.
+                    [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSRunLoopCommonModes];
                     pIterationTimer      = (void *) timer;   // owned by run loop
                     pIterationTimerProxy = (void *) proxy;   // owned by us
                 }

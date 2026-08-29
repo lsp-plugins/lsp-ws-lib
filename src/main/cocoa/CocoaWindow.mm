@@ -89,6 +89,7 @@ namespace lsp
 
                 windowObserverTokens = [[NSMutableArray alloc] init];
                 viewObserverTokens = [[NSMutableArray alloc] init];
+                pParentFrameToken = nil;
             }
 
             CocoaWindow::~CocoaWindow()
@@ -108,7 +109,10 @@ namespace lsp
                 {
                     ssize_t screenWidth, screenHeight;
                     pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
-                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight + pCocoaDisplay->get_window_title_height());    
+                    // Content rect only — initWithContentRect derives the frame from
+                    // the style mask. Inflating the height by the title height here
+                    // made the content taller than requested by exactly the title bar.
+                    NSRect frame = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth, sSize.nHeight);
 
                     // Create a window
                     NSWindow *window = [[NSWindow alloc]
@@ -292,6 +296,13 @@ namespace lsp
 
             void CocoaWindow::destroy()
             {
+                if (pParentFrameToken != nil)
+                {
+                    [[NSNotificationCenter defaultCenter] removeObserver:pParentFrameToken];
+                    [pParentFrameToken release];
+                    pParentFrameToken = nil;
+                }
+
                 if (bWrapper)
                 {
                     for (id token in viewObserverTokens)
@@ -378,6 +389,14 @@ namespace lsp
                 if (pCocoaView == nil)
                     return STATUS_BAD_STATE;
 
+                // Drop the frame observer of the previous host slot view (if any)
+                if (pParentFrameToken != nil)
+                {
+                    [[NSNotificationCenter defaultCenter] removeObserver:pParentFrameToken];
+                    [pParentFrameToken release];
+                    pParentFrameToken = nil;
+                }
+
                 if (hostView != nil)
                 {
                     if (pCocoaWindow != nil)
@@ -394,6 +413,46 @@ namespace lsp
                         [pCocoaView release];
                     }
                     pCocoaParentView = hostView;
+
+                    // Follow host-driven resizes of the slot view. Some hosts (REAPER)
+                    // resize the parent NSView directly during a live window drag in
+                    // addition to / instead of calling IPlugView::onSize, so a frame
+                    // observer is the only reliable signal. set_geometry() is a no-op
+                    // when the size did not change, so this can not loop.
+                    [hostView setPostsFrameChangedNotifications:YES];
+                    id token = [[NSNotificationCenter defaultCenter]
+                                    addObserverForName:NSViewFrameDidChangeNotification
+                                    object:hostView
+                                    queue:[NSOperationQueue mainQueue]
+                                    usingBlock:^(NSNotification *note) {
+                                        NSView *slot = (NSView *)note.object;
+                                        NSRect b = [slot bounds];
+                                        lsp_trace("host slot frame changed -> %dx%d", int(b.size.width), int(b.size.height));
+                                        if ((b.size.width < 2.0) || (b.size.height < 2.0))
+                                            return;
+                                        rectangle_t r;
+                                        r.nLeft   = sSize.nLeft;
+                                        r.nTop    = sSize.nTop;
+                                        r.nWidth  = b.size.width;
+                                        r.nHeight = b.size.height;
+                                        // Some hosts (REAPER) shrink the slot below the
+                                        // widget layout's minimum without consulting
+                                        // checkSizeConstraint. Clamp to the constraints
+                                        // the toolkit registered via set_size_constraints
+                                        // so widgets keep their minimum layout; the host
+                                        // window then simply clips the view, like any
+                                        // fixed-minimum plug-in.
+                                        if (sConstraints.nMinWidth > 0)
+                                            r.nWidth  = lsp_max(r.nWidth,  sConstraints.nMinWidth);
+                                        if (sConstraints.nMinHeight > 0)
+                                            r.nHeight = lsp_max(r.nHeight, sConstraints.nMinHeight);
+                                        if (sConstraints.nMaxWidth > 0)
+                                            r.nWidth  = lsp_min(r.nWidth,  sConstraints.nMaxWidth);
+                                        if (sConstraints.nMaxHeight > 0)
+                                            r.nHeight = lsp_min(r.nHeight, sConstraints.nMaxHeight);
+                                        set_geometry(&r);
+                                    }];
+                    pParentFrameToken = [token retain];
                 }
                 else if (pCocoaParentView != nil)
                 {
@@ -705,10 +764,18 @@ namespace lsp
         
             status_t CocoaWindow::update_window_hints()
             {
+                // Embedded mode: [pCocoaView window] is the HOST's window. Setting
+                // contentMin/MaxSize on it fights the host's own layout (its window
+                // content = our view + host chrome, so clamping the content to our
+                // view size ratchets the window by exactly the chrome size on every
+                // resize round-trip — observed in REAPER as +392x+284 per step).
+                if ((bWrapper) || (pCocoaParentView != nil))
+                    return STATUS_OK;
+
                 NSWindow * const window = [pCocoaView window];
                 if (window == NULL)
                     return STATUS_BAD_STATE;
-                
+
                 ws::size_limit_t c;
                 status_t res = get_actual_size_constraints(&c);
                 if (res != STATUS_OK)
@@ -755,12 +822,9 @@ namespace lsp
 
             status_t CocoaWindow::set_geometry(const rectangle_t *realize)
             {
-                if (!pCocoaWindow)
+                if (pCocoaView == nil)
                     return STATUS_BAD_STATE;
-                NSWindow * const  window = [pCocoaView window];
-                if (!window)
-                    return STATUS_BAD_STATE;
-                
+
                 rectangle_t old = sSize;
 
                 sSize.nLeft = realize->nLeft;
@@ -773,25 +837,78 @@ namespace lsp
                     (old.nWidth == sSize.nWidth) &&
                     (old.nHeight == sSize.nHeight))
                     return STATUS_OK;
-                
-                // Calculate the frame rect from the content rect
+
                 lsp_trace("Resize / move window {left=%d, top=%d, width=%d, height=%d}\n", int(sSize.nLeft), int(sSize.nTop), int(sSize.nWidth), int(sSize.nHeight));
 
-                // TODO: handle case when window is resized in wrapper mode with some menu added from DAW
+                // Embedded == our view lives in a host-owned NSView slot. NOTE: in VST3
+                // hosted mode the window is created via create_window() (bWrapper is
+                // false!) and only becomes embedded when IPlugView::attached() calls
+                // set_parent() — so the discriminator is pCocoaParentView, not bWrapper.
+                if ((bWrapper) || (pCocoaParentView != nil))
+                {
+                    // Embedded in a host-owned NSView. The outer NSWindow belongs to the
+                    // host, so we must NOT resize it from here. In hosted VST3 mode the
+                    // host owns the outer geometry and drives it through
+                    // IPlugView::onSize (host-initiated, e.g. an FX-window frame drag)
+                    // and IPlugFrame::resizeView (plug-in-initiated, e.g. MENU->Scaling).
+                    // Resizing [pCocoaView window] (== the host window) here produces a
+                    // host<->plug-in resize ping-pong, observed in REAPER as
+                    // 951x551 -> 944x548 -> 951x551. Only size our own embedded view and
+                    // its backing surface, then let the widget framework re-layout.
+                    lsp_trace("set_geometry(embedded): %dx%d -> %dx%d (surface=%p)",
+                        int(old.nWidth), int(old.nHeight), int(sSize.nWidth), int(sSize.nHeight), pSurface);
+                    NSRect vf = [pCocoaView frame];
+                    [pCocoaView updateFrame:NSMakeRect(vf.origin.x, vf.origin.y, sSize.nWidth, sSize.nHeight)];
+
+                    if (pSurface != nullptr)
+                        pSurface->resize(sSize.nWidth, sSize.nHeight);
+
+                    // Tell the widget framework about the new size so it re-lays-out its
+                    // widgets. handle_event() forwards UIE_RESIZE to the tk handler even
+                    // in wrapper mode (the `if (bWrapper) break;` there only skips the
+                    // native surface bookkeeping we already did just above). This drives
+                    // the host-initiated (onSize) path; for the plug-in-initiated path
+                    // tk already holds this size, so the re-entrant set_geometry() it
+                    // triggers returns early at the old==new check above and no ping-pong
+                    // can build up.
+                    event_t ue;
+                    init_event(&ue);
+                    ue.nType   = UIE_RESIZE;
+                    ue.nLeft   = 0;
+                    ue.nTop    = 0;
+                    ue.nWidth  = sSize.nWidth;
+                    ue.nHeight = sSize.nHeight;
+                    handle_event(&ue);
+
+                    invalidate();
+                    return STATUS_OK;
+                }
+
+                // Standalone: we own the NSWindow, so drive the real window geometry.
+                NSWindow * const window = [pCocoaView window];
+                if (!window)
+                    return STATUS_BAD_STATE;
+
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
 
-                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight + pCocoaDisplay->get_window_title_height(), sSize.nWidth, sSize.nHeight);
-                NSRect frameRect = [[pCocoaView window] frameRectForContentRect:contentRect];
-            
-                [[pCocoaView window] setFrame:frameRect display:YES animate:NO];
-                NSRect newContentBounds = [[pCocoaView window] contentView].bounds;
+                // sSize positions the CONTENT (client area) in top-origin screen
+                // coordinates; frameRectForContentRect adds whatever chrome the window
+                // style actually has. Do NOT add the display's global title-height
+                // fudge here: for borderless windows (menus, combo popups) there is no
+                // chrome to compensate, and the fudge made every popup appear one
+                // title-bar height ABOVE the requested point.
+                NSRect contentRect = NSMakeRect(sSize.nLeft, screenHeight - sSize.nTop - sSize.nHeight, sSize.nWidth, sSize.nHeight);
+                NSRect frameRect = [window frameRectForContentRect:contentRect];
+
+                [window setFrame:frameRect display:YES animate:NO];
+                NSRect newContentBounds = [window contentView].bounds;
                 [pCocoaView updateFrame:newContentBounds];
 
                 status_t res = update_window_hints();
                 if (res != STATUS_OK)
                     return res;
-                
+
                 if (pSurface != nullptr)
                 {
                     pSurface->resize(sSize.nWidth, sSize.nHeight);
@@ -818,16 +935,6 @@ namespace lsp
                 transientParent = nil;
                 commit_border_style(enBorderStyle, nActions);
 
-                if (bWrapper && pCocoaView && pCocoaWindow) {
-                    NSRect contentRect = [[pCocoaWindow contentView] bounds];
-                    [pCocoaView updateFrame:contentRect];
-
-                    [pCocoaView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
-                    if (pSurface != nullptr) {
-                        pSurface->resize(contentRect.size.width, contentRect.size.height);
-                    } 
-                } 
-                
                 if (!has_parent())
                 {
                     if (over != nullptr)
@@ -851,7 +958,13 @@ namespace lsp
                 init_event(&ue);
                 ue.nType       = UIE_SHOW;
                 handle_event(&ue);
-                
+
+                // Embedded mode needs no size handshake here: the host prepares the
+                // wrapping window from getSize() before attaching, host-initiated
+                // resizes arrive via IPlugView::onSize() -> set_geometry(), and the
+                // slot-view frame observer installed in set_parent() catches hosts
+                // that resize the slot without calling onSize().
+
                 // Invalidate window contents for redraw
                 invalidate();
 
@@ -923,10 +1036,16 @@ namespace lsp
                     NSRect s = [hostWnd convertRectToScreen:b];
                     ssize_t screenW = 0, screenH = 0;
                     pCocoaDisplay->screen_size(0, &screenW, &screenH);
+                    // Origin comes from the host slot view, but the SIZE is our logical
+                    // size (sSize). The slot lags behind: when tk resizes (e.g.
+                    // MENU->Scaling), slot_ui_resize in the VST3 wrapper reads this
+                    // rectangle and passes it to IPlugFrame::resizeView — reporting the
+                    // slot size here would ask the host for the size it already has,
+                    // so the FX window would never follow tk resizes.
                     realize->nLeft   = static_cast<ssize_t>(s.origin.x);
                     realize->nTop    = static_cast<ssize_t>(screenH - s.origin.y - s.size.height);
-                    realize->nWidth  = static_cast<ssize_t>(s.size.width);
-                    realize->nHeight = static_cast<ssize_t>(s.size.height);
+                    realize->nWidth  = sSize.nWidth;
+                    realize->nHeight = sSize.nHeight;
                     return STATUS_OK;
                 }
 
@@ -939,8 +1058,12 @@ namespace lsp
                 ssize_t screenWidth, screenHeight;
                 pCocoaDisplay->screen_size(0, &screenWidth, &screenHeight);
 
+                // Content occupies the bottom part of the frame (title chrome, if
+                // any, sits above it), so the content's top-origin Y is simply
+                // screenH - (frame bottom + content height). Mirrors set_geometry(),
+                // which positions the content rect without a title-height fudge.
                 realize->nLeft   = static_cast<ssize_t>(frame.origin.x);
-                realize->nTop    = static_cast<ssize_t>(screenHeight - frame.origin.y - cFrame.size.height + pCocoaDisplay->get_window_title_height() /*frame.origin.y*/);
+                realize->nTop    = static_cast<ssize_t>(screenHeight - frame.origin.y - cFrame.size.height);
                 realize->nWidth  = static_cast<ssize_t>(cFrame.size.width);
                 realize->nHeight = static_cast<ssize_t>(cFrame.size.height);
 
@@ -1020,7 +1143,10 @@ namespace lsp
                     case UIE_RESIZE:
                     {
                         lsp_trace("Resize event: {l=%d, t=%d, w=%d, h=%d}", int(ev->nLeft), int(ev->nTop), int(ev->nWidth), int(ev->nHeight));
-                        if (bWrapper) break;
+                        // Embedded: set_geometry() already did the native bookkeeping
+                        // (view frame, surface) before emitting this event; only the
+                        // tk handler below needs to see it.
+                        if ((bWrapper) || (pCocoaParentView != nil)) break;
 
                         sSize.nLeft = ev->nLeft;
                         sSize.nTop = ev->nTop;
