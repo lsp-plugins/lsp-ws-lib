@@ -343,6 +343,11 @@ namespace lsp
             return STATUS_NOT_IMPLEMENTED;
         }
 
+        status_t IWindow::set_input_focus(bool focus)
+        {
+            return STATUS_NOT_IMPLEMENTED;
+        }
+
         status_t IWindow::set_caption(const LSPString *caption)
         {
             return set_caption(caption->get_utf8());

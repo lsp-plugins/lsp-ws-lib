@@ -363,6 +363,13 @@ namespace lsp
                  */
                 virtual status_t take_focus();
 
+                /** Take keyboard focus for an embedded control, or return it to
+                 * the previous holder if this window still owns it.
+                 * @param focus true to take focus, false to release it
+                 * @return status of operation
+                 */
+                virtual status_t set_input_focus(bool focus);
+
                 /** Set window icon
                  *
                  * @param bgra the packed array of Blue, Green, Red and Alpha components
