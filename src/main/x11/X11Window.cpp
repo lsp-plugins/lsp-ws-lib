@@ -1393,9 +1393,11 @@ namespace lsp
             {
                 const ::Window previous = hInputFocus;
                 if (!focus)
+                {
                     hInputFocus = None;
-                if ((!focus) && (previous == None))
-                    return STATUS_OK;
+                    if (previous == None)
+                        return STATUS_OK;
+                }
                 if ((hWindow == None) || (pX11Display == NULL) || (!bVisible))
                     return STATUS_BAD_STATE;
 
