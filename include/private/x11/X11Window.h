@@ -66,6 +66,7 @@ namespace lsp
                     ::Window            hWindow;
                     ::Window            hParent;
                     ::Window            hTransientFor;
+                    ::Window            hInputFocus;
                     ISurface           *pSurface;
                     border_style_t      enBorderStyle;
                     motif_hints_t       sMotif;
@@ -156,6 +157,7 @@ namespace lsp
                     virtual status_t    get_actual_size_constraints(size_limit_t *c) override;
 
                     virtual status_t    take_focus() override;
+                    virtual status_t    set_input_focus(bool focus) override;
 
                     virtual status_t    set_caption(const char *caption) override;
                     virtual status_t    set_caption(const LSPString *caption) override;

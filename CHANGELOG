@@ -3,6 +3,7 @@
 *******************************************************************************
 
 === 1.0.38 ===
+* Added window focusing function (contribution by Jason A. Donenfeld).
 * Updated build scripts.
 
 === 1.0.37 ===

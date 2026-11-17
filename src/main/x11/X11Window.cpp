@@ -179,6 +179,7 @@ namespace lsp
                     hParent                 = wnd;
                 }
                 hTransientFor           = None;
+                hInputFocus             = None;
                 nScreen                 = screen;
                 pSurface                = NULL;
                 enBorderStyle           = BS_SIZEABLE;
@@ -1108,6 +1109,7 @@ namespace lsp
 
             status_t X11Window::hide()
             {
+                set_input_focus(false);
                 bVisible        = false;
                 hTransientFor   = None;
                 if (hWindow == 0)
@@ -1385,6 +1387,38 @@ namespace lsp
                 lsp_trace("result = %s", (res) ? "success" : "unknown_error");
 
                 return (res) ? STATUS_OK : STATUS_UNKNOWN_ERR;
+            }
+
+            status_t X11Window::set_input_focus(bool focus)
+            {
+                const ::Window previous = hInputFocus;
+                if (!focus)
+                {
+                    hInputFocus = None;
+                    if (previous == None)
+                        return STATUS_OK;
+                }
+                if ((hWindow == None) || (pX11Display == NULL) || (!bVisible))
+                    return STATUS_BAD_STATE;
+
+                ::Window current;
+                int revert;
+                ::XGetInputFocus(pX11Display->x11display(), &current, &revert);
+                if (focus)
+                {
+                    if (current == hWindow)
+                        return STATUS_OK;
+                    if (!pX11Display->set_input_focus(hWindow))
+                        return STATUS_UNKNOWN_ERR;
+                    if (hParent != None)
+                        hInputFocus = current;
+                }
+                else
+                {
+                    if ((current == hWindow) && (!pX11Display->set_input_focus(previous)))
+                        return STATUS_UNKNOWN_ERR;
+                }
+                return STATUS_OK;
             }
 
             status_t X11Window::set_caption(const char *caption)
