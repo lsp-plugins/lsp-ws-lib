@@ -1747,6 +1747,8 @@ namespace lsp
 
                     case FocusIn:
                     case FocusOut:
+                        if ((ev->xfocus.detail == NotifyPointer) || (ev->xfocus.detail == NotifyPointerRoot))
+                            break;
                         ue->nType       = (ev->type == FocusIn) ? UIE_FOCUS_IN : UIE_FOCUS_OUT;
                         // TODO: maybe useful could be decoding of mode and detail
                         break;
